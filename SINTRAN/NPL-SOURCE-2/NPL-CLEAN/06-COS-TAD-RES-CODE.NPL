@@ -1,0 +1,766 @@
+ @DEV 1
+ @DEV (S-S-J)COS-TAD-RES-CODE
+
+
+ %%%%%%%%%%%%%%%%%%%%  COS-TAD-RES-CODE  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ *"BADAD
+" %==============================================================================
+ %     T * A * D    R * E * S * I * D * E * N * T     P * A * R T
+ %==============================================================================
+
+ %-----------------------------------------------------------------------
+ %   SAVED PIE IN MLVLOC TO RESET CORRECT STATE OF MLEV IN MLVULOC
+
+ INTEGER MLVSAV
+ %----------------------------------------------------------------------
+
+ %=====================================================================
+ %           M L V L O C
+ %
+ % ROUTINE TO DISABLE MONITOR LEVEL. THE ORIGINAL STATE OF MONITOR LEVEL
+ % IS SAVED IN MLVSAV
+ % THE ROUTINE RETURNS WITH ION
+ SUBR MLVLOC
+ INTEGER AREG
+ MLVLOC: *IOF
+        A=:AREG; *TRA PIE
+        A=:MLVSAV; MLEV; *MCL PIE       % SAVE PIE AND DISABLE MLEV
+        A:=AREG; *ION; EXIT
+ RBUS
+
+ %=====================================================================
+ %           M L V U L O C
+ %
+ % ROUTINE TO ENABLE MONITOR LEVEL IF BIT 3 IS SET IN MLVSAV
+ SUBR MLVULOC
+ INTEGER AREG
+ MLVULOC: *IOF
+        A=:AREG:=MLVSAV; 0=:MLVSAV
+        IF A BIT MLEVL THEN             % MONITOR LEVEL MUST BE ENABLED
+            MLEV; *MST PIE
+        FI
+        A:=AREG; EXIT
+ RBUS
+
+ %==============================================================================
+ %     T * A * D     S * T * A * C * K    R * O * U * T * I * N * E * S
+ %==============================================================================
+ %     EACH TAD HAS A STACK AREA IN PHYSICAL MEMORY. THE AREA IS RESERVED
+ %     AT SINTRAN STARTUP. BOTH INPUT AND OUTPUT DATAFIELD (TSTADD) POINTS
+ %     TO THE STACK.
+ %
+ %     GLOBAL VARIABLES:   TSBANK  - MEMORY BANK FOR STACK AREA
+ %                         TSSIZE  - SIZE OF EACH TAD STACK
+ %     DATAFIELD VARIABLE: TSTADD  - STACK ADDRESS
+
+ %======================================================================================
+ %      T S T O W F L   T S T D E R R
+ %
+ % FATAL ERROR IN TAD STACK. ERRFATAL IS CALLED
+ % WHEN THE SYSTEM IS IN ERRFATAL THE REGISTERS WILL CONTAIN
+ % SOME DEBUG INFORMATION:
+ %
+ %      A-REG - TAD STACK ADDRESS
+ %      T-REG - WHERE THIS ROUTINE IS CALLED FROM
+ %      D-REG - ORIGINAL L-REG
+
+ SUBR TSTOWFL,TSTDERR,TSTEND
+ TSTOWFL: L=:D; CALL ERRFATAL       % TAD STACK OWERFLOW
+ TSTDERR: L=:D; CALL ERRFATAL       % TAD STACK DISPLACEMENT ERROR
+ TSTEND:  L=:D; CALL ERRFATAL       % RETURNING AT START OF STACK
+ RBUS
+
+ %======================================================================================
+ %      B R S T A C K    X R S T A C K
+ %
+ % ROUTINE TO RESET TAD STACK
+ % BRSTACK: B-REG TAD-DATAFIELD INPUT OR OUTPUT
+ % XRSTACK: X-REG TAD-DATAFIELD INPUT OR OUTPUT
+
+ SUBR BRSTACK,XRSTACK
+ INTEGER TREG,XREG,AREG,TSTAPO
+ XRSTACK: *IOF
+        A=:AREG; X=:XREG; X.TSTADD=:TSTAPO; GO FELLS
+ BRSTACK: *IOF
+        A=:AREG; X=:XREG; TSTADD=:TSTAPO
+ FELLS: T=:TREG:=TSBANK
+        X:=TSTAPO; TSSIZE; *STATX       % STACK SIZE
+        X+1; A:=1; *STATX               % STACK POINTER
+        T:=TREG; X:=XREG; A:=AREG; *ION
+        EXIT
+ RBUS
+
+ %======================================================================================
+ %      S E T S T A C K
+ %
+ % ROUTINE TO CREATE STACK AREA FOR A ROUTINE AND SAVE L-REG
+ % SIZE OF STACK:    LOCATION AFTER CALL
+ % TAD-DATAFIELD:    B-REG
+ % ORGIGINAL L-REG:  D-REG
+ % NORMAL RETURN:    SKIP OK
+ % ERROR        :    STACK OWERFLOW, ERRFATAL
+ SUBR SETSTACK
+ INTEGER TREG,AREG,DREG,XREG; TRIPLE TADREG=TREG
+ INTEGER TSTMAX,STPOLD,NSIZE,NEWSTP
+ SETSTACK: *IOF
+        TAD=:TADREG; X=:XREG                                % SAVE REGISTERS
+        T:=TSBANK; X:=TSTADD; *LDATX                        % GET MAX STACK SIZE
+        A=:TSTMAX; X+1; *LDATX                              % GET OLD STACK POINTER
+        A=:STPOLD; L=:X
+        X.S0-=:NSIZE; STPOLD+NSIZE+2=:NEWSTP                % GET SIZE AND FIND NEW
+        IF A>TSTMAX GO STOWF                                % TEST FOR OWERFLOW
+        T:=TSBANK; X:=TSTADD+1; NEWSTP; *STATX              % SET NEW STACK POINT
+        A+TSTADD=:X; STPOLD; *STATX                         % SAVE OLD STACK POINT
+        X-1; DREG; *STATX                                   % SAVE ROUTINES L-REG
+        TADREG; X:=XREG; *ION                               % RESTORE REGISTERS
+        EXITA                                               % RETURN
+ STOWF: TSTADD; P=:T; GO TSTOWFL    % STACK OWERFLOW
+ RBUS
+
+ %======================================================================================
+ %      T 1 X E X I    T 2 X E X I
+ %
+ % ROUTINES TO DO EXIT VIA THE STACK
+ % X-REG MUST POINT TO TAD-DATAFIELD
+ % T1XEXI: EXIT
+ % T2XEXI: EXITA
+
+ SUBR T1XEXI,T2XEXI
+ INTEGER RETFL,AREG,XREG,TREG,BREG
+ T2XEXI: K:=1; GO FELLS
+ T1XEXI: K:="0"
+ FELLS: *IOF
+        A=:AREG; X=:XREG; T=:TREG; X:=:B=:BREG
+        IF K THEN 1=:RETFL ELSE 0=:RETFL FI
+        T:=TSBANK; X:=TSTADD+1; *LDATX
+        IF A=1 GO SEMPT                           % FATAL ERROR STACK EMPTY
+        X+A-2; T:=TSBANK; *LDATX                  % GET L-REG
+        A+RETFL=:L; X+1; *LDATX                   % FIND PREVIOUS POINTER
+        X:=TSTADD+1; *STATX                       % POP STACK
+        A:=BREG=:B:=AREG; X:=XREG; T:=TREG; *ION
+        EXIT
+ SEMPT: TSTADD; P=:T; GO TSTEND
+ RBUS
+
+ %======================================================================================
+ %      T 1 B E X I    T 2 B E X I
+ %
+ % ROUTINES TO DO EXIT VIA THE STACK
+ % B-REG MUST POINT TO TAD-DATAFIELD
+ % T1BEXI: EXIT
+ % T2BEXI: EXITA
+
+ SUBR T1BEXI,T2BEXI
+ INTEGER RETFL,AREG,XREG,TREG
+ T2BEXI: K:=1; GO FELLS
+ T1BEXI: K:="0"
+ FELLS: *IOF
+        A=:AREG; X=:XREG; T=:TREG
+        IF K THEN 1=:RETFL ELSE 0=:RETFL FI
+        T:=TSBANK; X:=TSTADD+1; *LDATX
+        IF A=1 GO SEMPT                           % FATAL ERROR STACK EMPTY
+        X+A-2; T:=TSBANK; *LDATX                  % GET L-REG
+        A+RETFL=:L; X+1; *LDATX                   % FIND PREVIOUS POINTER
+        X:=TSTADD+1; *STATX                       % POP STACK
+        AREG; X:=XREG; T:=TREG; *ION
+        EXIT
+ SEMPT: TSTADD; P=:T; GO TSTEND
+ RBUS
+
+ %======================================================================================
+ %      S T A X   S T T X
+ %      S T A B   S T X B   S T T B
+ %
+ % ROUTINES TO STORE ONE WORD IN THE STACK
+ % STAX: STORE A-REG X-RELATIVE
+ % STTX: STORE T-REG X-RELATIVE
+ % STAB: STORE A-REG B-RELATIVE
+ % STXB: STORE X-REG B-RELATIVE
+ % STTB: STORE T-REG B-RELATIVE
+ % NORMAL RETURN: SKIP OK
+ % ERROR RETURN : DISPLACEMENT ERROR, ERRFATAL
+
+ SUBR STAX,STTX,STAB,STXB,STTB
+ INTEGER TSTAAD,CURSTP,EDISP,CAND,AREG,TREG,XREG
+ STAX:  *IOF
+        A=:CAND; GO FELLX
+ STTX:  *IOF
+        T=:CAND
+ FELLX: A=:AREG; X.TSTADD; GO FELLS
+ STXB:  *IOF
+        X=:CAND; GO FELLB
+ STTB:  *IOF
+        T=:CAND; GO FELLB
+ STAB:  *IOF
+        A=:CAND
+ FELLB: A=:AREG; TSTADD
+ FELLS: A=:TSTAAD; X=:XREG; T=:TREG
+        L=:X; A:=X.S0-1=:EDISP                              % FIND DISPLACEMENT
+        T:=TSBANK; X:=TSTAAD+1; *LDATX                      % FIND STACK POSITION
+        A+TSTAAD=:CURSTP=:X; *LDATX                         % FIND LEGAL AREA
+        T:=EDISP; IF X+T<<A OR EDISP>-2 GO DPLER            % CHECK DISPLACEMENT
+        T:=TSBANK; CAND; *STATX                             % STORE WORD
+        T:=TREG; X:=XREG; AREG; *ION
+        EXITA
+ DPLER: TSTAAD; P=:T; GO TSTDERR              % DISPLACEMENT ERROR
+ RBUS
+
+ %======================================================================================
+ %      S T A D B     S T A D X
+ %
+ % ROUTINES TO STORE TAD REGISTERS IN THE STACK
+ % STADB: STORE TAD-REG B-RELATIVE
+ % STADX: STORE TAD-REG X-RELATIVE
+ % NORMAL RETURN: SKIP OK
+ % ERROR RETURN : DISPLACEMENT ERROR, ERRFATAL
+
+ SUBR STADB,STADX
+ INTEGER TSTAAD,CURSTP,EDISP,TREG,AREG,DREG,XREG
+ TRIPLE TADREG=TREG; DOUBLE TAREG=TREG
+ STADX: *IOF
+        TAD=:TADREG; X.TSTADD; GO FELLS
+ STADB: *IOF
+        TAD=:TADREG; TSTADD
+ FELLS: A=:TSTAAD; X=:XREG
+        L=:X; A:=X.S0-1=:EDISP                              % FIND DISPLACEMENT
+        T:=TSBANK; X:=TSTAAD+1; *LDATX                      % FIND STACK POSITION
+        A+TSTAAD=:X; *LDATX                                 % FIND LEGAL AREA
+        T:=EDISP; IF X+T<<A OR EDISP>-4 GO DPLER            % CHECK DISPLACEMENT
+        T:=TSBANK; TAREG; *STDTX                            % STORE TA-REG
+        X+2; DREG; *STATX                                   % STORE D-REG
+        TAD:=TADREG; X:=XREG; *ION
+        EXITA
+ DPLER: TSTAAD; P=:T; GO TSTDERR              % DISPLACEMENT ERROR
+ RBUS
+
+ %======================================================================================
+ %      L D A X   L D T X
+ %      L D A B   L D X B   L D T B
+ %
+ % ROUTINES TO LOAD ONE WORD FROM THE STACK
+ % LDAX: LOAD A-REG X-RELATIVE
+ % LDTX: LOAD T-REG X-RELATIVE
+ % LDAB: LOAD A-REG B-RELATIVE
+ % LDXB: LOAD X-REG B-RELATIVE
+ % LDTB: LOAD T-REG B-RELATIVE
+ % NORMAL RETURN: SKIP OK
+ % ERROR RETURN : DISPLACEMENT ERROR, ERRFATAL
+
+ SUBR LDAX,LDTX,LDAB,LDXB,LDTB
+ INTEGER TSTAAD,CURSTP,EDISP,REGFL,AREG,TREG,XREG
+ LDAX:  *IOF
+        T=:TREG; X=:XREG; 0=:REGFL; GO FELLX
+ LDTX:  *IOF
+        A=:AREG; X=:XREG; 2=:REGFL
+ FELLX: X.TSTADD; GO FELLS
+ LDXB:  *IOF
+        A=:AREG; T=:TREG; 1=:REGFL; GO FELLB
+ LDTB:  *IOF
+        A=:AREG; X=:XREG; 2=:REGFL; GO FELLB
+ LDAB:  *IOF
+        T=:TREG; X=:XREG; 0=:REGFL
+ FELLB: TSTADD
+ FELLS: A=:TSTAAD; L=:X; A:=X.S0-1=:EDISP                   % FIND DISPLACEMENT
+        T:=TSBANK; X:=TSTAAD+1; *LDATX                      % FIND STACK POSITION
+        A+TSTAAD=:CURSTP=:X; *LDATX                         % FIND LEGAL AREA
+        T:=EDISP; IF X+T<<A OR EDISP>-2 GO DPLER            % CHECK DISPLACEMENT
+        T:=TSBANK; *LDATX                                   % LOAD WORD
+        X:=REGFL
+        IF X=0 THEN T:=TREG; X:=XREG; GO RETU FI            % LOAD A-REG
+        IF X=1 THEN A=:X; AREG; T:=TREG; GO RETU FI         % LOAD X-REG
+        A=:T; AREG; X:=XREG                                 % LOAD T-REG
+ RETU:  *ION
+        EXITA
+ DPLER: TSTAAD; P=:T; GO TSTDERR              % DISPLACEMENT ERROR
+ RBUS
+
+ %======================================================================================
+ %      L T A D B     L T A D X
+ %
+ % ROUTINES TO LOAD TAD REGISTERS FROM THE STACK
+ % LTADB: LOAD TAD-REG B-RELATIVE
+ % LTADX: LOAD TAD-REG X-RELATIVE
+ % NORMAL RETURN: SKIP OK
+ % ERROR RETURN : DISPLACEMENT ERROR, ERRFATAL
+
+ SUBR LTADB,LTADX
+ INTEGER TSTAAD,CURSTP,EDISP,TREG,AREG,DREG,XREG
+ TRIPLE TADREG=TREG; DOUBLE TAREG=TREG
+ LTADX: *IOF
+        X=:XREG; X.TSTADD; GO FELLS
+ LTADB: *IOF
+        X=:XREG; TSTADD
+ FELLS: A=:TSTAAD; L=:X; A:=X.S0-1=:EDISP                   % FIND DISPLACEMENT
+        T:=TSBANK; X:=TSTAAD+1; *LDATX                      % FIND STACK POSITION
+        A+TSTAAD=:CURSTP=:X; *LDATX                         % FIND LEGAL AREA
+        T:=EDISP; IF X+T<<A OR EDISP>-4 GO DPLER            % CHECK DISPLACEMENT
+        T:=TSBANK; *LDDTX                                   % LOAD AD - TA-REG
+        AD=:TAREG; X+2; *LDATX                              % LOAD A  - D-REG
+        A=:DREG; TAD:=TADREG; X:=XREG                       % SET CORRECT REGISTERS
+ RETU:  *ION
+        EXITA
+ DPLER: TSTAAD; P=:T; GO TSTDERR              % DISPLACEMENT ERROR
+ RBUS
+
+ %======================================================================
+ % XX.XX     R S R E S T A R T
+ %
+ % ROUTINE TO RESTART USER AFTER RECEIVED RESPONSE. PROGRAM IS ALWAYS
+ % IN IO-WAIT. ISTATE WAS NOT UPDATED WHEN PROGRAM WAS PUT IN WAITING
+ % STATE.
+ SUBR RSRESTART
+ RSRESTART: X=:B:=RTRES
+        X.STATUS BZERO 5WAIT=:X.STATUS
+        GO STUPR
+ RBUS
+
+ %======================================================================
+ % XX.XX      R E D O M
+ %
+ % ROUTINE TO CAUSE MONITOR CALL TO BE REDONE
+ % ENTRY:     B = DATAFIELD
+ %            X = RT-PROGRAM
+ %            D = WORKING AREA
+ SUBR REDOM
+ REDOM: *PON
+        CALL BRSTACK          % RESET TAD STACK
+        IF X.RTRES-RTREF=0 THEN CALL WDATA FI
+        D=:B; ZPREG-1=:ZPREG; GO RETSTUPR
+ RBUS
+
+ %=========================================================================
+ % XX.XX      I E D C H K
+ %
+ % ROUTINE TO CHECK IF INPUT IS DONE WHILE DELAYED ESCAPE ACTION IS ON
+ % ENTRY: B = INPUT-DATAFIELD
+ % ERROR: EXIT.  A = ERROR-CODE: INPUT DONE IN DELAYED ESCAPE ACTION
+ % OK:    SKIP RETURN
+
+ SUBR IEDCHK
+ INTEGER DELMASK:=174377  % ZERO 5ESCLOFF, 5WESC, 5WLOC
+ IEDCHK: IF FLAGB BIT 5ESCLOFF THEN
+            IF T:=TYPRING BIT 5BAD THEN           %% B A D  ONLY
+              IF A BIT 5WESC THEN                 %  ESCAPE WAITING
+                 L=:D; CALL CBRESP; D=:L          %  SEND-RESPONSE
+              FI                                  %
+            FI                                    %%
+            *IOF
+            FLAGB/\DELMASK=:FLAGB; *ION
+            A:=TER00; EXIT
+         FI
+         A:=0; EXITA
+ RBUS
+
+ %=========================================================================
+ % XX.XX      B D O U T
+ %
+ % START OUTPUT DRIVER ROUTINE FOR TAD
+ % CALLED WITH PAGING OFF.
+ % ENTRY: B-REG - TAD OUTPUT DATAFIELD,  RETURN EXIT
+ SUBR BDOUT
+ BDOUT: *IOF
+        B=:A; *IRW LV10B DB             % B = TAD OUTPUT DATAFIELD
+        "ACTOUT"; *IRW LV10B DT         % T = DRIVER OUTPUT ROUTINE
+        "SLV10";  *IRW LV10B DP         % P = LEVEL ACTIVATING POINT
+        LV10; *MST PID
+        *PION; POF; EXIT                % ALLOW DRIVER TO EXECUTE
+ RBUS
+
+ %=========================================================================
+ % XX.XX      C B E R S P
+ %
+ % IF TAD, ROUTINE ACTIVATES DRIVER TO SEND ESCAPE-RESPONSE
+ % ENTRY: B-REG - INPUT-DATAFIELD,  RETURN EXIT AD1
+ SUBR CBERSP
+ CBERSP: IF TYPRING BIT 5BAD THEN
+           L=:A; CALL BRSTACK; A=:L; *IOF  % RESET TAD-STACK
+           B=:A; *IRW LV10B DB             % B = TAD INPUT DATAFIELD
+           "BERESP"; *IRW LV10B DT         % T = DRIVER ESCAPE-RESPONSE
+           "SLV10";  *IRW LV10B DP         % P = LEVEL ACTIVATING POINT
+           LV10; *MST PID
+        FI
+        *PION; EXIT AD1
+ RBUS
+
+ %=========================================================================
+ % XX.XX      C X R E S P
+ %
+ % IF TAD, ROUTINE ACTIVATES DRIVER TO SEND ESCAPE-RESPONSE
+ % ENTRY: X-REG - INPUT-DATAFIELD,  RETURN EXIT AD1
+ % ROUTINE IS CALLED WITH INTERUPTS OFF PAGING ON
+ SUBR CXRESP
+ CXRESP: L+1=:D
+         IF X.TYPRING BIT 5BAD THEN
+           CALL XRSTACK; *IOF              % RESET TAD STACK
+           X=:A; *IRW LV10B DB             % B = TAD INPUT DATAFIELD
+           "BERESP"; *IRW LV10B DT         % T = DRIVER ESCAPE-RESPONSE
+           "SLV10";  *IRW LV10B DP         % P = LEVEL ACTIVATING POINT
+           LV10; *MST PID; ION; IOF
+        FI
+        D=:P
+ RBUS
+
+ %======================================================================
+ % XX.XX      B D T O U
+ %
+ % OUTPUT TIMEOUT ROUTINE FOR TAD, CALLED WITH INTERUPT OFF
+ % ROUTINE SENDS OUTPUT BUFFER AT TIMEOUT
+ % B = TAD OUTPUT DATAFIELD
+ SUBR BDTOU
+ INTEGER POINTER LREG
+ BDTOU: L=:D; CALL MLVLOC; CALL BRSTACK; CALL SETSTACK(0); *POF
+        CALL SNDBUF; 0/\0; TTMR=:TMR; *PON
+        CALL MLVULOC; GO T1BEXI
+ RBUS
+
+ %======================================================================
+ % XX.XX      C T I B A D
+ %
+ % INPUT IOSET ROUTINE FOR TAD
+ % ENTRY: B = INPUT-DATAFIELD
+ %        X = WORKING-AREA
+ SUBR CTIBAD
+ DISP -4; INTEGER XREG,TREG,AREG,DREG; TRIPLE TADREG=TREG; PSID
+ CTIBAD: L=:D; CALL MLVLOC
+        CALL BRSTACK; CALL SETSTACK(XREG)
+        CALL STADB(TADREG); CALL STXB(XREG)
+        IF X:=PORTNO=0 GO RETU; *POF
+        IF A=-1 THEN                    % CLEAR BUFFER
+           CALL CLIDAT; 0/\0
+           IF A=1 THEN
+              CALL CTRMES; 0/\0
+           FI
+           DFOPP=:B
+ NXBFF:    7RESE; T:=0; CALL CREMES; GO ECHEC
+           CALL SNDBUF; GO ORET; DFOPP=:B; GO RETW          % SEND RESET
+ ECHEC:    IF A=2 THEN
+              IF DFOPP.BUFFID><0 THEN
+                 CALL MOVITO; GO NXBFF
+              FI
+           FI; GO ORET
+ RETW:     *IOF
+           RTREF.STATUS BONE 5WAIT=:X.STATUS
+           7RECO=:DFOPP.RSPNUM; 1=:MTOR; GO RETU
+ ORET:     DFOPP=:B; GO RETU
+        FI
+ RETU:  CALL LTADB(TADREG); CALL LDXB(XREG); *PON
+        CALL MLVULOC; GO T1BEXI
+ RBUS
+
+ %======================================================================
+ % XX.XX      C T O B A D
+ %
+ % OUTPUT IOSET ROUTINE FOR TAD
+ % ENTRY: B = OUTPUT-DATAFIELD
+ %        X = WORKING-AREA
+ %        A = CONTROLL
+ %        D = PARAMETER
+ % CALLED WITH INTERUPT OFF
+ SUBR CTOBAD
+ DISP -4; INTEGER XREG,TREG,AREG,DREG; TRIPLE TADREG=TREG; PSID
+ CTOBAD: D=:T:=L; CALL MLVLOC
+        CALL BRSTACK; CALL SETSTACK(XREG)
+        CALL STADB(TADREG); CALL STXB(XREG)
+        IF X:=DFOPP.PORTNO=0 GO RETU; *POF
+        IF A=-1 THEN                              % CLEAR BUFFER
+           CALL CLODAT; 0/\0
+           IF A=1 THEN
+              CALL SNDBUF; 0/\0; GO RETU
+           ELSE
+              X:=BUFFID; AD:=TDTADD; 0=:BUFFID=:REMSIZ; CALL PUTPOOL
+              GO RETU
+           FI
+        FI
+        IF A=-2 THEN
+           CALL SNDBUF; 0/\0; GO RETU             % SEND BUFFER
+        FI
+        IF A=23 OR A=24 THEN                      % SYSTEM/USER CONTROLL
+ NWBUF:    IF BUFFID=0 THEN
+              CALL GETPOOL; GO NYTRY              % GET NEW BUFFER
+           FI
+           CALL LDAB(AREG); IF A=23 THEN 7SYCN ELSE 7USCN FI
+           T:=2; CALL CREMES; GO ECHK
+           CALL LDAB(TREG); CALL WORDPUT; GO RETU; CALL LDAB(AREG)
+           IF A=23 THEN
+              CALL LDAB(TREG)
+              IF A=1 OR A=13 OR A=17 THEN CALL SNDBUF; 0/\0 FI
+           ELSE
+              CALL SNDBUF; 0/\0; *IOF
+              RTREF.STATUS BONE 5WAIT=:X.STATUS
+              7ERRS=:RSPNUM; 1=:MTOR
+           FI
+           GO RETU
+        FI
+ RETU:  CALL LTADB(TADREG); CALL LDXB(XREG); *PON
+        CALL MLVULOC; GO T1BEXI
+
+ ECHK:  IF A=1 GO NYTRY
+        IF A=2 THEN
+           CALL SNDBUF; GO RETU; GO NWBUF
+        FI
+        GO RETU
+
+ NYTRY: CALL LDAB(XREG); A=:D; RTREF=:X; CALL MLVULOC; GO REDOM
+ RBUS
+
+ %=======================================================================
+ % XX.XX      B B R E C
+ %
+ % ROUTINE TO SEND BREAK AND ECHO MESSAGE FOR TAD
+ % ENTRY: X = INPUT DATAFIELD
+ %        D = CONTROLL (1=BREAK, 2=ECHO)
+ SUBR BBREC
+ BBREC: A:=L+1=:X."LRSA"; IF X.PORTNO=0 GO RETU
+        CALL XRSTACK; CALL MLVLOC; ZAREG/\377; *POF
+        IF D=1 THEN CALL BDBREA ELSE CALL BDECHO FI; *PON
+        CALL MLVULOC; *ION
+ RETU:  T:=X."LRSA"=:L; EXIT
+ RBUS
+
+ %=====================================================================
+ % XX.XX      B S T T Y
+ %
+ % ROUTINE TO SEND TERMINAL TYPE CALLED FROM MSSTY
+ % X = INPUT-DATAFIELD
+
+ SUBR BSTTY
+ BSTTY: A:=L+1=:X."LRSA"
+        IF X.PORTNO=0 THEN EXITA FI
+        X:=:B=:XRSA; DFOPP=:B
+        CALL MLVLOC; CALL BRSTACK; *POF
+ NXBUF: 7TTYP; T:=2; CALL CREMES; GO ECHEC
+        DFOPP.CTTYP; CALL WORDPUT; GO RETU
+ RETU:  *PON
+        CALL MLVULOC; *ION
+        DFOPP=:X; X.XRSA=:B; X."LRSA"=:L; EXIT
+
+ ECHEC: IF A=2 THEN CALL SNDBUF; 0/\0; GO NXBUF; FI
+        GO RETU
+ RBUS
+
+ %======================================================================
+ % XX.XX      B T M O D
+ %
+ % ROUTINE TO SEND TERMINAL-MODE, CALLED FROM MTERMODE
+ %
+ % B = OUTPUT-DATAFIELD, A = MODE
+
+ SUBR BTMOD
+ BTMOD: T:=L+1=:"LRSA"; IF T:=DFOPP.PORTNO=0 THEN EXITA FI; *POF
+        A=:XRSA; CALL MLVLOC; CALL BRSTACK                  % RESET TAD STACK
+ NXBUF: 7TMOD; T:=1; CALL CREMES; GO ECHEC
+        A:=XRSA/\377; CALL BYTPUT; GO RETU
+        CALL SNDBUF; 0/\0
+ RETU:  *PON
+        CALL MLVULOC; *ION
+        GO LRSA
+ ECHEC: IF A=2 THEN CALL SNDBUF; 0/\0; GO NXBUF; FI
+        GO RETU
+ RBUS
+
+ %======================================================================
+ % XX.XX      C T M O D
+ %
+ % ROUTINE TO SEND TERMINAL-MODE, CALLED FROM TERMODE COMMAND
+ %
+ % X = INPUT-DATAFIELD
+
+ SUBR CTMOD
+ CTMOD: T:=L+1=:X."LRSA"; IF X.PORTNO=0 THEN EXITA FI; CALL MLVLOC; *POF
+        X:=:B=:XRSA; DFOPP=:B; CALL BRSTACK          % RESET TAD STACK
+ NXBUF: 7TMOD; T:=1; CALL CREMES; GO ECHEC; DFOPP=:B; A:=0
+
+ % CAPITAL LETTERS
+        IF T:=DFLAG BIT 5CAPITAL THEN A BONE "0" FI
+ % CR DELAY
+        IF T:=TYPRING BIT 5CRDLY THEN A BONE 1 FI
+ % STOP ON FULL PAGE
+        IF T:=DFOPP.SCREEN><X:=0 THEN A BONE 2 FI
+ % LOGGOUT ON MISSING CARRIER
+        IF T:=FLAGB BIT 5LBLOG   THEN A BONE 3 FI
+        X:=DFOPP=:B; CALL BYTPUT; GO RETU
+        CALL SNDBUF; 0/\0
+ RETU:  *PON
+        CALL MLVULOC; *ION
+        DFOPP=:X; X.XRSA=:B; X."LRSA"=:L; EXIT
+ ECHEC: IF A=2 THEN CALL SNDBUF; 0/\0; GO NXBUF; FI
+        GO RETU
+ RBUS
+
+ %========================================================================
+ % XX.XX      B C E S C
+ %
+ % ROUTINE CALLED FROM MCDESCFU/MCEESCFU TO SEND ENABLE/DISABLE ESCAPE
+ % X = INPUT DATAFIELD
+ SUBR BCESC
+ BCESC: IF X.PORTNO=0 THEN EXITA FI
+        A:=L+1=:X."LRSA"; X:=:B=:XRSA; DFOPP=:B
+        CALL MLVLOC; CALL BRSTACK; *POF             % RESET TAD STACK
+ NXBUF: 7CESC; T:=1; CALL CREMES; GO ECHECK
+        IF DFOPP.DFLAG BIT 5IESC THEN A:=0 ELSE A:=1 FI
+        CALL BYTPUT; GO RETU; CALL SNDBUF; GO RETU; *IOF
+        RTREF.STATUS BONE 5WAIT=:X.STATUS
+        7CERS=:RSPNUM; 1=:MTOR
+ RETU:  *PON
+        CALL MLVULOC; *ION
+        DFOPP=:X; X.XRSA=:B; X."LRSA"=:L; EXIT
+ ECHEC: IF A=2 THEN CALL SNDBUF; 0/\0; GO NXBUF; FI
+        GO RETU
+ RBUS
+
+ %========================================================================
+ % XX.XX      B S D A E
+ %
+ % ROUTINE CALLED FROM MSDAE TO SEND CHANGE ESCAPE CHARECTER
+ % X = INPUT DATAFIELD
+ SUBR BSDAE
+ BSDAE: A:=L+1=:X."LRSA"; IF X.PORTNO=0 THEN EXITA FI
+        X:=:B=:XRSA; DFOPP=:B; CALL MLVLOC; CALL BRSTACK; *POF
+ NXBUF: 7DESC; T:=1; CALL CREMES; GO ECHECK
+        DFOPP.CESCP/\377
+        CALL BYTPUT; GO RETU; CALL SNDBUF; GO RETU
+ RETU:  *PON
+        CALL MLVULOC; *ION
+        DFOPP=:X; X.XRSA=:B; X."LRSA"=:L; EXIT
+ ECHEC: IF A=2 THEN CALL SNDBUF; 0/\0; GO NXBUF; FI
+        GO RETU
+ RBUS
+
+ %=====================================================================
+ % XX.XX      B I S I Z    O I S I Z
+ %
+ % ROUTINE CALLED FROM IBRSIZ WITH:
+ % B = INPUT-DATAFIELD, X = WORKING-AREA
+ % TO FIND NUMBER OF CHARACTERS LEFT TO READ IN A TAD
+ % IF TAD INPUT-BUFFER IS EMPTY, A REQUEST FOR ISIZE IS SENT
+ % TO PARTNER.
+ % ROUTINE IS CALLED WITH INTERUPT PAGING OFF
+ %
+ % SKIP-RETURN: A = NUMBER OF CHARACTERS IN BUFFER
+ %              X = NUMBER OF CHARACTERS INCLUDING FIRST BREAK  (BISIZ ONLY)
+ % RETURN:      A = ERROR CODE
+
+ SUBR BISIZ,OISIZ
+ BISIZ: 0=:XRSA; GO FELLS          % IBRSIZ (MON 313)
+ OISIZ: 1=:XRSA                    % ISIZE  (MON 66)
+ FELLS: X=:"LRSA"; CALL MLVLOC; CALL BRSTACK; *POF % RESET TAD-STACK
+        IF BUFFID><0 THEN                          % INPUT BUFFER PRESENT
+           IF CURMES=7BDAT THEN                    % DATA-MESSAGE PRESENT
+ CDATA:       A:=REMBYT-
+              IF A-1=0 THEN GO CMORE ELSE GO RETU FI
+           ELSE
+ CMORE:       CALL GETMES; GO ENDCH               % GET NEXT MESSAGE
+              IF A=X:=7BDAT THEN                  % DATA MESSAGE
+                 IF T=0 THEN                      % EMPTY
+                    GO CMORE
+                 ELSE
+                    T=:A; GO RETU                 % NUMBER OF BYTES FOUND
+                 FI
+              ELSE
+                 CALL CTRMES; GO EROUT
+                 IF CURMES=7BDAT THEN GO CDATA ELSE GO CMORE FI
+           FI;FI; GO CMORE
+
+ ENDCH:    IF A<0 GO EROUT
+           IF A=3 THEN
+              CALL SNDREJ; 0/\0; A:=TER01; GO EROUT
+           FI
+        FI
+
+ % INPUT-BUFFER IS EMPTY OR NOT PRESENT
+        DFOPP=:B                        % B = OUTPUT DATAFIELD
+        IF DFOPP.BUFFID><0 THEN         % RETURN INPUT BUFFER TO POOL
+           0=:X.BUFFID=:X.REMSIZ=:X.CURMES=:X.NOBDIS
+           A=:T; AD:=X.TDTADD; T=:X; CALL PUTPOOL
+        FI
+
+ TAGAI: A:=7ISRQ; T:=0; CALL CREMES; GO BCHEC
+        CALL SNDBUF; GO EROUT; GO WANSW
+
+ BCHEC: IF A<0 GO EROUT
+        IF A=2 THEN                     % OUTPUT-BUFFER FULL
+           CALL SNDBUF; GO EROUT; GO TAGAI
+        FI
+        DFOPP=:B; RTREF=:X; "LRSA"=:D; *PON
+        CALL MLVULOC; *ION
+        GO REDOM                        % TRY WHEN BUFFERS RETURNED
+
+ % WAIT FOR ISIZE RESPONSE FROM OTHER SIDE
+ WANSW: *PON
+        CALL MLVULOC; DFOPP=:B                   % B = INPUT DATAFIELD, IOF FROM ULOC
+        RTREF.STATUS BONE 5WAIT=:X.STATUS
+        IF XRSA=0 THEN 7ISRS ELSE 7ISRS BONE 17 FI
+        A=:DFOPP.RSPNUM; "LRSA"=:B; 1=:MTOR; *ION
+        MIN ZPREG; GO RET                         % RETURN IN IOWAIT
+
+ % CHARACTERS PRESENT IN LOCAL BUFFER, RETURN NUMBER
+ RETU:  *PON
+        CALL MLVULOC; *ION
+        B=:X; T:="LRSA"=:B; X:=X.XRSA;
+        A=:ZAREG; IF X=0 THEN A=:ZXREG FI
+        MIN ZPREG; GO RET
+
+ % ERROR RETURN
+ EROUT: *PON
+        CALL MLVULOC; *ION
+        T:="LRSA"=:B; A=:ZAREG; GO RET
+ RBUS
+
+ %=====================================================================
+ % XX.XX      P I S I Z
+ %
+ % ROUTINE CALLED FROM ISIZE MON CALL IF TAD
+ SUBR PISIZ
+ PISIZ: *PIOF
+        B:=:X; GO OISIZ
+ RBUS
+
+ %=====================================================================
+ % XX.XX      B O S I Z
+ %
+ % ROUTINE CALLED FROM OSIZE IF TAD
+ % X = OUTPUT-DATAFIELD
+ SUBR BOSIZ
+ BOSIZ: IF X.BUFFID><0 THEN
+           A:=X.REMSIZ
+        FI
+        A=:ZAREG; MIN ZPREG; GO RET
+ RBUS
+
+
+ %=====================================================================
+ % XX.XX      B S C P C
+ %
+ % ROUTINE TO PREPARE SENDING OF COMPLETION CODE, CALLED FROM UEADM.
+ % THE ROUTINE MUST CHECK DATA TO DETERMINE IF THE CURRENT OPERATION
+ % OF UEADM IS WRITE COMPLETION CODE.
+
+ SUBR BSCPC
+ DISP -177; INTEGER T2SEG,WPNT; PSID
+ DISP -165; INTEGER ARRAY POINTER SYARR; PSID
+ SYMBOL FPART=3,CBC01,CBC02,LPART,AREND=27
+ INTEGER POINTER TTIF:=TTIFIELD
+ BSCPC: A:=L+1=:TTIF."LRSA"; IF X.PORTNO=0 THEN EXITA FI
+        CALL XRSTACK                           % RESET TAD STACK
+        WPNT=:D
+        FOR X:=0 TO FPART DO; X:=:D            % CHANGE IN UEDAT BEFORE COMP.CODE?
+            T:=T2SEG; CALL GET1L; GO ERR; X+1:=:D
+            IF A><SYARR(X) GO NOCOD
+        OD; A:=D+2=:D
+        FOR X:=LPART TO AREND DO; X:=:D        % CHANGE IN UEDAT AFTER COMP.CODE?
+            T:=T2SEG; CALL GET1L; GO ERR; X+1:=:D
+            IF A><SYARR(X) GO NOCOD
+        OD
+        T:=T2SEG; X:=WPNT+CBC02; CALL GET1L; GO ERR    % COLLECT COMPLETION CODE
+        A=:D; X-1; CALL GET1L; GO ERR; X:=TTIF:=:B     % --------- " ----------
+        CALL MLVLOC; *POF
+        CALL SNDCP; *PON                               % SEND COMPLETION CODE
+        CALL MLVULOC; X:=:B; *ION
+ RETU:  X."LRSA"=:L; EXIT
+ ERR:
+ NOCOD: X:=TTIF; GO RETU
+ RBUS
+
+
+ *"-BADAD

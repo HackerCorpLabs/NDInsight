@@ -239,6 +239,52 @@ namespace NDInsight.Sintran.Xmsg.Sync
         }
 
         /// <summary>
+        /// Reduces an addressed file specification to the bare name the FA wire carries.
+        /// </summary>
+        /// <param name="fileSpec">
+        /// A specification as <see cref="BuildFileSpec"/> produces it, for example
+        /// <c>D100(SYSTEM)."WATCH1:TXT"</c>.
+        /// </param>
+        /// <returns>
+        /// Just the name and type, for example <c>WATCH1:TXT</c>.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="fileSpec"/> is null.
+        /// </exception>
+        /// <remarks>
+        /// <para><b>Two forms, one for a person and one for the wire</b></para>
+        /// <para>
+        /// A plan is meant to be read, so it names files the way somebody would type them at a
+        /// SINTRAN terminal - machine, user, then the name. The file-access protocol does not carry
+        /// the machine or the user at all: the request already went to that machine's server and
+        /// was already opened under that user, so the name travels as the SERVER's own machine sees
+        /// it.
+        /// </para>
+        /// <para>
+        /// MEASURED 2026-08-11: handing the addressed form to the open request produced
+        /// <c>'"D100(SYSTEM)."WATCH1:TXT""' is 27 characters</c> - the compact QFORM string tops
+        /// out at fifteen bytes, so it was refused before it reached the wire. The quotes are
+        /// dropped here too; whether the name is quoted is decided where the request is built,
+        /// because only there is it known whether the file is being created.
+        /// </para>
+        /// </remarks>
+        public static string ToWireName(string fileSpec)
+        {
+            if (fileSpec == null) { throw new ArgumentNullException(nameof(fileSpec)); }
+
+            // Everything before the LAST dot that follows a ")" is the address. A file type is
+            // separated by a colon, never a dot, so the first dot after the user group ends it.
+            string rest = fileSpec;
+            int close = rest.IndexOf(')');
+            if (close >= 0 && close + 1 < rest.Length && rest[close + 1] == '.')
+            {
+                rest = rest.Substring(close + 2);
+            }
+
+            return rest.Replace("\"", string.Empty).Trim();
+        }
+
+        /// <summary>
         /// Decides whether a path sits inside a folder.
         /// </summary>
         /// <param name="path">

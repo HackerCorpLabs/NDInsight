@@ -32,7 +32,7 @@ using NDInsight.Sintran.Xmsg.Node.Seam;     // ILink, XmsgLayer, LinkXmsgTranspo
 using NDInsight.Sintran.Xmsg.Packet;
 
 // Wraps a TextWriter so every emitted line begins with a full wall-clock timestamp
-// (yyyy-MM-dd HH:mm:ss.fff) FOLLOWED BY " | " — the pipe is an explicit, machine-parseable
+// (yyyy-MM-dd HH:mm:ss.fff) FOLLOWED BY " | " - the pipe is an explicit, machine-parseable
 // delimiter so an LLM (or a script) can split "timestamp | message" on the first " | " with
 // zero ambiguity. The date+seconds+ms let the frame log show exact send/receive ordering,
 // essential for diagnosing LAPB N(S)/N(R) / retransmit timing.
@@ -42,7 +42,7 @@ internal sealed class TimestampWriter : System.IO.TextWriter
     private bool _atLineStart = true;
 
     // The delimiter that separates the timestamp from the message. First occurrence per line
-    // marks where the date ends — split on " | " (with the surrounding spaces) to be safe even
+    // marks where the date ends - split on " | " (with the surrounding spaces) to be safe even
     // if a message body itself contains a bare '|'.
     private const string Delimiter = " | ";
 
@@ -114,9 +114,105 @@ internal static class Program
         // Turn it on with --trace-frames when a capture is not available. Prefer a real capture.
         bool traceFrames = TakeFlag(argList, "--trace-frames");
 
+        // Tell the peer our XMSG restarted, so it resets the datagram sequence it expects
+        // from us. OFF by default and deliberately opt-in - see the long note where the
+        // Ethernet announcer is built for what it is for and the one time it did harm.
+        //
+        // DO NOT REACH FOR THIS TO FIX A PEER THAT IS REFUSING YOU. It is what CAUSES that.
+        //
+        // MEASURED 2026-08-18 against a freshly brought-up D100. A push carrying this flag was
+        // refused, and the peer said why:
+        //
+        //     [push] <- node 100 REFUSED us: XRDDF (3) - XDTYP=0x0017 XDSCR=0xFFFD
+        //
+        // XDTYP 0x0017 is an InitializationNak and XRDDF is "Another port already has this name".
+        // The announce claims a name the peer already holds, the peer NAKs the initialise, and the
+        // conversation is dead from there. Drop the flag and the IDENTICAL push completes - and a
+        // second consecutive push completes after it, with no bring-up and no link cycle between.
+        //
+        // That also killed a rule we believed twice: "one client conversation per bring-up". There
+        // is no such limit. It was this flag, in every command line, because it was in the recipe.
+        bool announceRestart = TakeFlag(argList, "--announce-restart");
+
+        // Zero OUR counter as well as announcing. Only meaningful with --announce-restart.
+        //
+        // REFUTED 2026-08-17 - do NOT reach for this to fix a peer that is ignoring us. Neither D103
+        // (HDLC) nor D100 (seam) resets its expected-from-us on our announce, so zeroing ours puts
+        // every later frame behind-sequence, where SINTRAN drops it without an error. That silence
+        // is what made a second runner process look "refused" for a whole night. The counter in
+        // xmsg-sequence.state is the correct value: carry on from it. To check it against the
+        // machine rather than guessing, read X-C LIST-SYSTEMS on the ND - the "Sequence no.
+        // Send-receive" columns publish the pair, and the receive column equals our next Flags1.
+        bool resyncHard = TakeFlag(argList, "--resync-hard");
+
+        // The folder-watch daemon: mirror a local folder onto a SINTRAN user directory, carrying
+        // each file as it settles. --sync-user and --sync-to name the far end.
+        string? syncFolder = TakeOption(argList, "--sync");
+
+        // Send ONE APPEND-REMOTE-BATCH letter to *XFTRA and print whatever comes back. The request
+        // bytes have matched a live capture for a while; what had never happened is one of ours
+        // actually leaving a socket.
+        string? batchInput = TakeOption(argList, "--append-batch");
+        string? batchOutput = TakeOption(argList, "--append-batch-out");
+
+        // Which machine the batch letter is addressed to. The Ethernet path takes this from the
+        // configured peer; on a point-to-point bridge there is normally only one candidate, so this
+        // defaults to the adjacent routing entry and only needs giving when that guess is wrong.
+        string? batchToNode = TakeOption(argList, "--batch-to");
+
+        // ---- THE LIVE CHAT LOAD RUN --------------------------------------------------------
+        // N simulated users against a REAL room on a real machine. The unit tests in
+        // Xmsg.Chat.Tests already run twenty users and ten thousand messages, but in one process
+        // with no wire - so they prove OUR room, not the machine's. This is the other half of the
+        // question: does the PLANC CHATSV survive twenty arriving at once. See ChatLoadRun.
+        //
+        // CHAT-LOBBY has sixteen seats, so --chat-load 20 is ALSO the overload case: four should
+        // be refused by XROUT and the sixteen inside should carry on.
+        string? chatLoad = TakeOption(argList, "--chat-load");
+        string? chatRoom = TakeOption(argList, "--chat-room");
+        string? chatToNode = TakeOption(argList, "--chat-to");
+        string? chatLines = TakeOption(argList, "--chat-lines");
+        string? syncUser = TakeOption(argList, "--sync-user");
+        string? syncToNode = TakeOption(argList, "--sync-to");
+
+        // Ask the peer to open the ND link again, so it drops the sequence it remembers from
+        // our last run. OFF by default: no ND has ever been seen to ANSWER a connection
+        // request of ours, which is what turning this on is meant to find out.
+        bool requestLink = TakeFlag(argList, "--request-link");
+
+        // Let the sync daemon originate to a peer it has met before, from the seed remembered in
+        // xmsg-link-seed.state, instead of waiting for that peer to address us again. This is the
+        // difference between a daemon that runs from cold and one that needs somebody to type a
+        // command on the far machine first. OFF by default and an EXPERIMENT - see
+        // BuildSyncReadiness for the measurement that argues against it and why it is worth
+        // repeating now that the sequence law is settled.
+        bool originateFromSeed = TakeFlag(argList, "--originate-from-seed");
+
+        // HOW LONG A ONE-SHOT --push OR --pull MAY TAKE BEFORE WE GIVE UP ON IT.
+        //
+        // A NET, NOT A DIAGNOSIS. It does not know why a transfer is stuck; it only refuses to sit
+        // there for the default hour pretending to work.
+        //
+        // MEASURED 2026-08-18, and this is the case that needed it: a --pull for a file that does
+        // not exist on D100 climbs the whole ladder, D100 answers, the driver acks that answer and
+        // then waits for ever - because the driver has a Failure state and nothing sets it for a
+        // server-side error. The run held the seam until the --for window expired.
+        //
+        // Sized against real transfers: a 107603-byte listing pulls in about 26 seconds wall clock
+        // including link bring-up, and a 60355-byte push takes about 50. 240 leaves room for a file
+        // several times larger. Raise it for a genuinely big transfer rather than lowering it to
+        // make a hang fail faster - a cut-off transfer looks exactly like the fault it hides.
+        int transferTimeout = int.Parse(TakeOption(argList, "--transfer-timeout") ?? "240");
+
         string? pushFile = TakeOption(argList, "--push");
         string? pushAs = TakeOption(argList, "--push-as");
         string? pushToNode = TakeOption(argList, "--push-to");
+
+        // REPLACE what is already there, rather than create something new. Without this the name
+        // is quoted, SINTRAN is asked to create, and a file that exists is refused with error 62.
+        // Carrying a source file over a second time is the ordinary case for this tool, so the
+        // flag is short and the refusal below says its name.
+        bool pushOverwrite = TakeFlag(argList, "--push-overwrite");
 
         // The other direction. --pull names the file ON THE MACHINE and --pull-to where to put it
         // here; --pull-from picks the node, the same way --push-to does.
@@ -191,7 +287,7 @@ internal static class Program
 
         // The file push, when one was asked for. Built here - before any transport is chosen - so a
         // bad filespec or a missing file is reported immediately instead of after a link comes up.
-        FaPushRun? pushRun = TryCreatePush(topology, node, pushFile, pushAs, pushToNode);
+        FaPushRun? pushRun = TryCreatePush(topology, node, pushFile, pushAs, pushToNode, pushOverwrite);
         if (pushFile != null && pushRun == null)
         {
             return 1;
@@ -202,6 +298,24 @@ internal static class Program
         if (pullSpec != null && pullRun == null)
         {
             return 1;
+        }
+
+        // --originate-from-seed belongs to the pull too. It used to reach only the sync daemon,
+        // so a one-shot pull gated on CanReach and waited for a peer that speaks second - for
+        // ever, and silently, because the "reading <file>" line comes after that gate.
+        if (pullRun != null)
+        {
+            pullRun.OriginateFromSeed = originateFromSeed;
+        }
+
+        // And to the PUSH, for exactly the same reason. Fixing it in the pull alone left the flag
+        // accepted-but-ignored on the push, which is worse than not supporting it: the one-shot
+        // push reached LAPB Connected, announced, took XROUT letters from node 100 for six minutes
+        // and never built a single FA frame, because the gate under it was still plain CanReach.
+        // MEASURED 2026-08-18 against a live D100.
+        if (pushRun != null)
+        {
+            pushRun.OriginateFromSeed = originateFromSeed;
         }
 
         // ONE TRANSFER AT A TIME. Both drivers originate their own conversation and both would
@@ -307,7 +421,7 @@ internal static class Program
                 await RunEthernetSeamAsync(
                     topology!, ethernetPeer, node, routingEntries,
                     topology!.Motd, BuildTadUsers(topology), fileServer, pushRun, pullRun, traceFrames,
-                    cts.Token);
+                    announceRestart, resyncHard, syncFolder, syncUser, syncToNode, batchInput, batchOutput, requestLink, cts.Token);
             }
             catch (OperationCanceledException)
             {
@@ -341,7 +455,76 @@ internal static class Program
             }
             else
             {
-                await RunSeamAsync(transport, host, port, node, routingEntries, topology?.Motd, BuildTadUsers(topology), fileServer, pushRun, pullRun, cts.Token);
+                // --append-batch used to be refused here as Ethernet-only. It is now wired into
+                // RunSeamAsync, because the refusal was missing plumbing rather than a protocol
+                // limit: an XROUT letter to *XFTRA does not care which transport carries it. That
+                // is FOUR flags found wired to the Ethernet seam alone - --announce-restart with
+                // --resync-hard, the link-seed store, --sync, and this one.
+                //
+                // The rule that found all four still stands: a flag accepted and IGNORED costs more
+                // than one refused, because it gets reported as working.
+
+                // Resolve the batch target: --batch-to when given, else the adjacent peer on this
+                // link (the one machine a point-to-point bridge can mean), else ourselves - which
+                // AppendRemoteBatchRun will then fail on loudly rather than silently.
+                ushort resolvedBatchNode;
+                if (batchToNode == null || !ushort.TryParse(batchToNode, out resolvedBatchNode))
+                {
+                    resolvedBatchNode = node;
+                    for (int i = 0; i < routingEntries.Count; i++)
+                    {
+                        if (routingEntries[i].System != node && routingEntries[i].Hops == 1)
+                        {
+                            resolvedBatchNode = routingEntries[i].System;
+                            break;
+                        }
+                    }
+                }
+
+                NDInsight.Sintran.Xmsg.Live.Runner.TopologyNode? batchPeerNode =
+                    topology?.FindById(resolvedBatchNode);
+                string resolvedBatchMachine =
+                    (batchPeerNode != null && !string.IsNullOrEmpty(batchPeerNode.Alias))
+                        ? batchPeerNode.Alias!.ToUpperInvariant()
+                        : "D" + resolvedBatchNode;
+
+                // Resolve the sync target HERE, where the topology is in scope; RunSeamAsync takes
+                // the pieces rather than the whole topology.
+                ushort resolvedSyncNode;
+                if (syncToNode == null || !ushort.TryParse(syncToNode, out resolvedSyncNode))
+                {
+                    resolvedSyncNode = node;
+                }
+
+                NDInsight.Sintran.Xmsg.Live.Runner.TopologyNode? syncPeerNode =
+                    topology?.FindById(resolvedSyncNode);
+                string resolvedSyncMachine =
+                    (syncPeerNode != null && !string.IsNullOrEmpty(syncPeerNode.Alias))
+                        ? syncPeerNode.Alias!.ToUpperInvariant()
+                        : "D" + resolvedSyncNode;
+
+                // A one-shot gets its own, much shorter bound; a daemon keeps the full window.
+                // The transfer normally ends the run itself the moment it finishes, so this only
+                // ever fires when something is stuck.
+                using CancellationTokenSource oneShotBound =
+                    CancellationTokenSource.CreateLinkedTokenSource(cts.Token);
+
+                if (pushRun != null || pullRun != null)
+                {
+                    oneShotBound.CancelAfter(TimeSpan.FromSeconds(transferTimeout));
+                }
+
+                await RunSeamAsync(transport, host, port, node, routingEntries, topology?.Motd,
+                    BuildTadUsers(topology), fileServer, pushRun, pullRun,
+                    announceRestart, resyncHard, originateFromSeed,
+                    syncFolder, resolvedSyncMachine, syncUser ?? "SYSTEM", resolvedSyncNode,
+                    batchInput, batchOutput, resolvedBatchMachine, resolvedBatchNode,
+                    chatLoad != null ? int.Parse(chatLoad) : 0,
+                    chatRoom ?? "CHAT-LOBBY",
+                    chatToNode != null ? ushort.Parse(chatToNode) : node,
+                    resolvedBatchMachine,
+                    chatLines != null ? int.Parse(chatLines) : 5,
+                    oneShotBound.Token);
             }
         }
         catch (OperationCanceledException)
@@ -355,6 +538,61 @@ internal static class Program
         finally
         {
             transport.Dispose();
+        }
+
+        // A ONE-SHOT THAT NEVER FINISHED MUST NOT EXIT 0.
+        //
+        // It used to. The runner printed "done." and returned success whatever had happened, so
+        // every caller had to guess from the side effects - and tools/planc-build.ps1 guessed with
+        // Test-Path, which says only that SOME file is there, not that this run wrote it. On
+        // 2026-08-18 that read two listings from the previous evening as the output of a compile
+        // that had just run, and the wrong conclusion drawn from them cost a round of re-checking
+        // on the machine.
+        //
+        // Finished covers both endings - a completed transfer and a refused one. Neither having
+        // happened means the run was cut off with the question still open, and that is a failure.
+        // FINISHED IS NOT THE SAME AS WORKED, and reading it as success was a hole in the first
+        // version of this check. Finished answers "is it over" - a refusal ends a transfer just as
+        // definitely as a completed one does. MEASURED 2026-08-18: a push the machine refused with
+        // SINTRAN error 39 exited 0 through exactly this test.
+        if (pushRun != null && pushRun.Failed)
+        {
+            Console.WriteLine("[runner] the push FAILED - see the *** FAILED *** line above.");
+
+            // NAME THE CURE FOR THE ONE REFUSAL THAT HAS ONE. Error 62 means the file is already
+            // on the machine and we asked to create it - which is the commonest thing to get
+            // wrong, because carrying the same source over twice is the normal way to use this.
+            // The number is decoded already; a person reading "File already exists" still has to
+            // know that quoting is what asked for a create, and that is a lot to expect.
+            if (!pushOverwrite && pushRun.SintranError == 62)
+            {
+                Console.WriteLine(
+                    "[runner] that name is already on the machine - add --push-overwrite to replace it.");
+            }
+
+            return 1;
+        }
+
+        if (pullRun != null && pullRun.Failed)
+        {
+            Console.WriteLine("[runner] the pull FAILED - see the *** FAILED *** line above.");
+            return 1;
+        }
+
+        if (pushRun != null && !pushRun.Finished)
+        {
+            Console.WriteLine(
+                $"[runner] the push did NOT finish within {transferTimeout}s - nothing was confirmed " +
+                "written. Raise --transfer-timeout for a very large file, or check the link.");
+            return 1;
+        }
+
+        if (pullRun != null && !pullRun.Finished)
+        {
+            Console.WriteLine(
+                $"[runner] the pull did NOT finish within {transferTimeout}s - no file was written. " +
+                "Raise --transfer-timeout for a very large file, or check the link.");
+            return 1;
         }
 
         Console.WriteLine("[runner] done.");
@@ -380,6 +618,9 @@ internal static class Program
     /// <param name="pushToNode">
     /// The node running <c>*FA-SERVER</c>, as a number. Defaults to the topology's neighbour.
     /// </param>
+    /// <param name="overwrite">
+    /// True to replace a file that is already on the machine, false to create a new one.
+    /// </param>
     /// <returns>
     /// The push, or null when none was asked for OR when it could not be built.
     /// </returns>
@@ -396,7 +637,8 @@ internal static class Program
     /// </para>
     /// </remarks>
     private static FaPushRun? TryCreatePush(
-        TopologyConfig? topology, ushort node, string? pushFile, string? pushAs, string? pushToNode)
+        TopologyConfig? topology, ushort node, string? pushFile, string? pushAs, string? pushToNode,
+        bool overwrite)
     {
         if (pushFile == null)
         {
@@ -476,10 +718,23 @@ internal static class Program
             return null;
         }
 
-        // The file is being CREATED, so the name is quoted. Whether a quoted name is what makes
-        // the FA server create a file is UNVERIFIED on the wire - it is the command-line rule - and
-        // this run is partly there to find out.
-        string quoted = "\"" + fileSpec + "\"";
+        // CREATE OR REPLACE, and the quotes are the whole difference.
+        //
+        // A quoted name asks SINTRAN to CREATE the file; an unquoted one opens what is already
+        // there. That is the command-line rule, and it is now confirmed on the wire in both
+        // directions: a quoted push at a name that exists is refused with SINTRAN error 62,
+        // "File already exists" (MEASURED 2026-08-18, pushing CHATSV:PLNC over itself).
+        //
+        // This used to quote unconditionally, with a comment saying the rule was unverified. It
+        // is verified now, and the unconditional quoting was a defect rather than a caution: a
+        // one-shot push could create a file but could never replace one, so the ordinary case of
+        // carrying a source file over again - which is what this tool is FOR - always failed. The
+        // sync daemon had the choice all along; the one-shot did not.
+        //
+        // Explicit rather than a retry-on-62. The daemon retries because it is unattended and has
+        // a ledger to learn into; a one-shot is a person at a keyboard, and silently replacing a
+        // file they asked to create is the wrong way round to be helpful.
+        string quoted = overwrite ? fileSpec : "\"" + fileSpec + "\"";
 
         try
         {
@@ -788,6 +1043,17 @@ internal static class Program
         Console.WriteLine($"[runner] config file:   {configPath}");
         Console.WriteLine($"[runner] log folder:    {logFolder}");
         Console.WriteLine($"[runner] log file:      {logFile}");
+
+        // The RAW command line, verbatim. This exists because six runs of this program were compared
+        // after the fact to explain why a second process was refused, and NONE of them recorded which
+        // options they were given - so the one field that mattered (whether --resync-hard zeroed our
+        // outgoing Flags1, and whether --request-link asked the peer to reset its own expectation)
+        // could not be recovered from the logs at all. Several hours of wrong explanations came out
+        // of that gap. Print the argv itself rather than re-printing the parsed flags: a hand-written
+        // list of flags can drift out of step with the parsing code above and quietly lie, whereas
+        // the argv cannot.
+        string[] commandLine = Environment.GetCommandLineArgs();
+        Console.WriteLine($"[runner] command line:  {string.Join(" ", commandLine)}");
     }
 
     /// <summary>
@@ -1120,7 +1386,7 @@ internal static class Program
         ushort ownNode = (ushort)(args.Count > 3 ? int.Parse(args[3]) : defaultOwn);
         string targetName = args.Count > 4 ? args[4] : "D100";
         ushort hostNode = (ushort)(args.Count > 5 ? int.Parse(args[5]) : defaultHostNode);
-        // Link seed (hex). Default from the observed node pairs: 100<->102 = 0x14, 100<->103 = 0x13.
+        // Link seed (hex). Default from the observed node pairs: 100-102 = 0x14, 100-103 = 0x13.
         byte seed = args.Count > 6 ? Convert.ToByte(args[6], 16) : (ownNode == 103 ? (byte)0x13 : (byte)0x14);
 
         Console.WriteLine($"[client] connecting bridge {host}:{port} as node {ownNode}; connect-to '{targetName}' on host node {hostNode}; seed 0x{seed:X2}");
@@ -1322,6 +1588,103 @@ internal static class Program
     /// The listener comes up FIRST, so a peer already retrying its connect is accepted immediately.
     /// The outbound dial follows.
     /// </remarks>
+    /// <summary>
+    /// Reports whether an arriving subtype is a REQUEST that ought to be answered.
+    /// </summary>
+    /// <param name="subtype">
+    /// The subtype of the arrived frame.
+    /// </param>
+    /// <returns>
+    /// False for the subtypes that END an exchange, where producing no reply is correct.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// An acknowledgement, a reachability reply and a network error are all the far end of an
+    /// exchange - answering one would be the fault. Without this the "no reply built, this hangs the
+    /// caller" alarm fired on every healthy run, three times over, for arrivals that wanted nothing.
+    /// </para>
+    /// <para>
+    /// It is shared by both dispatch handlers on purpose. They had drifted before: one printed a
+    /// bare tag and the other a side-qualified one, and a rule kept in two places is a rule that
+    /// will disagree with itself.
+    /// </para>
+    /// </remarks>
+    private static bool ExpectsAReply(SintranPacketSubtype subtype)
+    {
+        switch (subtype)
+        {
+            case SintranPacketSubtype.Ack:
+            case SintranPacketSubtype.ReachabilityReply:
+            case SintranPacketSubtype.NetworkError:
+                return false;
+
+            default:
+                return true;
+        }
+    }
+
+    /// <summary>
+    /// Builds the readiness test a transfer driver must satisfy before it originates.
+    /// </summary>
+    /// <param name="host">
+    /// The node whose link knowledge decides readiness.
+    /// </param>
+    /// <param name="peer">
+    /// The node a transfer will address.
+    /// </param>
+    /// <returns>
+    /// A test that is true only once <paramref name="peer"/> has addressed us.
+    /// </returns>
+    /// <remarks>
+    /// <para><b>Why this is a named function and not a lambda at the call site</b></para>
+    /// <para>
+    /// The gate was once written inline as "the LAPB link is Connected", which is true within
+    /// milliseconds of startup. The sync daemon then originated before the peer had said anything,
+    /// its connect letter was answered <c>XRUNN</c>, and because the driver discarded that answer it
+    /// looked like silence. MEASURED 2026-08-17: with this gate instead, the same daemon carried two
+    /// files to a real ND on the first attempt.
+    /// </para>
+    /// <para>
+    /// <see cref="XmsgServerHost.CanReach"/> is true only once an INBOUND datagram has taught the
+    /// layer the peer envelope seed - the point at which a frame we originate can be addressed at
+    /// all. Naming it here means the rule is testable and has one definition rather than one per
+    /// call site.
+    /// </para>
+    /// </remarks>
+    /// <param name="originateFromSeed">
+    /// <see langword="true"/> to allow originating to a peer we have met before using its remembered
+    /// envelope seed, instead of waiting for it to address us again. Opt-in; see the remarks.
+    /// </param>
+    /// <remarks>
+    /// <para><b>The seed gate is an EXPERIMENT and is off by default</b></para>
+    /// <para>
+    /// With <paramref name="originateFromSeed"/> set, the gate becomes
+    /// <see cref="XmsgServerHost.OpenLinkFromRememberedSeed"/>, which succeeds for any peer whose
+    /// seed is in the store. That is what a daemon needs to work from cold - without it every
+    /// transfer waits for a person to type a command on the far machine.
+    /// </para>
+    /// <para>
+    /// It is opt-in because the last measurement went against it: D100 answered <c>XRUNN</c> to a
+    /// letter sent from the remembered seed alone. That test predates both the access grant and the
+    /// discovery that the outgoing counter was being zeroed on every run that day, so it is worth
+    /// repeating - but not worth making the default until it has been.
+    /// </para>
+    /// </remarks>
+    public static Func<bool> BuildSyncReadiness(XmsgNodeHost host, ushort peer, bool originateFromSeed)
+    {
+        if (host == null)
+        {
+            throw new ArgumentNullException(nameof(host));
+        }
+
+        if (originateFromSeed)
+        {
+            return () => host.ServerHost.OpenLinkFromRememberedSeed(peer);
+        }
+
+        return () => host.ServerHost.CanReach(peer);
+    }
+
     private static async Task RunRelayAsync(
         TopologyConfig? topology, int listenPort, string dialHost, int dialPort, ushort node,
         ushort inboundPeer, ushort outboundPeer,
@@ -1553,6 +1916,16 @@ internal static class Program
 
             if (produced == 0)
             {
+                // Same rule as the ethernet seam: an Ack, a reachability reply and a network error
+                // END an exchange, so no reply is the correct outcome and the alarm must not fire.
+                if (!ExpectsAReply(f.Header.Subtype))
+                {
+                    Console.WriteLine(
+                        $"[{side} RX] {f.Header.SourceNode}->{f.Header.DestinationNode} "
+                        + $"sub={f.Header.Subtype} (no reply expected)");
+                    return;
+                }
+
                 Console.WriteLine(
                     $"[{side} RX] {f.Header.SourceNode}->{f.Header.DestinationNode} "
                     + $"sub={f.Header.Subtype} *** NO REPLY BUILT *** (this hangs the caller)");
@@ -1616,9 +1989,39 @@ internal static class Program
     private static async Task RunSeamAsync(
         TcpBridgeTransport transport, string host, int port, ushort node,
         IReadOnlyList<RoutingTableEntry> routingEntries, string? motdLine, TadUserDirectory users,
-        FaServer? fileServer, FaPushRun? pushRun, FaPullRun? pullRun, CancellationToken token)
+        FaServer? fileServer, FaPushRun? pushRun, FaPullRun? pullRun,
+        bool announceRestart, bool resyncHard, bool originateFromSeed,
+        string? syncFolder, string syncMachine, string syncUser, ushort syncNode,
+        string? batchInput, string? batchOutput, string batchMachine, ushort batchNode,
+        int chatLoadUsers, string chatRoomName, ushort chatNode, string chatMachine, int chatLines,
+        CancellationToken token)
     {
         string linkId = $"hdlc:{host}:{port}";
+
+        // APPEND-REMOTE-BATCH on this path too.
+        //
+        // It was wired to the Ethernet seam alone and REFUSED here, which was honest but wrong: an
+        // XROUT letter to *XFTRA has nothing Ethernet-specific about it, and the refusal was
+        // missing plumbing rather than a protocol limit. That makes four flags found wired to the
+        // one path - --announce-restart with --resync-hard, the link-seed store, --sync, and now
+        // this. When a flag is refused "because of the transport", check whether the transport
+        // actually cares.
+        AppendRemoteBatchRun? batchRun = null;
+
+        // The live chat load run rides this seam too, for the same reason the batch letter does:
+        // an XSLET letter to a named room has nothing transport-specific about it.
+        ChatLoadRun? chatLoadRun = null;
+        if (chatLoadUsers > 0)
+        {
+            chatLoadRun = new ChatLoadRun(
+                chatNode, chatMachine, chatRoomName, chatLoadUsers, chatLines);
+        }
+
+        if (batchInput != null)
+        {
+            batchRun = new AppendRemoteBatchRun(
+                batchNode, batchMachine, "SYSTEM", batchInput, batchOutput ?? "ARBOUT:SYMB");
+        }
 
         LapbLayer link = new LapbLayer(node);
         LapbLayerAdapter adapter = new LapbLayerAdapter(linkId, transport, link);
@@ -1648,10 +2051,65 @@ internal static class Program
             adapter, node, routingEntries, sequenceStore, BuildServerList(tadServer, fileServer));
         XmsgLayer layer = nodeHost.Layer;
 
+        // PLUG THE SERVER-HOST LOG IN ON THIS PATH TOO.
+        //
+        // It was wired on the relay and Ethernet paths and NOT here, so over the HDLC bridge every
+        // [seq] line the host emits was thrown away - including "link opened from the REMEMBERED
+        // seed", which is the one line that says whether a transfer originated from the store or
+        // waited to be spoken to. Measuring the cold-start question without it took an extra
+        // control run and a timestamp comparison to answer something the program already knew.
+        // Same lesson as the two diagnostics found on 2026-08-11: a diagnostic that is not plugged
+        // in is not a diagnostic.
+        nodeHost.ServerHost.Log = line => Console.WriteLine(line);
+
         // Wire the introspection commands: "list servers" reads the host's registered servers; "list route"
         // formats the routing table this node advertises.
         tadServer.ServerDirectory = nodeHost.ServerHost.DescribeServers;
         tadServer.RouteReport = nodeHost.FormatRouteReport;
+        // REMEMBER THE ENVELOPE SEED ON THIS PATH TOO.
+        //
+        // This was wired on the ETHERNET seam only, so over the HDLC bridge the store was never
+        // attached, OpenLinkFromRememberedSeed always returned false, and the seed file sat on disk
+        // unused. The same shape as --announce-restart being dropped here: a capability that exists,
+        // is persisted, and is silently never consulted.
+        //
+        // The cost was not only the daemon case. It made an experiment impossible: a transfer could
+        // only start once the peer had spoken to us, so every push had to be preceded by a console
+        // command, and a push against a genuinely IDLE D100 could never be observed.
+        // THE FOLDER-WATCH DAEMON, on this path at last. It was wired to the Ethernet seam only, so
+        // it had never run over HDLC at all - see the refusal in Main that used to be the only thing
+        // standing between an operator and a runner that silently never synced.
+        //
+        // Readiness here is the LAPB link being Connected. On the Ethernet seam the equivalent gate
+        // is HasLearnedPeer; both mean "a frame we originate can actually be addressed".
+        SyncDaemon? syncDaemon = null;
+        if (syncFolder != null)
+        {
+            syncDaemon = new SyncDaemon(
+                syncFolder,
+                syncMachine,
+                syncUser,
+                nodeHost,
+                syncNode,
+                BuildSyncReadiness(nodeHost, syncNode, originateFromSeed),
+                TimeSpan.FromSeconds(3),
+                TimeSpan.FromSeconds(5));
+
+            Console.WriteLine(
+                $"[sync] watching {syncFolder} -> node {syncNode} ({syncMachine}) user {syncUser}");
+
+            if (originateFromSeed)
+            {
+                Console.WriteLine(
+                    "[sync] --originate-from-seed: transfers may start as soon as node "
+                    + $"{syncNode}'s seed is found in the store, WITHOUT waiting for it to address"
+                    + " us. This is the experiment - if the peer answers XRUNN, the gate was right.");
+            }
+        }
+
+        string hdlcSeedPath = System.IO.Path.Combine(AppContext.BaseDirectory, "xmsg-link-seed.state");
+        nodeHost.ServerHost.SeedStore = new FileLinkSeedStore(hdlcSeedPath);
+        Console.WriteLine($"[runner] link-seed state file: {hdlcSeedPath}");
 
         // SABM-storm suppression. A short burst of peer SABMs during link establishment is NORMAL (the
         // balanced SABM/UA handshake) - it is NOT "machine down". We collapse the repeated SABM churn
@@ -1669,7 +2127,7 @@ internal static class Program
         {
             byte ctrl = body.Length > 1 ? body[1] : (byte)0;
             bool isData = (ctrl & 1) == 0;
-            // During a peer SABM storm our UA/RR answers are pure churn — suppress them; data frames
+            // During a peer SABM storm our UA/RR answers are pure churn - suppress them; data frames
             // (I-frames) are always logged.
             if (stormActive && !isData)
             {
@@ -1681,7 +2139,31 @@ internal static class Program
             else if ((ctrl & 3) == 1) kind = $"RR nr={(ctrl >> 5) & 7}";
             else kind = ctrl switch { 0x3F => "SABM", 0x73 => "UA", _ => $"U 0x{ctrl:X2}" };
             string extra = isData ? $" body={Convert.ToHexString(body)}" : string.Empty;
-            Console.WriteLine($"[TX] a=0x{(body.Length > 0 ? body[0] : 0):X2} {kind} state={link.State}{extra}");
+
+            // A FRMR WITHOUT ITS DIAGNOSTIC IS UNDEBUGGABLE. The frame carries three bytes saying
+            // WHICH control byte was rejected, our V(S)/V(R) at the time, and WHY (W = unimplemented
+            // control, X = I-field not permitted, Y = I-field too long, Z = invalid N(R)) - and the
+            // log threw all three away, leaving only "U 0x87". A whole round of reasoning went into
+            // guessing which of the three FRMR call sites had fired, when the answer was on the wire.
+            // Spec 2.3.3. Body is address, control, then the three diagnostic bytes.
+            if (!isData && (ctrl & 0xEF) == 0x87 && body.Length >= 5)
+            {
+                byte reason = body[4];
+                string why = string.Empty;
+                if ((reason & 0x01) != 0) { why += "W(unimplemented control) "; }
+                if ((reason & 0x02) != 0) { why += "X(I-field not permitted) "; }
+                if ((reason & 0x04) != 0) { why += "Y(I-field too long) "; }
+                if ((reason & 0x08) != 0) { why += "Z(invalid N(R)) "; }
+                if (why.Length == 0) { why = "(no reason bit set) "; }
+                extra = $" FRMR rejected-control=0x{body[2]:X2}"
+                      + $" V(S)={(body[3] >> 1) & 7} V(R)={(body[3] >> 5) & 7}"
+                      + $" reason=0x{reason:X2} {why}";
+            }
+            // V(S)/V(A) ON EVERY FRAME. The FRMR diagnostic said V(S)=0 immediately after we had
+            // transmitted I ns=0, which cannot both be true - so the variables themselves have to be
+            // on the record, not inferred from what was sent.
+            Console.WriteLine($"[TX] a=0x{(body.Length > 0 ? body[0] : 0):X2} {kind} state={link.State}"
+                + $" vs={link.SendVariable} va={link.AcknowledgeVariable} vr={link.ReceiveVariable}{extra}");
         };
 
         // Diagnostics: log every decoded SINTRAN frame the layer receives, the same way the legacy
@@ -1712,6 +2194,9 @@ internal static class Program
                 pushRun.OnFrame(f);
             }
 
+            // The daemon's own transfer replies arrive here like anything else.
+            syncDaemon?.OnFrame(f);
+
             // A pull is the same kind of conversation, and its content arrives the same way. The
             // frames have already been through the fragment reassembler by this point, so a
             // 1032-byte data message arrives whole rather than as its 0x0A and 0x0C halves.
@@ -1719,6 +2204,13 @@ internal static class Program
             {
                 pullRun.OnFrame(f);
             }
+
+            if (batchRun != null)
+            {
+                batchRun.OnFrame(f);
+            }
+
+            chatLoadRun?.OnFrame(f);
         };
 
         layer.SessionOpened += delegate (string id, ushort clientSystem, ushort clientPort)
@@ -1744,7 +2236,22 @@ internal static class Program
         //
         // Without it, both sides simply start from zero after a machine restart, which is what the
         // runs that DID work today all had. Flip this to true only to investigate further.
+        //
+        // NOTE this measurement is HDLC/LAPB only. The Ethernet path has its own decision - see
+        // the --announce-restart option in RunEthernetSeamAsync - because the harm described above
+        // is a LAPB re-establishment, and Ethernet has no LAPB.
         const bool AnnounceRestartOnLinkUp = false;
+
+        // ...but --announce-restart MUST be able to turn it on, and until 2026-08-17 it could not:
+        // the flag was parsed, handed to the ETHERNET seam only, and dropped on the floor here. Over
+        // the HDLC bridge it did nothing at all and said nothing about doing nothing. MEASURED that
+        // day: D100 answered "UNKNOWN REMOTE SYSTEM NAME" for D19999 - it had never been told we
+        // exist - while the runner cheerfully reported an Active link and a file server ready to
+        // serve. Every "cured by --resync-hard" claim made over this path is therefore about some
+        // OTHER change; the announce was never sent.
+        //
+        // The default stays false for the reason documented above. The flag is the opt-in.
+        bool announceOnLinkUp = AnnounceRestartOnLinkUp || announceRestart;
 
         // Arm on status, send on the next loop tick - the mechanism lives in LinkAnnouncer, shared
         // with the relay path. Sending from inside the status callback re-enters the LAPB adapter
@@ -1771,10 +2278,51 @@ internal static class Program
                     Console.WriteLine(
                         $"[link] announcing our XMSG restart to node {entry.System} " +
                         "(ReachabilityRequest; resets both sides' Flags 1 to 0x0000)");
-                    nodeHost.AnnounceRestart(entry.System);
+
+                    if (resyncHard)
+                    {
+                        // Zero OUR counter as well. D103 proved this wrong over HDLC - it does not
+                        // reset its expected-from-us on our announce, so zeroing ours puts every
+                        // later frame BEHIND-sequence, where it is dropped in silence.
+                        //
+                        // MEASURED 2026-08-17: D100 does NOT reset either, and the earlier claim that
+                        // it did was wrong. D100 publishes the pair in X-C LIST-SYSTEMS ("Sequence no.
+                        // Send-receive"); across an --announce-restart AND a --request-link it stayed
+                        // at send 64 / receive 65 and ignored the 0x0000 frames that followed. Running
+                        // WITHOUT this flag, so the stored counter carried on from 0x0041, pulled a
+                        // 20400-byte file first time and moved the peer's column to 124 - matching our
+                        // stored 0x007C exactly. So this flag does not recover a drifted sequence
+                        // against D100; it CREATES one. Prefer the persisted counter.
+                        // Say WHAT is being discarded, not just that something is. A run that throws
+                        // away a stored 0x0041 and one that was already at 0x0000 look identical in
+                        // the log without this, and telling those two apart is exactly what was
+                        // needed to explain why a second process gets no answer: per
+                        // IResponderSequenceStore, resetting to 0x0000 while the peer's XSRSQ has
+                        // advanced puts every later frame BEHIND-sequence, where it is dropped in
+                        // silence.
+                        ushort storedFlags1 = sequenceStore.LoadNextFlags1(entry.System);
+                        Console.WriteLine(
+                            $"[announce] --resync-hard: also zeroing OUR counter for {entry.System}."
+                            + $" Discarding the stored next-Flags1 0x{storedFlags1:X4}."
+                            + " The next originated frame goes out at 0x0000 - if the peer accepts"
+                            + " it, the peer resets on our announce; if it vanishes, it does not.");
+                        if (storedFlags1 != 0)
+                        {
+                            Console.WriteLine(
+                                $"[announce] WARNING: node {entry.System} was at 0x{storedFlags1:X4}, not a fresh"
+                                + " contact. If the peer does NOT reset on our announce, every frame"
+                                + " from here is behind-sequence and will be dropped without an error.");
+                        }
+
+                        nodeHost.AnnounceRestartAndResetOurs(entry.System);
+                    }
+                    else
+                    {
+                        nodeHost.AnnounceRestart(entry.System);
+                    }
                 }
             },
-            enabled: AnnounceRestartOnLinkUp,
+            enabled: announceOnLinkUp,
             onceOnly: true);
 
         adapter.StatusChanged += delegate (ILink changedLink, LinkStatus oldStatus, LinkStatus newStatus, string reason)
@@ -1847,7 +2395,7 @@ internal static class Program
             else if ((ctrl & 3) == 1)
             {
                 // S-frame: the supervisory subtype is bits 2-3 (0=RR, 1=RNR, 2=REJ). Do NOT label every
-                // S-frame "RR" — that hid 100's REJ (ctrl 0xC9) as an "RR" in the raw log.
+                // S-frame "RR" - that hid 100's REJ (ctrl 0xC9) as an "RR" in the raw log.
                 string s = ((ctrl >> 2) & 3) switch { 0 => "RR", 1 => "RNR", 2 => "REJ", _ => "S?" };
                 kind = $"{s} nr={(ctrl >> 5) & 7}";
             }
@@ -1863,6 +2411,32 @@ internal static class Program
         // chunk of each pair has no inbound trigger, so DrainPending must be re-driven on a timer to release
         // it once the gap elapses. serverHost.DrainPending walks each active session's burst and returns the
         // now-permitted frames; we send them straight down the codec, same as the inbound-driven path.
+        // A ONE-SHOT TRANSFER NOW ENDS THE RUN WHEN IT IS DONE.
+        //
+        // It did not, and the runner sat on the seam for the whole --for window - an HOUR by
+        // default - after the file had been written. MEASURED 2026-08-18: a --pull wrote its
+        // 107603 bytes at 09:05 and the process was still there sending keepalive RRs at 09:21,
+        // holding the only seam so the NEXT transfer could not start at all.
+        //
+        // That cost more than a wait. tools/planc-build.ps1 says in its own NOTES "every runner it
+        // starts is a one-shot that exits by itself", which was simply not true, and a script that
+        // fetches two listings in a row blocks for ever on the first. The way out was killing the
+        // process, and a hard kill leaves D100's LAPB half-open - so the tidy-up for this bug was
+        // itself a bug generator.
+        //
+        // Cancelling a LINKED source rather than returning early keeps the ordinary exit path: the
+        // Stopping handler below still runs, TAD sessions are still logged out before the flush,
+        // and --for still applies as the outer bound.
+        //
+        // The daemon is deliberately NOT covered. pushRun and pullRun are set only by --push and
+        // --pull; --sync is a service and is supposed to stay up.
+        using CancellationTokenSource oneShotDone = CancellationTokenSource.CreateLinkedTokenSource(token);
+
+        // Set once the transfer reports Finished, so the last frames get a tick or two to reach the
+        // wire before the loop is asked to stop. Stopping on the very same tick raced the closing
+        // ack out of the door.
+        DateTime finishedAt = DateTime.MinValue;
+
         adapter.LoopTick += delegate ()
         {
             // Announce our XMSG restart once the link has settled, so the peer resets the datagram
@@ -1870,6 +2444,19 @@ internal static class Program
             // inside that callback re-enters the adapter and drops the link.
             announcer.OnLoopTick();
             nodeHost.Pump();
+
+            // NOT opening the link from the remembered seed. Reverted a SECOND time, and the
+            // reason is now precise rather than a suspicion.
+            //
+            // With the seed, a transfer originates the moment LAPB is up, against a peer that has
+            // said nothing. The PUSH survives that because it retries its connect letter four
+            // times. The PULL does not - it has no retry - so it fires one letter early, the peer
+            // ignores it, and the transfer is dead. MEASURED 2026-08-17: with the seed enabled the
+            // pull got a single InitializationNak and nothing else, four runs in a row.
+            //
+            // So the seed is only safe where a retry backs it. Re-enable it here ONLY after the
+            // pull driver has the same bounded retry the push has - otherwise it makes the
+            // higher-priority path worse to make the lower-priority one testable.
 
             // The push rides the same tick. It sends nothing until LAPB is Connected, because a
             // frame we originate before the link is up is simply lost, and nothing after it makes
@@ -1886,6 +2473,87 @@ internal static class Program
             {
                 pullRun.Pump(nodeHost, link.State == LapbLayerState.Connected);
             }
+
+            if (batchRun != null)
+            {
+                batchRun.Pump(nodeHost, link.State == LapbLayerState.Connected);
+            }
+
+            chatLoadRun?.Pump(nodeHost, link.State == LapbLayerState.Connected);
+
+            // The daemon scans on its own timer and carries a file on this tick.
+            syncDaemon?.Pump(DateTime.UtcNow);
+
+            // ONE-SHOT DONE? Note the moment, then stop a short grace later so the closing frames
+            // of the ladder are actually on the wire. Both drivers report Finished either way -
+            // a completed transfer and a refused one both end the run, because both are answers.
+            bool oneShotFinished =
+                (pullRun != null && pullRun.Finished) || (pushRun != null && pushRun.Finished);
+
+            if (oneShotFinished && finishedAt == DateTime.MinValue)
+            {
+                finishedAt = DateTime.UtcNow;
+            }
+
+            if (finishedAt != DateTime.MinValue
+                && DateTime.UtcNow - finishedAt > TimeSpan.FromMilliseconds(750)
+                && !oneShotDone.IsCancellationRequested)
+            {
+                Console.WriteLine("[runner] the one-shot transfer is done; closing the link.");
+                oneShotDone.Cancel();
+            }
+        };
+
+        // LOG THE USERS OUT WHILE WE CAN STILL TRANSMIT.
+        //
+        // Fires on the pump's own thread once it has decided to stop, before the closing flush, so
+        // these frames actually reach the wire. Stopping the runner with sessions open killed D100's
+        // XMSG on 2026-08-17 - it was left holding half a session each and took a fatal internal
+        // inconsistency, costing an emulator restart.
+        //
+        // This covers the ORDINARY exit: a cancelled token, Ctrl-C, the --for window elapsing. A
+        // forced kill runs none of it, so the operating rule stands as well - get the users out
+        // before stopping a server the ND is still talking to.
+        adapter.Stopping += delegate ()
+        {
+            IReadOnlyList<XmsgFrame> teardown = tadServer.ShutdownAllSessions(nodeHost.ServerHost);
+            if (teardown.Count == 0)
+            {
+                return;
+            }
+
+            Console.WriteLine(
+                $"[tad] stopping: logging out the open session(s), {teardown.Count} frame(s).");
+            nodeHost.SendFrames(teardown);
+        };
+
+        // AND SAY GOODBYE AT THE LINK LAYER TOO.
+        //
+        // This is the fix for the single most expensive recurring nuisance in this project: after
+        // almost every run, the NEXT connection sat repeating SABM for ever and had to be rescued
+        // by hand from the machine -
+        //
+        //     X-C: STOP-LINK / 1362 / <CR>   then   START-LINK,1362,,,-1,,
+        //
+        // It has been recorded as a consequence of HARD-KILLING the runner, and that is true but
+        // not the whole truth: it happened on ORDINARY exits too, because LapbLayer.Disconnect
+        // existed and was never called by anything. We closed the socket and left D100 holding a
+        // link it still believed was up, so our next SABM was talking to a peer that thought it
+        // was already connected.
+        //
+        // Stopping fires on the pump's own thread before the closing flush, so a DISC queued here
+        // actually reaches the wire - exactly the same reason the TAD logout above sits in this
+        // handler rather than after the loop.
+        adapter.Stopping += delegate ()
+        {
+            if (link.State == LapbLayerState.Disconnected
+                || link.State == LapbLayerState.DiscSent)
+            {
+                return;
+            }
+
+            Console.WriteLine("[link] stopping: sending DISC so the peer does not hold the link.");
+            link.Disconnect(Environment.TickCount64);
         };
 
         adapter.Initiate();
@@ -1895,7 +2563,7 @@ internal static class Program
         // + pumps; it does NOT flood the link with RRs (the T3 keepalive poll is emitted from inside Tick),
         // so a healthy idle link stays near-silent and DrainPending returns nothing when no burst is active.
         // (Was 1 s: too coarse to reproduce the measured 45-47 ms intra-pair spacing.)
-        await adapter.RunAsync(token, keepaliveInterval: TimeSpan.FromMilliseconds(20));
+        await adapter.RunAsync(oneShotDone.Token, keepaliveInterval: TimeSpan.FromMilliseconds(20));
     }
 
     /// <summary>
@@ -1911,8 +2579,8 @@ internal static class Program
     /// The table MUST be built relative to <paramref name="node"/>, otherwise the XSGSY server hands
     /// node 100 a route that loops back through itself. Concretely, the old fixed table always carried
     /// a "102 reachable Via 100" entry. When the runner is started AS node 102 that entry shadows the
-    /// correct "102 is Local (this is me)" self-entry — <see cref="InMemoryRoutingTable.TryLookup"/>
-    /// returns the first <c>System >= query</c>, which is the Via-100 entry — so 100's <c>li-rout</c>
+    /// correct "102 is Local (this is me)" self-entry - <see cref="InMemoryRoutingTable.TryLookup"/>
+    /// returns the first <c>System >= query</c>, which is the Via-100 entry - so 100's <c>li-rout</c>
     /// reports <c>*->102->100->102...  *Loop suspected*</c> and connect-to routing breaks.
     /// Rules:
     ///  - Our own <paramref name="node"/> is ALWAYS Local (0 hops); never advertise a route to ourselves via anyone.
@@ -1962,6 +2630,14 @@ internal static class Program
         IReadOnlyList<RoutingTableEntry> routingEntries, string? motdLine,
         TadUserDirectory users, FaServer? fileServer, FaPushRun? pushRun, FaPullRun? pullRun,
         bool traceFrames,
+        bool announceRestart,
+        bool resyncHard,
+        string? syncFolder,
+        string? syncUser,
+        string? syncToNode,
+        string? batchInput,
+        string? batchOutput,
+        bool requestLink,
         CancellationToken token)
     {
         // The segment settings come from OUR entry when we have one, otherwise from the peer's -
@@ -2055,8 +2731,39 @@ internal static class Program
 
         XmsgNodeHost nodeHost = new XmsgNodeHost(
             link, node, routingEntries, sequenceStore, BuildServerList(tadServer, fileServer));
+
+        // THE SEQUENCE INSTRUMENTATION HAS TO REACH THE LOG. XmsgServerHost logs the value a link
+        // STARTS from, every Flags 1 it stamps, and every store advance - all added deliberately to
+        // answer "is our number behind the peer's expectation, or did the peer drop the frame for
+        // another reason", which the wire alone cannot tell apart because the peer's expectation of
+        // US is a value it never transmits.
+        //
+        // The relay path wired this; the Ethernet path never did, so on 2026-08-11 an afternoon of
+        // sequence work was done on inference from acknowledgements instead of on the numbers we
+        // actually stamped. A diagnostic that is not connected is not a diagnostic.
+        nodeHost.ServerHost.Log = line => Console.WriteLine(line);
+
+        // REMEMBER THE ENVELOPE SEED. It is a per-link constant that survives the peer rebooting,
+        // and remembering it is what lets this process address a machine it has met before without
+        // waiting to be spoken to first. Nothing is invented: a node we have never heard from stays
+        // unreachable and says so.
+        string seedPath = System.IO.Path.Combine(AppContext.BaseDirectory, "xmsg-link-seed.state");
+        nodeHost.ServerHost.SeedStore = new FileLinkSeedStore(seedPath);
+        Console.WriteLine($"[runner] link-seed state file: {seedPath}");
+
+        // The node's OWN log, which is a different sink from the server host's. It carries the
+        // reason a peer rejected a frame - the subtype-0x07 network error and its XE code. Not
+        // connected until 2026-08-11, so a push that D100 was actively refusing read as silence.
+        nodeHost.Layer.Log = line => Console.WriteLine(line);
+
         tadServer.ServerDirectory = nodeHost.ServerHost.DescribeServers;
         tadServer.RouteReport = nodeHost.FormatRouteReport;
+
+        // Declared before the frame handler that captures it, and filled in further down once
+        // the peer and link it needs are known.
+        SyncDaemon? syncDaemon = null;
+        AppendRemoteBatchRun? batchRun = null;
+        ChatLoadRun? chatLoadRun = null;
 
         nodeHost.Layer.MessageReceived += delegate (string id, XmsgPacketInfo packet)
         {
@@ -2074,17 +2781,36 @@ internal static class Program
 
             // A push is a conversation we started, so its replies arrive here like anything else.
             // The driver decides which frames are its own.
+            // The daemon's transfer sees every inbound frame; its drivers pick out their own.
+            syncDaemon?.OnFrame(f);
+            batchRun?.OnFrame(f);
+            chatLoadRun?.OnFrame(f);
+
             if (pushRun != null)
             {
                 pushRun.OnFrame(f);
             }
 
-            // A pull is the same kind of conversation, and its content arrives the same way,
-            // already reassembled from its fragment pair.
+            // A pull is the same kind of conversation, and its content arrives the same way. The
+            // frame IS reassembled by the time it gets here - the layer rejoins a fragment pair
+            // before raising this event. It did NOT until 2026-08-11, and that is exactly why a
+            // pull could run the whole read ladder and still write no file: the driver was handed
+            // two halves it had no way to use. See XmsgNode.AcceptFragment.
             if (pullRun != null)
             {
                 pullRun.OnFrame(f);
             }
+        };
+
+        // The first half of a split message. Nothing can be answered until its continuation lands,
+        // but a frame that vanishes with no line in the log is expensive to diagnose - this one
+        // used to appear as "NO REPLY BUILT", which reads like a fault and is not one.
+        nodeHost.Layer.FragmentHeld += delegate (string id, XmsgPacketInfo packet)
+        {
+            XmsgFrame f = packet.Frame;
+            Console.WriteLine(
+                $"[frag] {f.Header.SourceNode}->{f.Header.DestinationNode} first fragment held at " +
+                $"Flags1 0x{f.Header.Flags1:X4}, {f.GetBodyBytes().Length} byte(s); waiting for its continuation");
         };
 
         // ANSWERED-OR-NOT. An inbound datagram that produces no reply hangs the calling SINTRAN
@@ -2096,6 +2822,22 @@ internal static class Program
             XmsgFrame f = packet.Frame;
             if (produced == 0)
             {
+                // NOT EVERY ARRIVAL WANTS AN ANSWER. An acknowledgement, a reachability reply and a
+                // network error are all the END of an exchange - answering one would be the bug. The
+                // alarm used to fire for those too, so a healthy run carried three lines reading
+                // "*** NO REPLY BUILT *** (this hangs the caller)" and nothing was hanging at all.
+                //
+                // That is not merely noise. On 2026-08-17 those lines were read as evidence while
+                // chasing a real hang, and the investigation went one layer too low because of it. A
+                // diagnostic that cries wolf on a healthy exchange is worse than none.
+                if (!ExpectsAReply(f.Header.Subtype))
+                {
+                    Console.WriteLine(
+                        $"[RX] {f.Header.SourceNode}->{f.Header.DestinationNode} " +
+                        $"sub={f.Header.Subtype} (no reply expected)");
+                    return;
+                }
+
                 Console.WriteLine(
                     $"[RX] {f.Header.SourceNode}->{f.Header.DestinationNode} " +
                     $"sub={f.Header.Subtype} *** NO REPLY BUILT *** (this hangs the caller)");
@@ -2117,10 +2859,159 @@ internal static class Program
                 $"(status {refusing.Status}); total refused {nodeHost.Transport.RefusedFrames}");
         };
 
+        // A reply the link TOOK but has not sent. The third outcome, and the one that had no line
+        // at all until 2026-08-17: a TAD connect from D100 hung with "answered with 2 frame(s)" in
+        // the log and nothing on the wire, because a queued datagram reported the same success as a
+        // transmitted one. Depth is included because a single park is ordinary and a rising depth
+        // is the peer having stopped acknowledging us.
+        link.DatagramParked += delegate (EthernetLink parking, int byteCount, int queueDepth)
+        {
+            Console.WriteLine(
+                $"[TX] *** PARKED *** {parking.Name} took a {byteCount}B frame but the send window "
+                + $"is full; {queueDepth} datagram(s) now waiting and NOTHING is leaving this node "
+                + $"until the peer acknowledges us. {parking.ParkedDetail}");
+        };
+
+        // A STALE ACKNOWLEDGEMENT. Alone it is a duplicate in flight and means nothing; a run of
+        // them WITH a climbing park queue is the deadlock - the frames the peer needs in order to
+        // move forward are the ones stuck behind our window. The two lines together are the
+        // signature, which is why they are logged in the same shape.
+        link.StaleAcknowledgement += delegate (EthernetLink stale, byte acknowledged, byte expected, int queued)
+        {
+            Console.WriteLine(
+                $"[RX] *** STALE ACK *** {stale.Name} acknowledged 0x{acknowledged:X2} but we already "
+                + $"had the peer at 0x{expected:X2}; refused, and {queued} datagram(s) are parked. "
+                + "A RUN of these with a climbing queue is a deadlock, not a duplicate.");
+        };
+
         link.StatusChanged += delegate (ILink changed, LinkStatus older, LinkStatus newer, string reason)
         {
             Console.WriteLine($"[link] {changed.Name} status {older} -> {newer} ({reason})");
         };
+
+        // ANNOUNCE OURSELVES so the peer resets the datagram sequence it expects from us.
+        //
+        // Off unless asked for. MEASURED 2026-08-11 by diffing the one fully working Ethernet run
+        // against every later one:
+        //
+        //   the run that WORKED : D100 opened the link itself - a connection confirm (kind 0x1F)
+        //                         and a reachability exchange (Flags 1 0xFFFF). Both sides then
+        //                         started from datagram Flags 1 0x0000 and the whole listing ran.
+        //   every run after it  : neither happened. D100 reused its old link reference across our
+        //                         restarts and kept the datagram sequence it expected FROM us,
+        //                         while we opened at 0x0000. It dropped us in SILENCE - no error,
+        //                         no reject - and the listing and a file pull both died.
+        //
+        // A reachability request is the documented resynchronisation and it is exactly what D100
+        // sent in the run that worked, so sending one ourselves is the obvious thing to try. It is
+        // an option rather than a default because the ONE time an announce was measured it did
+        // harm - on HDLC, where it dropped LAPB 260 ms later (see AnnounceRestartOnLinkUp in the
+        // HDLC path). Ethernet has no LAPB to drop, so that harm cannot repeat here, but "cannot
+        // repeat for that reason" is not the same as "measured safe".
+        //
+        // Arm on the status change, send on the next loop tick - never from inside the callback,
+        // which on HDLC re-entered the adapter mid-transition and took the link down.
+        // THE FOLDER-WATCH DAEMON. Built here because this is where the node, the link and the
+        // peer all exist. It scans on its own timer and carries on the loop tick below.
+        if (syncFolder != null)
+        {
+            ushort syncNode;
+            if (syncToNode == null || !ushort.TryParse(syncToNode, out syncNode))
+            {
+                syncNode = peer.Id;
+            }
+
+            NDInsight.Sintran.Xmsg.Live.Runner.TopologyNode? syncPeer = topology?.FindById(syncNode);
+            string syncMachine = (syncPeer != null && !string.IsNullOrEmpty(syncPeer.Alias))
+                ? syncPeer.Alias!.ToUpperInvariant()
+                : "D" + syncNode;
+
+            syncDaemon = new SyncDaemon(
+                syncFolder,
+                syncMachine,
+                syncUser ?? "SYSTEM",
+                nodeHost,
+                syncNode,
+                () => link.HasLearnedPeer,
+                TimeSpan.FromSeconds(3),
+                TimeSpan.FromSeconds(5));
+        }
+
+        if (batchInput != null)
+        {
+            NDInsight.Sintran.Xmsg.Live.Runner.TopologyNode? batchPeer = topology?.FindById(peer.Id);
+            string batchMachine = (batchPeer != null && !string.IsNullOrEmpty(batchPeer.Alias))
+                ? batchPeer.Alias!.ToUpperInvariant()
+                : "D" + peer.Id;
+
+            batchRun = new AppendRemoteBatchRun(
+                peer.Id, batchMachine, "SYSTEM", batchInput, batchOutput ?? "ARBOUT:SYMB");
+        }
+
+
+        LinkAnnouncer? ethernetAnnouncer = null;
+        if (announceRestart)
+        {
+            ethernetAnnouncer = new LinkAnnouncer(
+                () => link.Status,
+                () =>
+                {
+                    for (int i = 0; i < routingEntries.Count; i++)
+                    {
+                        RoutingTableEntry entry = routingEntries[i];
+
+                        // Direct neighbours only. Ourselves, and anything reached THROUGH another
+                        // node, are not ours to announce to.
+                        if (entry.System == node || entry.Hops != 1)
+                        {
+                            continue;
+                        }
+
+                        Console.WriteLine(
+                            $"[announce] telling system {entry.System} that our XMSG restarted, so it "
+                            + "resets the datagram sequence it expects from us");
+
+                        if (resyncHard)
+                        {
+                            // Zeroing our own counter here is what D103 proved wrong over HDLC.
+                            //
+                            // MEASURED 2026-08-17 on D100 over the seam: it does not reset either.
+                            // Its X-C LIST-SYSTEMS "Sequence no. Send-receive" columns held at 64/65
+                            // through an announce and a --request-link, and the 0x0000 frames that
+                            // followed were dropped without any error. See the matching note on the
+                            // seam path. This flag manufactures a drift rather than curing one.
+                            // Name the value being discarded - see the matching note on the seam path.
+                            ushort storedFlags1 = sequenceStore.LoadNextFlags1(entry.System);
+                            Console.WriteLine(
+                                $"[announce] --resync-hard: also zeroing OUR counter for {entry.System}."
+                                + $" Discarding the stored next-Flags1 0x{storedFlags1:X4}."
+                                + " The next originated frame goes out at 0x0000 - if the peer accepts"
+                                + " it, the peer resets on our announce; if it is dropped in silence,"
+                                + " it does not.");
+                            if (storedFlags1 != 0)
+                            {
+                                Console.WriteLine(
+                                    $"[announce] WARNING: node {entry.System} was at 0x{storedFlags1:X4}, not a"
+                                    + " fresh contact. If the peer does NOT reset on our announce, every"
+                                    + " frame from here is behind-sequence and dropped without an error.");
+                            }
+
+                            nodeHost.AnnounceRestartAndResetOurs(entry.System);
+                        }
+                        else
+                        {
+                            nodeHost.AnnounceRestart(entry.System);
+                        }
+                    }
+                },
+                enabled: true,
+                onceOnly: true);
+
+            link.StatusChanged += delegate (ILink changed, LinkStatus older, LinkStatus newer, string reason)
+            {
+                ethernetAnnouncer.OnStatusChanged(newer);
+            };
+        }
 
         // Everything WE put on the wire, decoded the same way the sniffer decodes inbound frames, so
         // the two sides of a conversation can be read against each other in one log.
@@ -2162,6 +3053,18 @@ internal static class Program
             Console.WriteLine(
                 $"[link] unknown ND frame kind 0x{kind:X2} (captured so far: 0x0F CR, 0x20 DT, 0x3F AK, 0x60/0x6F DR)");
 
+        // A repeat is NEVER normal on this link, and it is the single cheapest thing to look at
+        // before suspecting any layer above. On 2026-08-10 D100 repeated frames for seconds on end
+        // because we were sending far ahead of the link's window; every repeat arrived at the file
+        // server as a fresh request and it answered each with a new session counter and connection
+        // number, ending in SINTRAN error 267 octal. It took two nights to attribute, because the
+        // only evidence was byte-identical frames in a log nobody was counting. Now it says so.
+        link.OnDuplicateDataFrameReceived += (sequence, expected) =>
+            Console.WriteLine(
+                $"[link] WARNING the peer RE-SENT data frame seq={sequence} (we were waiting for {expected}). " +
+                "It has not seen our acknowledgement - check the send window and our own receive latency " +
+                "BEFORE looking for a fault in XMSG or the file server.");
+
         // High nibble 6 is the disconnect-request family. D100 sends 0x60 repeatedly once it gives
         // up on a conversation; before 2026-08-04 that fell through to UnknownFrameKindReceived and
         // filled the log. What the LOW nibble means is UNVERIFIED - see NdLinkFrameKind.
@@ -2169,6 +3072,17 @@ internal static class Program
             Console.WriteLine($"[link] disconnect request from the peer, ND frame kind 0x{kind:X2}");
 
         link.Start();
+
+        // Ask the peer to open the link again BEFORE anything else goes out. On Ethernet a peer
+        // keeps its idea of our datagram sequence across our restarts, and re-opening the link
+        // is the only thing ever observed to clear it - see NdLinkLayer.SendConnectionRequest.
+        if (requestLink)
+        {
+            Console.WriteLine(
+                "[link] asking node " + peer.Id + " to open the ND link again, so it forgets the "
+                + "sequence it expects from our previous run");
+            link.RequestConnection();
+        }
 
         // The link CANNOT open the conversation: a data frame carries the peer's link id in its
         // receiver field, and that id is learned from the peer, never derived. So we sit here until
@@ -2193,6 +3107,13 @@ internal static class Program
         {
             nodeHost.Pump();
 
+            // Send the armed announce here rather than from the status callback - see the note
+            // where the announcer is built.
+            if (ethernetAnnouncer != null)
+            {
+                ethernetAnnouncer.OnLoopTick();
+            }
+
             if (!announced && link.HasLearnedPeer)
             {
                 announced = true;
@@ -2206,6 +3127,12 @@ internal static class Program
             {
                 pushRun.Pump(nodeHost, link.HasLearnedPeer);
             }
+
+            // The daemon rides the same tick, for the same reason: this loop is what also answers
+            // the machine at the other end, so nothing here may block.
+            syncDaemon?.Pump(DateTime.UtcNow);
+            batchRun?.Pump(nodeHost, link.HasLearnedPeer);
+            chatLoadRun?.Pump(nodeHost, link.HasLearnedPeer);
 
             // The pull rides the same tick, gated on the same learned peer id.
             if (pullRun != null)
@@ -2312,7 +3239,7 @@ internal static class Program
     {
         List<RoutingTableEntry> entries = new List<RoutingTableEntry>(3);
 
-        // Self is always directly local — this is the entry that keeps 100 from routing to us via 100.
+        // Self is always directly local - this is the entry that keeps 100 from routing to us via 100.
         entries.Add(new RoutingTableEntry(node, XroutConnectionType.Local, node, 0, 0));
 
         // 100 is the machine on the other end of the HDLC bridge: a direct neighbour (1 hop).
@@ -2321,7 +3248,7 @@ internal static class Program
             entries.Add(new RoutingTableEntry(100, XroutConnectionType.Neighbour, 1, 1, 0));
         }
 
-        // 102 (the TAD terminal server) is reached through 100 — but only when WE are not 102 ourselves,
+        // 102 (the TAD terminal server) is reached through 100 - but only when WE are not 102 ourselves,
         // otherwise we would advertise a Via-100 loop back to our own node number.
         if (node != 102)
         {
@@ -2357,7 +3284,7 @@ internal static class Program
             else if ((ctrl & 3) == 1)
             {
                 // S-frame: the supervisory subtype is bits 2-3 (0=RR, 1=RNR, 2=REJ). Do NOT label every
-                // S-frame "RR" — that hid 100's REJ (ctrl 0xC9) as an "RR" in the raw log.
+                // S-frame "RR" - that hid 100's REJ (ctrl 0xC9) as an "RR" in the raw log.
                 string s = ((ctrl >> 2) & 3) switch { 0 => "RR", 1 => "RNR", 2 => "REJ", _ => "S?" };
                 kind = $"{s} nr={(ctrl >> 5) & 7}";
             }
@@ -2366,13 +3293,17 @@ internal static class Program
                 kind = ctrl switch { 0x3F => "SABM", 0x73 => "UA", 0x53 => "DISC", 0x1F => "DM", 0x87 => "FRMR", _ => $"U 0x{ctrl:X2}" };
             }
             string extra = (ctrl & 1) == 0 ? $" body={Convert.ToHexString(body)}" : string.Empty;
-            Console.WriteLine($"[TX] a=0x{(body.Length > 0 ? body[0] : 0):X2} {kind} state={link.State}{extra}");
+            // V(S)/V(A) ON EVERY FRAME. The FRMR diagnostic said V(S)=0 immediately after we had
+            // transmitted I ns=0, which cannot both be true - so the variables themselves have to be
+            // on the record, not inferred from what was sent.
+            Console.WriteLine($"[TX] a=0x{(body.Length > 0 ? body[0] : 0):X2} {kind} state={link.State}"
+                + $" vs={link.SendVariable} va={link.AcknowledgeVariable} vr={link.ReceiveVariable}{extra}");
         };
 
         LiveNode live = new LiveNode(transport, link, xnode);
         link.Connect(0);
         Console.WriteLine("[runner] SABM sent; pumping legacy link...");
-        // No periodic keepalive (matches the original validated runner) — reactive RR only.
+        // No periodic keepalive (matches the original validated runner) - reactive RR only.
         // No timers ON PURPOSE, and now said out loud: the original validated legacy runner emitted
         // no periodic keepalive and answered RR only when spoken to. Reproducing that exactly is
         // the point of this path, so it is the one caller that genuinely wants the no-timer pump.

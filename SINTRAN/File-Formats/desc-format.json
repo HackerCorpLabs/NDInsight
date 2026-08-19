@@ -1,0 +1,551 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "formatName": "DESC",
+  "fullName": "DESCRIPTION-FILE:DESC",
+  "description": "Per-SINTRAN-user index for the old ND-500(0) domain format, mapping domain names to their :PSEG/:DSEG/:LINK files and bookkeeping.",
+  "docFile": "DESCRIPTION-FILE-FORMAT.md",
+  "byteOrder": "big-endian",
+  "verification": {
+    "status": "RESOLVED 2026-08-11, extended 2026-08-17: the DOMAIN entry is now code-proven too. Segment-entry AND domain-entry field offsets confirmed from the ND-500 Monitor's own code (MON-DEBUG:PROG J04), which reads this file and prints each field beside its own label, AND matched against real DESC files (segment fields against six real entries from three product installs; domain fields against all 13 sample files). Sizes are stored as size-1 (last byte index). The bytes 74-84 conflict is adjudicated in the manual's favour: they are the COMSEGSIZE and N100SEGNO arrays, bounded by COMSEGNO at byte 62 - the earlier 'two counted byte strings' reading was a misread loop idiom. The MEANINGS of dlinkdate/absfixad/lowlogfix/plologfix/puplogfix are only the monitor's printed labels - all five read zero in all real entries.",
+    "codeSource": "../ND500/nd-500-mon/CARVE-ANSWER-DESC-FIELD-OFFSETS-2026-08-11.md and ../ND500/nd-500-mon/CARVE-ANSWER-FOUR-OPEN-QUESTIONS-2026-08-17.md",
+    "fileSources": [
+      "NLL H02 installer floppy 210319H02-XX-01D: description-file.desc (22528 bytes), with linkage-load-h02.pseg (123989) and .dseg (2184977) beside it",
+      "LED floppy 211160B03-XX-01D: description-file.desc (22528 bytes), with led-b03.pseg (223695) and .dseg (394525) beside it",
+      "COBOL-85 K01 floppy 210177K01-XX-01D: description-file.desc (22528 bytes), with cobol-85-k01.pseg (265213) and .dseg (129253) beside it - found 2026-08-17, after the offsets were fixed, so it is an independent check rather than a source",
+      "A second byte-identical copy of the COBOL K01 file exists as DESCRIPTION-FILE.DESC in a separate directory; it is the same witness, not a fourth install"
+    ],
+    "date": "2026-08-17"
+  },
+  "structure": {
+    "kind": "paged-with-linked-segment-list",
+    "pageSizeBytes": 2048,
+    "domainEntryPage": "256-byte header/bitmap + 32 domain entries of 56 bytes (256 + 32*56 = 2048)",
+    "domainEntryPosition": "position = 56*index + 256*(index div 32 + 1); first entry at byte 256",
+    "segmentEntries": "singly linked list: domainEntry.seglink = file byte position of the first segment entry; segmentEntry.seglink = position of the next; 0 ends the chain",
+    "domainIndexRange": "monitor walks indexes 0..253",
+    "note": "Verified in all four real DESC files: domain entries at 0x100 and 0x138, chains -> 0x4000 and 0x40C0, each terminating with 0. The layout is identical across the three product installs."
+  },
+  "processEntry": {
+    "sizeBytes": 1,
+    "verified": false,
+    "fields": [
+      {
+        "name": "firstDomainNumber",
+        "offset": 0,
+        "size": 1,
+        "type": "uint8",
+        "description": "Domain number of the first domain belonging to this process."
+      }
+    ]
+  },
+  "domainEntry": {
+    "sizeBytes": 56,
+    "verified": "RESOLVED 2026-08-17: all offsets code-proven from the monitor's domain print routine (014035B-014520B), each label paired with its field load off buffer 037651B, and checked against all 13 sample DESC files",
+    "fields": [
+      {
+        "name": "seglink",
+        "offset": 0,
+        "size": 4,
+        "type": "uint32",
+        "description": "File byte position of this domain's FIRST segment entry (head of the segment linked list).",
+        "verified": true,
+        "wordOffset": "0",
+        "evidence": "014325B LDD ,X 0 off domain buffer 037651B, label $Segptr:"
+      },
+      {
+        "name": "dname",
+        "offset": 4,
+        "size": 16,
+        "type": "ascii-terminated",
+        "description": "Domain name, terminated by a 0x27 (apostrophe) byte not documented in the manual (same convention as segmentEntry.sname), then zero-padded to fill the field. Not visible in the first-checked sample (LINKAGE-LOAD-H02, exactly 16 chars, no room for a terminator) - confirmed 2026-08-10 via SCRATCH-DOMAIN (14 chars + terminator + 1 zero byte).",
+        "verified": true,
+        "terminatorByte": "0x27"
+      },
+      {
+        "name": "childDomains",
+        "offset": 20,
+        "size": 6,
+        "type": "bytes",
+        "description": "Byte array of child-domain indexes; element count is childIndex (byte 27). Max 6 fit before mother at byte 26.",
+        "verified": true,
+        "wordOffset": "12B",
+        "evidence": "014407B AAT 12 + LBYT loop, label $Child domains   : ; count loaded from low byte of word 15B at 014375B"
+      },
+      {
+        "name": "mother",
+        "offset": 26,
+        "size": 1,
+        "type": "uint8",
+        "description": "Domain index of mother domain; 0xFF = no mother (all root domains in all 13 samples).",
+        "verified": true,
+        "wordOffset": "15B high byte",
+        "evidence": "014157B LDA ,X 15 + SHR 8, label $Owner:"
+      },
+      {
+        "name": "childIndex",
+        "offset": 27,
+        "size": 1,
+        "type": "uint8",
+        "description": "Number of child domains (equivalently the first free slot in the child-domain area). The monitor prints it as 'Childindex:' and uses the same byte as the childDomains element count.",
+        "verified": true,
+        "wordOffset": "15B low byte",
+        "evidence": "014176B LDA ,X 15 + SHL 8 + SHR 8"
+      },
+      {
+        "name": "flagPrior",
+        "offset": 28,
+        "size": 2,
+        "type": "bitfield",
+        "description": "One 16-bit word, not the manual's separate procPrior/flag bytes: bit 15 'alton', bit 14 'dinuse' (set on every in-use entry in all 13 samples, clear on unused), bit 13 'occup'; bits 5-12 = priority (printed as '  Prior:'). Bits 0-4 unprinted, zero in all samples. The priority field spans the byte boundary, so the manual's byte split cannot be right.",
+        "verified": true,
+        "wordOffset": "16B",
+        "evidence": "bit tests 014441B (>>15), 014472B (<<1 >>15), 014505B (<<2 >>15); prior extract 014216B (w<<3)>>8"
+      },
+      {
+        "name": "stadr",
+        "offset": 30,
+        "size": 4,
+        "type": "uint32",
+        "description": "Start address. 0 for SCRATCH-DOMAIN, segment-1 addresses (0x8000004 etc.) for real programs in the samples.",
+        "verified": true,
+        "wordOffset": "17B",
+        "evidence": "014132B LDD ,X 17, label '  Start address:'"
+      },
+      {
+        "name": "enableint",
+        "offset": 34,
+        "size": 4,
+        "type": "uint32",
+        "description": "Bitmask of enabled traps.",
+        "verified": true,
+        "wordOffset": "21B",
+        "evidence": "014261B LDD ,X 21, label $Enableint:"
+      },
+      {
+        "name": "tha",
+        "offset": 38,
+        "size": 4,
+        "type": "uint32",
+        "description": "Trap handler address.",
+        "verified": true,
+        "wordOffset": "23B",
+        "evidence": "014277B LDD ,X 23, label '  THA:'"
+      },
+      {
+        "name": "sysenabl",
+        "offset": 42,
+        "size": 4,
+        "type": "uint32",
+        "description": "Bitmask of system-enabled traps.",
+        "verified": true,
+        "wordOffset": "25B",
+        "evidence": "014312B LDD ,X 25, label '  Sysenable:'"
+      },
+      {
+        "name": "unprinted46",
+        "offset": 46,
+        "size": 2,
+        "type": "uint16",
+        "description": "Not printed by the monitor; zero in all 13 samples. The manual's field order has no room for it (its field list sums to 54 in a 56-byte entry - this word is the missing 2 bytes).",
+        "verified": false,
+        "wordOffset": "27B"
+      },
+      {
+        "name": "pbitmap",
+        "offset": 48,
+        "size": 4,
+        "type": "uint32",
+        "description": "Monitor label '  PSEG use:'. Bitmap of used program segments, confirmed by two independent segment numbers: value 2 (bit 1) on entries with STADR in segment 1, and value 4194304 (bit 22) on LINKAGE-LOAD-H02 whose STADR 0xB0000DD1 is segment 22. NOTE: manual order suggested byte 46; the code-proven offset is 48.",
+        "verified": true,
+        "wordOffset": "30B",
+        "evidence": "014340B LDD ,X 30"
+      },
+      {
+        "name": "dbitmap",
+        "offset": 52,
+        "size": 4,
+        "type": "uint32",
+        "description": "Monitor label '  DSEG use:'. Same bitmap shape as pbitmap. Manual order suggested byte 50; code-proven offset is 52.",
+        "verified": true,
+        "wordOffset": "32B",
+        "evidence": "014353B LDD ,X 32"
+      }
+    ]
+  },
+  "segmentEntry": {
+    "sizeBytes": 192,
+    "verified": "RESOLVED: seglink/sname byte-exact; plb/psize/dlb/dsize/debuginfo/dlinkdate/absfixad/lowlogfix/plologfix/puplogfix confirmed from the monitor's print routine and matched against real files",
+    "fields": [
+      {
+        "name": "seglink",
+        "offset": 0,
+        "size": 4,
+        "type": "uint32",
+        "description": "File byte position of the NEXT segment entry in this domain's chain; 0 = end of chain.",
+        "verified": true
+      },
+      {
+        "name": "sname",
+        "offset": 4,
+        "size": 54,
+        "type": "ascii-terminated",
+        "description": "(directory:user)filename, terminated by a 0x27 (apostrophe) byte not documented in the manual, then zero-padded to fill the field.",
+        "verified": true,
+        "terminatorByte": "0x27"
+      },
+      {
+        "name": "segtype",
+        "offset": 58,
+        "size": 4,
+        "type": "bitfield",
+        "description": "Flags indicating segment type.",
+        "verified": false
+      },
+      {
+        "name": "comsegno",
+        "offset": 62,
+        "size": 2,
+        "type": "uint16",
+        "description": "Number of shared (common) SINTRAN-III segments; bounds comsegaddr/comsegsize/n100segno/addsgelem, max 5. ADJUDICATED 2026-08-17: this word is NOT a character count - the monitor prints it under its own label '$Comsegno: ' and uses it to bound a word array and a double array as well, which no string reading explains.",
+        "verified": true,
+        "wordOffset": "37B",
+        "evidence": "015151B LDA ,X 37 printed after label at 040514B ('$Comsegno: '); count reloads at 015222B/015257B/015313B/015362B"
+      },
+      {
+        "name": "comsegaddr",
+        "offset": 64,
+        "size": 10,
+        "type": "uint16[5]",
+        "description": "Array of 5 x uint16 (one WORD per common segment, not loose bytes): logical address of each shared SINTRAN-III segment within the data segment. Label '$Comsegaddr: '.",
+        "verified": true,
+        "wordOffset": "40B",
+        "evidence": "015233B AAX 40, word-indexed loop 015220B-015245B, elements printed as numbers"
+      },
+      {
+        "name": "comsegsize",
+        "offset": 74,
+        "size": 5,
+        "type": "bytes",
+        "description": "Byte array [5]: size of each shared segment. Label '$Comsegsize: '. Elements printed as NUMBERS via 013301B (library number converter wrapper), not as characters - the old 'counted byte string' reading is retracted.",
+        "verified": true,
+        "wordOffset": "45B",
+        "evidence": "015270B AAT 45 + LBYT loop 015255B-015301B"
+      },
+      {
+        "name": "pad79",
+        "offset": 79,
+        "size": 1,
+        "type": "uint8",
+        "description": "Padding between the two byte arrays; never touched by the monitor.",
+        "verified": false
+      },
+      {
+        "name": "n100segno",
+        "offset": 80,
+        "size": 5,
+        "type": "bytes",
+        "description": "Byte array [5]: actual SINTRAN-III segment numbers. Label '$N100segno:  '. NOTE: manual order suggested byte 79; the code-proven offset is 80 (word 50B, word-aligned).",
+        "verified": true,
+        "wordOffset": "50B",
+        "evidence": "015324B AAT 50 + LBYT loop 015311B-015335B"
+      },
+      {
+        "name": "plogDlogHddindex",
+        "offset": 84,
+        "size": "unverified (approx 2)",
+        "type": "bitfield",
+        "description": "PLOG (5 bits, logical program-segment number), DLOG (5 bits, logical data-segment number), HDDINDEX (3 bits).",
+        "verified": false,
+        "liveDataPoint": "CONVERT-DOM-A03 reported LINKAGE-LOAD-H02's logical segment as 22 during a real conversion run, 2026-08-10 - useful for cross-checking PLOG once the offset is pinned."
+      },
+      {
+        "name": "plb",
+        "offset": 88,
+        "size": 4,
+        "type": "uint32",
+        "description": "Logical low bound for program segment.",
+        "verified": true,
+        "wordOffset": "54B",
+        "evidence": "monitor prints label $PLB: then 014575B loads ,X 54B off the segment-entry buffer 037705B"
+      },
+      {
+        "name": "psize",
+        "offset": 92,
+        "size": 4,
+        "type": "uint32",
+        "description": "Program segment size, stored as size-1. Confirmed on 6/6 real entries across three product installs (NLL H02, LED B03, COBOL-85 K01), each checked against the real .pseg file beside the DESC.",
+        "verified": true,
+        "wordOffset": "56B",
+        "evidence": "monitor prints label Psize: then 014610B loads ,X 56B off the segment-entry buffer 037705B",
+        "encoding": "size - 1 (last byte index, NOT a byte count)"
+      },
+      {
+        "name": "dlb",
+        "offset": 96,
+        "size": 4,
+        "type": "uint32",
+        "description": "Logical low bound for data segment.",
+        "verified": true,
+        "wordOffset": "60B",
+        "evidence": "monitor prints label $DLB: then 014636B loads ,X 60B off the segment-entry buffer 037705B"
+      },
+      {
+        "name": "dsize",
+        "offset": 100,
+        "size": 4,
+        "type": "uint32",
+        "description": "Data segment size, stored as size-1. Confirmed on 6/6 real entries across three product installs. Correction 2026-08-11: LINKAGE-LOAD-H02's stored value is 2109142, not the 2109654/2109655 previously reported - that was an arithmetic error. Re-read byte-for-byte 2026-08-17 from the H02 floppy's description-file.desc at file offset 0x4124 (raw 00 20 2e d6); note that 0x4120 is DLB, not DSIZE - an earlier note cited the wrong offset for the right value.",
+        "verified": true,
+        "wordOffset": "62B",
+        "evidence": "monitor prints label Dsize: then 014651B loads ,X 62B off the segment-entry buffer 037705B",
+        "encoding": "size - 1 (last byte index, NOT a byte count)"
+      },
+      {
+        "name": "debuginfo",
+        "offset": 104,
+        "size": 4,
+        "type": "uint32",
+        "description": "Size of debug info on the :LINK file.",
+        "verified": true,
+        "wordOffset": "64B",
+        "evidence": "monitor prints label $Debuginfo: then 014677B loads ,X 64B off the segment-entry buffer 037705B"
+      },
+      {
+        "name": "dlinkdate",
+        "offset": 108,
+        "size": 4,
+        "type": "uint32",
+        "description": "Labelled 'Dlinkdate:' by the monitor and described by the manual as the date the segment was last linked. The OFFSET is proven; the MEANING is not. This field reads zero in all six real segment entries available, including shipped linked products (LINKAGE-LOAD-H02, LED-B03, COBOL-85-K01) where a link date should be set. Either NLL never writes it in a shipped domain, or the field is not a date at all.",
+        "verified": true,
+        "meaningVerified": false,
+        "wordOffset": "66B",
+        "evidence": "monitor prints label Dlinkdate: then 014712B loads ,X 66B off the segment-entry buffer 037705B"
+      },
+      {
+        "name": "absfixad",
+        "offset": 112,
+        "size": 2,
+        "type": "uint16",
+        "description": "Absolute fixed address, if fixed.",
+        "verified": true,
+        "wordOffset": "70B",
+        "evidence": "monitor prints label Absfixad: then 014750B loads ,X 70B off the segment-entry buffer 037705B"
+      },
+      {
+        "name": "lowlogfix",
+        "offset": 114,
+        "size": 2,
+        "type": "uint16",
+        "description": "Lower page number in fixed area.",
+        "verified": true,
+        "wordOffset": "71B",
+        "evidence": "monitor prints label $Lowlogfix: then 014763B loads ,X 71B off the segment-entry buffer 037705B"
+      },
+      {
+        "name": "upplogfix",
+        "offset": "unverified",
+        "size": 2,
+        "type": "uint16",
+        "description": "Upper page number in fixed area.",
+        "verified": false
+      },
+      {
+        "name": "minpages",
+        "offset": "unverified",
+        "size": 2,
+        "type": "uint16",
+        "description": "Minimum pages in memory.",
+        "verified": false
+      },
+      {
+        "name": "maxpages",
+        "offset": "unverified",
+        "size": 2,
+        "type": "uint16",
+        "description": "Maximum pages in memory.",
+        "verified": false
+      },
+      {
+        "name": "indiplogInddlog",
+        "offset": 130,
+        "size": 2,
+        "type": "bitfield",
+        "description": "Bitfield word: Indplog = bits 10-15, Inddlog = bits 5-9 (monitor's labels '  Indplog: ' / '  Inddlog:  ') - logical program/data segment number in an indirect domain.",
+        "verified": true,
+        "wordOffset": "101B",
+        "evidence": "015164B LDA ,X 101 + SHR 10; 015200B LDA ,X 101 + (w<<6)>>11"
+      },
+      {
+        "name": "addsgelem",
+        "offset": 132,
+        "size": 60,
+        "type": "addsgelem[5]",
+        "description": "5 elements x 12 bytes (6 words - multiply constant at 015553B), count = comsegno; fills the entry to exactly 192 bytes. Monitor label '$Addsgelem:  ' prints the first double of each element. Manual's per-element split (ADDSEGLINK(4) + INDDOMAIN(1) + bitfield + LINKDATE(4)) sums to 15 bytes and cannot fit 12 - the inner layout is NOT settled, only the element size and base.",
+        "verified": "base, element size, and count code-proven; inner field layout manual-order only and inconsistent with the 12-byte element",
+        "wordOffset": "102B",
+        "evidence": "015372B MPY (constant 6 at 015553B), 015374B AAX 102, LDD ,X 0 per element"
+      },
+      {
+        "name": "plologfix",
+        "offset": 126,
+        "size": 2,
+        "type": "uint16",
+        "description": "Monitor's own label 'Plologfix:'. Not named in the manual.",
+        "verified": true,
+        "wordOffset": "77B",
+        "evidence": "014623B LDA ,X 77"
+      },
+      {
+        "name": "puplogfix",
+        "offset": 128,
+        "size": 2,
+        "type": "uint16",
+        "description": "Monitor's own label 'Puplogfix:'. Not named in the manual; likely the manual's UPPLOGFIX.",
+        "verified": true,
+        "wordOffset": "100B",
+        "evidence": "014664B LDA ,X 100"
+      },
+      {
+        "name": "flagsWord",
+        "offset": 60,
+        "size": 2,
+        "type": "bitfield",
+        "description": "Flags word the monitor prints bit by bit (015743B-016052B); individual bit meanings not decoded.",
+        "verified": true,
+        "wordOffset": "36B"
+      }
+    ]
+  },
+  "symbolEntry": {
+    "sizeBytes": "variable",
+    "verified": false,
+    "fields": [
+      {
+        "name": "elink",
+        "offset": 0,
+        "size": 4,
+        "type": "uint32",
+        "description": "Link to next symbol."
+      },
+      {
+        "name": "sl",
+        "offset": 4,
+        "size": 1,
+        "type": "uint8",
+        "description": "Length of symbol name."
+      },
+      {
+        "name": "nleOper",
+        "offset": 5,
+        "size": "unverified",
+        "type": "bitfield",
+        "description": "NLE (3 bits, numeric length) + OPER (operation type +,-,*,/)."
+      },
+      {
+        "name": "ident",
+        "offset": "unverified",
+        "size": 1,
+        "type": "uint8",
+        "description": "Language code."
+      },
+      {
+        "name": "cw",
+        "offset": "unverified",
+        "size": 1,
+        "type": "bitfield",
+        "description": "Type-of-symbol bitmask, see cwBits. Same layout as the NRF loader's in-memory symbol table (see nrf-format.json symbolTypeBits)."
+      },
+      {
+        "name": "val",
+        "offset": "unverified",
+        "size": 4,
+        "type": "uint32",
+        "description": "Value of symbol."
+      },
+      {
+        "name": "size",
+        "offset": "unverified",
+        "size": 4,
+        "type": "uint32",
+        "description": "Size of common block."
+      },
+      {
+        "name": "ss",
+        "offset": "unverified",
+        "size": "up to 255",
+        "type": "ascii",
+        "description": "Symbol name."
+      }
+    ]
+  },
+  "cwBits": [
+    {
+      "bit": 0,
+      "name": "UDEF",
+      "description": "false = undefined element"
+    },
+    {
+      "bit": 1,
+      "name": "DREF",
+      "description": "false = program memory reference, true = data memory reference"
+    },
+    {
+      "bit": 2,
+      "name": "DSYM",
+      "description": "false = program label, true = data label"
+    },
+    {
+      "bit": 3,
+      "name": "CLAB",
+      "description": "true = common label"
+    },
+    {
+      "bit": 4,
+      "name": "DMPF",
+      "description": "true = symbol is written (list handling)"
+    },
+    {
+      "bit": 5,
+      "name": "GLOB",
+      "description": "true = symbol survives a loader-table save"
+    },
+    {
+      "bit": 6,
+      "name": "SELECT",
+      "description": "true = module must be loaded"
+    },
+    {
+      "bit": 7,
+      "name": "OMIT",
+      "description": "true = module must not be loaded"
+    }
+  ],
+  "readPath": {
+    "summary": "The ND-500 Monitor does NOT use RFILE. It opens DESCRIPTION-FILE:DESC (descriptor build at 016200B-016240B), then seeks and reads bytes.",
+    "readDomainEntry": "013454B - computes position, reads 56 bytes into buffer 037651B",
+    "readSegmentEntry": "013527B - reads 192 bytes into buffer 037705B",
+    "primitive": "013406B - MON 74 SETBT (seek to byte position) then a MON 1 INBT byte loop stored with SBYT",
+    "consequence": "the buffer holds the raw record byte for byte, so word offset * 2 = file byte offset exactly"
+  },
+  "resolvedQuestions": [
+    {
+      "id": "linkage-load-h02-dsize",
+      "description": "Was reported as: LINKAGE-LOAD-H02 is the only entry with non-zero DLB (75834) and the only one whose DSIZE (2109655) does not match its .dseg file (2184977). Resolved 2026-08-11: the DSIZE-stored value used in that comparison (2109654/2109655) was a transcription error - re-reading description-file.desc offset 0x4124 gives raw bytes 00 20 2e d6 = 2109142 (0x4120 is DLB). With the correct value, DLB + (DSIZE_stored + 1) = 75834 + 2109143 = 2184977, exactly matching the .dseg file size - the same formula the zero-DLB entries already satisfy trivially. Not a format anomaly.",
+      "status": "resolved"
+    }
+  ],
+  "openQuestions": [
+    {
+      "id": "psize-dsize-write-side",
+      "description": "The size-1 encoding is proven from files and consistent with the monitor's own inclusive-last-index style (277B=191 for the 192-byte record, 67B=55 for the 56-byte entry), but the monitor never adjusts the values, so a write-side proof must come from NLL.",
+      "status": "open"
+    }
+  ],
+  "nonWitnesses": [
+    {
+      "program": "CONVERT-DOMAIN (CONVERT-DOM-A03)",
+      "finding": "Does not read these fields. Patching PSIZE from 123988 to 16384 in a real DESC and re-running the conversion under nd500x produced a byte-identical 2,316,049-byte .DOM; it queries the filesystem with MON 62B GetBytesInFile instead.",
+      "date": "2026-08-11"
+    }
+  ]
+}

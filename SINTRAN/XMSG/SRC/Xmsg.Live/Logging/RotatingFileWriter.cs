@@ -10,7 +10,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Logging
     /// </summary>
     /// <remarks>
     /// Rotation is delegated to <see cref="LogRotator"/> (Linux-syslog numbering). The byte counter is an
-    /// approximation used only to decide when to roll over — it counts one byte per <see cref="char"/> and
+    /// approximation used only to decide when to roll over - it counts one byte per <see cref="char"/> and
     /// the exact UTF-8 length for string writes; log lines are ASCII, so the estimate is effectively exact.
     /// The writer flushes on every newline so a crash still leaves a complete log up to the last line.
     /// </remarks>

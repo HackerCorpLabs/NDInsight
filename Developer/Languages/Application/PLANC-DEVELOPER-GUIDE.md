@@ -108,6 +108,19 @@ The compiler produces three files:
 - `OUTPUT(device, format, variable)` writes to terminal (device 1)
 - `'AL17'` = Alphanumeric, Left-justified, 17 characters
 - `'$'` in output strings = CR+LF (newline). Literal `$` = `$$`
+- **The `'ALn'` count INCLUDES the trailing `$`** -- `'CHAT: bye$'` is TEN characters. The number is
+  a FIELD WIDTH, not a maximum: too small silently cuts the line off, too large pads it. Nothing in
+  the compiler checks it, so a wrong width builds clean and only shows up on screen. Leaving the
+  width off entirely (`'AL'`) sizes the field automatically and is the safer habit for anything
+  whose length is not fixed and counted
+- **A string literal cannot be stored into an element of a `BYTES` array.** `' ' =: buf(i)` does not
+  compile -- `'x'` is a STRING, `buf(i)` is a BYTE. The compiler answers
+  `*** ERROR - ILLEGAL DATA TYPE "BUF"`, blaming the ARRAY, which sends you to a declaration where
+  nothing is wrong. Hold the character in a one-element `BYTES` and copy element to element. The
+  same idiom is needed in the other direction to PRINT one byte, since `'ALn'` formats a string and
+  handing it a byte prints the byte's NUMBER
+- **Subarrays pass part of a buffer and their bounds may be VARIABLES** -- `name(0:len-1)`. Without
+  one, a routine taking `BYTES` receives the array's whole declared length, leftovers included
 - `BYTES : name := 'string'` declares byte array with implicit length
 - `%` starts a comment to end of line
 - `&` at end of line continues statement on next line
@@ -115,6 +128,26 @@ The compiler produces three files:
 - Assignment: `expression =: variable` (NOT `:=`)
 - Not-equal: `><` (NOT `!=` or `<>`)
 - All SINTRAN text files require CRLF line endings and even parity (bit 7)
+
+---
+
+## Getting the program INTO the system
+
+A `:PROG` file that runs when you type its name is the beginning, not the end. SINTRAN has two
+places a finished program properly belongs, and which one depends on what the program is for:
+
+| | Started by | Terminal | Copies in memory | Stopped by |
+|---|---|---|---|---|
+| ordinary `:PROG` | `@NAME` | the caller's | one per run | ESC -- awkward, and impossible while blocked in a monitor call |
+| **RT program** | `@RT NAME`, or at boot | **none** | one, resident | **`@ABORT NAME`** |
+| **reentrant subsystem** | `@NAME` | the caller's | **one, SHARED by every user** | ends with the invocation |
+
+A **server** wants to be an RT program -- nobody is logged in as it, and it must outlive every
+terminal session. A **tool people run** wants to be reentrant -- many users at once, each with
+their own data, one copy of the code.
+
+Both routes, with the vendor manuals' mistakes corrected against a real machine, are in
+**[PLANC-RT-AND-REENTRANT-PROGRAMS.md](PLANC-RT-AND-REENTRANT-PROGRAMS.md)**.
 
 ---
 
@@ -132,15 +165,34 @@ The compiler produces three files:
 
 1. **MODULE-based:** Programs structured as modules with EXPORT/IMPORT
 2. **Strong Typing:** Type-safe development with records, sets, pointers
-3. **SINTRAN Integration:** Full monitor call access via Monitor_Call()
+3. **SINTRAN Integration:** Full monitor call access via `MONITOR_CALL()` or the named `MONn`
+   routines - see [PLANC-MONITOR-CALLS.md](PLANC-MONITOR-CALLS.md) for how to find a call's
+   name/number and the library load order (`MON-CALL-1BANK` before `PLANC-1BANK`)
 4. **Compiler:** `@PLANC` on ND-100, `@PLANC-500` on ND-500
-5. **XMSG IPC:** Via COSMOS XMP library routines (MON 200B not directly available)
+5. **XMSG IPC:** Via COSMOS XMP library routines (MON 200B not directly available) - see
+   [COSMOS-XMP-LIBRARY.md](COSMOS-XMP-LIBRARY.md) for the full library documentation
 6. **Inline Assembly:** `$*` prefix for MAC assembler statements
 
 ---
 
 ## See Also
 
+- **[PLANC-RT-AND-REENTRANT-PROGRAMS.md](PLANC-RT-AND-REENTRANT-PROGRAMS.md)** - INSTALLING a
+  finished program: as an RT program that holds no terminal and starts at boot, or as a reentrant
+  subsystem every user shares one copy of. Where an RT program's name really comes from, the
+  RT-LOADER sequence and the three places the manuals get it wrong, `@ABORT`, and
+  `DUMP-PROGRAM-REENTRANT`
+- **[PLANC-XMSG-PROGRAMMING-GUIDE.md](PLANC-XMSG-PROGRAMMING-GUIDE.md)** - Writing an XMSG client
+  or server: hello world, every call, the patterns and the error numbers
+- **[PLANC-MONITOR-CALLS.md](PLANC-MONITOR-CALLS.md)** - Doing SINTRAN MON calls from PLANC:
+  the three call forms, finding a call's name/number/params, error handling (`ErrCode` /
+  `ON ROUTINEERROR`), and the library load ORDER (`MON-CALL-1BANK` then `PLANC-1BANK`)
+- **[COSMOS-XMP-LIBRARY.md](COSMOS-XMP-LIBRARY.md)** - The COSMOS XMP library: what it is, why
+  MON 200B needs a wrapper, the full routine catalog, working IMPORT declarations, the proven
+  D100 build recipe
+- **[PLANC-XMSG-COMMUNICATION.md](PLANC-XMSG-COMMUNICATION.md)** - Talking to XMSG from PLANC:
+  what is installed on a real machine, why the manual's `$INCLUDE` names do not match it, flags
+  being BIT POSITIONS, and the array-bounds traps
 - **[QUICK-START-EXAMPLES.md](../../QUICK-START-EXAMPLES.md)** - Complete working example
 - **[LINKING-GUIDE.md](../../Workflow/LINKING-GUIDE.md)** - Linking PLANC programs
 - **[SINTRAN-DEVELOPER-GUIDE.md](../../SINTRAN-DEVELOPER-GUIDE.md)** - Master guide
@@ -150,5 +202,5 @@ The compiler produces three files:
 
 ---
 
-**Last Updated:** May 26, 2026  
+**Last Updated:** August 17, 2026  
 **Version:** 2.0

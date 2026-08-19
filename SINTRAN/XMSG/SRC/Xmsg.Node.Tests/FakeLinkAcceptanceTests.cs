@@ -12,23 +12,23 @@ using Xunit;
 namespace NDInsight.Sintran.Xmsg.Node.Tests
 {
     /// <summary>
-    /// THE PORT ACCEPTANCE TEST (seam plan section 7). A hand-written fake <see cref="ILink"/> — with
-    /// NO HDLC framing, NO LAPB state machine, NO transport, no async — drives the full XMSG stack
+    /// THE PORT ACCEPTANCE TEST (seam plan section 7). A hand-written fake <see cref="ILink"/> - with
+    /// NO HDLC framing, NO LAPB state machine, NO transport, no async - drives the full XMSG stack
     /// (<see cref="XmsgCodec"/> + <see cref="XmsgLayer"/> + the TAD responder) in BOTH directions:
     /// a payload pushed UP produces a decoded SINTRAN frame back DOWN. Because the entire upper stack
     /// depends only on <see cref="ILink"/> (plus <c>Xmsg.Protocol</c>) and never touches
     /// <c>Xmsg.Hdlc</c> or <c>LapbLayer</c>, this test IS the proof that porting into
-    /// X25Emulator is "swap the link adapter" — bind these same upper layers to X25Emulator's ILink
+    /// X25Emulator is "swap the link adapter" - bind these same upper layers to X25Emulator's ILink
     /// implementation and nothing above the seam changes.
     /// </summary>
     /// <remarks>
-    /// This test lives in <c>Xmsg.Node.Tests</c>, which references only Xmsg.Protocol + Xmsg.Node —
+    /// This test lives in <c>Xmsg.Node.Tests</c>, which references only Xmsg.Protocol + Xmsg.Node -
     /// NOT Xmsg.Live or Xmsg.Hdlc. So "no link/framing dependency" is compiler-enforced here: if the
     /// upper stack ever grew a Live/HDLC dependency, this project would fail to compile.
     /// </remarks>
     public sealed class FakeLinkAcceptanceTests
     {
-        // The exact captured connect request 100 -> 103 (proto DA) — same bytes the parity test uses.
+        // The exact captured connect request 100 -> 103 (proto DA) - same bytes the parity test uses.
         private const string ConnectRequestHex =
             "2113000E0067006400000400DA13210086E400670000006402F7040000410010FF072A54414441444D00FE0444313033";
 
@@ -37,7 +37,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         [Fact]
         public void FakeLink_DrivesFullXmsgStack_BothDirections()
         {
-            // Compose the WHOLE upper stack over a fake link — no HDLC, no LAPB, no transport.
+            // Compose the WHOLE upper stack over a fake link - no HDLC, no LAPB, no transport.
             FakeLink link = new FakeLink("fake:acceptance");
             LinkXmsgTransport transport = new LinkXmsgTransport(link);   // codec sends DOWN through the link
             XmsgCodec codec = new XmsgCodec(link.Name, transport);
@@ -45,7 +45,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             ConfigureLayer(layer);
 
             // UP wiring: a payload delivered by the link is parsed by the codec (which raises up to the
-            // layer). This is the same one-liner the real runner uses — the only thing that differs
+            // layer). This is the same one-liner the real runner uses - the only thing that differs
             // from production is the ILink implementation under it.
             link.PayloadReceived += delegate (ILink deliveringLink, byte[] payload, int length)
             {
@@ -62,7 +62,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             // answer back down through the link. At least the connect-accept must have been sent.
             Assert.NotEmpty(link.SentFrames);
 
-            // Every frame the stack emitted is a well-formed SINTRAN frame (marker 0x21 0x13/0x12) —
+            // Every frame the stack emitted is a well-formed SINTRAN frame (marker 0x21 0x13/0x12) -
             // proof the bytes went all the way through the codec, not some half-formed fragment.
             for (int i = 0; i < link.SentFrames.Count; i++)
             {
@@ -86,7 +86,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         public void FakeLink_ReusesOneUpBuffer_StackStillCorrect_ProvesCopyDiscipline()
         {
             // COPY-DISCIPLINE PROOF (seam plan section 7.2). The fake link delivers TWO different
-            // inbound payloads UP through the SAME reused buffer — exactly what a pooled/reused
+            // inbound payloads UP through the SAME reused buffer - exactly what a pooled/reused
             // receive buffer would do. If any layer retained the buffer instead of consuming it inside
             // the callback, the second delivery would corrupt the first. We assert the stack answered
             // BOTH deliveries (two connect-accepts), proving nothing above the seam held the buffer.
@@ -107,7 +107,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
 
             // Deliver the SAME logical payload twice, both times through the link's ONE reusable up
             // buffer (DeliverUpReusingBuffer overwrites that buffer each call). A connect request that
-            // is answered once must be answered again after a fresh session — the point is only that
+            // is answered once must be answered again after a fresh session - the point is only that
             // the second delivery is not corrupted by the first having retained the buffer.
             int before = link.SentFrames.Count;
             link.DeliverUpReusingBuffer(connect);
@@ -115,7 +115,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             link.DeliverUpReusingBuffer(connect);
             int afterSecond = link.SentFrames.Count;
 
-            // Each delivery produced at least one well-formed outbound frame (marker 0x21) — so both
+            // Each delivery produced at least one well-formed outbound frame (marker 0x21) - so both
             // passes through the reused buffer decoded cleanly.
             Assert.True(afterFirst > before, "first reused-buffer delivery produced no output");
             Assert.True(afterSecond > afterFirst, "second reused-buffer delivery produced no output");
@@ -189,7 +189,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
 
             public bool Start()
             {
-                // No LAPB handshake to wait for — the fake link is Active immediately.
+                // No LAPB handshake to wait for - the fake link is Active immediately.
                 SetStatus(LinkStatus.Starting, "start requested");
                 SetStatus(LinkStatus.Active, "fake link up");
                 return true;
@@ -224,7 +224,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
                     return false;
                 }
 
-                // Copy the span into our own storage — the compiler forbids storing the span itself, so
+                // Copy the span into our own storage - the compiler forbids storing the span itself, so
                 // this copy is mandatory and the caller's buffer is free the instant we return.
                 byte[] copy = payload.ToArray();
                 SentFrames.Add(copy);
@@ -245,7 +245,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             /// <summary>
             /// Test hook: simulate one payload arriving up through the link's ONE reused buffer (models a
             /// pooled receive buffer). The buffer is overwritten on every call, so a consumer that
-            /// retains it across calls would see corruption — which is exactly what this proves absent.
+            /// retains it across calls would see corruption - which is exactly what this proves absent.
             /// </summary>
             /// <param name="payload">
             /// The SINTRAN information field bytes to copy into the reused buffer.

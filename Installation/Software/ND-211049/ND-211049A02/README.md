@@ -19,7 +19,9 @@
   as install — `DIALOG-SYS` usage doesn't shrink). [PD]
 - **H-version of the Linkage-Loader** must be on the system before running the installer. If
   installing the example database from the SQL User Manual, a version of `SIB2-DRL` must also
-  already be on `SYSTEM`. [PD]
+  already be on `SYSTEM`. [PD] `SIB2-DRL-D:PROG` — the SIBAS Data Retrieval Language interactive
+  program this refers to — is confirmed present on part 4 of the [ND-10340](../../ND-10340/README.md)
+  SIBAS-II-for-ND-500 floppy set.
 
 ## Distribution media
 

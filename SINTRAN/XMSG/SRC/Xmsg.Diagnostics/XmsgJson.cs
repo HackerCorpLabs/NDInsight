@@ -12,8 +12,8 @@ namespace NDInsight.Sintran.Xmsg.Diagnostics
     /// </summary>
     /// <remarks>
     /// <para><b>Round-trip guarantee</b></para>
-    /// <see cref="ToJson"/> emits both a structured, human-readable view and — for frames
-    /// decoded from a capture — a <c>RawHex</c> copy of the original bytes.
+    /// <see cref="ToJson"/> emits both a structured, human-readable view and - for frames
+    /// decoded from a capture - a <c>RawHex</c> copy of the original bytes.
     /// <see cref="FromJson"/> rebuilds a frame that re-serialises to the identical byte
     /// array:
     ///  - when <c>RawHex</c> is present it re-parses those exact bytes (captured frames).

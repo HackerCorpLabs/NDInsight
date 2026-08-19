@@ -11,10 +11,16 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
     /// <remarks>
     /// <para><b>The rule, and how narrow it is</b></para>
     /// <para>
-    /// A relay rewrites <b>word 0 and word 6, and nothing else</b>. Marker 2 goes from
-    /// <c>0x13</c> to <c>0x12</c> — so word 0 <c>0x2113</c> becomes <c>0x2112</c> — and the header
-    /// checksum in word 6 is recomputed over the changed header. The endpoints, Flags 1, Flags 2,
-    /// the subtype and the entire body are passed through BYTE FOR BYTE.
+    /// A relay rewrites <b>word 0 and word 6, and nothing else</b>. The HOP COUNT in the low byte
+    /// of word 0 is DECREMENTED - so word 0 <c>0x2113</c> becomes <c>0x2112</c> on the first hop,
+    /// <c>0x2111</c> on the second - and the header checksum in word 6 is recomputed over the
+    /// changed header. The endpoints, Flags 1, Flags 2, the subtype and the entire body are passed
+    /// through BYTE FOR BYTE.
+    /// </para>
+    /// <para>
+    /// Word 0 is the kernel's <c>XDROU</c>, "NETWORK INFO (VERSION, PROTOCOL, HOP COUNT)" - it is
+    /// NOT two magic markers, which is how it was modelled while only one hop was ever exercised.
+    /// A datagram arriving with a hop count of zero is DROPPED rather than forwarded.
     /// </para>
     /// <para>
     /// In particular the relay does <b>not</b> renumber Flags 1. That sequence belongs to the
@@ -25,7 +31,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
     /// <para>
     /// The rule was read off relayed HDLC frames, and the transport-independence of the header was
     /// verified on 128/128 frames including relayed ones. What has <b>NOT</b> been observed is a
-    /// relayed frame on the ETHERNET transport — COSMOS-ETHERNET-TRANSPORT-FRAMING-2026-08-01.md
+    /// relayed frame on the ETHERNET transport - COSMOS-ETHERNET-TRANSPORT-FRAMING-2026-08-01.md
     /// lists that as an open question, and names this exact topology as the experiment: D103 on
     /// HDLC to D100, D102 on Ethernet to D100. This class implements the HDLC-derived rule
     /// unchanged, on the reasoning that the header is transport-independent everywhere else it has
@@ -35,14 +41,31 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
     public static class SintranDatagramRelay
     {
         /// <summary>
+        /// Byte offset of the version/protocol byte, which a relay leaves alone.
+        /// </summary>
+        /// <remarks>
+        /// Word 0 is the kernel's <c>XDROU</c>, "NETWORK INFO (VERSION, PROTOCOL, HOP COUNT)". This
+        /// byte is <c>X5VRS</c>: <c>20400</c> octal = <c>0x2100</c>, left byte <c>0x21</c>, meaning
+        /// OP=0, VERSION=2, PROTOCOL=1. Carved from <c>XMSG-POFTABS-L03.SYMB</c>.
+        /// </remarks>
+        public const int VersionProtocolOffset = 0;
+
+        /// <summary>
+        /// Byte offset of the HOP COUNT, the only header byte outside the checksum a relay changes.
+        /// </summary>
+        public const int HopCountOffset = 1;
+
+        /// <summary>
         /// Byte offset of Marker 1, which a relay leaves alone.
         /// </summary>
-        public const int Marker1Offset = 0;
+        [Obsolete("Word 0 is XDROU, not two markers. Use VersionProtocolOffset.")]
+        public const int Marker1Offset = VersionProtocolOffset;
 
         /// <summary>
         /// Byte offset of Marker 2, the only header byte outside the checksum that a relay changes.
         /// </summary>
-        public const int Marker2Offset = 1;
+        [Obsolete("Byte 1 is a HOP COUNT, not a marker. Use HopCountOffset.")]
+        public const int Marker2Offset = HopCountOffset;
 
         /// <summary>
         /// Byte offset of the header checksum's HIGH byte (word 6). Long mislabelled "Protocol ID".
@@ -61,19 +84,37 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
         public const int HeaderSize = 14;
 
         /// <summary>
+        /// The version/protocol byte that opens every SINTRAN header: OP=0, VERSION=2, PROTOCOL=1.
+        /// </summary>
+        public const byte VersionProtocolValue = 0x21;
+
+        /// <summary>
+        /// The hop count a sender puts in the header before any relay has touched it.
+        /// </summary>
+        public const byte InitialHopCount = 0x13;
+
+        /// <summary>
         /// Marker 1, which opens every SINTRAN header.
         /// </summary>
-        public const byte Marker1Value = 0x21;
+        [Obsolete("This is the version/protocol byte of XDROU. Use VersionProtocolValue.")]
+        public const byte Marker1Value = VersionProtocolValue;
 
         /// <summary>
         /// Marker 2 on a datagram that has not been relayed.
         /// </summary>
-        public const byte Marker2Normal = 0x13;
+        [Obsolete("This is the INITIAL HOP COUNT, not a marker. Use InitialHopCount.")]
+        public const byte Marker2Normal = InitialHopCount;
 
         /// <summary>
         /// Marker 2 on a datagram that a node has forwarded.
         /// </summary>
-        public const byte Marker2Relay = 0x12;
+        /// <remarks>
+        /// Kept only because it is the value ONE hop produces. A relay now DECREMENTS the hop
+        /// count, so a twice-forwarded datagram reads <c>0x11</c> and this constant does not
+        /// describe it. Test with <see cref="IsRelayed"/> instead of comparing to this.
+        /// </remarks>
+        [Obsolete("Byte 1 is a decrementing HOP COUNT. Use IsRelayed, or InitialHopCount - hops.")]
+        public const byte Marker2Relay = InitialHopCount - 1;
 
         /// <summary>
         /// Rewrites a datagram in place into its relayed form: marks it relayed and recomputes the
@@ -83,12 +124,28 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
         /// The datagram, starting at Marker 1. Modified in place; only bytes 1, 12 and 13 change.
         /// </param>
         /// <returns>
-        /// True when the datagram was rewritten; false when it is too short or does not open with
-        /// Marker 1, in which case it is left untouched.
+        /// True when the datagram was rewritten; false when it is too short, does not open with
+        /// the version/protocol byte, or has NO HOPS LEFT - in which case it is left untouched and
+        /// must not be forwarded.
         /// </returns>
         /// <remarks>
+        /// <para>
         /// Rewriting IN PLACE is deliberate: a relay copies nothing, so there is no opportunity for
         /// a body to be silently truncated or padded on the way through.
+        /// </para>
+        /// <para><b>It DECREMENTS the hop count; it used to assign 0x12</b></para>
+        /// <para>
+        /// Assigning was indistinguishable from decrementing for the only case ever exercised - one
+        /// hop, <c>0x13</c> to <c>0x12</c> - and wrong for every case beyond it: a twice-forwarded
+        /// datagram stayed at <c>0x12</c>, so the count could never fall and a datagram going round
+        /// a loop would circulate for ever. A hop count exists to stop exactly that, so counting is
+        /// the whole point of the field.
+        /// </para>
+        /// <para>
+        /// Returning false at zero is the other half of it. A datagram whose hops are exhausted is
+        /// DROPPED, not forwarded with a wrapped count - which is what <c>byte</c> arithmetic would
+        /// otherwise do, turning 0 into 255 and granting it 255 more hops.
+        /// </para>
         /// </remarks>
         public static bool MakeRelayed(Span<byte> datagram)
         {
@@ -97,7 +154,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
                 return false;
             }
 
-            datagram[Marker2Offset] = Marker2Relay;
+            if (datagram[HopCountOffset] == 0)
+            {
+                return false;
+            }
+
+            datagram[HopCountOffset] -= 1;
             WriteChecksum(datagram);
             return true;
         }
@@ -131,11 +193,36 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
         /// The datagram, starting at Marker 1.
         /// </param>
         /// <returns>
-        /// True when Marker 2 is <see cref="Marker2Relay"/>.
+        /// True when the hop count has fallen below its initial value, that is the datagram has
+        /// been forwarded at least once.
         /// </returns>
+        /// <remarks>
+        /// This used to test <c>== 0x12</c>, which answered FALSE for a datagram forwarded twice
+        /// (<c>0x11</c>) - it reported a well-travelled datagram as fresh. Comparing against the
+        /// initial value counts any number of hops.
+        /// </remarks>
         public static bool IsRelayed(ReadOnlySpan<byte> datagram)
         {
-            return IsWellFormed(datagram) && datagram[Marker2Offset] == Marker2Relay;
+            return IsWellFormed(datagram) && datagram[HopCountOffset] < InitialHopCount;
+        }
+
+        /// <summary>
+        /// Gets how many times a datagram has been forwarded.
+        /// </summary>
+        /// <param name="datagram">
+        /// The datagram, starting at the version/protocol byte.
+        /// </param>
+        /// <returns>
+        /// The number of hops taken, or -1 when the datagram is not well formed.
+        /// </returns>
+        public static int HopsTaken(ReadOnlySpan<byte> datagram)
+        {
+            if (!IsWellFormed(datagram))
+            {
+                return -1;
+            }
+
+            return InitialHopCount - datagram[HopCountOffset];
         }
 
         /// <summary>
@@ -235,7 +322,8 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
         /// </returns>
         private static bool IsWellFormed(ReadOnlySpan<byte> datagram)
         {
-            return datagram.Length >= HeaderSize && datagram[Marker1Offset] == Marker1Value;
+            return datagram.Length >= HeaderSize
+                && datagram[VersionProtocolOffset] == VersionProtocolValue;
         }
 
         /// <summary>

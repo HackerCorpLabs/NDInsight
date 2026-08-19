@@ -12,12 +12,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
     public enum CescState : byte
     {
         /// <summary>
-        /// Escape disabled (<c>0x00</c>) — sent with the username-accepted burst and in the logout ladder.
+        /// Escape disabled (<c>0x00</c>) - sent with the username-accepted burst and in the logout ladder.
         /// </summary>
         EscapeDisabled = 0x00,
 
         /// <summary>
-        /// Escape enabled (<c>0x01</c>) — sent with the password-accepted burst once logged in.
+        /// Escape enabled (<c>0x01</c>) - sent with the password-accepted burst once logged in.
         /// </summary>
         EscapeEnabled = 0x01,
     }

@@ -13,7 +13,10 @@ official constant files.
 |----------|-------|
 | [XMSG-PROTOCOL.md](XMSG-PROTOCOL.md) | **The wire format** - HDLC framing, LAPB, the 14-byte SINTRAN header, packet subtypes, the XMSG sub-header/envelope, and the ROUTING/TAD/DC/PAD sub-protocols |
 | [XMSG-API.md](XMSG-API.md) | **Programming/API** - the MON 200B calling convention, T-register option bits, XROUT letters/standard messages, magic numbers/ports/names, and the complete constant catalog |
+| [FRIEND-SYSTEMS.md](FRIEND-SYSTEMS.md) | **Why a conversation is refused in silence** - what a friend system is, when you need one, `DEFINE-FRIEND-SYSTEM`, and the order trap (`DEF-REMOTE` clears it) |
 | [XMSG-COMMAND-REFERENCE.md](XMSG-COMMAND-REFERENCE.md) | The `XMSG-COMMAND` operator utility (network management, tracing, dumps) |
+| [CHAT-USER-GUIDE.md](CHAT-USER-GUIDE.md) | **The chat system** - terminal commands, the port-to-port API, rooms, seats, and what is not built yet |
+| [PLAN-SINTRAN-NATIVE-CHAT-RT-AND-PROG.md](PLAN-SINTRAN-NATIVE-CHAT-RT-AND-PROG.md) | **Plan** - move the chat onto the ND: a CHATSV RT server and a CHAT PROG client in PLANC |
 
 ## Layer 2 (LAPB)
 
@@ -100,6 +103,7 @@ in the core specs, so treat the specs as authoritative.
 | [XMSG-TAD-MULTICHUNK-DISPROVES-DUMM-2026-07-07.md](XMSG-TAD-MULTICHUNK-DISPROVES-DUMM-2026-07-07.md) |
 | [XMSG-TAD-MULTICHUNK-HANDOFF-2026-07-08.md](XMSG-TAD-MULTICHUNK-HANDOFF-2026-07-08.md) |
 | [RETROCORE-TO-XMSG-HLE-STARTNET-REPLY-REQUEST-2026-08-09.md](RETROCORE-TO-XMSG-HLE-STARTNET-REPLY-REQUEST-2026-08-09.md) / [XMSG-TO-RETROCORE-HLE-STARTNET-REPLY-2026-08-09.md](XMSG-TO-RETROCORE-HLE-STARTNET-REPLY-2026-08-09.md) - ENNS0 start-net-server reply bytes (still open) and XFMST task-current semantics (answered from the manual) |
+| [RETROCORE-TO-XMSG-POCSPROCES-REPLY-FIELDS-2026-08-09.md](RETROCORE-TO-XMSG-POCSPROCES-REPLY-FIELDS-2026-08-09.md) / [XMSG-TO-RETROCORE-HLE-POCSPROCES-REPLY-FIELDS-REPLY-2026-08-09.md](XMSG-TO-RETROCORE-HLE-POCSPROCES-REPLY-FIELDS-REPLY-2026-08-09.md) - the 0x45B8 field, per-record reply-type selection, and identity/constant/echo tag classification - all three genuinely OPEN, needs a fresh pass over POCSPROCES/maybe_build_xrout_message in encos-ser |
 | [RETROCORE-TO-XMSG-POCSPROCES-REPLY-FIELDS-2026-08-09.md](RETROCORE-TO-XMSG-POCSPROCES-REPLY-FIELDS-2026-08-09.md) - follow-up: start-net decoded as a multi-round TLV directory conversation; asks POCSPROCES field derivations (what is 0x45B8, per-record reply selection, which tags derive from identity) to build the HLE full responder |
 | [XMSG-TO-RETROCORE-POCSPROCES-REPLY-FIELDS-2026-08-09.md](XMSG-TO-RETROCORE-POCSPROCES-REPLY-FIELDS-2026-08-09.md) - the answer: identity comes from runtime global 0x1E21A (settled); 0x45B8 is a system-number-class value with a one-grep test to decide echo vs derive; reply selection NOT known |
 
@@ -110,3 +114,16 @@ reorganization that moved its contents to [COSMOS-RE/ProtoCode/](COSMOS-RE/Proto
 ---
 
 **Parent:** [../README.md](../README.md)
+
+## What we do not know
+
+[`DOC/WHAT-WE-DO-NOT-KNOW.md`](WHAT-WE-DO-NOT-KNOW.md) is the standing register of open
+questions - what blocks a task, what we guess at on the wire, and what would settle each.
+**Look there before starting a hunt**, and add a row when a new unknown turns up.
+
+## The protocol registry
+
+[`protocols/README.md`](protocols/README.md) holds machine-readable definitions of the wire - every field
+and every **bit**, with a status (MEASURED / INFERRED / UNKNOWN / SUPERSEDED) and an evidence
+pointer. `ProtocolRegistryConformanceTests` fails if the C# and the registry disagree, so
+**a protocol change goes in both in the same commit**.

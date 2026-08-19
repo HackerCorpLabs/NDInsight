@@ -13,7 +13,7 @@ namespace NDInsight.Sintran.Xmsg.Tests
     /// Phase 2 gate for the codec seam: bytes arriving from the link raise <c>PacketReceived</c> with
     /// the correct decoded packet (sender/link-id first), and <c>SendPacket</c> writes the exact
     /// information-field bytes to the downward transport. Also proves the events-up/interfaces-down
-    /// contract: the codec never touches HDLC — it only parses up and encodes down.
+    /// contract: the codec never touches HDLC - it only parses up and encodes down.
     /// </summary>
     public sealed class CodecSeamTests
     {
@@ -61,7 +61,7 @@ namespace NDInsight.Sintran.Xmsg.Tests
             int raised = 0;
             codec.PacketReceived += delegate (string linkId, XmsgPacketInfo packet) { raised++; };
 
-            codec.ProcessBytes(new byte[] { 0x09, 0x01, 0x00, 0x66 });   // a bare LAPB RR — no SINTRAN header
+            codec.ProcessBytes(new byte[] { 0x09, 0x01, 0x00, 0x66 });   // a bare LAPB RR - no SINTRAN header
             codec.ProcessBytes(Array.Empty<byte>());
 
             Assert.Equal(0, raised);                          // log-and-drop, never mis-dispatched

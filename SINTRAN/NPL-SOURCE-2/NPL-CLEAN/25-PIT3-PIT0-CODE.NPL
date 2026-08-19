@@ -1,0 +1,789 @@
+ %============================================================================
+ %  PIT3-PIT0-CODE
+ %
+ %============================================================================
+ *"-3PIT
+" %
+ *"8UDMA 8PUDM
+" *)KILL 3PITU 3POFU
+ *"8UDMA+8VICO -3PIT
+"
+ *"8PUDM+8PVIC -3PIT
+" *"3PITU+3POFU
+"
+
+ *"8PIOC 8PPIO
+" *)KILL 3PITP 3POFP
+ *"8PIOC 3PIT
+" * 3PITP;*-1/       % PIOC ON PIT3 SEGMENT
+ *"
+" *"8PPIO -3PIT
+" *"8PIOC+8PPIO -3PIT
+" *"3PITP+3POFP
+" %=======================================================================
+ %           M O N P I    E X E L    P I T I M    P I O R E
+ %
+ %      MONITOR CALL PIOC
+ %
+ %=======================================================================
+ %
+ %
+ %      THE MONITOR CALL  P I O C  ON PIT0 OR PIT3
+ %
+ %      PURPOSE:              USED FOR COMMUNICATION WITH PIOC
+ %
+ %      ARGUMENTS:            X - DEMANDFIELD, B - PARAMPOINTER
+ %                            PT 0, APT = USERS APT, ION, PON
+ %
+ %      CALLING SEQUENCE:     T - FUNCTION
+ %                            X - PIOC LDN
+ %                            A - PARAM POINTER
+ %                            IF T = -1 THEN
+ %                               A ------> INSTRUCTION TO BE EXECUTED
+ %                                         KEY FOR SECURITY
+ %                                         X-REG
+ %                                         T-REG
+ %                                         A-REG
+ %                                         D-REG
+ %                              ELSE
+ %                               PARAMETERS IN REG (SEE INDIVIDUEL COMMANDS)
+ %                            ENDIF
+ %
+ %      RETURN:               STATUS IN T
+ INTEGER DEMSV                                              % PONTER TO DEMFIELD
+ SUBR APIOCM,PIRET,PIOCE,EXEL
+ APIOCM:
+        X=:DEMSV
+
+        IF X.ZTREG = -1 THEN GO EXEL FI                     % SPECIAL FUNCTION (EXECUTE L-REG) NO RETURN
+        CALL GET0
+        *"3PITP
+"        CALL S3NOALPIT                                      % PARAMETERS TO MONITOR CALL ARE ON PIT 3
+        *"3POFP+3PITP
+"        MLEV; *MST PIE                                      % IN CASE OF TIMEOUT
+        X.ZXREG; CALL LOGPH                                 % FIND DATAFIELD
+        IF A = 0 THEN D=:A FI                               % ACCEPT BOTH INPUT AND OUTPUT
+        IF A = 0 THEN PE1; GO PIRET; FI                     % ILLEGAL LDN
+        A=:B
+        IF PINIT >< 173 THEN PE1; GO PIRET; FI               % THIS IS NOT A PIOC DATAFIELD
+        IF DEMSV.ZTREG >> PMFUN THEN PILF; GO PIRET; FI      % ILLEGAL FUNCTION
+        *"3POFP;
+"        GO PIOCE                                             % GO TO POF OR PIT3 AREA
+
+ %      RETURN FROM MONITOR CALL
+ %      RETURN STATUS IN A-REG
+
+ PIRET: *BSET ZRO
+        X := DEMSV =: B:=RTRES
+        A=: ZTREG; *IOF
+        CALL BRELEASE; CALL RET
+ RBUS
+
+
+ %      SPECIAL FUNCTION   EXECUTE INSTRUCTION AND GIVE TADX BACK TO USER
+
+
+ SUBR EXEL
+ %==========================================================================
+ % SPECIAL MON PIOC FUNCTION
+ %==========================================================================
+ INTEGER POINTER PPAST:=PASSTYPE
+ INTEGER PARP,HPASS
+ TRIPLE TADR
+ EXEL:
+          A:=B=:PARP                      % SAVE PARAM POINTER
+          CALL ALTOFF                     % ACCSESS SYSTEM SEG ON PIT0
+          A:=PPAST;*BSET ZRO
+          A=:HPASS;  B=:D;X=:B
+          CALL ALTON;D=:B                 % ACCESS USER PARAMETERS
+          CALL GET6; * BSET ZRO
+          IF BACKG = 0 OR X.OLDPAG/\3-1>0 OR HPASS = 2 THEN % RT OR RING 2 OR SYSTEM
+                IF X.D0 /\ 177700 = 143300 THEN                       % SEGMENT MUST BE FIXED BEFORE LOAD AND STORE
+                   X.ZXREG; CALL LOGPH                                 % FIND DATAFIELD
+                   IF A = 0 THEN D=:A FI                               % ACCEPT BOTH INPUT AND OUTPUT
+                   IF A = 0 THEN PE1; GO PIRET; FI                     % ILLEGAL LDN
+                   A=:B
+                   IF X.D1 >< PIKEY THEN PNOTP; GO PIRET FI             % CHECK KEY IN USER PARAM
+                   *"3POFP
+"                   CALL FIXOK
+                   *"3POFP
+"                FI
+                X:=DEMSV=:B
+                X.D0=:L; * LDF D3,X
+                X:=X.D2; * EXR SL
+                TAD =:TADR
+                CALL ALTON; MLEV; *MST PIE
+                * BSET ZRO 0
+                A:=PARP=:B:=DEMSV=:L; TAD:=TADR
+                * BSET ONE 0
+                A=:P4; T=:P3; A:=D=:P5; X=:P2
+                MLEV; *MCL PIE
+                L=:B; CALL ALTOFF
+                A:=POK
+          ELSE
+             A:=PNOTP
+          FI
+          GO FAR PIRET
+ RBUS
+
+ %      SEGNR IN A, PAGE IN D
+ SUBR PM116,PM160
+ INTEGER SEG,PAGE,I
+ DOUBLE SEGPA=SEG
+ INTEGER PARS:=(SEG,PAGE)
+ PM116: A=:SEG; "PARS";
+        *"3POFP
+"        * MON 116;
+        0=:I
+        FOR I STEP 1 TO 20 DO
+          A:=PXT(I)
+          IF A >< 0 THEN                          % ANY XT BLOCK ?
+            A=:D; 0=:PXT(I)                       % YES, DISCONNECT AT LEVEL 12
+            "SLV12"; *IOF; IRW LV12B DP
+            A:="DIS12"; *IRW LV12B DT
+            A:=D; *IRW LV12B DL
+            LV12; *MST PID; PION
+          FI
+        OD
+        *"3POFP
+"        EXIT
+ PM160: AD=:SEGPA; "PARS";
+        *"3POFP
+"        * MON 160;
+        *"3POFP
+"        EXIT
+ RBUS
+ *"
+"
+ *"8PIOC+8PPIO -3PIT
+" *"8PIOC+8PPIO -3PIT
+"
+ *"8PIOC+8PPIO -3PIT
+" *"-3PIT
+" @EOF
+
+ %
+
+ %==============================================================================
+ %  PIT3-POF-CODE
+ %
+ %==============================================================================
+ %
+ *)KILL 3PITU 3POFU
+ *"8UDMA+8VICO 3PIT
+" *"8PUDM+8PVIC -3PIT
+"
+ *"3PITU+3POFU
+"
+ *)KILL 3PITP 3POFP
+ *"8PIOC 3PIT
+" *  3PITP;*-1/        % PIOC ON PIT3 SEGMENT ?
+ *"
+" *"8PPIO -3PIT
+" *"3PITP+3POFP
+" %
+
+ %==========================================================================
+ %            F I X O K    S E G F N    C H P O    P R E A D
+ %            P W R I T E    K R E A D    P I C A C
+ %
+ %            P I O C    N O N R E S I D E N T  (PIT3 OR POF)   P A R T
+ %            U T I L I T Y    R O U T I N E S
+ %
+ %==========================================================================
+
+ SUBR PREAD,PWRIT,KREAD
+ %==========================================================================
+ %      LOAD AND STORE IN PHYSICAL MEMORY
+ %      (64K WORDS ONLY)
+ %==========================================================================
+ INTEGER SAVL
+ PREAD: A:=K1024; X+A; T:=PIOCA; *LDATX                     % DON'T LET CACH FOOL US
+        A:=K1024; X-A; *LDATX; EXIT
+ PWRIT: T:=PIOCA; *STATX; EXIT
+ KREAD: A:=L=:SAVL; CALL PREAD; A SHZ -1; T:=SAVL=:P        % CONVERT TO WORD BASE
+ RBUS
+
+ %      INHIBIT PIOC FROM CACH
+ %      INPUT A REG POINTES TO FIRST PIOC PAGE
+
+ INTEGER OLDL:=77777                    % MAX LOW LIMIT
+ INTEGER OLDH:=0                        % MAX HIGH LIMIT
+
+ SUBR PICAC
+ INTEGER SAVA
+ PICAC: A=:SAVA; IF A < OLDL THEN A=:OLDL FI
+        IF A+PIMPG > OLDH THEN A=:OLDH FI
+        *TRR 12                         % UCILR
+        A:=OLDL; *TRR 11                % LCILR
+        A:=SAVA; EXIT
+ RBUS
+
+
+ %      MAKE SURE THAT SOME SEGMENTS ARE FIXED IN ALL PIOC MEMORY
+
+ %      INPUT B PIOC DATAFIELD
+
+ SUBR FIXOK
+ INTEGER FPAG,DPAG
+ FIXOK: T:=HDEV; *IOXT; SHA ZIN SHR 10
+        A =: PIOCA; *SHA ZIN 6
+        A*4 =: FPAG; 0=: DPAG
+        DO WHILE DPAG <= PIMPG                                 % < 77 OR 377
+          AD:=DCORMSTART; A=:T
+          DPAG SHZ 2 + FPAG + D =: X; *PAGPR@3 LDATX      % GET SEGMENT NUMBER
+          A /\377 * 5SEGSIZE + SEGSTART =: X
+          IF X.FLAG NBIT 5FIX THEN
+            A:=DEMSV=:B
+            DPAG =: ZAREG
+            PNOTFIX; GO PIRET
+          FI
+          DPAG + 1 =: DPAG
+        OD
+        EXIT
+ RBUS
+
+ %      FIND OUT IF A SEGMENT ( FOUND IN SEG) IS FIXED WITHIN CURRENT PIOC
+ %      IF SO UNFIX IT
+
+ %      INPUT B PIOC DATAFIELD
+ %            A SEGMENT NUMBER
+
+ SUBR PISEF
+ INTEGER FPAG
+ INTEGER DPAG
+ INTEGER SEG
+ INTEGER SAVL
+ PISEF: A=:SEG; T:=HDEV; *IOXT; SHA ZIN SHR 10
+        A =: PIOCA; *SHA ZIN 6
+        A*4 =: FPAG; 0=: DPAG
+        DO WHILE DPAG <= PIMPG                            % < 77 OR 377
+          AD:=DCORMSTART; A=:T
+          DPAG SHZ 2 + FPAG + D =: X; *PAGPR@3 LDATX      % SEGMENT NUMBER
+          IF A /\377 =  SEG THEN
+            A * 5SEGSIZE + SEGSTART=:X
+            IF X.FLAG BIT 5FIX THEN
+              A:=L=:SAVL
+              A:=SEG; CALL PM116; A:=SAVL=:L                % UNFIX
+              EXIT
+            FI
+          FI
+          DPAG + 1 =: DPAG
+        OD
+        EXIT
+
+ RBUS
+
+ %      CHECK IF YOU OPERATE ON LEGAL SLOT
+
+ SUBR CHPO
+ CHPO:  IF DEMSV.ZAREG >> SLMAX THEN PILSL; GO PIRET; FI     % ILLEGAL SLOT
+        A + "NDPRO" =:X ; L=:D; CALL PREAD; D=:L
+        IF A><CURPRG THEN PNOTY; GO PIRET; FI                % YOU HAVE NOT RESERVED SLOT
+        EXIT
+ RBUS
+
+ %      CHECK IF PIOC LOADED
+
+ SUBR CHRUN
+ CHRUN: IF PISTT >< 3 THEN                        % MUST BE STARTED AFTER LOAD
+           PNOTR; GO PIRET
+        FI
+        EXIT
+ RBUS
+ %
+
+ %=======================================================================
+ % 39.18     L O A D    S T O P    S T A R T    R E S S L
+ %           R E L S L    K I C K    W K I C K    U N L O A D
+ %
+ %            P I O C    N O N R E S I D E N T (POF OR PIT3)  P A R T
+ %
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ SUBR PIOCE
+ INTEGER ARRAY PIENT:=(PIRES,PIREL,PIKIC,PIWKI,PILOA,PIUNL,PISTA,PISTO)
+ PIOCE: PIENT(A)=:P                                       % GO TO ACTION ROUTINE
+ RBUS
+
+ SUBR PILOA
+ % LOAD PIOC
+ % X: LDN
+ % A: SEGMENT NUMBER
+ % D: PAGE WITHIN PIOC
+ INTEGER SEG,PAGE
+ DOUBLE SEGPA = SEG
+ PILOA:  T:=HDEV; *IOXT; SHA ZIN SHR 10                      % BANK NUMBER
+         A*100+DEMSV.ZDREG =: PAGE; X.ZAREG =: SEG
+        CALL PISEF                                % UNFIX FIRST IF ALREADY FIXED WITHIN THIS PIOC
+        SEG BONE 17 =: SEG
+        AD:=SEGPA; CALL PM160                     % FIX IT
+        IF A >< 0 THEN
+          A-;A+40; GO PIRET
+        FI
+        0=:PISTT
+        POK; GO PIRET
+ RBUS
+
+ %      STOP (PANIC)
+ SUBR  PISTO
+ PISTO: T:=HDEV+3; A:= 160=:PWCR; *IOXT            % RESET AND HALT
+       CALL FIXOK
+       X:=1002; A:=0; CALL PWRIT                  % MARK AS STOPPED IN PIOC
+       POK; GO PIRET
+ RBUS
+
+
+
+ %      START PIOC
+ %      X: LDN
+ %      AD: START-ADDR         =0 PIOCOS
+ %      ON RETURN : IF ERROR A = FIRST NONFIXED PAGE
+
+ INTEGER LPOINTERS
+ INTEGER LKICKP
+
+ SUBR PISTA
+ INTEGER ASAD,DELAY
+ PISTA: T:=HDEV; *IOXT; SHA ZIN SHR 10
+        A=:PIOCA; * SHA ZIN 6                               % SAVE PIOC BANK NUMBER
+        CALL PICAC; CALL FIXOK
+        X:=1002; A:=0; CALL PWRIT                           % RESET INITFLAG
+
+        T:=HDEV+3; A:=60; *IOXT                             % HALT AND RESET
+        A:=0=:PWCR; *IOXT                                   % INITIATE
+
+ %      WAIT FOR PIOC TO GET READY
+        -3 =: TMR
+        DO
+          A:=-500=:DELAY; *MIN DELAY; JMP *-1
+          X:=1002; CALL PREAD
+          WHILE A = 0
+        OD
+        0 =: TMR
+        IF A >< PRKEY THEN PPROM; GO PIRET FI
+ %      GIVE POINTERS TO PIOC DATAFIELD
+ %      ALL ADDRESSES ARE CONVERTED TO WORD BASE (ND100)
+
+        X:=1001; CALL KREAD; A=:LPOINT
+        A:=PIMPG; X:=LPOINT; *AAX PSIZ
+        CALL PWRIT; A:=PIOCN; X:=LPOINT; *AAX PINO          % PIOC SIZE (PAGES) TO PIOC
+        CALL PWRIT                                          % PIOC NUMBER (0,1..) TO PIOC
+        X:=LPOINT; *AAX PIMBL
+        CALL PREAD; A=:D; X:=LPOINT; *AAX PIMBH
+        CALL PREAD; AD=: MBOXH
+        X:=LPOINT; *AAX RTBL
+        CALL PREAD; A=:D; X:=LPOINT; *AAX RTBH
+        CALL PREAD; AD=:RTBOX
+        X:=LPOINT; *AAX CPUNR
+        A:=SYSNO; CALL PWRIT                                % ND100 CPU NUMBER
+        X:=LPOINT; *AAX PNOPC
+        CALL KREAD; A=:PNBOX                      % PIOC TO NORD MAILBOX
+        X:=LPOINT; *AAX NPOPC
+        CALL KREAD; A=:MASTA                      % NORD TO PIOC MAILBOX
+
+ %      KICK TABLE POINTERS TO DATAFIELD
+        X:=LPOINT; *AAX KICKP
+        CALL KREAD; A =:LKICKP=:PKICK             % ADDR KICKTABLE
+        X:=LKICKP; *AAX XPTN
+        CALL KREAD; A=:"PTN"
+        X:=LKICKP; *AAX XNTP
+        CALL KREAD; A=:"NTP"
+        X:=LKICKP; *AAX XPIPR
+        CALL KREAD; A=:"PIPRO"
+        X:=LKICKP; *AAX XNDPR
+        CALL KREAD; A=:"NDPRO"
+        X:=LKICKP; *AAX XNMAI
+        CALL KREAD; A=:"PNMAIL"
+        X:=LKICKP; *AAX XPMAI
+        CALL KREAD; A=:"NPMAIL"
+
+ %      SET START-ADDR
+
+        X:=LPOINT; *AAX PIOCO
+        CALL KREAD; A=:ASAD                       % ADDRESS OF LOCATION HOLDING START ADDRESS
+        IF DEMSV.ZAREG >< 0 THEN
+          X:=ASAD; CALL PWRIT
+        FI
+        IF DEMSV.ZDREG >< 0 THEN
+          X:=ASAD+1;  CALL PWRIT
+        FI
+
+
+ %      SO WE CAN GIVE THE START COMMAND
+
+        X:=MASTA; *AAX NPFUN
+        A:=MPIOC; CALL PWRIT
+        X:=MASTA; *AAX NPTIG
+        A:=TRIG; CALL PWRIT
+        A:=11; T:=HDEV+3; *IOXT
+        3 =: PISTT                                % MARK AS STARTED AFTER LOAD
+        POK; GO PIRET
+ RBUS
+
+ %      RESERVE SLOT
+ %      RESERVE SLOT NUMBER GIVEN IN A-REG
+
+ SUBR PIRES
+ PIRES: CALL CHRUN
+        IF DEMSV.ZAREG >> SLMAX THEN PILSL; GO PIRET; FI     % ILLEGAL SLOT
+        A + "NDPRO" =: X; CALL PREAD
+        IF A >< 0 THEN PSLBS GO PIRET; FI                    % IF FREE THEN
+        CURPRG; CALL PWRIT                                  % SET IT BUSY BY ME
+        POK; GO PIRET
+ RBUS
+
+ %      RELEASE SLOT
+ %      THE SLOT TO BE RELEASED IN A-REG
+
+ SUBR PIREL
+ PIREL: CALL CHRUN
+        IF DEMSV.ZAREG >> SLMAX THEN PILSL; GO PIRET; FI     % ILLEGAL SLOT
+        A + "NDPRO" =: X ; A:=0; CALL PWRIT
+        POK; GO PIRET
+ RBUS
+
+ %      KICK THROUGH SLOT
+ %      THE SLOT NUMBER IN A-REG, INFO IN D-REG
+
+ SUBR PIKIC
+ PIKIC: CALL CHRUN; CALL CHPO
+        IF DEMSV.ZDREG >< 0 THEN
+          A := "NPMAIL" + DEMSV.ZAREG =: X; CALL PREAD
+          IF A >< 0 THEN PFULL; GO PIRET; FI
+          T:=DEMSV.ZDREG; A := "NPMAIL" + X.ZAREG =: X; T=:A; CALL PWRIT
+        FI
+        A := "NTP" + DEMSV.ZAREG =: X; TRIG; CALL PWRIT
+        A:=PWCR BONE BNDC; T:=HDEV+3; *IOXT
+        POK; GO PIRET
+ RBUS
+
+ %      WAIT FOR PIOCINF
+ %      THE SLOT NUMBER IN A-REG, INFO IN D-REG
+
+ SUBR PIWKI
+ PIWKI: CALL CHRUN; CALL CHPO
+        A := "PNMAIL" + DEMSV.ZAREG=:X=:D; CALL PREAD
+        IF A >< 0 THEN                                     % ANY INFO ?
+          A =: DEMSV.ZDREG                                 % GIVE INFO WORD TO USER
+          D=:X; A:=0; CALL PWRIT                           % MAILBOX EMTY
+          POK; GO PIRET
+        ELSE
+          PNOMES; GO PIRET                                  % NO MESSAGE FOR YOU
+        FI
+ RBUS
+
+ %      UNLOAD PIOC    (UNFIX SEGMENTS FIXED IN PIOC MEMORY)
+
+ SUBR PIUNL
+ INTEGER SEG,FPAG,DPAG
+ PIUNL: T:=HDEV; *IOXT
+        A/\ 177400 =: FPAG; 0=: DPAG                        % (BANK*100B*4) INDEX IN MEMORY MAP
+        T+3; A:=160; *IOXT                                  % STOP IT FIRST
+        DO WHILE DPAG <=PIMPG
+          AD := DCORMSTART; A=:T
+          DPAG SHZ 2 + FPAG + D =: X; *PAGPR@3 LDATX
+          A /\ 377 =: SEG * 5SEGSIZE + SEGSTART =: X
+          IF X.FLAG BIT 5FIX THEN
+            A:=SEG; CALL PM116                              % UNFIX
+          FI
+          DPAG + 1 =: DPAG
+        OD
+        0=:PISTT                                            % NOT LOADED
+        POK; GO PIRET
+ RBUS
+
+
+ *"3PITP+3POFP
+" %
+
+ SUBR APDRIV
+ %==========================================================================
+ %           P D R I V
+ %
+ %            P I O C    D R I V E R      (PIT3  OR POF)
+ %
+ %==========================================================================
+ %      DESCRIPTION OF N100-XMSG BOX
+ DISP 0
+   DOUBLE NXMSG               % NORMAL XMSG ACTIVATION QUEUE
+   INTEGER  NXFNC             % STATUS, BIT 1 SET BY ND100 (XMSG FUNC DONE)
+                              %       , BIT 3 SET BY PIOC (XMSG FUNC REQUESTED)
+   DOUBLE NXPAR               % PARAMETER POINTER
+   INTEGER  NXXTB             % XT BLOCK (GIVEN BY N100 XMSG)
+   INTEGER NXLB               % LAST LOCAL BANK FOR THIS TASK
+   INTEGER NXPNU              % PROCESS NUMBER
+ PSID
+ DISP 0
+   DOUBLE NXRTW               % RT ACTIVATION QUEUE
+   INTEGER NXRTF              % STATUS, BIT 0 SET BY PIOC WHEN RTWAK REQUESTED
+                              %         BIT 2 SET BY ND100 WHEN RTWAK COMPLETED
+ PSID
+
+ %------------------------------------------------------------------------------
+ % PIWKF:
+ % WAKE UP ROUTINE, ACTIVATED FROM XMSG
+ %------------------------------------------------------------------------------
+ INTEGER PMAX
+ PIWKF: 0=:PMAX; AD:=RTBOX; AD SHZ -1; D=:X; A+PIOCA=:T; *LDDTX  % POSSIBLE RT ACTIVATIONS IN PIOC
+ RTFI:  IF A = 0 AND D = 0 THEN CALL WT12 FI
+        AD SHZ -1; A+PIOCA=:T; D=:X; *NXXTB@3 LDATX
+        IF A = L THEN                             % CORRESPONDING XT BLOC
+          X+10; *NXRTF@3 LDATX
+          A BONE 2; *NXRTF@3 STATX                % YES, SET RTDONE FOR PIOC
+          A:=PWCR BONE BNDC; T:=HDEV+3; *IOXT     % WAKE UP PIOC
+          CALL WT12
+        FI
+        T=:D; PMAX+1=:PMAX; IF PMAX > 20 GO FAR WT12 % NOTHING
+        D=:T; *NXRTW@3 LDDTX
+        GO RTFI
+ *)FILL
+ %-----------------------------------------------------------------------
+ %  XMMC:
+ %  HANDLING OF MULTICALL
+ %  THE ROUTINE CONVERT PARAMETER BLOCKS FROM PIOC 6 WORD FORMAT
+ %  TO NORD 4 WORD FORMAT AND TRANSLATES ADDRESSES IN READ AND WRITE CALLS
+ %  IF THE BANK CHANGES FROM LAST USED A DEFINE NEW BANK CALL IS INSERTED
+ %-----------------------------------------------------------------------
+ % VARIABES AND POINTERS USED IN DOIT
+ INTEGER PART=?,PARX=?,DSAV=?,XSAV=?
+ INTEGER POINTER PFUNC:=FUNC,PASAV:=ASAV,PDSAV:=DSAV,PXSAV:=XSAV
+ INTEGER NXLBS=?
+
+ INTEGER MTSAV,MASAV
+ DOUBLE MTASAV = MTSAV % INTERMEDIATE STORE FOR T AND A REGISTERS IN A CALL
+ DOUBLE MDXSAV         % INTERMEDIATE STORE FOR D AND X REGISTERS IN A CALL
+ DOUBLE MUSSAV         % INTERMEDIATE STORE FOR EV. USERADDRESS
+ DOUBLE NTASAV         % INTERMEDIATE STORE OF NEXT BLOCK, T & A
+ DOUBLE NDXSAV         % INTERMEDIATE STORE OF NEXT BLOCK, D & X
+ DOUBLE NUSSAV         % INTERMEDIATE STORE OF NEXT BLOCK, EV. USERADDR.
+ INTEGER INX,INRPA,ONRPA % NUMBER OF XMSG CALL IN AND OUT OF ROUTINE
+ INTEGER HNOFF,LNOFF
+ DOUBLE NOFF = HNOFF   % START OF NEXT PARAMETER IN NORD BLOCK (4 WORD BLOCKS)
+ INTEGER HPOFF,LPOFF
+ DOUBLE POFF = HPOFF   % START OF NEXT PARAMETER IN PIOC BLOCK (6 WORD BLOCKS
+
+ XMMC:  IF PXSAV < 0 GO FAR REEX                 % REEXECUTE TASK'S LAST MULTICALL
+                                                 % IF < -1 XMSG HANDLES IT
+        PFUNC BONE XFUSG =: PFUNC                % ORDER XMSG TO USE USER SEGNO
+        T := PART; X := PARX; *P4@3 LDDTX        % READ IN PARAMETERBLOCK ADDRESS
+        AD SHZ -1; T:=D=:PASAV;                  % GET WORDADDR. AND SAVE BANK IN PIOC
+        IF A >< NXLBS THEN                       % BANK IN PIOC DIFFERS FROM LAST?
+           T := MCURB; X := LCURB; *NXLB@3 STATX % SAVE NEW BANK AND OFFSET
+           T := XFDBK; A + PIOCA; *MON 2XMSG        % SET NEW BANK IN XMSG
+           GO FAR XPLEV; IF T < 0 GO FAR XPERET
+        FI
+        A:=PASAV=:D:=NXLBS
+
+        A + PIOCA; X := PXSAV                       % PAR.ADDR IN AD,PAR.NR IN X
+        AD =: NOFF; AD =: POFF                      % INITIALIZE NEXT BLOCK POINTERS
+        X =: INRPA; X =: ONRPA; 0 =: INX            % INITIALIZE PARAMETER COUNTS
+        T := HPOFF; X := LPOFF; *P0@3 LDDTX
+        AD =: NTASAV; *P2@3 LDDTX                   % NEXT PAR. BLOCK IS FIRST
+        AD =: NDXSAV; *P4@3 LDDTX
+        AD =: NUSSAV
+ LOOP:  INX + 1 =: INX                              % INCREMENT LOOP VARIABLE
+        AD := NTASAV; AD =: MTASAV                  % DO FOR ALL CALLS IN PAR. BLOCK
+        AD := NDXSAV; AD =: MDXSAV
+        AD := NUSSAV; AD =: MUSSAV
+        IF INX < INRPA THEN                           % LAST CALL IN BLOCK ?
+           AD := POFF; T := 6; *RADD ST DD          % INCREMENT PIOC BLOCK POINTER
+           *RADD ADC DA
+           AD =: POFF; T := A; X := D; *P0@3 LDDTX  % NEW PIOC BLOCK PTR. IN TX
+           AD =: NTASAV; *P2@3 LDDTX                % SAVE NEXT T&A FROM OVERWRITE
+           AD =: NDXSAV; *P4@3 LDDTX                % SAVE NEXT D&X FROM OVERWRITE
+           AD =: NUSSAV;                            % SAVE NEXT USERADDR. --"--
+        FI
+        AD := MTASAV                             % GET CURR. T & A REGISTERS FROM BLOCK
+        IF A = 6 OR A = 7 THEN                   % READ OR WRITE CALL ?
+          MTSAV BONE XFUSG =: MTSAV              % ORDER XMSG TO USE USER SEGNO
+          AD := MUSSAV; AD SHZ -1; T:=D=:MASAV   % CONVERT TO WORD ADDRESSING T!!
+          IF A >< NXLBS THEN                     % BANK DIFFERS FROM LAST USED?
+            T := MCURB; X := LCURB; *NXLB@3 STATX % SAVE NEW BANK AND OFFSET
+            A + PIOCA; D := A; A := XFDBK         % SET PARS. FOR DEFINE BANK NR.
+            T := HNOFF; X := LNOFF; *P0@3 STDTX   % INSERT PARAMETERS IN BLOCK
+            A := T; D := X; T := 4; *RADD ST DD   % INCREMENT NORD BLOCK POINTER
+            *RADD ADC DA
+            AD =: NOFF
+            A := ONRPA; A + 1; A =: ONRPA     % INCREMENT RETURNED PARAMETERCOUNT
+          FI
+        FI
+        T := HNOFF; X := LNOFF                % START OF NEXT NORD BLOCK
+        AD := MTASAV; *P0@3 STDTX             % COPY T & A REGISTERS TO BLOCK
+        AD := MDXSAV; *P2@3 STDTX             % COPY D & X REGISTERS TO BLOCK
+        A := T; D := X; T :=4; *RADD ST DD
+        *RADD ADC DA                          % INCREMENT NORD BLOCK POINTER (4)
+        AD =: NOFF;
+        IF INX < INRPA GO FAR LOOP            % CONTINUE LOOP ?
+        X := ONRPA                            % RETURN NEW PARAMETERCOUNT IN X
+        X =: XSAV;                            % PARAMETER COUNT MIGHT BE INCR.
+        GO FAR XMRT
+ *)FILL
+
+
+ %-------------------------------------------------------------------------------
+ %      DOIT:
+ %      THIS POINT IS ACTIVATED WHEN PIOC DOES A XMSG CALL FOR EXECUTION IN ND100
+ %      THE PARAMETERS ARE FOUND BY A POINTER IN A CHAIN OF BOXES.
+ %      PARAMETERS ARE SET IN REGISTERS, THE XMSG CALL ARE DONE.
+ %      REACTIVACTION FROM XMSG MAY ACTIVATE THIS CODE IN TWO DIFFERENT POINTS.
+ %      1. SKIP RETURN AFTER THE CALL
+ %      2. IN "XPWAK" IF AN RTENTRY LIKE FUNCTION OCCURS
+ %-------------------------------------------------------------------------------
+ INTEGER NXLBS
+ INTEGER PART,PARX
+ INTEGER FUNC=?,STAT=?,ASAV=?
+ DOUBLE TDSAV=?,DDSAV=?,ADSAV=?
+
+ DOIT:  *NXXTB@3 LDATX
+        IF A = 0 THEN                             % VIRGIN ?
+          T:=XFDBK; A:=PIOCA; L:=0; *MON 2XMSG    % ONLY FIRST BANK FOR THE TIME BEEING
+          GO FAR XPLEV; IF T < 0  GO FAR XPERET
+          T:=MCURB; *NXPNU@3 LDATX                % PROCESS NUMBER
+          A=:X; A:=L; A=:PXT(X)                   % XT BLOCK TO PROC TABLE IN DATAFIELD
+          X:=LCURB; *NXXTB@3 STATX                % XTBLOCK TO BOX
+          A:="PIWKF"; T:=XFWDF; *MON 2XMSG        % DEFINE RT WAKE UP ADDRESS
+          GO  FAR XPLEV
+          IF T < 0  GO FAR XPERET
+        ELSE
+          L:=A
+        FI
+
+        T:=MCURB; *NXLB@3 LDATX
+        A SHZ -1=:NXLBS                           % THIS BLOCK LAST BANK
+        *NXPAR@3 LDDTX                            % POINTERS TO PARAMETERS
+        AD SHZ -1; A+PIOCA=:T; D=:X; X=:PARX      % FIRST PARAM (FUNCTION)
+        T=:PART; *P1@3 LDDTX                      % SAVE PARAM POINTER (TX)
+        AD=:ADSAV; *P3@3 LDATX
+        A=:XSAV; *P0@3 LDATX
+        A=:FUNC
+        IF A = 6 OR A = 7 THEN                    % READ OR WRITE ?
+          FUNC BONE XFUSG =: FUNC
+          T:=PART; *P4@3 LDDTX                    %  GET ADDRESS NO WITHIN PIOC
+          AD SHZ -1; T:=D=:ASAV                   % BUFFER ADDRESS IN WORD ADDRESS
+          IF A >< NXLBS THEN                      % NEW BANK WITHIN THIS PIOC ?
+            T:=MCURB; X:=LCURB; *NXLB@3 STATX
+            T:=XFDBK; A+PIOCA; *MON 2XMSG         % YES SET NEW BANK FOR XMSG
+            GO  XPLEV; IF T<0 GO  FAR XPERET
+          FI
+        FI
+        IF FUNC = 44 GO FAR XMMC                  % CURRENT CALL XMSG MULTICALL?
+
+ XMRT:  IF FUNC = 1 THEN                          % DISCONNECT ?
+           T:=MCURB; X:=LCURB; A BONE 1; *NXFNC@3  STATX  % YES, WE WILL NOT SEE THIS BLOCK AGAIN
+           *NXPNU@3 LDATX
+           A=:X; 0=:PXT(X)
+        FI
+ REEX:  X:=XSAV; T:=FUNC; AD:=ADSAV; *MON 2XMSG
+        GO FAR XPLEV
+        GO OVER
+ *)FILL
+
+ INTEGER MXP
+ INTEGER FUNC,STAT,ASAV,DSAV,XSAV
+ DOUBLE TDSAV = STAT, DDSAV = DSAV, ADSAV = ASAV
+
+ OVER:  T=:STAT; X=:XSAV; AD=:ADSAV
+
+ %      XMSG FUNCTION DONE,
+ %      FIND CORRESPONDING BOX IN QUEUE AND GIVE RETURN PARAMETERS
+
+        AD:=MBOXH; AD SHZ -1; A+PIOCA =:T; D=:X; *LDDTX
+        0=:MXP; GO FIRT
+ NEXT:  T=:D; MXP+1=:MXP
+        IF MXP > 20 GO FAR XPRET                  % MUST BE SOMETHING WRONG IN PIOC  GIVE IN
+        IF D > PIOCA  GO FAR XPRET                % ILLEGAL POINTER
+        D=:T; *NXXTB@3 LDATX
+        IF A = L THEN                             % MATCH ?
+          X=:LCURBOX ; T =: MCURB                 % YES, PIOCA INCLUDED
+          GO FOUND
+        FI
+        *NXMSG@3 LDDTX                            % NEXT POINTER
+ FIRT:  IF A = 0 AND D = 0 GO FAR XPRET           % DID NOT FOUND BOX
+        AD SHZ -1; D=:X; A+PIOCA=:T; GO NEXT
+ FOUND: *NXPAR@3 LDDTX                            % PARAMETER POINTER
+        AD SHZ -1; D=:X; A+PIOCA=:T
+
+        AD:=TDSAV; *P0@3 STDTX                    % TA-REG
+        AD:=DDSAV; *P2@3 STDTX                    % DX-REG
+
+        AD:=MDCUR; A=:T; D=:X; *NXFNC@3 LDATX
+        A BONE 1; *NXFNC@3 STATX                  % XMSG DONE
+ SPARK: A:=PWCR BONE BNDC; T:=HDEV+3; *IOXT       % WAKE UP PIOC
+        GO PIXMSG                                 % GET NEW BOX IF ANY
+ *)FILL
+
+ %-----------------------------------------------------------------------
+ %      PROCESS XMSG CALL FORM PIOC, MAIN ENTRY PIONT CALLED FROM
+ %      DRIVER
+ %      NB MUST NOT START BEFORE PREVIOUS CALL GAVE A SKIP RETURN
+ %-----------------------------------------------------------------------
+ PIXMSG:AD:=MBOXH; AD SHZ -1; A+PIOCA=:T; D=:X; *LDDTX      % GET HEADER
+ TRY:   IF A = 0 AND D = 0 GO XPRET                         % EMPTY QUEUE
+        AD SHZ -1; A+PIOCA=:T; D=:X
+        IF A > PIOCA GO XPRET
+        *NXFNC@3 LDATX
+        IF A = 0 THEN                             % PIOC REQUEST ?
+          A BONE 3; *NXFNC@3 STATX                % YES, SET WORKING
+          X=:LCURB; T=:MCURB; GO FAR DOIT         % YES, SAVE BOX ADDRESS
+        FI
+        *NXMSG@3 LDDTX
+        GO TRY
+
+ XPERE: T:=FUNC; GO FAR FOUND
+ XPLEV: GO AFXMSG
+ XPRET: GO AFXMSG
+ *)FILL
+ %------------------------------------------------------------------------------
+ %  APDRIV:
+ %  PIOC DRIVER MAIN ENTRY POINT
+ %
+ %------------------------------------------------------------------------------
+ INTEGER INN
+ APDRIV: IF PWCR BIT 5 THEN CALL WT12 FI                  % ACCEPT NO INTERRUPT WHEN NOT STARTED
+        GO  PIXMSG                                          % PROCESS XMSG CALL
+ AFXMSG:X := PNBOX; CALL PREAD
+        IF A > 0 THEN                                       % TRIGG TO OPCOM ?
+              A:=0; CALL PWRIT
+              RTRES=:KPROS                                  % YES, WAKE HIM UP
+              IF A >< 0 THEN
+                CALL RTACT; CALL WT12
+                  ELSE
+                GO NOINT                                    % NO MONITOR ATTACHED
+              FI
+        FI
+        X := PKICK; CALL PREAD
+        IF A > 0 THEN                                       % TRIGG FOR SOMEONE ELSE?
+              A:=0; CALL PWRIT
+              0=:INN
+              FOR INN STEP 1 TO SLMAX DO                      % SEE WHO SHALL HAVE A KICK
+                A:="PTN"+INN=:X; CALL PREAD                   %
+                IF A = TRIG THEN
+                  A:=0; CALL PWRIT                            % DTRIGG
+                  A:="NDPRO"+INN=:X; CALL PREAD; A=:KPROS     % GET PROCESS
+                  IF A >< 0 THEN
+                    CALL RTACT; CALL WT12
+                  FI
+                FI
+              OD
+        FI
+ NOINT: PWCR BONE BENA=: PWCR; T := HDEV+3; *IOXT           % MUST ENABLE PIOC AFTER DUMMY INTERRUPT
+        CALL WT12
+ *)FILL
+
+ %      ROUTINE FOR DISCONNECT AT LEVEL 12
+ %      XT BLOCK IN L-REG
+ DIS12: T:=XFDCT; *MON 2XMSG
+        CALL WT12
+ RBUS
+ *"
+"
+ *"3PIT
+" *XEPT3=*
+ *XLPT3=XEPT3@-12@12+1777
+ *XLPT3:
+133651   *"
+"
+ *"-3PIT
+" @EOF
+

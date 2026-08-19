@@ -1,0 +1,1546 @@
+ @DEV 1
+ @DEV (S-S-J)MRES-SINI
+
+
+ %==============================================================================
+ %      M R E S - S I N I
+ %==============================================================================
+
+
+ *9SMRE=9POFS
+ *9SMRE/
+
+ @LIB CXCPU
+
+
+ %==============================================================================
+ % 37.2       S T T I N   T Y E N T
+ %
+ % TERMINAL INPUT DRIVER, LEVEL 12
+ %
+ % THE X-REGISTER MUST POINT TO THE OUTPUT DATAFIELD IN ALL THE
+ % ROUTINES CALLED BY THIS DRIVER
+ %
+ INTEGER 12DFOPP,10DFOPP,IISTATE,OISTATE
+ SUBR STTIN,TYENT
+ SYMBOL 5PIP=17
+ @LIB CXCPU
+ STTIN:
+ RETURN: TTMR=:TMR
+        CALL ID12                                 % WAIT FOR INTERRUPT
+ TYENT: ISTATE=:IISTATE
+ @LIB CXCPU
+ @LIB CXCPU-,
+        X:=DFOPP=:12DFOPP
+ @ELIB
+        CALL IOAPD; GO RETURN                     % READ CHARACTER
+        IF T:="ROUSPEC"><0 THEN
+           D:=0; CALL ROUSPEC; GO RETURN; GO OKCHAR
+        FI; A BZERO 7=:LAST                       % SAVE IN DATAFIELD
+        CALL XONREAD; GO RETURN
+ OKCHAR: BRECHOFL/\170=:BRECHOFL                  % CLEAR BREAK/ECHO FLAG
+        A := LAST/\377; CALL XONCHECK             % TEST FOR XON/XOFF OUT.
+        IF DFLAG BIT 5CAPITAL THEN                % CONVERT LOWER CASE TO UPPER CASE
+           LAST/\177=:T
+           IF 140<T AND 176>T AND CESCP SHZ -10><T AND CESCP/\377><T THEN
+              LAST BZERO 5=:LAST                  % CONVERT ALL EXEPT
+           FI                                     % RUBOUT  AND DISCONNECT
+        FI
+        IF X><0 AND X.SCREEN><0 THEN              % TWO WAY DEVICE WITH CR-DELAY
+              IF <0 THEN -1=:X.TMR FI
+              1=:X.SCREEN
+              IF LAST=0 THEN                      % IGNORE TAPE-FEED?
+                IF FLAGB NBIT 5LCHAR GO RETURN
+                IF CESCP SHZ-10><0 GO RETURN
+              FI
+        FI
+        IF T:=DFLAG NBIT 5SPEC AND T NBIT 5CTRLO THEN
+           CALL ESCAPE; GO RETURN; X:=12DFOPP
+        FI
+        IF DFLAG NBIT 5CTRLO THEN
+           IF LAST/\377=17 THEN
+              DFLAG BONE 5CTRLO=:DFLAG
+           FI
+        ELSE
+           DFLAG BZERO 5CTRLO=:DFLAG
+        FI
+        IF CFREE=0 THEN
+           TINFO BONE 5BFUL=:TINFO; GO BFULL      % BUFFER IS FULL, RESTART USER
+        FI
+        GO L1; *)FILL
+ L1:   *IOF
+        IF DFLAG BIT 5ECHO THEN
+             LAST/\377
+             CALL TECHO                 %TEST FOR ECHO
+             CALL TBREAK                %TEST FOR BREAK
+             X:=12DFOPP
+        ELSE
+             IF IISTATE=-1 THEN; *ION   % NOWAIT MODE
+                LAST/\377; CALL CXRBPUT; GO BFULL
+             FI
+        FI
+       *ION
+        IF BRECHOFL BIT 5ECHO THEN CALL ECHSUBR FI             % ECHO CHAR?
+        IF BRECHOFL<0 THEN 7=:LAST; CALL ECHSUBR; GO RETU FI   % IGNORE CHAR?
+
+ ADDCH: LAST/\377; CALL CXRBPUT                   % PUT CHARACTER IN BUFFER
+
+        IF BHOLD>=MAX-10 AND BRECHOFL NBIT 5BREAK GO BFULL % FULL BUFFER
+        IF BRECHOFL BIT 5BREAK THEN               % BREAK ACCORDING TO STRATEGY
+           DFLAG BZERO 5ECHO                      % ECHO OFF IN DRIVER
+           IF X:=FYLLE=HENTE THEN
+              A BONE 5ALEC                        % WHOLE BUFFER IS ECHOED BY DRIVER
+           ELSE
+              A BZERO 5ALEC                       % PART OF BUFFER MUST BE ECHOED BY IOTRANS
+           FI; A=:DFLAG; X=:RSISTE                % RSISTE IS FIRST CHARACTER NOT ECHOED
+        ELSE
+           GO RETU
+        FI
+
+ BFULL: CALL TSTBACK                              % RESTART PROGRAM
+ *"8N500
+" *"-8N500
+" @LIB CXCPU-,
+        "IORESTART"=:MFUNC; CALL RTACT
+ @ELIB
+ @LIB CXCPU
+ *"
+"
+ RETU:  IF "ROUSPEC"><0 THEN
+           D:=1; X:=12DFOPP; CALL ROUSPEC; GO FAR OKCHAR
+        FI
+        GO FAR RETURN
+ XRETU: *ION
+        GO RETU
+ *)FILL
+ %
+ %%  ECHO:
+ INTEGER  LREG
+ ECHSUBR: *IOF
+        A:=L=: LREG
+        IF X.CFREE=0 THEN
+           *ION
+           GO FAR RETURN
+        FI
+        IF X.MINBHOLD BIT 5BLOC THEN    % OUTPUT BUFFER LOCKED
+           DFLAG BZERO 5ECHO=:DFLAG; BRECHOFL BZERO 5BREAK=:BRECHOFL
+           -1=:RSISTE; *ION
+           GO FAR ADDCH
+        FI
+        LAST/\377; X:=:B
+        IF T:=EMPTFLAG><0 AND T:=X.DFLAG NBIT 5OXON THEN
+           IF T:=TYPRING BIT 5CRDLY THEN CALL CHDL1 FI
+           CALL ECAPD
+        ELSE
+ PIBUF:    CALL CXRBPUT
+        FI
+        X:=:B; LREG =: L
+        *ION
+        EXIT; *)FILL
+
+ ECAPD: A=:D; T:=HDEV+DST; *IOXT                      % READ STATUS
+        IF A BIT 3 THEN                               % READY FOR TRANSFER
+           D=:A; T-DST+DDW; *IOXT                     % WRITE CHARACTER
+           "DACT"; T-DDW+DCONT; *IOXT                 % ACTIVATE
+           EXIT
+        ELSE                                          % NOT READY
+           0=:EMPTFLAG; "DACT+DPIN"
+           T-DST+DCONT; *IOXT                         % ACTIVATE AND PIN
+           D=:A; GO PIBUF                             % ECHO VIA OUTPUT-BUFFER
+        FI
+        EXIT
+ RBUS
+ %
+ %
+ %=================================================================
+ %37.2A      TECHO
+ %
+ %  TEST FOR ECHO:
+ %  THIS SUBROUTINE SHOULD BE CALLED WITH INTERRUPTS OFF!!
+ %
+ SUBR TECHO
+ INTEGER CHARN; INTEGER POINTER LREG
+ SYMBOL 5PIP=17
+ TECHO: A=:CHARN; A:=L=:"LREG"
+        IF X:=ECHOTAB><0 THEN
+           A:=CHARN; CALL VSXGETBIT
+           IF A<0 THEN                  % NO ECHO
+              IF X:=ECHOTAB><"ECH0" AND X><"ECH1" AND X><"ECH2" THEN
+                 BRECHOFL BONE 5PIP=:BRECHOFL
+              FI
+           ELSE                         % ECHO
+              IF DFLAG NBIT 5SPEC AND A NBIT 5HDUP THEN
+                 BRECHOFL BONE 5ECHO BZERO 5PIP=:BRECHOFL
+              FI
+           FI
+        FI
+       CHARN; GO LREG
+ RBUS
+ %========================================================================
+ % 37.2B       TBREAK
+ %
+ %     TEST FOR BREAK:
+ %     THIS ROUTINE SHOULD BE CALLED WITH INTERRUPTS OFF!!
+ %
+ SUBR TBREAK
+ INTEGER CHARN; INTEGER POINTER LREG
+ SYMBOL 5PIP=17
+ TBREAK: A=:CHARN; A:=L=:"LREG"
+         IF DFLAG BIT 5SPEC THEN        %UNCONDITIONAL BREAK, NO ECHO.
+            0=:NCBRK
+            A BZERO 5SPEC BZERO 5CTRLO=:DFLAG
+            BRECHOFL BONE 5BREAK BZERO 5ECHO=:BRECHOFL
+         ELSE
+            IF X:=BRKTAB><0 THEN
+               IF BRECHOFL>=0 THEN MIN NCBRK; 0/\0; FI
+               IF BRKTAB="BRK1" AND CHARN/\177=17 OR =20 OR =26 OR =30 OR =32 THEN
+                  DFLAG BONE 5SPEC =:DFLAG    %BREAK ON NEXT
+               ELSE
+                  A:=CHARN; CALL VSXGETBIT
+                  IF A<0 THEN                 %BREAK ON CHARACTER
+                     0=:NCBRK
+                     BRECHOFL BONE 5BREAK BZERO 5PIP=:BRECHOFL
+                  ELSE                        %POSSIBLE BREAK ON MAX CHARS.
+                     IF BRKMAX><0 AND A<<=NCBRK THEN
+                        0=:NCBRK
+                        BRECHOFL BONE 5BREAK=:BRECHOFL
+                     FI
+                  FI
+               FI
+            FI
+         FI; CHARN; GO LREG;  *)FILL
+ RBUS
+
+ %==============================================================================
+ % 37.3       T T G E T     T D G E T
+ %
+ % TTGET:     TERMINAL IOTRANS ROUTINE. CALLED VIA DATAFIELD TO GET A
+ %            CHARACTER FROM BUFFER.
+ %            SKIP-RETURN : A = CHARACTER
+ %            RETURN      : BUFFER EMPTY
+ %                        : OR TERMINAL NOT CONNECTED (DERROR=316)
+ %
+ % TDGET:     TERMINAL IOTRANS ROUTINE 2. CALLED DIRECTLY.
+ %            ROUTINE RETURNS CHARACTERS FROM BUFFER AND CHECKS FOR
+ %            BREAK CONDITIONS IN DATA
+ %            SKIP-RETURN : A = CHARACTER
+ %                          T = 0: NO BREAK, T = 1: BREAK CONDITION
+ %            RETURN      : BUFFER EMPTY
+ %                        : OR TERMINAL NOT CONNECTED (DERROR=316)
+ %
+ SUBR TTGET,TDGET
+ INTEGER CHARN,XREG,INPTY; INTEGER POINTER LREG
+ INTEGER CDFOP
+ TDGET: A:=0; GO FELLS
+ TTGET: A:=1
+ FELLS: A=:INPTY; X=:XREG; A:=L=:"LREG"
+ @LIB CXCPU
+ @LIB CXCPU-,
+        X:=DFOPP
+ @ELIB
+        X=:CDFOP
+ NXTCH: BRECHOFL/\70=:BRECHOFL
+        IF FLAGB BIT 5LSTA THEN                   % TERMINAL IS NOT CONNECTED
+           TER02=:DERROR; GO OUT1
+        FI
+        IF BHOLD=0 THEN                           % EMPTY BUFFER
+              DFLAG BONE 5ECHO BZERO 5ALEC=:DFLAG % TURN ON ECHO IN DRIVER
+              -1=:RSISTE                          % DRIVER DEFINES NEXT BREAK
+              GO OUT1
+        FI
+        IF X.CFREE=0 THEN
+           BRECHOFL BONE 5WECH=:BRECHOFL          % WAIT FOR OUTPUT BUFFER
+           GO OUT1
+        FI
+        IF RSISTE>=0 THEN
+              IF HENTE=RSISTE THEN -1=:RSISTE FI
+        FI
+        CALL XONCHECK; CALL CXRBGET; CALL SETPARITY; A=:CHARN
+        IF DFLAG BIT 5ECHO GO RETU                % ECHO BY DRIVER
+        IF RSISTE<0 THEN                          % ECHO SHOULD BE DONE BY ME
+           IF DFLAG NBIT 5ALEC THEN               % ALL CHARACTERS ALREADY ECHOED?
+              CHARN; CALL TECHO                   % TEST ECHO
+           FI
+           CALL TBREAK                            % TEST BREAK
+           X:=CDFOP
+           IF BRECHOFL<0 THEN           % CHARACTER SHOULD BE IGNORED
+               7=:CHARN; CALL GECHO; GO NXTCH
+           FI
+           IF A BIT 5ECHO THEN CALL GECHO FI      % GIVE ECHO
+        FI
+ RETU:  T:=0
+        IF INPTY=0 THEN                 % BREAK CHECK IN TDGET
+           IF RSISTE>=0 THEN
+              IF HENTE-RSISTE=0 THEN T:=1 FI     % BREAK BY DRIVER
+           ELSE
+              IF BRECHOFL BIT 5BREAK THEN T:=1 FI % BREAK CONDITION
+           FI
+        FI
+ OUT:   CHARN; MIN "LREG"
+ OUT1:  X:=XREG; GO LREG
+
+ % GIVE ECHO FROM TTGET OR TDGET
+ % B=INPUT DATAFIELD, X=OUTPUT DATAFIELD
+ INTEGER POINTER LREGL
+ GECHO: A:=L=:"LREGL"
+        X:=:B
+        CHARN; CALL CXRBPUT; CALL STDEV; X:=:B
+        GO LREGL
+ RBUS
+
+ *"8XON
+" %=====================================================================
+ %            X O F T R
+ %      37.20
+ %
+ % THIS ROUTINE IS AN ALTERNATIVE TO NORMAL XOFF/XON CHECKING AND
+ % REQUIRES XOFF/XON TO BE IN SEQUENCE. ANY OTHER COMBINATION WILL
+ % BE TREATED AS NORMAL DATA CHARACTERS.
+ % THE ROUTINE IS ACTIVATED BY ENTERING IT'S ADDRESS IN THE ROUSPEC
+ % LOCATION IN THE TERMINAL INPUT DATAFIELD. THE ROUTINE IS CALLED
+ % AT THE START (D=0) AND AT THE END (D=1) OF THE DRIVER.
+ % FIRST PART (D=0) PERFORMS THE XOFF/XON CHECKING WILE THE LAST PART
+ % (D=1) PERFORMS BRANCHING ACCORDING TO RESULTS FROM FIRST PART.
+
+ SUBR XOFTR
+ SYMBOL IXOFF=3,IDATA=4,OPIN=5
+ XOFTR: IF T:=DFLAG BIT 5XDEVICE THEN   % XOFF/XON CHECKING FOR THIS TERMINAL?
+           IF D=0 THEN                                      % TEST CHARACTERS
+              A BZERO 7=:LAST=:D
+              IF T:=BRECHOFL NBIT IXOFF THEN      % X O F F   T E S T
+                 IF "XOFF"=D THEN
+                    T BONE IXOFF BZERO IDATA=:BRECHOFL
+                    T:=DFLAG BONE 5OXON=:DFLAG              % STOP OUTPUT
+                    0=:X.TMR; L-1
+                 FI; A:=LAST; EXITA
+              ELSE                                % X O N   T E S T
+                 IF D="XON" THEN                            % IGNORE CHARACTERS
+                    T:=BRECHOFL BZERO IXOFF BZERO IDATA=:BRECHOFL
+                    T:=DFLAG BZERO 5OXON=:DFLAG
+                    T:=X.HDEV+DCONT
+                    A:=1; *IOXT                             % PIN OUTPUT
+                    EXIT
+                 ELSE
+                    A SHZ 10+"XOFF"=:LAST                   % DATA CHARACTERS
+                    T:=BRECHOFL BONE IDATA BZERO IXOFF=:BRECHOFL
+                    EXITA
+                 FI
+               FI
+           ELSE                                   % R E T U R N   C H E C K
+              IF T:=BRECHOFL BIT IDATA THEN
+                 T BONE OPIN BZERO IDATA=:BRECHOFL
+                 LAST SHZ -10=:LAST
+                 EXIT                                       % NEW CHARACTER
+              FI
+              IF T:=BRECHOFL BIT OPIN THEN
+                 T BZERO OPIN=:BRECHOFL
+                 DFLAG BZERO 5OXON=:DFLAG
+                 T:=X.HDEV+DCONT
+                 A:=1; *IOXT                                % PIN OUTPUT
+              FI
+              EXITA
+           FI
+        ELSE
+           IF D=0 THEN
+              A BZERO 7=:LAST; 0=:BRECHOFL
+           FI
+        FI
+        EXITA
+ RBUS
+ *"
+"
+
+
+ %==============================================================================
+ % 37.4       D W R I T E
+ %
+ % DRIVER ROUTINE ON LEVEL 10
+ %
+ % THE X-REGISTER MUST POINT TO THE INPUT DATAFIELD (X=DFOPP)
+ % IN ALL THE ROUTINES CALLED BY THE OUTPUT DRIVER
+
+
+ %
+
+ INTEGER LOGFIELD=?
+ INTEGER 10BUFST
+ SUBR DWRITE
+ SYMBOL BIT0=0
+ SYMBOL SUFFS=5               % SUFFICIENT SPACE FOR ECHO
+ INTEGER CCNOBYT,XCNOBYT
+ INTEGER POINTER 3PT10:=177600+L10LGP+L10LGP+1
+ DWRITE:
+        ISTATE=:OISTATE
+ @LIB CXCPU
+ @LIB CXCPU-,
+        X:=DFOPP=:10DFOPP; BUFST=:10BUFST
+ @ELIB
+        *IOF
+ *"8N500
+" INDRIV:
+        MINBHOLD BZERO 5BLOC=:T
+        IF BHOLD<T AND OISTAT><0 THEN
+ @LIB CXCPU-,
+           "IORESTART"=:MFUNC;  CALL XRTACT
+ @ELIB
+ @LIB CXCPU
+        FI
+        IF SCREEN><0 THEN
+           IF A>24 THEN 207; CALL OOAPD; 0=:EMPTFLAG; -1=:SCREEN FI
+           IF A<0 GO FAR OUT
+        FI; CALL OXONCHECK; GO CALLOOAPD          % SEND 'XON/XOFF'
+        CALL XONWRITE; GO FAR OUT                 % TEST FOR XOFF.
+ NOXON: IF BHOLD >< 0 THEN
+           T:=HDEV+DST; *IOXT
+           IF BIT 3 THEN                     % READY FOR TRANSFER AND CARRIER NOT MISSING
+              IF TYPRING BIT 5CRDLY THEN
+                 CALL CHDL2
+              ELSE
+                 IF A BIT 5TERM THEN CALL CXRBGET ELSE CALL RBGET FI
+              FI
+ NOCH:        IF T:=SCREEN>0 THEN
+                 IF =12 THEN MIN SCREEN FI
+                 IF =14 THEN T+24=:SCREEN FI
+                 GO CALLOOAPD; *)FILL
+              FI
+ CALLOOAPD:   CALL XOOAPD; 0=:EMPTFLAG; TTMR=:TMR
+              IF X><0 THEN X.DFLAG BZERO 5LBRK=:X.DFLAG FI  % LINE IS OK
+           ELSE
+              T:=HDEV+"DCONT"; "DPIN+DACT"; *IOXT           % PIN DEVICE.
+              TTMR =: TMR                                   % START TIME-OUT
+              IF X><0 THEN
+                 IF X.TYPRING BIT 5TERM THEN                % SPEC. FOR TERMINALS
+                    T := X.HDEV + DST; * IOXT               % READ INPUT STATUS.
+                    IF BIT 4 OR BIT 13 THEN                 % IF ERROR
+                       IF BIT 13 THEN                       % CARR. MISSING
+                          X.DFLAG BONE 5LBRK=:X.DFLAG       % FLAG CARRIER MISSING
+                          -2=:X.TMR                         % SET INPUT TIME-OUT IN 2 SEC.
+                       FI; T:=HDEV+"DCONT"; "DACT"; *IOXT   % UNPIN DEVICE
+                       CALL CLBUF                           % CLEAR BUFFER
+ @LIB CXCPU
+ @LIB CXCPU-,
+                       IF RTRES><0 THEN CALL XRTACT FI % ACTIVATE USER
+ @ELIB
+ EFI:      FI; FI; FI; FI
+        ELSE
+ *"8N500
+" @LIB CXCPU
+ @LIB CXCPU-,
+           IF LOGFIELD=B THEN
+ @ELIB
+              0=:EMPTFLAG; A:=0; CALL OOAPD; TTMR=:TMR
+           ELSE
+ *"
+" NLOG1:       1=:EMPTFLAG; 0=:TMR
+           FI
+        FI;  GO OUT; *)FILL
+
+ INTEGER SAVB
+
+ OUT:   IF CFREE=SUFFS THEN            % CHECK IF INPUT IS WAITING FOR BUFFER
+           IF X:=10DFOPP><0 THEN
+ @LIB CXCPU
+ @LIB CXCPU-,
+              IF X.BRECHOFL BIT 5WECH THEN
+                 A BZERO 5WECH=:X.BRECHOFL; X:=:B=:SAVB
+ *"8N500
+"                 CALL TSTBACK; "IORESTART"=:MFUNC;
+ *"
+"                 CALL XRTACT; SAVB=:B
+              FI
+ @ELIB
+           FI
+         FI; *ION
+ @LIB CXCPU-,
+        CALL LOG1
+ @ELIB
+ @LIB CXCPU
+ NLOG2: CALL ID10; GO FAR DWRITE
+
+ RBUS
+
+
+ %==============================================================================
+ % 37.5       I O A P D   O O A P D
+ %
+ % SUBROUTINES TO READ AND WRITE A CHARACTER USING IOXT!!!!!!!
+
+ SUBR IOAPD,OOAPD,XOOAPD
+ INTEGER ERRCODE,IOXNO
+ IOAPD: T:=HDEV+DST; *IOXT
+        A =: D                                    % STATUS
+        T+"DDR-DST"; *IOXT                        % BYTE IN A
+        IF D BIT 13 THEN                          % CARRIER MISSING??
+              IF TYPRING BIT 5TERM THEN           % TERMINAL
+                 DFLAG BONE 5LBRK=:DFLAG
+                 -2=:TMR                          % START TIME-OUT IN 2 SEC.
+              FI
+              L =: D                              % SAVE RETUR-ADRESS
+              CALL CLBUF ; L := D                 % CLEAR BUFFER
+              EXIT
+        ELSE
+           T:=DFLAG BZERO 5LBRK=:DFLAG            % LINE IS OK
+        FI
+        IF D BIT 4 THEN
+           T:=TINFO
+           IF D BIT 5 THEN T BONE 5FRER ELSE T BONE 5PAER FI; T=:TINFO
+           IF A=0 THEN
+              IF CESCP/\377><LAST GO SIMESC
+           FI
+           CNTREG; T:=HDEV+DCONT; *IOXT
+           TTMR=:TMR; EXIT
+        FI
+ SIMESC: A=:D; CNTREG; T:=HDEV+DCONT; *IOXT
+        D=:A; EXITA
+
+ OOAPD: A=:D                                      % SAVE CHAR IN D
+        T:=HDEV+DST; *IOXT
+        IF BIT 3 THEN                             % READY!!!
+           D=:A
+ XOOAPD:   T:=HDEV+DDW; *IOXT                     % WRITE CHAR TO INTERFACE
+        FI
+ OUTRA: "DACT+DPIN"; T:=HDEV+"DCONT"; *IOXT       % RE-ACTIVATE.
+        EXIT
+
+ RBUS
+
+
+ @LIB CXCPU
+ %==============================================================================
+ % 37.7       R B G E T   R B P U T     R W G E T    R W P U T    D B P U T
+ %   - - -3.5.6.2  A U X I L I A R Y     R O U T I N E S
+
+ % RING BUFFER ROUTINES TO GET OR PUT A BYTE
+ % CHARACTER IN A
+ %      DBPUT PUTS A BYTE INTO A DEVICE BUFFER SIMULATING A RING BUFFER.
+ %            - IT SHOULD BE EXECUTED WITH PIOF AND ON ENTRY A SHOULD HAVE
+ %            - THE BYTE TO BE STORED IN ITS LEAST SIG. BYTE.
+ %
+ % TDBGET/TDBPUT: T=MEMORY BANK OF BUFFER
+ %                ELSE SAME FUNCTION AS DBGET/DBPUT
+ %
+ SUBR RBGET,RBPUT,RWGET,RWPUT,DBPUT,DBGET,TDBPUT,TDBGET
+ %
+ INTEGER TREG, AREG, DREG, XREG         % SAVE REGISTERS FOR DBGET
+ REAL TADREG=TREG
+ INTEGER POINTER LREG
+ DISP 0; REAL FFMAX=MAX; DOUBLE DBHOLD=BHOLD
+        INTEGER ARRAY POINTER RWBUFST=BUFST
+ PSID
+ RBGET: TAD:=FFMAX; IF A=0 THEN EXIT FI    %BHOLD
+        A-1; D+1; AD=:DBHOLD
+        IF D=T THEN 0=:HENTE FI     % BOTTOM OF BUFFER
+        D-1:=:X; T:=BUFST; *LBYT
+        MIN CFREE; D=:X; EXIT
+
+ RBPUT: IF T:=CFREE=0 THEN EXIT FI; T-1=:CFREE
+        X:=:D:=FYLLE; T:=BUFST; *SBYT
+        X+1; IF X=MAX THEN X:=0 FI; X=:FYLLE
+        MIN BHOLD; D=:X; EXIT
+
+ INTEGER CMBBANK
+
+ TDBPUT: TAD=:TADREG; GO DDBPU
+ DBPUT: TAD=:TADREG; T:=BUFBANK
+ DDBPU: T=:CMBBANK
+        X=:XREG; A/\377=:D
+        IF CFREE><0 THEN
+           A-1=:CFREE; MIN BHOLD
+           X:=BUFST; A:=FYLLE; *BLDA 00 DA
+           A SHZ -1; X+A; T:=CMBBANK; *LDATX
+           IF K THEN A/\177400 ELSE D SHZ 10; A/\377 FI
+           A\/D; *STATX
+           IF A:=FYLLE+1=MAX THEN A:=0 FI; A=:FYLLE
+        FI
+ OUT:   TAD:=TADREG; X:=XREG; EXIT
+
+ TDBGET: TAD=:TADREG; GO DDBGE
+ DBGET: TAD=:TADREG; T:=BUFBANK
+ DDBGE: T=:CMBBANK
+        X=:XREG; TAD:=FFMAX
+        IF A><0 THEN                              % BHOLD
+           A-1; D+1; AD=:DBHOLD; IF D=T THEN 0=:HENTE FI
+           D-1; *BLDA 00 DD
+           D SHZ -1; X:=BUFST+D; T:=CMBBANK; *LDATX
+           IF K NBIT THEN A SHZ -10 FI; A/\377=:AREG
+           MIN CFREE
+        FI; GO OUT
+
+ *)FILL
+
+ RWGET: TAD:=FFMAX; IF A=0 THEN EXIT FI    %BHOLD
+        A-1; D+1; AD=:DBHOLD; IF D=T THEN 0=:HENTE FI
+        D-1:=:X; RWBUFST(X); MIN CFREE; D=:X; EXIT
+
+ RWPUT: IF T:=CFREE=0 THEN EXIT FI; T-1=:CFREE
+        X=:D; A=:RWBUFST(FYLLE)
+        X+1; IF X=MAX THEN X:=0 FI; X=:FYLLE
+        MIN BHOLD; D=:X; EXIT
+ RBUS
+ *"-CXCPU
+" *CXRBP=RBPUT
+ *CXRBG=RBGET
+ *"
+"
+ %==============================================================================
+ % 40.1       T E L I N   T E L E N T
+ %
+ *"TELIX
+" %
+ % SIMPLE DRIVER FOR TELETYPE INTERFACE
+ % BREAK ON EVERY CHARACTER, NO ECHO, NO MODIFICATIONS OF THE BYTES
+ % LEVEL 12
+ %
+
+ SUBR TELIN,TELENT
+ INTEGER ERRCODE,IOXNO
+ @LIB CXCPU
+ TELIN: TTMR=:TMR;CALL ID12
+ TELENT:
+ @LIB CXCPU
+ @LIB CXCPU-,
+        X:=DFOPP
+ @ELIB
+        T:=HDEV+"DST"; *IOXT            % READ STATUS
+        IF A BIT 4 THEN       % ERROR
+              A=:ERRCODE; A BONE 17=:DERROR; T-"DST"=:IOXNO; T+"DDR"; *IOXT
+              A=:D; T+"DST-DDR"; *IOXT
+              IF A BIT 3 GO ERR; GO L1
+        ELSE
+        T+"DDR-DST"; *IOXT    % READ DATA
+        FI; A=:LAST; T+"DST-DDR"; *IOXT
+        IF A BIT 3 GO ERR
+ L1:    CNTREG; T+"DCONT-DST"; *IOXT     % PIN DEV
+        A:=LAST; CALL XONCHECK
+        CALL XONREAD; GO CONT1
+        A := LAST
+ % TEXT EDITING TERMINAL CONVERTING ROUTINE
+ *"TELIX 7TEXT
+" CONT1:
+ @LIB CXCPU
+ @LIB CXCPU-,
+        CALL RBPUT; CALL RTACT
+ @ELIB
+        GO TELIN
+ ERR:   T:=HDEV; A:=:T; CALL 9ERR(#23); 232=:DERROR
+ @LIB CXCPU
+ @LIB CXCPU-,
+        IF RTRES><0 THEN CALL RTACT FI
+ @ELIB
+        CALL ID12; GO ERR22
+ RBUS
+
+
+ *"7TEXT
+"==============================================================================
+ 40.2       C H D L 1   C H D L 2
+
+
+)9SCLC
+%
+% ROUTINES FOR GIVING 5 DUMMY CHARACTERS AFTER EACH CARRIAGE-RETTURN
+% THE DUMMY CHARATER IS 26 OCTAL
+%
+
+% CHDL1 IS CALLED  FROM THE ROUTINE ECHSUBR
+%
+% ENTRY: A=CHARACTER TO OUTPUT (ECHO)
+%
+% EXIT:  A=OLD CHARACTER OR A=26 (DUMMY CHARACTER)
+
+CHDL1, COPY SL DT; STT CHDLL; COPY SA DD; JPL CHDLF; JMP CHDLA
+       COPY SD DA; LDT TYPRI,B; BSKP ONE 50 DA; JMP NTRM2  % TEST ON BIT 5TERM
+       JPL I (CXRBP; SAA 26; JMP I CHDLL
+NTRM2, JPL I (RBPUT; SAA 26; JMP I CHDLL
+
+CHDLA, COPY SD DA; JPL XXCRT
+CHDLD, COPY SD DA; JMP I CHDLL
+
+% TEST IF CURRENT CHARACTER IS CR AND SET "DUMMY-CHARACTER" COUNTER TO 5
+% WHEN CHAR IS CR (THE COUNTER IS BIT 6-8 IN TYPRING)
+%
+XXCRT, AND (177; AAA -15; JAZ *+2; EXIT
+       LDA (500; ORA TYPRI,B; STA TYPRI,B; EXIT
+
+% TEST IF MORE DUMMY CHARACTERS MUST BE GIVEN
+% EXIT:      NO MORE DUMMY CHARACTERS
+% EXIT+1:    GIVE DUMMY CHARACTER
+%
+CHDLF, LDA TYPRI,B
+       SHA ZIN SHR 6; AND (7; JAF *+2; EXIT
+       AAA -1; SHA 6; LDT TYPRI,B; SWAP SA DT; AND (177077
+       RORA ST DA; STA TYPRI,B; EXIT AD1
+
+% ENTRY FROM THE ROUTINE DWRITE
+% TEST IF THE CHARACTER TO OUTPUT SHOULD BE FETCHED FROM THE RING-BUFFER
+% OR A DUMMY CHARACTER SHOULD BE GIVEN.
+% EXIT WITH THE CHARACTER TO OUTPUT IN A-REG
+%
+CHDL2, COPY SL DA; STA CHDLL; JPL CHDLF; JMP CHDLC; SAA 26
+CHDLB, JMP I CHDLL
+CHDLC, LDT TYPRI,B; BSKP ONE 50 DT; JMP NTRM1              % TEST ON BIT 5TERM
+       JPL I (CXRBG; JMP FELLS
+NTRM1, JPL I (RBGET
+FELLS, COPY SA DD; JPL XXCRT; COPY SD DA; JMP CHDLB
+
+CHDLL, 0
+
+)FILL
+)KILL CHDLA XXCRT CHDLF CHDLB CHDLC CHDLL CHDLD NTRM2 NTRM1 FELLS
+
+)9RCLC
+)9SLPL
+" %==============================================================================
+ % 40.5       X O N C H E C K   X O F F C H E C K   O X O N C H E C K
+ %
+ % SUBROUTINE TO TELETYPE DRIVERS TO CONTROL
+ % XON/XOFF SENDING TO TELETYPE INTERFACES
+ % XOFF IS GIVEN WHEN ONLY 5 FREE CHAR-ENTRIES IN BUFFER
+ % XON IS GIVEN WHEN HALF THE BUFFER IS FREE AND "XOFF" HAS
+ % PREVIOUSLY BEEN GIVEN
+ % LEVEL 12
+ %
+ SUBR XONCHECK,OXONCHECK
+ INTEGER POINTER LREGL
+ XONCHECK:
+        IF X=0 OR DFLAG NBIT 5RDEVICE THEN EXIT FI
+        A:=L=:"LREGL"
+        IF DFLAG BIT 5XOFF OR A BIT 6XOFF GO CONT1
+        IF BHOLD>MAX-5 THEN
+              IF X.EMPTFLAG><0 THEN
+                 0=:X.EMPTFLAG; "XOFF"; X:=:B; CALL OOAPD; X:=:B
+              ELSE
+                DFLAG BONE 5XOFF=:DFLAG
+              FI
+              DFLAG BONE 6XOFF=:DFLAG
+              GO CONT2
+        FI
+ CONT1: IF DFLAG BIT 5XON OR A NBIT 6XOFF GO CONT2
+        IF CFREE=MAX SHZ -1 THEN
+              IF X.EMPTFLAG><0 THEN
+                 0=:X.EMPTFLAG; "XON"; X:=:B; CALL OOAPD; X:=:B
+              ELSE
+                DFLAG BONE 5XON=:DFLAG
+            FI; DFLAG BZERO 6XOFF=:DFLAG
+        FI
+ CONT2: GO LREGL
+
+ % OUTPUT LEVEL, (LEVEL 10)
+ OXONCHECK:
+        IF X=0 OR T:=X.DFLAG NBIT 5RDEVICE THEN EXITA FI
+        IF T:=X.DFLAG BIT 5XON THEN "XON"; T BZERO 5XON=:X.DFLAG; EXIT FI
+        IF T BIT 5XOFF THEN "XOFF"; T BZERO 5XOFF=:X.DFLAG; EXIT FI
+        EXITA
+
+ RBUS
+
+ *"-8RON
+"
+
+ *"8XON
+" %==============================================================================
+ % 40.6       X O N R E A D
+ %
+ %
+ %      SUBROUTINE TO INPUT DRIVERS
+ %      TO CHECK FOR RECIEVED XON/XOFF FROM LEGAL DEVICE
+ %      LEVEL 12.
+ %
+ %      EXIT  => IGNORE THIS CHAR.
+ %      EXITA => CHAR. OK AS INPUT.
+ %
+ %
+ %
+ SUBR XONREAD
+ XONREAD:  A/\177=:D                              % SAVE CHAR FOR TESTS & RETUR.
+        IF DFLAG NBIT 5XDEVICE GO OKUT            % NOT ALLOWED
+        IF D><"XON" AND D><"XOFF" GO OKUT         % NOT XON/XOFF
+        IF D="XON" THEN                           % XON RECIEVED.
+              A BZERO 5OXON =: DFLAG              % FLAG XOFF-STATE
+              T := X.HDEV + DCONT                 % RESTART OUTPUT DRIVER
+              A:=1; *IOXT
+        ELSE
+              A BONE 5OXON =: DFLAG               % XOFF; FLAG.
+              0=:X.TMR
+        FI
+        EXIT                                      % IGNORE-RETURN.
+
+ OKUT:  EXITA                                     % OK RETURN
+
+ RBUS
+
+ %==============================================================================
+ % 40.7       X O N W R I T E
+ %
+ %      ROUTINE TO CHECK FOR XOFF-STATE
+ %      OUTPUT LEVEL (LEVEL 10)
+ %
+ %      EXIT  => XOFF STATE / DON'T SEND ANYTHING.
+ %      EXITA => XON STATE / SEND
+ %
+ %            CALLED IN IOF
+ %            =============
+ %
+
+ SUBR XONWRITE
+
+ XONWRITE:
+        IF X=0 OR X.DFLAG NBIT 5XDEVICE THEN EXITA FI
+        IF A NBIT 5OXON THEN EXITA FI
+        EXIT
+
+ RBUS
+ *"-8XON
+"
+ @LIB CXCPU
+ %==============================================================================
+ % 40.8       X M S G / P I T 3     E N T R Y    P O I N T S
+ %
+ %==============================================================================
+ %
+ SUBR CLXMS,PFXMS,MFXMS,DRXMS,ZXRES,ZXRRS,ZXTRS,P2XMS,ZXCOM,XMSGA,XPFAD,XDHOM
+
+ % GENERAL PHILOSOPHY: LEVELS 5,10,12,13,14 (DEC) WILL ALWAYS HAVE PIT3 SET
+ % AS NORMAL AND ALTERNATIVE
+ % XMSG ALWAYS RUNS ON PIT3
+ INTEGER POINTER HOME=?
+
+ XPFAD: INTEGER ZXH:=0
+ XMSGA: INTEGER POINTER ZGO:=ZGO+1      % GENERALISED ENTRY POINT TO XMSG PIT3
+                                        % X=CODE: 1=DRIVER, 2=POWERFAIL, 3=CLOCK
+                                        %         4=MEMORYFAIL, 5=MONCALL
+                                        %         6=HDLC INIT, 7= HDLC RCV
+                                        %         8=HDLC XMIT
+                                        % OLD X-REG IS SAVED IN D-REG
+ DUM: -45=:T                            % DUM IF XMSG NOT ACTIVE
+      IF X-1=0 THEN MIN "HOME"; FI      % DO EXITA IF DRXMSG
+      EXIT
+ XDCOM: A:=D; X=:D:=1;                  % DRIVER CALL. RECOVER A-REG. SAVE X IN D
+ ZXCOM:
+ COM:   *PON
+        GO ZGO                          % ORIGINAL X IS IN A. CODE IS IN X
+
+ % CLOCK HANDLING (MONITOR LEVEL)
+ INTEGER POINTER CLSAV,PFSAV,MFSAV,HISAV,HRSAV,HTSAV
+ CLXMS: X=:D:=L=:"CLSAV":=A; 3632; *TRR PCR       % SWITCH TO PIT3
+        X=:A:=3; CALL COM; 32; *POF; TRR PCR      % AND BACK TO PIT0
+        GO CLSAV
+ PFXMS: X=:D:=L=:"PFSAV":=2; CALL COM; *POF
+        GO PFSAV
+ MFXMS: X=:D:=L=:"MFSAV":=4; CALL COM; *POF
+        GO MFSAV
+ ZXRES: X=:D:=L=:"HISAV":=6; CALL COM; *POF
+        GO HISAV
+ ZXRRS: X=:D:=L=:"HRSAV":=7; CALL COM; *POF
+        GO HRSAV
+ ZXTRS: X=:D:=L=:"HTSAV":=10; CALL COM; *POF
+        GO HTSAV
+ P2XMS: IF "ZGO"="DUM" OR ZXH=0 THEN EXIT; FI; *IRW DP 50; EXIT AD1
+
+
+ % ENTRY POINT (PIOF) FROM DIRECT DRIVER ROUTINE CALLS TO XMSG (TO XDFUE)
+ XDHOM: INTEGER POINTER HOME;INTEGER LEV,SAVA,SAVX
+ DRXMS: A=:D:=50:=:L=:"HOME"; *TRA STS  % GET INTERRUPT LEVEL. SAVE A-REG IN D!!
+        IF A SHZ -5/\170<L              % LOWER THAN LEVEL 5?
+        THEN A=:LEV\/3602; *TRR PCR     % SWITCH TO PIT3 (APT AND NPT)
+             CALL XDCOM; *POF           % CALL XMSG ROUTINE ON PIT3
+             A=:SAVA:=LEV; X=:SAVX:=12  % SAVE RETURN VALUES
+             IF A\/2=X THEN CURPROG.ACTPRI/\3773; FI; *TRR PCR;
+             SAVA; X:=SAVX;
+        ELSE CALL XDCOM; *POF           % GO TO SPESIAL VERSION OF COM
+        FI; GO HOME
+ RBUS
+
+ SUBR XMSGY                   % XMSG MONITOR CALL HANDLER (EVEN WHEN NO XMSG)
+ INTEGER XPVL,XPBIT:=100000
+ INTEGER XIRRP(0); * IRR DP
+ INTEGER XIRWP(0); * IRW DP
+ INTEGER XIRWT(0); * IRW DT
+
+ % COME HERE FROM POFMONC VIA GOTAB
+ XMSGY: T:=A; *TRA PVL                  % SAVE PAGING STATUS IN T, GET LEVEL
+        A=:D/\170=:XPVL                 % SAVE LEVEL
+        IF T NBIT 16                    % WAS CALLING LEVEL IN POF?
+        THEN A SHZ -3=:X; *EXR SD       % GET HIS P-REG
+             CALL XFIPV; T:=0; XPVL     % SAVE IN SWITCH TABLE, T=PAGING STATUS
+        ELSE T:=XPBIT                   % T=PON BIT, A=PREVIOUS LEVEL*10
+        FI;
+        X:=5; D:=T; CALL ZXCOM          % GOTO XMSG (A=PREVLEV*10,T=D=PAGING STAT)
+        % RETURN HERE IF XMSG NOT RUNNING (D=0 IF PAGING WAS OFF)
+        IF XPVL>40                      % DRIVER CALL?
+        THEN  A SHZ -3=:X               % GET PAGING STATUS
+              IF 0=D                    % WAS PAGING OFF?
+              THEN X:=PVLAD(X); X.S2+1=:X.S2 % SET SWITCH TABLE AGAIN TO A SKIP
+              ELSE
+                 XPVL\/XIRRP; *EXR SA   % GET HIS P-REG (AGAIN!)
+                 A+1=:D:=XPVL\/XIRWP:=:D; *EXR SD % GIVE HIM A SKIP RETURN,WRITE HIS P-REG DIRECT
+              FI
+        FI
+        XPVL\/XIRWT=:D:=-45; *EXR SD    % SET HIS T-REG TO 'XMSG NOT RUNNING'
+        GO RET14
+ RBUS
+
+ *"8XMSG+8CXHD+8C1X2+8C2X2+8C3X2+8C4X2
+"
+
+ %==============================================================================
+ %
+ % 40.9      GENERAL BUFFER ALLOCATION PACKAGE - ZB... for XMSG and HDLC
+ %
+ %==============================================================================
+ SUBR ZBINI,ZBGET,ZBREL
+ %
+ %      THIS PACKAGE IS BASED ON THE CERN SMO MEMORY ALLOCATION PACKAGE. IT
+ % ALLOCATES BUFFERS OF SIZE MULTIPLE OF FOUR WORDS. THE FIRST WORD OF EACH
+ % BUFFER IS USED BY THE ALLOCATION PACKAGE AND CONTAINS:
+ %      BIT 0 : SET IF THE BUFFER IS FREE (ZBCFR)
+ %          1 : SET IF PRECEDING BUFFER IS FREE (ZBPFR)
+ %       2-15 : BUFFER LENGTH IN MULTIPLE OF FOUR WORDS
+ %
+ %      IF THE BUFFER IS FREE (BIT 0 SET), THE LAST WORD OF THE BUFFER CONTAINS
+ % THE ADDRESS OF ITS START (FOR CONCATENATION OF FREED BUFFERS.)
+ %
+ %      THE USER OF THIS PACKAGE MUST PROVIDE OF BUFFER AREA DESCRIPTOR OF 4
+ % WORDS, WHICH MUST BE POINTED AT BY X ON ENTRY TO THESE ROUTINES:
+ %
+ DISP 0
+        INTEGER ZBBNK         % BANK NO WHERE BUFFER AREA LIES (=0 IF N10)
+        INTEGER ZBSTR         % ADDRESS OF FIRST WORD USED IN BANK FOR BUFFERS
+        INTEGER ZBEND         % ADDRESS OF LAST WORD USED IN BANK FOR BUFFERS
+        INTEGER ZBSAV         % SAVE LOCATION FOR USER B-REG
+ PSID
+ SYMBOL ZBCFR=0,ZBPFR=1       % BITS IN THE HEADER (DO NOT CHANGE - SEE CODE)
+ %
+ %      FUNCTIONS PROVIDED MUST BE CALLED WITH X POINTING TO THE DESCRIPTOR.
+ % THE RETURN WILL BE BY SKIP RETURN UNLESS A FATAL ERROR IS DETECTED IN WHICH
+ % CASE A WILL CONTAIN AN ERROR CODE:
+ SYMBOL ZBX01=1               % BANK NO >< 0 AND CPSTA SAYS THIS IS A N10
+ SYMBOL ZBX02=2               % NOT ENOUGH BUFFER SPACE TO INITIALISE
+ SYMBOL ZBX03=3               % INCONSISTENCY IN BUFFERS FOUND BY ZBGET
+ SYMBOL ZBX04=4               % ILLEGAL USER BUFFER ADDRESS TO ZBREL
+ %
+ %      FUNCTIONS ARE:            (B -> BUFFER AREA DESCRIPTOR)
+ %
+ % ZBINI:     INITIALISE BUFFER AREA
+ %            T=BANK NO, A=ADDR OF FIRST WORD TO USE, D=ADDR OF LAST WORD
+ %
+ % ZBGET:     GET BUFFER SPACE
+ %            A=NO OF BYTES
+ %      SKIP: A:=USER BUFFER ADDRESS ( OR 0 IF NONE AVAILABLE )
+ %            NB: This is the address of the first USABLE word in the buffer
+ %
+ % ZBREL:     RELEASE BUFFER SPACE
+ %            A=USER BUFFER ADDRESS
+ %
+ INTEGER ZBMSK:=177774
+ INTEGER POINTER ZBCPS:=CPSTA
+
+ ZBINI: X:=:B=:ZBSAV; T=:ZBBNK;                   % INITIALISE DESCRIPTOR
+        IF T><0 AND X:=ZBCPS NBIT 5N100           % BANK><0 AND NOT N100
+        THEN ZBX01; GO ZBOUT; FI                  % NOT ALLOWED
+        X:=ZBMSK; A+3/\X=:ZBSTR; X/\D=:ZBEND      % ROUND START UP, END DOWN
+        IF A+10>>=X THEN ZBX02; GO ZBOUT; FI      % NOT ENOUGH SPACE
+        X-1; *STATX 0; SAA 2; STATX 10            % BACKPTR. LENG=0, PREV. FREE
+        X:=ZBSTR; ZBEND-X BONE ZBCFR; *STATX 0    % SET LENGTH & FREE.
+        GO ZBOKR                                  % SKIP RETURN
+
+ ZBGET: X:=:B=:ZBSAV                              % SAVE USER B-REG. B->DESCR.
+        A SHZ -1; *BSKP ZRO SSM; RINC DA          % A=NUMBER OF USER WORDS
+        A+4/\ZBMSK=:D; X:=ZBSTR                   % D=NUMBER OF WORDS NEEDED
+        DO WHILE X><ZBEND                         % SCAN DOWN BUFFERS
+              ZBX03; IF X>>T OR X<<ZBSTR GO ZBOUT % BUFFERS DESTROYED!
+              T:=ZBBNK; *LDATX 0                  % GET HEADER WORD
+              IF A BIT ZBCFR AND A>>=D THEN       % SPACE AVAILABLE?
+                   A BZERO ZBCFR :=:D; * STATX 0  % SET NEW LENGTH IN HEADER
+                   % NOW HAVE: X=BUFAD, A=NEWSIZE, D=OLDSIZE, T=BANK NO
+                   D-A; A+X:=:X                   % D=REMNANT, A=USER BUF, X=NEW
+                   IF D=0                         % FILLED WHOLE BUFFER?
+                   THEN D:=A; * LDATX 0           % GET HEADER OF NEXT BUFFER
+                        A BZERO ZBPFR; * STATX 0  % CLEAR PREVIOUS FREE
+                        A:=D                      % RECOVER USER ADDRESS
+                   ELSE; * STATX 10               % SAVE USER ADDR IN NEW BUF(1)
+                        A:=D BONE ZBCFR; *STATX 0 % BUILD NEW HEADER
+                        X=:A+D-1; * STATX 0       % SET BACK POINTER
+                        X:=A; * LDATX 10          % RECOVER USER ADDRESS
+                   FI;
+                   A+1; GO ZBOKR                  % RETURN WITH USER ADDR.
+              FI; A/\ZBMSK+X=:X                   % TRY NEXT
+        OD;
+        A:=0; GO ZBOKR                            % NO SPACE LEFT
+
+ ZBREL: X:=:B=:ZBSAV; A-1=:X/\ZBMSK               % CONVERT USER->BUFFER ADDR
+        IF A><X OR A<<ZBSTR OR A>>=ZBEND GO ZBIOW % CONSISTENCY CHECKING
+        T:=ZBBNK; * LDATX 0                       % GET BUFFER HEADER
+        IF A BIT ZBCFR THEN GO ZBIOW; FI          % SHOULD BE ALLOCATED
+        A/\ZBMSK; X=:D+A; * LDATX 0               % GET HEADER OF NEXT BUFFER
+        IF A BIT ZBCFR THEN A/\ZBMSK; X+A; FI     % IF FREE FIND ONE AFTER
+        X:=:D; * LDATX 0                          % GO BACK TO ORIGINAL.
+        IF A BIT ZBPFR                            % IF PREVIOUS FREE
+        THEN X-1; * LDATX 0; COPY DX SA           % GET POINTER TO START OF PREV
+        FI
+        % WE NOW HAVE X=START OF NEW (CONCATENATED) BUFFER, D=START OF NEXT
+        A:=D-X BONE ZBCFR; * STATX 0              % SET HEADER OF NEW
+        X=:A:=D-1; * STATX 0; LDATX 10            % SET BACK PTR, GET NEXT HEAD
+        A BONE ZBPFR; * STATX 10                  % SET PREVIOUS FREE
+ ZBOKR: L+1; GO ZBOUT                             % SKIP RETURN SEQUENCE
+ ZBIOW: ZBX04;                                    % ILLEGAL BUFFER ADDRESS
+ ZBOUT: X:=ZBSAV:=:B; EXIT                        % RESTORE USER B AND X-REGS
+ RBUS
+ %==================== END OF BUFFER ALLOCATION ROUTINES (ZB...) ==============
+
+
+
+ *"8LPPU
+" %==============================================================================
+ % 33.10      L P P U T
+ %
+ @MAC
+
+)9SCLC
+% LINE PRINTER COVERTING ROUTINES
+PTABL=*
+PTABL<PTABL 27
+)ZERO
+% INSERT INPUT AND OUTPUT VALUES HERE
+%
+160;30
+44;135
+135;134
+43;133
+100;134
+0
+PTABL 20/
+% IOTRANS ROUTINE FOR LINE PRINTER
+% THE CHARACTERS IN PTABL ARE CONVERTED
+LPPUT, COPY  SX DD
+       LDX   (PTABL
+       BSET ZRO 70 DA
+       LDT ,X
+       SKP   DT UEQ 0
+       JMP   PCON1
+       SKP   DT UEQ SA
+       JMP   * 3
+       AAX   2
+       JMP   LPPUT 3
+       LDA   1 ,X
+PCON1, SAT   0
+       SAX   -10
+       BSET  ZRO 70 DA
+       SHA   10
+       JAP   *+2
+       AAT   1
+       SHA   ROT 1
+       JNC   *-3
+       BSKP  ZRO 00 DT
+       BSET  ONE 70 DA
+       COPY  SD DX
+       JMP I (TRTPU
+)FILL
+)9RCLC
+)9SLPL
+ *"
+"
+ %==============================================================================
+ % 37.15      D P R I N T
+
+ % SUBROUTINE TO PUT TEXT DIRECTLY INTO TERM.1-BUFFER
+ % ENTRY:     A=TEXT POINTER
+ SUBR DPRINT
+ INTEGER TRTX,LREG,BREG,XREG
+ DPRINT:  A=:TRTX:=L=:LREG:=B=:BREG:="DT01W"=:B; X=:XREG:=0; *IOF
+ @LIB CXCPU
+ @LIB CXCPU-,
+        DO T:=TRTX; *LBYT
+              WHILE ><##'
+              CALL RBPUT; X+1
+        OD; -1=:TMR
+ @ELIB
+        *ION
+        X:=LREG=:L:=BREG=:B:=XREG; EXIT
+ RBUS
+
+ @LIB CXCPU
+
+
+ *9EPT3=*                     % END OF CODE MAPPED INTO PAGE TABLE 3
+
+
+ %==============================================================================
+ % 37.1       C T R D I S K   B U S Y E   M D R I V   P F E I L
+ %            C O O P T   D R F E I L
+ %
+ % LEVEL 11 ROUTINE TO PERFORM DRUM/DISK TRANSFERS
+ % ACTIVATED BY MTRANS, WITH B=DATAFIELD, X=ABSTR PAR.LIST
+
+
+ SUBR CTRDISK,BUSYE,MDRIV,PFEIL,COOPT,DRFEIL
+
+ DISP 0; DOUBLE POINTER DP1=P1; PSID
+ DISP 12; INTEGER TMRFLG; PSID
+ DISP 0; DOUBLE DITARG=CTRG,DIDXRG=CDRG; PSID
+ INTEGER  CBLDA(0); *BLDA 00 DT
+ INTEGER CUN=?
+
+ CTRDISK: X:=:B; CALL PICKFPAR; IF A=0 AND D=0 THEN CALL ERRFATAL FI
+        AD=:X.MEMAD; A/\3; A SH 14+T=:X.CTRG
+        A SHZ -6/\7 SH 3\/CBLDA
+        T:=X.M2UNTYP; *EXR SA
+        IF K THEN
+           X.CTRG BONE 16=:X.CTRG; 0=:X.CARG       % IF PHOENIX DISC
+        ELSE
+           X.CTRG/\7000 SHZ -11=:X.CARG
+        FI
+        IF X.CTRG/\77>=60 AND A<=63 THEN
+           X.CTRG/\177717=:X.CTRG; CALL PICKYLPAR; AD=:X.CADRG
+        ELSE
+           CALL PICKLPAR; A=:X.CDRG
+        FI; T=:X.CXRG
+        X=:B; CTRG=:TRGINI
+        IF A/\77=36 THEN                                    % READ ELEMENT IN "DISC-LAYOUT-TABLE"
+           0=:HSTAT; AD:=MEMAD; *EXAM                       % T=FORMAT NUMBER
+           IF 40>T AND DISPE(T)><0 THEN                     % 37 IS MAX FORMAT NUMBER
+              T:=MEMA1; X:=MEMA2; B=:L:=A; "DILEZ"=:D
+              DO WHILE D><0                                 % COPY "DISC LAYOUT TABLE" ELEMENT TO "DMA-BUFFER"
+                 S0; *STATX
+                 X+1; D-1; B+1
+              OD; B:=L
+           FI; GO FAR FIN; *)FILL
+        FI
+        IF A=42 AND "TRNSF"><"BDISK" GO FAR FIN   % READ FORMAT NOT LEGAL IN DRIVER
+                                                  % BUT GIVE NO ERROR MESSAGE
+        IF TMR><0 THEN CALL ID11 FI; 0=:TMRFLG
+ *"8DILG
+" NOTLOG: 0=:HSTAT; 1=:DIFTCOUNT                             % ONE RESTART BY TIMRT IS MAX
+ *"8DILG
+" LOOP:                                                      % FOR TRANSF AND COMPARE
+              TACNS=:TACOU
+              FOR TACOU DO                                  % FOR EACH ERROR
+                 AD:=MEMAD=:CMADR
+ CREST:          CTADRG=:TADRG; X:=CXRG=:XRG
+                 DO                                         % FOR EACH PHYSICAL TRANSFER
+                    TTMR=:TMR; A:=ARG
+                    CALL TRNSF; GO ERROR; GO BUSY; GO FINISH
+ BUSYE:             TAD=:TADRG; X=:XRG; CALL ID11           % WAIT FOR INTERRUPT
+                    IF TMR=0 THEN                           % TIMEOUT
+ *"8DILG
+"                       IF HSTAT><0 GO FAR ERTMOUT
+                       -1=:HSTAT
+                    FI
+
+ MDRIV:             TADRG; X:=XRG
+                 OD
+
+ PFEIL:          IF X NBIT 16 AND DIFTCOUNT><0 THEN         % NOT ON CYLINDER
+                    A-1=:DIFTCOUNT; CALL ID11; GO CREST     % TIMRT REACTIVATE DRIVER
+                 FI
+ DRFEIL:         X BONE 4 =:HSTAT; AERRB\/X=:AERRB; MIN ERCNT; 0/\0
+ *"8DILG
+"                 IF SERRB/\X><0 GO FIN  %SERIOUS
+                 IF X BIT 12 THEN TRGINI=:CTRG FI
+              OD; GO FIN; *)FILL
+ *"8DILG
+"
+ COOPT:       X=:HSTAT
+ *"8DILG
+"              IF COMFL=0 GO FIN
+              IF TRG/\7=3 GO FIN                  % COMPARE HAS BEEN EXECUTED
+              IF "TRNSF"="BDISK" GO FIN           % NO COMPARE ON ECC DISKS
+              IF CTRG/\77>1 GO FIN                % COMPARE FOR FUNCTION 0 AND 1
+              177770/\TRG\/3=:CTRG                % SET COMPARE
+        GO FAR LOOP; *)FILL
+
+ FIN:
+        IF CTRG/\77=42 THEN                                 % READ FORMAT
+           CTRG SHZ -6/\7=:X                                % X=UNIT NUMBER
+           X:=HTABL(X); T:=X.DISPN; AD:=MEMAD; *DEPO        % RETURN FORMAT NUMBER IN FIRST LOCATION OF "DMA-BUFFER"
+           0=:HSTAT                                         % NO ERROR MESSAGE
+        FI
+
+        0=:TMR; IF RTRES><0 THEN CALL RTACT FI
+        IF HSTAT BIT 4 THEN
+              HDEV; T:=TRG SH 7 SHZ -15; CALL 9ERR(#20)
+              DRG; T:=HSTAT; CALL 9ERR(#21)
+        FI
+ FINE:  CALL ID11; A+1; GO ERR22
+ *)FILL
+
+ ERTMOUT: HDEV; T:=TRG SH 7 SHZ -15; CALL 9ERR(#26)         % DEVICE TIMEOUT
+          HSTAT BONE 4=:HSTAT; GO FINE
+
+ *"8DILG
+" RBUS
+
+
+
+ *"8DILG
+"
+
+ %==============================================================================
+ % 37.6       D T A P R
+ %
+ SUBR DTAPR
+
+ % TAPE READER DRIVER ON LEVEL 12
+ DTAPR: T:=HDEV+DST; *EXR ST
+        IF BIT 0 GO WIDENT
+        DO
+              IF CFREE=0 THEN CALL ID12; GO ERR22 FI
+              TTMR=:TMR;  "DACT+DPIN"; T:=HDEV+DCONT; *EXR ST
+ WIDENT:      CALL ID12; 0=:TMR; T:=HDEV+DDR; *EXR ST
+              CALL RBPUT
+              IF BHOLD>MAXBHOLD AND ISTATE><0 THEN CALL RTACT FI
+        OD
+
+ RBUS
+ *"8SIBA
+" %==============================================================================
+ % 37.8       G E T D W   P U T D W
+ %
+ %
+ % SPECIAL IOTRANS ROUTINES FOR SIBAS INTERNAL DEVICES
+ % WORDS IN A,D,X,L REGISTERS WILL BE TRANSFERED
+ %
+ SUBR GETDW,PUTDW
+ DISP 0; DOUBLE ARRAY POINTER DBUFST=BUFST; PSID
+ INTEGER XREG
+ GETDW: IF BHOLD>3 THEN
+              X=:XREG:=HENTE+2; AD:=DBUFST(X); *IRW ALEVB DX
+              A:=D; *IRW ALEVB DL
+              X-2; AD:=DBUFST(X)
+              IF X+4=MAX THEN X:=0 FI; X=:HENTE
+              X:=BHOLD-4=:BHOLD:=CFREE+4=:CFREE
+              X:=XREG; A:=:D; *IRW ALEVB DD
+              A:=D; L+1
+        FI; EXIT
+ PUTDW: T:=DFOPP=:B
+        IF T:=CFREE-3>0 THEN
+              T-1=:CFREE; A=:CHARI; X=:XREG; *IRR ALEVB DD
+              A=:D; CHARI; AD=:DBUFST(FYLLE); *IRR ALEVB DL
+              A=:D=:CHARI; *IRR ALEVB DX
+              X+2; AD=:DBUFST(X)
+              IF X+2=MAX THEN X:=0 FI; X=:FYLLE
+              BHOLD+4=:BHOLD; X:=XREG; L+1
+        FI; T:=DFOPP=:B; EXIT
+ RBUS
+ *"8BEX1
+"
+
+ %==============================================================================
+ %                  C L O C K   I N T E R R U P T
+ %
+ % 37.8.2     E N T 1 3
+ %
+ % CLOCK INTERRUPT ENTRY, LEVEL 13
+ INTEGER HISTFLAG=?
+ SUBR ENT13
+        DO
+              CALL ID13
+ ENT13:       "FREQU+60001"; *IOX DCONT RTCLD
+              ATIME; D+1; A:=A+C; AD=:ATIME
+              *TRA PVL
+              IF A/\170=ALEVB OR =BLEVB THEN
+                IF BACKGROUND >< 0 THEN
+                  MIN CURPROG.DTIN2; GO NEXT; MIN X.DTIN1;0/\0;GO NEXT
+                FI
+ *"8ACC
+"                IF RTACCFLAG >< 0 THEN CALL NACCOUNT FI
+ *"
+"              FI
+ NEXT:        CALL RTACT
+ *"8HIST
+"              IF HISTFLAG><0 THEN CALL SHISTI FI
+ *"
+"        OD
+ RBUS
+
+
+ INTEGER ARRAY PCCS=?
+ INTEGER IRTCPIT      % PNUMB*2+IRTCPIT=ADDR OF PROTECT AND PHYSICAL PAGE
+                      % OF RT-COMMON ENTRY (TO BE SET INTO PIT)
+
+ %==============================================================================
+ %                  I N T E R N A L     I N T E R R U P T S
+ %
+ % 37.8.3     P O F M O N C   P O F N M O N   E F J O B
+ %
+ % ENTRY FOR INTERNAL INTERRUPTS, LEVEL 14
+ %
+
+ *"8MCLG
+"
+ *MGOTA=*
+ SUBR POFMONC,POFNMON,EFJOB,FPFCOUNT
+
+ @ICR;
+ INTEGER ARRAY GOTAB:=(MFELL,M1,M2,MFELL,MFELL,MFELL,MFELL,MFELL,
+                 MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+                 MFELL,M21,M22,M23,M24,MFELL,MFELL,MFELL,
+                 MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+                 MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+                 MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+                 MFELL,MFELL,MFELL,M63,MFELL,MFELL,MFELL,MFELL,
+                 MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+                 MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+                 MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+                 MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+                 MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+                 MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+                 MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+                 MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+                 MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+                 XMSGY,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+                 MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+                 MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+                 MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+                 MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+                 MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+                 MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+                 MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+                 MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+                 M310,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+                 MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,
+                 MFELL,MFELL,MFELL,MFELL,MFELL,MFELL,MONERR,MONERR,
+                 MONERR,MONERR,MONERR,MONERR,MONERR,MONERR,MONERR,MONERR,
+                 MONERR,MONERR,MONERR,MONERR,MONERR,MONERR,MONERR,MONERR,
+                 MONERR,MONERR,MONERR,MONERR,MONERR,MONERR,MONERR,MONERR,
+                 MONERR,MONERR,MONERR,MONERR,MONERR,MONERR,MONERR,MONERR);
+ @CR;
+ SYMBOL ERCC=15               % ERROR CORRECTION CONTROL REGISTER
+ SYMBOL 5ERC=10               % ERROR CORRECTED BIT IN PES
+ SYMBOL 5FATAL=15,5DMA        % STATUS BITS IN N-100 PES-REGISTER
+ DISP -200
+        INTEGER PERR,ACTLV,IBITNO,PESERR,PEAERR,SADINSTR
+        DOUBLE MMAP
+ PSID
+
+ M1:    "INBT"; GO IOB14
+ M2:    "OUTBT"; GO IOB14
+ M21:   "M8INB"; GO IOB14
+ M22:   "M8OUTB"; GO IOB14
+ M23:   "B8INB"; GO IOB14
+ M24:   "B8OUT"; GO IOB14
+ M63:   "B4INW"; GO IOB14
+ M310:  "T8INP"; GO IOB14
+ *)FILL
+ INTEGER FPIT0:=177000,SVT14
+ @LIB CXCPU
+
+ IPAGFAULT: PNUMB/\377=:PNUMB
+
+ @LIB CXCPU
+
+        IF X:=BACKGROUND=0 THEN
+           IF A>>=X:=ARTFPAGE AND A<<=X:=ARTLPAGE THEN      % PAGE FAULT IN RT-COMMON?
+              IF X:=DEMAND><0 THEN                          % IF DEMAND THEN TEST IF SEGMENT OVERALPS RT-COMMON
+                 T=:SVT14
+                 X:=SEGMC; CALL LIMCHECK; IF A=0 GO PFINSEGMENT
+                 X:=SEGMB; CALL LIMCHECK; IF A=0 GO PFINSEGMENT
+                 X:=SEGMA; CALL LIMCHECK; IF A=0 GO PFINSEGMENT
+              FI; X:=IRTCPIT; A:=PNUMB SH 1
+              X+A; A+FPIT0=:T; X.DS0=:T.DS0                 % SET UP RT-COMMON IN PIT
+ *"8SWLG
+"              GO RET14
+           FI
+        FI; A:=T; GO ACTMON
+ MFELL: T=:A; *IRW MLEVB DX
+        "CALLPROC"
+ ACTMON: *IRW MLEVB DP
+        MLEV; *MST PID; MST PIE
+        GO RET14
+
+ PFINSEGMENT: A:=SVT14; GO ACTMON
+
+ *"8SWLG
+" *)FILL
+
+ MONERR: T=:A; CALL 9ERR(#00); GO FAR ABOR
+
+ POFMONC: X:=377; T/\X; T=:MONNO
+ *"8MCLG
+"          X:=GOTAB(T); *JMP ,X; )FILL             % MONITOR CALL NUMBER IN T
+ POFNMONC: *TRA PVL
+        A=:D; *EXR SA
+        A=:PERR:=D SH 11 SHZ -14=:ACTLV
+        IF IBITNO=12 THEN CALL PPWFAIL FI
+        IF =7 THEN PERR; T:=ACTLV; CALL 9ERR(#37); GO RET14 FI % IOX-ERROR
+        IF =10 THEN           % MEMORY ERROR
+              *TRA PES
+              A=:T=:PESERR
+              IF CPSTA BIT 5N100 THEN
+                IF PESERR BIT 5FATAL THEN
+                  GO NOCORR
+                ELSE
+                  GO NOFATAL
+                FI
+              FI
+              IF PESERR BIT 5ERC THEN % 21 BITS MEMORY
+                A SH -11/\37+SADINSTR=:X; MMAP; *EXR SX
+                IF A<0 GO NOCORR        % MULTIPLE ERROR
+ NOFATAL:       *TRA PEA
+ NOFAP1:        A=:PEAERR
+                CALL 9ERR(#44); A:=0; *TRR ERCC
+              ELSE
+ NOCORR:        *TRA PEA
+ NOCP1:        A=:PEAERR; CALL 9ERR(#38)  % NOT CORRECTABLE ERROR
+                A:=PEAERR; T:=PESERR; CALL MFXMSG           % FATAL MEMORY ERROR IN XMSG?
+                IF CPSTA BIT 5N100 THEN
+                  IF PESERR BIT 5DMA THEN CALL ERRFATAL FI  % DMA-ERROR N-100
+                ELSE
+                  IF PESERR BIT 3 THEN CALL ERRFATAL FI     % DMA-ERROR N-10
+                FI
+                IF ACTLV=ALEVL GO ABOR; IF ><0 GO FAR TDTLEV
+              FI; GO RET14; *)FILL
+        FI
+        IF A=0 THEN A:=16; T:=0; CALL 9ERR(#22); GO RET14 FI  % FALSE INTERRUPT
+        IF ACTLV=ALEVL THEN
+              IF IBITNO=3 THEN
+ NOTRAP:         *TRA PGS
+                 IF A=:PNUMB NBIT 17 THEN
+                    *IRR ALEVB DP; AAA -1; IRW ALEVB DP
+                 FI; T:="PPAGEFAULT"; GO FAR IPAGFAULT
+              FI
+              IF =6 THEN
+                RTREF.ACTPRI/\3000 SH -2\/162; X:=PERR; *TRR PCR; BSET ONE 0
+                CALL FINSTR; PCCS(16); *TRR PCR
+                IF 177600/\D=161000 THEN T:=177/\D; GO POFMONC FI
+              ELSE IF =5 THEN; *IRR ALEVB 0; BSET ZRO SSZ DA; IRW ALEVB 0
+                CALL 9ERR(#30); GO ABOR; *)FILL
+              ELSE IF =2 THEN; *TRA PGS
+                IF A=:T NBIT 17 THEN; *IRR ALEVB DP
+                  A-1; *IRW ALEVB DP
+                FI
+                IF T BIT 16 THEN CALL 9ERR(#31); GO ABOR FI
+              ELSE IF =11 THEN; *TRA PES
+                A=:PESERR=:T; *TRA PEA
+                A=:PEAERR
+                CALL 9ERR(#39); GO ABOR   % MEMORY OUT OF RANGE
+              FI FI FI FI
+              IBITNO; T:=PERR; CALL 9ERR(#24)
+ ABOR:        "PBRTEXT"; GO FAR ACTMON
+        FI
+        IF =BLEVL AND IBITNO=3 AND BACKGROUND><0 THEN BLEV; *MCL PID
+              *TRA PGS
+              IF A=:PNUMB NBIT 17 THEN
+                 *IRR BLEVB DP; AAA -1; IRW BLEVB DP
+              FI; T:="P2PAGE2FAULT"; GO FAR IPAGFAULT
+        FI
+        IF IBITNO=3 AND ACTLV=5 THEN CALL P2XMS; GO TDTLEV; GO RET14 FI % PF IN XMSG
+        IF IBITNO=11 THEN; *TRA PES
+              A=:PESERR=:T; *TRA PEA
+              A=:PEAERR; CALL 9ERR(#39)
+        FI; GO TDTLEV; *)FILL
+
+ % TEST FOR ERROR ON DIRECT TASK LEVEL
+ INTEGER CBSET(0); *BSET ONE DA
+ TDTLEV: IF ACTLV<6 THEN
+              IF A=2 GO DTLERR
+              CALL ERRFATAL
+        FI
+        IF A>11 AND A><17 THEN CALL ERRFATAL FI
+ DTLERR: A SH 3\/CBSET=:T; A:=0; *EXR ST; MCL PID; MCL PIE
+        T:=IBITNO; ACTLV; CALL 9ERR(#04); *TRA PGS
+        GO RET14
+
+ *)FILL
+
+ *"8BEX1
+" RBUS
+
+
+ %============================================================================
+ %            N W 9 E R R
+ %
+ % PART OF THE 9ERR ROUTINE
+ %
+ % ENTRY:     A=ERPREG
+ %            D=N1
+ %            X=ERNUM
+ %
+ SUBR NW9ERR
+ INTEGER ARRAY ERRARR(0)
+ INTEGER ERNUM,ERPREG,N1,N2,RTPROG
+ INTEGER POINTER LREG
+ INTEGER BREG
+
+ NW9ERR: A=:ERPREG:=D=:N1; X=:ERNUM; T=:N2:=B=:BREG:=L=:"LREG"
+        IF X=#29 THEN 9ESSAVTAD; A=:ERPREG; 9EXREG=:N1 ELSE T:=RTREF FI; T=:RTPROG
+        IF ERNUM=#90 OR =#91 THEN 9EDREG=:ERPREG FI
+        IF RTPROG=0 THEN GO ASRT FI               % IF ERROR DURING STARTUP
+        IF A.ACTPRI BIT 17 AND ERNUM><#20 AND><#21 AND><#22 AND><#23 AND><#37
+           AND ><#40 AND ><#44 AND ><#46 AND ><#47 AND><#72 AND><#73 AND><#74
+           AND ><#75 AND ><#76 AND ><#97 AND ><#99 AND ><-1 AND >#08 OR <#06 THEN
+                X:="ERNUM"; CALL BGERR
+        ELSE                                      % RT-ERROR
+ ASRT:          "IERRFIELD"=:B
+                IF CFREE>=5 THEN
+                  FOR X:=0 TO 4 DO ERRARR(X)=:9ERRP(X); CALL RWPUT OD
+                  CALL XRTACT
+                FI
+        FI; BREG=:B; GO LREG
+ RBUS
+
+ %===========================================================================
+ %            R E S Y S   -   C O L D S T A R T
+ %
+ SUBR RESYS,COLDSTART
+
+ INTEGER CPGN=?,CCPGN=?
+ INTEGER ARRAY CDSKFORM(10)
+
+ % FIND DISC-LAYOUT OF MAIN DISK
+ FCDSKFORM: IF "TRNSF"="BDISK" THEN
+               X:="HTABL"+B; X.S0; X:="CDSKFORM"; T:=20=:D; *MOVB; JMP *
+               "QDLAY" SHZ -12=:CPGN
+            FI; EXIT
+
+ INTEGER ROUTSWITCH,CPGN,CCPGN
+ INTEGER CBLDA(0); *BLDA 00 DT
+
+ % ENTRY WITH A=LOGICAL DEVICE NUMBER TO COMMUNICATE WITH AFTER COLD-START
+ COLDSTART: *IOF
+        A=:ROUTSWITCH; GO FELLS
+ RESYS: *IOF
+        0=:ROUTSWITCH
+        GO FELLS
+ *)FILL
+
+ INTEGER CNBLCK,CCOUNT
+ DOUBLE CMASS,DMASS,CCMAD(0); *0;2000
+ % GET BOOTSTRAP:
+
+ FELLS:
+ L1:    MASSNO(0); CALL LOGPH; IF =0 GO ERRF; A=:B
+        ABLPAGE(X)=:CNBLCK
+
+ ERR2:  IF ROUTSWITCH><0 THEN
+           CALL FCDSKFORM; 0=:CCPGN
+           -77=:CCOUNT; DDASA=:CMASS; DDBLST=:DMASS
+           FOR CCOUNT DO
+              AD:=CCMAD=:MEMAD=:CMADR
+ LOOPX:       T:=DSKTYP BZERO "0"; CMASS; X:=CNBLCK
+ RLOOP:       CALL TRNSF; GO ERR2; GO RLOOP
+              IF CCOUNT=-77 THEN
+                 AD:=CCMAD; X:="LGCOLDSTART"+D; ROUTSWITCH=:X.S0
+              FI
+              IF CPGN><0 AND A=CCPGN THEN
+                 AD:=CCMAD; A:="QDLAY"/\1777; D+A=:X
+                 A:="CDSKFORM"; T:=20=:D; *MOVB; JMP *
+              FI; AD:=CCMAD=:MEMAD=:CMADR
+              T:=DSKTYP BONE "0"; DMASS; X:=CNBLCK
+ WLOOP:       CALL TRNSF; GO ERR2; GO WLOOP
+              CMASS; A:=:D+CNBLCK; D:=D+C; A:=:D; AD=:CMASS
+              DMASS; A:=:D+CNBLCK; D:=D+C; A:=:D; AD=:DMASS
+              MIN CCPGN
+           OD
+        FI
+        A:=0=:D; AD=:MEMAD=:CMADR; T:=DSKTYP; X:=CNBLCK
+        *TRR 10
+ LOOP2: CALL TRNSF; GO ERR2; GO LOOP2
+        "0"; *TRR IIE; IDENT PL11; IDENT PL11
+        A:=0; *TRR 11         % LOWER LIMIT
+        A:=-1; *TRR 12        % UPPER LIMIT
+        *TRR 10               % CLEAR CACHE
+        0=:P                  % START BOOTSTRAP
+ ERRF:  *IOF; WAIT
+ RBUS
+

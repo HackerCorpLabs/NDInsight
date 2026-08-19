@@ -1,0 +1,338 @@
+%=============================================================================%
+%                                                                             %
+%                              T L I B                                        %
+%                                                                             %
+%                  L I B R A R Y     P A R A M E T E R S,                     %
+%                                                                             %
+%   T Y P E    D E F I N I T I O N S    F O R   T L I B    A N D   U S E R,   %
+%                                                                             %
+%                    E V E N T    C O D E S    A N D                          %
+%                                                                             %
+%             R E T U R N E D    S T A T U S    V A L U E S                   %
+%                                                                             %
+%                                                                             %
+%  INITIAL VERSION:  -B00  01.12.84   RGJ                                     %
+%                                                                             %
+%    MODIFICATIONS:                                                           %
+%                                                                             %
+%=============================================================================%
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%                   USER-DEFINED TLIB parameters                              %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+
+CONSTANT TLMXconnections = 20          % ARBITRARY = maximum connections
+CONSTANT TLMXaccessPoints = 3          % ARBITRARY = max XMSG ports
+CONSTANT TLMXbuffers = 20              % ARBITRARY = maximum number of user
+                                       % buffers owned by TLIB at one time
+CONSTANT TLMXqueuedTpdus = 50          % must be reasonable value =
+                                       % maximum number of TLIB TPDUs able to
+                                       % be queued in XMSG space at one time
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%        CONSTANTs used in provision of working storage for TLIB              %
+%        the user must provide an array for dynamic storage                   %
+%        (via TLPINIT) of the form                                            %
+%              INTEGER ARRAY: TLDYNAMIC(0:TLSZdynamic-1)                      %
+%        where                                                                %
+%              TLSZdynamic is calculated below based on the                   %
+%                             user-defined TLIB parameters (see above)        %
+%                                                                             %
+%        NB! it is the user's responsibility to ensure that the array         %
+%            size corresponds to the declared parameters                      %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+                                       % TLIB TYPE sizes in WORDs
+CONSTANT TLSZconnDesc  = 27            % MUST MATCH TLIB TYPE DEFINITION !!
+CONSTANT TLSZportDesc  = 23            % MUST MATCH TLIB TYPE DEFINITION !!
+CONSTANT TLSZusbfDesc  =  9            % MUST MATCH TLIB TYPE DEFINITION !!
+CONSTANT TLSZqdtpDesc  =  7            % MUST MATCH TLIB TYPE DEFINITION !!
+
+                                       % PLANC storage manager overhead is:
+CONSTANT SMfixed   = 20                % FIXED overhead (words)
+CONSTANT SMperItem =  2                % PER ITEM overhead (words)
+
+CONSTANT TLSZdynamic    = SMfixed &
+                          + TLMXconnections*(TLSZconnDesc+SMperItem) &
+                          + TLMXaccessPoints*(TLSZportDesc+SMperItem) &
+                          + TLMXbuffers*(TLSZusbfDesc+SMperItem) &
+                          + TLMXqueuedTpdus*(TLSZqdtpDesc+SMperItem)
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%                  FIXED user interface constants                             %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+
+CONSTANT TLMXnameLength = 32           % SET BY XMSG          
+CONSTANT TLMXuserData = 32             % in CONN REQ/CONN CNF/DISC REQ
+                                       % must fit in one TPDU with XROUT hdr
+CONSTANT TLMXexpeditedData = 8         % future ISO maximum? - must fit in
+                                       % one TPDU anyway
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%                      fixed constants                                        %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+CONSTANT TLtpduHdrSize  = 8            % BETTER MATCH TLIB STD_TPDUHDRLEN !
+
+                                          % in one data TPDU get
+CONSTANT TLMXtpduSize = 512+TLtpduHdrSize % N data bytes + protocol overhead
+
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%             specification of TLIB operating mode                            %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+
+TYPE TLXMuse = ENUMERATION (TLXMinUserMode,TLXMinSystemMode)
+
+TYPE TLMD = RECORD
+       TLXMuse: TLMDxmsgMode           % usually TLXMinUserMode
+                                       % used with user/system bit in XMSG
+       BOOLEAN: TLMDuniqueSuffix       % suffix names should be
+                                       % unique to this task?
+       INTEGER: TLMDmxConnections      % set = TLMXconnections
+       INTEGER: TLMDmxAccessPoints     % set = TLMXaccessPoints
+       INTEGER: TLMDmxBuffers          % set = TLMXbuffers
+       INTEGER: TLMDmxQueuedTpdus      % set = TLMXqueuedTpdus
+ENDRECORD                                       
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%                TLIB Access Point (address) formats                          %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+
+%
+% names are use in address specification
+%
+TYPE TLNM = RECORD                     % format of a TLIB name
+       INTEGER4: TLNMlength                      % length of name
+       BYTES: TLNMstring(0:TLMXnameLength-1)     % name
+ENDRECORD
+
+%
+% TLIB address formats
+%
+TYPE TLAP = RECORD                     % base record for variants
+       INTEGER4: TLAPformat
+ENDRECORD
+                                       % TLAP variants
+CONSTANT TLtlap2String = 0
+CONSTANT TLtlapMagic = 1
+
+TYPE TLAP2string = TLAP RECORD         % TLAPformat = TLtlap2String
+       TLNM: TLAPnetAddress
+       TLNM: TLAPsuffix
+ENDRECORD
+
+TYPE TLAPXMSG = TLAP RECORD            % TLAPformat = TLtlapMagic
+       INTEGER4: TLAPmagic
+ENDRECORD
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%                      QUALITY OF SERVICE                                     %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+
+%
+%  specification of quality of service on a connection
+%  CURRENTLY, ONLY DEFAULT QUALITY OF SERVICE IS PROVIDED
+%
+TYPE TLQS = RECORD
+       BOOLEAN: TLQSisDefault          % MUST be set TRUE !!
+ENDRECORD
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%                    USER BUFFER specification                                %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+
+%
+% buffer identification and address specification 
+%
+TYPE TLBF = RECORD                     % base record for variants
+       INTEGER: TLBFid                 % buffer identifier
+       INTEGER: TLBFformat             % code for address format
+ENDRECORD
+                                       % buffer address variants
+CONSTANT TLlogicalAddress = 0          % only one so far
+                                                 
+TYPE TLBFLogical = TLBF RECORD         % TLBFformat = TLlogicalAddress
+       INTEGER: TLBFaddress            % in user's logical area
+ENDRECORD
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%              FLAGS associated with SENDING/RECEIVING data                   %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+
+%
+% value of FLAG to mark END OF TSDU
+%
+CONSTANT TLeotsduMark = 1
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%                             EVENTS                                          %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+
+% WILD CARD for desired CONNECTION specification
+% is value TLanyRefno
+% WILD CARD for desired EVENT specification 
+% is TLanyEvent
+CONSTANT TLanyRefno =  0
+CONSTANT TLanyEvent = -1   
+%
+% EVENT CODES used to form BIT MASK
+%
+CONSTANT TLEVtime =    1               % timeout
+CONSTANT TLEVcnin =    2               % connection request has arrived
+CONSTANT TLEVcncf =    4               % connection accepted
+CONSTANT TLEVdain =    8               % data has arrived
+CONSTANT TLEVcrdt =   16               % credit change
+CONSTANT TLEVxdin =   32               % expedited data has arrived
+CONSTANT TLEVxcdt =   64               % user may send more expedited data
+CONSTANT TLEVdcin =  128               % disconnect due to remote user or TLIB
+CONSTANT TLEVdccf =  256               % requested disconnect is completed
+CONSTANT TLEVunin =  512               % unit data has arrived
+CONSTANT TLEVunkn = 1024               % XMSG arrived on port not known to
+                                       % TLIB
+CONSTANT TLEVothr = 2048               % exit caused by other than timeout,
+                                       % a TLIB event or unknown port
+                                       % eg. by terminal input
+%
+% STRUCTURE OF AN EVENT
+%
+CONSTANT TLMXevData = 2
+TYPE TLEV = RECORD
+       INTEGER: TLEVrefno                        % TLIB or USER refno
+       INTEGER: TLEVcode                         % BIT MASK from event codes
+                                                 % meaning of associated data
+       INTEGER ARRAY: TLEVdata(0:TLMXevData-1)   % depends on EVCODE
+ENDRECORD
+
+%
+% structure for specification of TIME-OUTs on WAIT
+% 
+CONSTANT TLinfiniteTime = -1
+
+TYPE TLTMcode = ENUMERATION (TLTMbasic,TLTMsecs,TLTMmins,TLTMhrs)
+
+TYPE TLTM = RECORD
+       TLTMcode: TLTMunits
+       INTEGER:  TLTMlength
+ENDRECORD
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%             TLIB STATUS VALUES returned to user from calls                  %
+%                                                                             %
+%   conform to STANDARD VALUES                                                %
+%   TLIB SSI NUMBERS ARE 414B AND 415B                                        %
+%   41400 = 17152    currently used for errors related to TLIB                %
+%   41500 = 17216    currently used for errors related to underlying          %
+%                    communication system                                     %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+
+CONSTANT TLOK        = 0     % standard value for OK status
+
+CONSTANT TLERntin  = 17192   % user has not done TLPINIT
+CONSTANT TLERbdrf  = 17193   % user gave invalid TLIB refno
+CONSTANT TLERbdcl  = 17194   % call not valid in current state
+CONSTANT TLERbdfm  = 17195   % parameter had invalid format
+CONSTANT TLERbdln  = 17196   % parameter had invalid length
+CONSTANT TLERbdnm  = 17197   % invalid name specified
+CONSTANT TLERbdpm  = 17198   % other parameter error
+CONSTANT TLERnoub  = 17199   % TLIB lacks user buffer
+CONSTANT TLERsmub  = 17200   % the returned buffer is too small
+CONSTANT TLERdcpn  = 17201   % there is a disconnect pending
+CONSTANT TLERxout  = 17202   % still expedited data outstanding
+CONSTANT TLERnotb  = 17203   % attempt to open too many connections       
+                             % (increase TLMXconnections)
+CONSTANT TLERnosd  = 17204   % attempt to use too many suffices     
+                             % (increase TLMXaccessPoints)
+CONSTANT TLERnobd  = 17205   % attempt to use too many user buffers        
+                             % (increase TLMXbuffers)
+CONSTANT TLERnoqd  = 17206   % insufficient internal descriptors for XMSG
+                             % messages (increase TLMXqueuedTpdus)
+CONSTANT TLERnorm  = 17207   % TLIB can't get more buffer space from
+                             % underlying system - user should release
+                             % some (eg. by reading data) and try again
+CONSTANT TLERdpsf  = 17208   % suffix already in use by other task
+                             % (= XRDDF)
+
+CONSTANT TLERfatal = 17215   % standard FATAL ERROR value - BUG!!
+                             % NOTE: diagnostic information on the cause of
+                             % the error can be found in the EXPORTED
+                             % variables TLFATerr and TLFATinfo (see TLP:IMPT)
+                             % - contact ND with values of these variables
+%
+% subsystem errors
+% NB! if TLERxnru or TLERxcra error codes are received, then the current
+% TLIB context has been lost: all connections should be considered closed,
+% all "listens" should be considered terminated and the user is in
+% possession of any outstanding user buffers (with indeterminate contents).
+% The only permissible call after these errors is TLPINIT, which will
+% return the same code until XMSG is running again, at which point
+% new connections may be opened etc.
+%
+
+CONSTANT TLERxnru  = 17256   % (=XENRU) XMSG not running
+CONSTANT TLERxcra  = 17257   % (=XECRA) XMSG crash
+CONSTANT TLERxnxt  = 17258   % (=XENOT) XMSG out of task blocks
+CONSTANT TLERxnpt  = 17259   % (=XENOP) XMSG out of ports
+CONSTANT TLERxnsp  = 17260   % (=XRNSP) XMSG has no space for name
+                             
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%                   connection DISCONNECT codes                               %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+
+% ISO look-alikes
+
+CONSTANT TLDCsesn  = 128     % normal disconnect by user
+CONSTANT TLDCrmcg  = 129     % remote congestion
+                             % all connections at this suffix busy
+                             % (= XRBUS = all conns at this port busy
+                             %  OR no outstanding TLIB listen)
+CONSTANT TLDCngfl  = 130     % connection negotiation failed
+                             % (incompatible TLIBs)
+CONSTANT TLDCprer  = 133     % protocol error
+CONSTANT TLDCcref  = 136     % connection request refused on this
+                             % network connection
+                             % (= XRNSE = not a connect port)
+CONSTANT TLDCunet  = 137     % unknown network address
+                             % (= XRUKS = unknown system)
+CONSTANT TLDCusuf  = 138     % unknown suffix address
+                             % (= XRUNN = no open port with name)
+% + home-grown additions: 
+
+CONSTANT TLDClcrs =  200     % local TLIB resources exceeded
+                             % (eg. lack of descriptors to queue TPDUs
+                             %      or XMSG space overflow)
+CONSTANT TLDCrmrs =  201     % remote TLIB resources exceeded
+                             % (eg. lack of descriptors to queue TPDUs
+                             %      or XMSG space overflow)
+CONSTANT TLDCrmdd =  202     % remote end has terminated
+                             % ( = XEIMA)
+CONSTANT TLDCnoac =  203     % no access to remote system
+                             % ( = XRNRO)
+CONSTANT TLDCunxr =  204     % unknown XROUT error code received when trying
+                             % to reach remote system
+
+$EOF
+%=============================================================================%
+

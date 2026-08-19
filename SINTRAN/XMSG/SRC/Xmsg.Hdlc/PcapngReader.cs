@@ -12,13 +12,13 @@ namespace NDInsight.Sintran.Xmsg.Hdlc
     /// <para><b>Supported blocks</b></para>
     /// Only the block types needed to walk a Wireshark/tshark capture of the
     /// <c>nd100x --hdlc</c> TCP bridge are handled:
-    ///  - Section Header Block (<c>0x0A0D0D0A</c>) — sets the section byte order from the
+    ///  - Section Header Block (<c>0x0A0D0D0A</c>) - sets the section byte order from the
     ///    <c>0x1A2B3C4D</c> magic.
-    ///  - Interface Description Block (<c>0x00000001</c>) — records each interface link type.
-    ///  - Enhanced Packet Block (<c>0x00000006</c>) — captured packet data + interface id.
-    ///  - legacy Packet Block (<c>0x00000002</c>) — older captured packet data.
+    ///  - Interface Description Block (<c>0x00000001</c>) - records each interface link type.
+    ///  - Enhanced Packet Block (<c>0x00000006</c>) - captured packet data + interface id.
+    ///  - legacy Packet Block (<c>0x00000002</c>) - older captured packet data.
     /// Every other block type is skipped by its declared total length. Two link types are
-    /// decoded — <c>LINKTYPE_ETHERNET</c> (1) and <c>LINKTYPE_NULL</c> (0, BSD loopback,
+    /// decoded - <c>LINKTYPE_ETHERNET</c> (1) and <c>LINKTYPE_NULL</c> (0, BSD loopback,
     /// which is what Npcap's Windows loopback adapter emits and the actual link type of
     /// the XMSG captures). Packets on other link types, and non-IPv4 / non-TCP packets
     /// (IPv6, mDNS, ARP noise), are ignored.

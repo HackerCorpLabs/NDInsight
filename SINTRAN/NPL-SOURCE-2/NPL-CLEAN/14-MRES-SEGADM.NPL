@@ -1,0 +1,1203 @@
+ @DEV 1
+ @DEV (S-S-J)MRES-SEGADM
+
+
+ %==============================================================================
+ %
+ %   3 7 . 0      S E G M E N T    S U P E R V I S I N G
+ %
+ %==============================================================================
+
+ *"8SWLG
+"
+ INTEGER FIXCRT                         % RT-PROGRAM EXECUTING FIXC
+
+
+ %=============================================================================
+ % 37.1       S E G A D M
+ %
+ % SUBROUTINE TO CHECK IF SEGMENTS ARE OK, CALLED FROM STUPR
+ % RETURN IF SEGMENTS OK, ELSE TO SEGIN
+ % ENTRY:     A=ACTSEG, X=RTREF
+
+ SUBR SEGADM
+ INTEGER POINTER LREG; INTEGER BREG
+ INTEGER XREG=?
+
+ SEGADM: IF X=FIXCRT GO XCSEGS
+        T:=L=:"LREG":=B=:BREG; X=:XREG
+        A=:D SHZ -10; IF ><0 THEN A*5SEGSIZE+SEGSTART FI; A=:NSEGA
+        377/\D;       IF ><0 THEN A*5SEGSIZE+SEGSTART FI; A=:NSEGB
+        X.RSEGM/\377; IF ><0 THEN A*5SEGSIZE+SEGSTART FI; A=:NSEGC
+ SLOWS: NSEGA=:B; CALL SEGCHECK; IF A<0 THEN CALL SEGIN FI
+        NSEGB=:B; CALL SEGCHECK; IF A<0 THEN CALL SEGIN FI
+        NSEGC=:B; CALL SEGCHECK; IF A<0 THEN CALL SEGIN FI
+        CALL XCSEGS           % CLEAR PAGETABLES
+        NSEGC=:SEGMC; CALL STSEG; NSEGC; X:=RTREF; CALL CLNREENT
+        NSEGA=:SEGMA; CALL STSEG; NSEGB=:SEGMB; CALL STSEG
+ FELLS: XREG=:SEGPROG
+        A:=0; IF X:=SEGMA><0 THEN X.FLAG FI
+        IF X:=SEGMB><0 THEN A\/X.FLAG FI
+        IF A NBIT 5SYSEGM THEN CALL SETRT FI
+ *"8LAMU
+"        CALL SLAMU
+ *"
+" OUT:   BREG=:B; X:=XREG; GO LREG
+ INTEGER XREG
+ *)FILL
+
+ RBUS
+
+ %==============================================================================
+ % 37.2       P A G E F A U L T   P A G E 2 F A U L T   L I M C H E C K
+ %
+ %--MONITOR ENTRY FROM LEVEL 14 IF PAGE FAULT
+ % A=PAGE NUMBER FOUND ON LEVEL 14
+ %EXIT TO SEGIN
+
+ SUBR PAGEFAULT,PAGE2FAULT,LIMCHECK
+
+ DOUBLE ARRAY POINTER WINDAD:=177174
+ DOUBLE POINTER BPG:=177000+5BFPAGE+5BFPAGE
+ INTEGER SHAINSTR(0); *SHA
+ INTEGER CINSTR(0); *BSKP ZRO DT
+
+ *"8SWLG
+"
+ PAGE2FAULT:
+ *"8SWLG
+"             CALL BLEVSET; GO PAGF      % PAGEFAULT ON INBT/OUTBT LEVEL
+ PAGEFAULT:                             % PAGEFAULT ON APPLICATION LEVEL
+ *"8SWLG
+" PAGF:  IF PNUMB=76 OR =77 THEN
+ @LIB CXCPU
+ @LIB CXCPU-,
+           A-76=:T; IF RTREF.WINDOW/\377=0 GO OUTSIDE
+           A=:WIND1+T=:PNUMB-T; T SH 1; A SH 1+T+177000=:X; AD:=X.DOU0
+           IF A><0 THEN
+              AD=:WINDAD(T)
+ *"8SWLG
+"              GO PMONEN
+           FI
+ @ELIB
+        ELSE
+           IF A="5BFPAGE" THEN
+ @LIB CXCPU
+ @LIB CXCPU-,
+             IF RTREF.WINDOW SHZ -10=0 GO OUTSIDE
+             A=:D:=162000; AD=:BPG
+ *"8SWLG
+"             GO PMONEN
+ @ELIB
+           FI
+        FI
+        PNUMB SH 1+177000=:X
+        IF X.S0><0 THEN CALL ERRFATAL FI
+        IF DEMAND=0 THEN PNUMB; CALL 9ERR(#13); GO PBRTEXT FI
+        X:=SEGMC; CALL LIMCHECK
+        IF =0 THEN
+              A:=X.LOGADR/\300=:D:=PNUMB/\377-D
+              AD SHZ -4; X:=RTREF.RTDLGADDR+A
+              SHAINSTR; D SHZ -14+A; 1; *EXR SD
+              IF A/\X.BITMAP><0 GO NOTREENT; X:=SEGMC
+        ELSE
+ NOTREENT:    X:=SEGMA; CALL LIMCHECK
+              IF <0 THEN X:=SEGMB; CALL LIMCHECK
+                 IF <0 THEN
+ OUTSIDE:           PNUMB; CALL 9ERR(#14); GO PBRTEXT
+                 FI
+        FI    FI; X=:B; CALL SEGIN
+ *)FILL
+
+ LIMCHECK: IF X=0 OR X.LOGADR/\377>PNUMB OR A=:D:=X.LOGADR SHZ -10+D<=T THEN
+              A:=-1
+           ELSE
+ *"8SWLG
+"           A:=0                                             % RETURN WITH A=0
+           FI; EXIT
+ RBUS
+
+ %==============================================================================
+ % 37.3       C L S E G   S T S E G   X C L S E G   Y C L S E G
+ %            C L P A G E   S L A M U    C L A M U
+ %
+ %  SUBROUTINES TO UPDATE THE HARDWARE PAGE TABLE
+ % ENTRY:     A=SEGM. POINTER
+
+ SUBR CLSEG,STSEG,CLPAGE,SCPOUT,CLWINDOWS,CLAMU,SLAMU
+ *"8LAMU
+" DOUBLE ARRAY POINTER PTBG0=?
+ INTEGER ARRAY POINTER IPTBG=?
+ INTEGER POINTER LREG
+ INTEGER CL,CACLE
+
+ SLAMU: K:="0"; GO LAMU
+ CLAMU: K:=1
+ LAMU:  A:=L=:"LREG"; IF A:=SEGPROG = 0 GO LREG
+        A-RTSTART=:D:=0; T:=5RTSIZE; *RDIV ST
+        A*GNLPRT*ALMSZ+LAMACT=:CACLE; 0=:CL
+        FOR CL TO GNLPRT-1 DO
+              A*ALMSZ+CACLE=:X; T:=LAMBANK; *LDDTX
+              IF A >< 0 THEN            % D=FIRST LOGICAL PAGE NO
+                 A*LDTSZ+LAMDT=:X; *LDATX LMNP
+                 L:=D+A-1+L; *LDATX LMPP;
+                 * LDXTX LMPR; COPY SX DT  % T= LAMU PROTECTION
+                 X:=D+X; D:=A; A:=T
+                 IF K THEN
+                    FOR X STEP 2 TO L DO 0=:IPTBG(X) OD
+                 ELSE
+                    FOR X STEP 2 TO L DO AD=:PTBG0(X); D+1 OD
+                 FI
+              FI
+        OD; GO LREG
+
+ *)FILL
+ *"
+"
+ INTEGER PINDEX,BRG
+ DOUBLE POINTER P76:=177174,P77:=177176
+ INTEGER POINTER IP76=P76,IP77=P77
+ DOUBLE ARRAY POINTER PTBG0:=177000,PTBG1:=177002
+ INTEGER ARRAY POINTER IPTBG=PTBG0
+ INTEGER POINTER BPG:=177000+5BFPAGE+5BFPAGE
+ *"CXCPU
+" CLWINDOWS:
+ @LIB CXCPU
+ @LIB CXCPU-,
+            AD:=P76; IF A><0 THEN X:=WIND1+X; AD=:PTBG0(X); 0=:IP76 FI
+            AD:=P77; IF A><0 THEN X:=WIND1+X; AD=:PTBG1(X); 0=:IP77 FI
+ @ELIB
+            0=:BPG; EXIT
+
+ CLSEG: IF A=0 THEN EXIT FI
+        X=:PINDEX; A:=:B; A=:BRG
+ @LIB CXCPU-,
+        AD:=P76; IF A><0 THEN X:=WIND1+X; AD=:PTBG0(X); 0=:IP76 FI
+        AD:=P77; IF A><0 THEN X:=WIND1+X; AD=:PTBG1(X); 0=:IP77 FI
+        0=:BPG
+ @ELIB
+ L1:    T:=CORMBANK; X:=BPAGLINK
+ @LIB CXCPU
+ @LIB CXCPU-,
+
+ DOUBLE XCLEP(0)                        % ALTERNATIVE ROUTINE
+                                        % ICLEP; JMP OUT
+
+        DO
+           IF X=0 GO OUT
+           *LDBTX DALOG; 177700                   % MIC. PROGRAM BUG!!!!!
+           AD:=DOU0
+           IF A><0 THEN
+              *STDTX DPGPR
+              0=:S0
+           FI; *LDXTX DPAGL
+        OD
+ @ELIB
+
+ STSEG: IF A=0 THEN EXIT FI
+        X=:PINDEX; A:=:B; A=:BRG
+        T:=CORMBANK; X:=BPAGLINK
+ @LIB CXCPU
+ @LIB CXCPU-,
+
+ DOUBLE XSETP(0)                        % ALTERNATIVE ROUTINE:
+                                        % ISETP; JMP OUT
+        DO
+           IF X=0 GO OUT
+           *LDDTX DPGPR
+           A BZERO 5PGU; *LDBTX DALOG; 177700     % MIC. PROGRAM BUG!!!!!!!
+           AD=:DOU0; *LDXTX DPAGL
+        OD
+ @ELIB
+ SCPOUT:
+ OUT:   X:=BRG=:B:=PINDEX
+        EXIT
+ CLPAGE: T:=B=:BRG; T:=CORMBANK; *LDBTX DALOG; 177700   % MIC. PROG. BUG!!!
+        0=:S0; BRG=:B; EXIT
+ RBUS
+
+ %=======================================================================
+ %  37.5        S E T R T    C L E R T
+ %
+ %  ROUTINES FOR SETTING/CLEARING RT'S SYSTEM SEGMENT PIT ENTRIES
+
+ SUBR CLERT,SETRT
+
+ INTEGER XREG,BREG
+ INTEGER ARRAY POINTER CPITADDR:=177000+SYSST+2+SYSST+2
+ DOUBLE ARRAY POINTER DCPITADDR=CPITADDR
+
+ CLERT: X=:XREG:=B=:BREG
+        FOR X:=0 STEP 2 TO "5SSSZ-5ESSZ-1" SH 1 DO 0=:CPITADDR(X) OD
+        CCFPAGE SH 1+177200=:X; T:=177400
+        DO WHILE X<<T; 0=:X.S0; X+2; OD
+        GO OUT
+
+ SETRT: A:=B=:BREG; X=:XREG; T:=0
+        A:="SYSST+2"=:D:=162000
+        FOR X:=0 STEP 2 TO "5SSSZ-5ESSZ-1" SH 1 DO AD=:DCPITADDR(X); D+1; OD
+ OUT:   X:=BREG=:B:=XREG; EXIT
+ RBUS
+
+
+ %==============================================================================
+ % 37.6       S E G C H E C K
+ %
+ % SUBROUTINE TO CHECK IF A SEGMENT IS OK
+ % B=ADDR. IN SEGMENT TABLE; RETURN: A=0 IF OK,ELSE -1
+ % IF OK THE SEGMENT IS PLACED IN START OF SEGMENT LIST
+
+ SUBR SEGCHECK
+ INTEGER XREG
+ SEGCHECK: X=:XREG; IF B=0 GO OK
+        IF FLAG BIT 5OK THEN
+              IF A BIT 5DEMAND THEN T:=1=:DEMAND FI
+              IF SEGLINK><0 AND BSEGLINK><B THEN
+ LOOP:          IF A.SEGLINK=B THEN SEGLINK=:X.SEGLINK  %REMOVE
+                ELSE IF ><-1 GO LOOP FI
+                BSEGLINK=:SEGLINK; A:=B=:BSEGLINK      %INSERT
+              FI
+ OK:          A:=0
+        ELSE -1
+        FI
+        X:=XREG; EXIT
+ RBUS
+
+ %==============================================================================
+ % 37.7       C L N R E E N T R
+ %
+ % SUBROUTINE TO RESET NONREENTRANT PAGES IN PAGE INDEX TABLE
+ % A=SEGMENT ADDRESS,X=RT-DESCR
+ SUBR CLNREENTR
+ @LIB CXCPU
+ @LIB CXCPU-,
+ INTEGER POINTER ARRAY PTBLE,RTDSCR
+ INTEGER XCLNREENTR(0)
+ CLNREENTR: GO NOCXCPU
+        X=:D:=X.RTDLGADDR+5BITMAP-25; T:=34
+        *ICLNR
+        X:=D; EXIT
+ INTEGER SVX
+ NOCXCPU: IF A=0 GO OUT
+        X=:SVX:=X.RTDLGADDR
+        X=:"RTDSCR"; A.LOGADR/\300 SH 1+177000=:"PTBLE"; 5BITMAP=:D
+        FOR D TO "5BITMAP+7" DO
+           "PTBLE"+40=:"PTBLE"; RTDSCR(D)
+           IF A><0 THEN
+              FOR X:=-20 DO
+                 A SHR -1
+                 IF A<0 THEN X=:T+X; 0=:PTBLE(X); X:=T; FI
+              OD
+           FI
+        OD; X:=SVX
+ OUT:   EXIT
+ @ELIB
+ RBUS
+
+ %==============================================================================
+ % 37.8       C S E G S   X C S E G S   C H R E E N T P A G E S
+ %
+ % SUBROUTINES TO CLEAR SEGMENTS
+ % CSEGS CLEARS IF SEGMENT IS PRESENT (A=SEGMENT POINTER)
+ % XCSEGS CLEARS ALWAYS
+
+ SUBR CSEGS,XCSEGS,CHREENTPAGES
+ INTEGER XREG
+ INTEGER POINTER IPIT3:=177600+5BFPAGE+5BFPAGE
+ INTEGER POINTER IPIT0:=177000+5BFPAGE+5BFPAGE
+ INTEGER POINTER LREG,UPIT0:=177000+5UBFPAGE+5UBFPAGE
+ CSEGS: IF A><SEGMA AND ><SEGMB AND ><SEGMC THEN EXIT FI
+ XCSEGS: X=:XREG:=L=:"LREG"
+ @LIB CXCPU
+ *"8LAMU
+"        CALL CLAMU
+ *"
+"        SEGMA; CALL CLSEG; SEGMB; CALL CLSEG; SEGMC; CALL CLSEG
+        CALL CLERT            % CLEAR PIT ENTRIES FOR RT'S SYSTEM SEGMENT
+        IF SEGMC><0 THEN CALL CHREENTPAGES FI
+        0=:SEGMA=:SEGMB=:SEGMC
+        X:=XREG; GO LREG
+ *)FILL
+
+ DOUBLE SVAD
+ INTEGER CSEG
+ NEWLOOP: X:=CSEG+1; D:=0; T:=CORMBANK
+        DO
+           *ICHRE
+           GO WIPSET; GO FAR OUT
+ WIPSET:   AD=:SVAD; CALL COUTLINK
+           AD:=SVAD; A=:X
+        OD
+
+ INTEGER CALOGNO,EALOGNO,ERINDICATOR
+ INTEGER POINTER LREG2
+ INTEGER PREVX,PREVT,CURX,BRG,SHAINSTR(0); *SHA
+ CHREENTPAGES: A=:CSEG; IF A.FLAG NBIT 5WPM THEN EXIT FI
+        A:=L=:"LREG2"; A:=B=:BRG; 0=:ERINDICATOR
+ @LIB CXCPU
+ @LIB CXCPU-,
+ INTEGER XCHREENTPAGES(0); *JMP *+1     % ALTERNATIVE: GO NEWLOOP
+ LOOP:  X:=CSEG+1; T:=0
+        DO
+           X=:PREVX; T=:PREVT; *LDXTX DPAGL
+        WHILE X><0
+           T:=CORMBANK
+           *LDATX DPGPR
+           IF A BIT 5WIP THEN                     % WRITTEN IN PAGE
+              X=:CURX; *LDATX DPAGL
+              X:=PREVX; T:=PREVT; *STATX DPAGL % REMOVE PAGE
+              X:=CURX; CALL COUTLINK; X:=PREVX; T:=PREVT
+           FI
+        OD
+ @ELIB
+ OUT:   BRG=:B; IF CSEG.BPAGLINK=0 THEN CALL SREMOVE FI
+        IF ERINDICATOR><0 GO PSBRTEXT       % ABORT PROGRAM
+        GO LREG2
+
+ INTEGER POINTER LREG3
+ COUTLINK: A:=L=:"LREG3"; X=:CURX
+        SEGMA; CALL INSRPAGE                % INSERT PAGE?
+        IF A=0 THEN SEGMB; CALL INSRPAGE    % INSERT PAGE?
+           IF A=0 THEN                      % OUTSIDE SEGMENT BOUNDS
+              *LDATX DALOG
+              A=:EALOGNO
+              IF "XSGRT".SEGLINK=0 THEN     % SET DUMMY LAST IN SEGMENT LINK
+                 X:="BSEGLINK"
+                 DO WHILE X.SEGLINK><-1; X:=A; OD
+                 "XSGRT"=:X.SEGLINK; -1=:"XSGRT".SEGLINK
+              FI; "XSGRT"=:B; A:=BPAGLINK; X:=CURX=:BPAGLINK
+              T:=CORMBANK; *STATX DPAGL            % LINK PAGE TO DUMMY
+              A:=1; *STATX DPGPR
+              RTREF=:CALOGNO; SEGPROG=:RTREF=:ERINDICATOR
+              EALOGNO; CALL 9ERR(#14); CALOGNO=:RTREF
+              GO LREG3
+           FI
+        FI; *LDDTX DPAGL
+        CSEG.LOGADR/\300; D-A; A:=D; AD SHZ -4
+        X:=SEGPROG.RTDLGADDR+A
+        SHAINSTR; D SHZ -14+A; 1; *EXR SD
+        A\/X.BITMAP=:X.BITMAP; GO LREG3
+
+ RBUS
+
+ %==============================================================================
+ % 37.9       I N S R P A G E
+ %
+ % SUBROUTINE TO INSERT A PAGE INTO A SEGMENT
+ % A=SEGMENT ADDRESS, X=CORMAP ELEMENT ADDRESS
+ % RETURN: A=SEGMENT NUMBER IF OK, ELSE A=0
+
+ SUBR INSRPAGE
+ INTEGER BREG
+ INSRPAGE: IF =0 THEN EXIT FI
+        A:=:B=:BREG; IF FLAG NBIT 5DEMAND THEN A:=0; GO OUT FI
+        *LDATX DALOG
+        A=:T; LOGADR; AD SHZ -10; D SHZ -10
+        IF T>=D AND T<D+A THEN                    % INSIDE, INSERT
+           A:=BPAGLINK; T:=CORMBANK; *STATX DPAGL
+           A:=B-SEGSTART=:D:=0; T:=5SEGSIZE; *RDIV ST
+           T:=CORMBANK; A=:D; *LDATX DPGPR
+           A/\177400\/D; *STATX DPGPR
+           X=:BPAGLINK
+           IF SEGLINK=0 THEN BSEGLINK=:SEGLINK; A:=B=:BSEGLINK FI
+           A:=D               % OK: A=SEGMENT NUMBER
+        ELSE
+           A:=0               % NOT OK
+        FI
+ OUT:   T:=BREG=:B:=CORMBANK
+        EXIT
+ RBUS
+
+
+
+
+
+ %==============================================================================
+ %
+ %                S E G M E N T   F E T C H I N G
+ %
+ %==============================================================================
+ % 37.10      S E G I N
+
+ % SUBROUTINE TO GET A NEW SEGMENT INTO CORE
+ % B=SEGMENT ELEMENT; NO RETURN
+
+ SUBR SEGIN
+ SYMBOL 5READ,5WRITE
+ SEGIN: 5CLOAD; X:=RTREF; CALL RESERVE
+        IF <0 THEN                      %SEG. TRANSFER GOING ON
+           IF SWPFLAG><0 THEN
+              X.ACTPRI BONE 5SWWAIT=:X.ACTPRI
+              X.STATUS BONE 5WAIT=:X.STATUS
+ LOOP:        RTREF+"BRESLINK"=:X
+              DO WHILE X:=X.RESLINK><RTREF
+                 IF X.TYPRING/\3=3 THEN X=:B:=RTREF; CALL BRELEASE; GO LOOP FI
+              OD
+           FI; GO PRWAIT; *)FILL
+        FI; A:=B=:SEGREF
+        X=:SRTREF; NSEGA=:TSEGA; NSEGB=:TSEGB; NSEGC=:TSEGC
+        CALL XCSEGS
+        IF FLAG NBIT 5DEMAND THEN
+
+ %NON-DEMAND SEGMENT
+           DO                 %UNTIL THE SEGMENT HAS GOT ENOUGH PAGES
+              IF B="XSGRT" THEN -1=:NUMBER; GO XLRU FI      % DUMMY SEGMENT
+              LOGADR SHZ-10-=:NUMBER
+              IF X:=BPAGLINK><0 THEN
+                 LOGADR/\377=:D; T:=CORMBANK; *LDATX DALOG
+                 D-A=:A; A=:NUMBER
+              FI
+           WHILE NUMBER><0    %ENOUGH PAGES
+ XLRU:        CALL LRU; X:=:B; FLAG =:SAVEFLAG BZERO 5OK=:FLAG
+              5WRITE; CALL TRNSEG
+              IF ><0 THEN SAVEFLAG=:FLAG; GO END1 FI
+              X:=:B; CALL LINKOVER
+           OD
+        ELSE
+
+ %DEMAND SEGMENT
+           IF FLAG BIT 5OK THEN
+              -1=:NUMBER; PNUMB=:CPNUMB
+              FLAG BZERO 5OK=:FLAG
+              CALL LRU; X:=:B; FLAG BZERO 5OK=:FLAG
+              5WRITE; CALL TRNSEG; X:=:B; CALL LINKOVER
+              T:=CORMBANK; X:=BPAGLINK; *LDATX DPAGL
+              IF A><0 THEN
+                 A=:BPAGLINK; *STZTX DPAGL
+                 X=:D
+                 DO WHILE A><0
+                    A=:X; *LDATX DPAGL
+                 OD; A:=D; *STATX DPAGL
+              FI
+           FI
+        FI
+        0=:NUMBER; 5READ; CALL TRNSEG
+ %SEGMENT OK:
+        FLAG BONE 5OK=:FLAG
+ END1:  X:=SRTREF; 5CLOAD; CALL RELEASE
+        IF X=RTREF GO PRW; GO PSTUPR
+ RBUS
+
+ %==============================================================================
+ % 37.11      L R U
+
+ %SUBROUTINE TO FIND LEAST RECENTLY USED SEGMENT
+ %ENTRY: B=SEGREF
+ % RETURN: X=LRU SEGMENT POINTER
+
+ SUBR LRU
+ INTEGER ARRAY TSGN:=(TSEGB,TSEGC,TSEGA,TSEGC,TSEGA,TSEGB)
+ INTEGER POINTER LREG; INTEGER LRUS2,R01
+ LRU:   A:=L=:"LREG"
+        IF MAXP<< 200 AND FLAG BIT 5DEMAND THEN            % COUNT PAGES
+           X:=BPAGLINK; D:=0; T:=CORMBANK
+           DO WHILE X><0
+              *LDXTX DPAGL
+              D+1
+           OD
+           IF D>=MAXP THEN B=:X; GO OUT FI
+        FI
+        FOR X:=-3 DO IF TSEGS(X)=0 GO NOTF
+              X:=:A; IF X:=X.SEGLINK=0 GO NOTF; A=:X
+        OD; CALL GETLAST; IF =0 GO OUT
+ % ALL THREE SEGMENTS PRESENT, TAKE ONE OF THE TWO OTHERS
+        FOR X:=-3 DO WHILE TSEGS(X)><B OD
+        R01-,=:R01; X+3+X-A; X:=TSGN(X); X:=X.S0; GO OUT
+ NOTF:  CALL GETLAST; IF =0 GO OUT
+        CALL GETLAST; X=:LRUS2
+        IF <0 THEN CALL GETLAST
+              IF <0 THEN
+                X=:D; 2/\X.FLAG; T:=LRUS2.FLAG; *BLDA 10 DT; BSTA 0 DA
+                D=:X; GOSW ERR,FRSTDEM,OUT,BOTHDEM
+ BOTHDEM:       IF X><B GO OUT
+ FRSTDEM:       X:=LRUS2
+        FI    FI
+ % X=SEGMENT TO BE REMOVED(LRU-SEG):
+ OUT:   X=:A; CALL CSEGS
+        IF X.SEGLINK=0 GO NOTF
+        X:=:B; CALL SEGSORT; CALL RANDOM; X:=:B
+        GO LREG
+ ERR:   IF SEGREF="XSGRT" THEN    % SEGMENT 1, FIXC
+           "CLFIE"=:B; X:=SRTREF; CALL BRELEASE; 0=:X.ACTSEG; GO PSTUPR
+        FI
+        SRTREF=:RTREF; CALL 9ERR(#19); GO PRTEXT
+ *)FILL
+
+ % LOCAL SUBROUTINE TO FIND LAST SEGMENT
+ % RETURN: X=LRU-SEG;IF =TSEGA OR TSEGB OR =TSEGC :A<0
+ INTEGER PREVLINK
+ GETLAST: "BSEGLINK".SEGLINK; IF =-1 GO ERR
+        DO X=:PREVLINK WHILE A.SEGLINK><-1; OD
+        X=:D; A:=0
+        IF X=TSEGA OR X=TSEGB OR X=TSEGC THEN
+              IF BSEGLINK><X THEN
+                A=:X.SEGLINK; X=:BSEGLINK; -1=:PREVLINK.SEGLINK
+              FI; -1; D=:X
+        FI; EXIT
+ RBUS
+
+ %==============================================================================
+ % 37.12      S E G S O R T
+
+ % SUBROUTINE TO PUT NON-USED PAGES FIRST IN PAGE LINK
+ % B=SEGMENT
+ SUBR SEGSORT
+ INTEGER LST0,LST0BANK,LST1,LST1BANK,FRST1,XREG
+ SEGSORT: IF FLAG NBIT 5DEMAND THEN EXIT FI;
+        X=:XREG:=BPAGLINK; A:=B+1=:LST0; 0=:LST0BANK; "FRST1"=:LST1
+        0=:LST1BANK
+        DO
+           T:=CORMBANK; *LDATX DPGPR
+           A:=:X
+           IF X BIT 5PGU THEN
+              T:=LST1BANK; X:=LST1; *STATX
+              A=:LST1; T:=CORMBANK=:LST1BANK
+           ELSE
+              T:=LST0BANK; X:=LST0; *STATX
+              A=:LST0; T:=CORMBANK=:LST0BANK
+           FI; X:=A; *LDXTX DPAGL
+        WHILE X><0
+        OD; X:=LST1; T:=LST1BANK; *STZTX
+        FRST1; X:=LST0; T:=LST0BANK; *STATX
+        X:=XREG; EXIT
+ RBUS
+
+ %==============================================================================
+ % 37.13      R A N D O M
+
+ % SUBROUTINE TO TAKE A RANDOM(PREFERABLY NOT USED) PAGE AND PUT IT FIRST
+ % ENTRY:     B=SEGMENT
+ SUBR RANDOM
+ INTEGER XREG,XN:=3614,CC:=33031,AA:=12465,PREVX,PREVT
+ RANDOM: IF FLAG NBIT 5DEMAND THEN EXIT FI
+        X=:XREG; X:=BPAGLINK; D:=0; T:=CORMBANK
+        DO
+           IF X=0 GO L1; *LDATX DPGPR
+           IF A BIT 5PGU GO L1
+           D+1; *LDXTX DPAGL
+        OD
+ L1:    IF D=0 THEN
+           DO WHILE X><0
+              D+1; *LDXTX DPAGL
+           OD
+        FI
+        D=:T; XN*AA+CC=:XN BZERO 17=:D:=0; *RDIV ST
+        X:=BPAGLINK; A:=B+1=:PREVX; 0=:PREVT; T:=CORMBANK
+        FOR D-+1 TO 0 DO
+           X=:PREVX; T=:PREVT; *LDXTX DPAGL
+        OD; *LDATX DPAGL
+        X=:T:=PREVX; T=:PREVX:=PREVT; *STATX DPAGL
+        X:=PREVX; T:=CORMBANK; BPAGLINK; *STATX DPAGL
+        X=:BPAGLINK
+        X:=XREG; EXIT
+ RBUS
+
+ %==============================================================================
+ % 37.14      T R N S E G  R W S E G M  X T R N S E G
+
+ %SUBROUTINE TO READ OR WRITE PAGES OF A SEGMENT; NUMBER=-NEEDED PAGES
+ % ENTRY:     A=READ/WRITE FLAG, B=SEGMENT
+ %RETURN WITH A=0 IF NO TRANSFER HAS BEEN DONE
+
+ SUBR TRNSEG,RWSEGM,XTRNSEG,INRWSEGM
+
+ INTEGER WRITTEN=?,MODUS=?,CNUMBER=?,LMASSNO=?,XREG=?,XREG2=?,BREG=?,CABLPAGE=?
+ DOUBLE BLSTX=?
+ INTEGER POINTER LREG
+
+ % ENTRY: D=NUMBER OF PAGES TO TRANSFER
+ %        X=CORMAP ELEMENT OF FIRST PAGE TO TRANSFER
+ %        A=READ/WRITE FLAG
+ %        B=SEGMENT ADDRESS
+ %
+ XTRNSEG: A=:MODUS:=RTREF=:SRTREF:=D; 0=:WRITTEN; CALL RWSEGM
+        GO PSTUPR
+
+
+ TRNSEG: A=:MODUS:=L=:"LREG"; X=:XREG
+        0=:WRITTEN; NUMBER=:CNUMBER; X:=BPAGLINK
+        FOR CNUMBER DO WHILE X><0
+           T:=CORMBANK; *LDATX DPGPR
+           IF A=:D/\160000\/MODUS=0 OR MODUS SHR 5WIP/\D><0 THEN
+              1; CALL RWSEGM
+           FI; T:=CORMBANK; *LDXTX DPAGL
+        OD
+        IF WRITTEN><0 THEN X:=SRTREF; LMASSNO; CALL RELEASE FI
+        WRITTEN; X:=XREG; GO LREG
+ *)FILL
+
+ INTEGER WRITTEN,MODUS,CNUMBER,LMASSNO,XREG,XREG2,BREG,CABLPAGE,NPAGES,BMASS
+ INTEGER POINTER LREG2
+ DOUBLE BLSTX
+
+ RWSEGM: A=:NPAGES:=L=:"LREG2":=B=:BREG; X=:XREG2
+        IF WRITTEN=0 THEN
+           MADR SHZ -16; MASSUNIT(A) SH 6+MODUS+60=:SWPMTMODUS
+           ABLPAGE(X)=:CABLPAGE*NPAGES=:SWPBLPAGE
+           X=:T+X; DBLST(X)=:BLSTX; X:=T
+           IF D=0 AND A=0 THEN CALL ERRFATAL FI
+           MASSNO(X)=:LMASSNO; CALL LOGPH; A=:BMASS=:B
+           X:=SRTREF; CALL BRESERVE
+           IF A<0 THEN
+              IF SWPFLAG><0 THEN
+                 BMASS=:B; GO LNK1SWAP
+              FI; 5CLOAD; CALL RELEASE
+              IF X=RTREF GO PRWAIT; GO PSTUPR; *)FILL
+           FI; MIN WRITTEN; BREG=:B
+        FI; T:=CORMBANK; X:=XREG2; *LDATX DALOG
+        A=:D:=LOGADR/\377; D-A; MADR/\37777+D*CABLPAGE=:L
+        BLSTX; D+L; A:=A+C; AD=:SWPMASSADR
+        *LDATX DPAGP
+        D:=0; AD SHZ -6=:SWPCOREADR
+ *"8SWLG
+"        A:=BMASS=:B:="SWPPARLIST"; CALL PMTRANS; IF HSTAT BIT 4 GO ERR
+        X:=BREG=:B:=XREG2; T:=CORMBANK
+        IF MODUS><0 THEN
+           *LDATX DPGPR
+           A BZERO 5WIP
+        ELSE
+           *LDATX DPGPR
+           A=:D:=FLAG/\177400\/D
+        FI; *STATX DPGPR
+        GO LREG2
+ *)FILL
+
+ % DISC TRANSFER ERROR
+ % ABORT PROGRAM CURRENTLY USING THE SWAPPER
+ %
+ INTEGER TRTEXT:='
+ ***** FATAL ERROR: DISC TRANSFER ERROR IN SEGMENT HANDLING. *****
+ '
+ ERR:   "TRTEXT"; CALL DPRINT
+        X:=SRTREF=:RTREF; GO PRTEXT     % ABORT PROGRAM
+
+ RBUS
+
+
+
+ %==============================================================================
+ % 37.16      L I N K O V E R
+
+ %SUBROUTINE TO LINK PAGES OVER TO REQUESTING SEGMENT
+ % ENTRY: B=REQ.SEGMENT (SEGREF)
+ %        X=LRU-SEGM
+
+ SUBR LINKOVER
+ INTEGER CURPAGE,CNUMBER,LRUSEG,CSEGN,CALOGNO
+ INTEGER POINTER LREG
+ LINKOVER: A:=L=:"LREG"; X=:LRUSEG; NUMBER=:CNUMBER; B=:A; CALL CSEGS
+        IF FLAG BIT 5FIX THEN CALL ERRFATAL FI
+        A:=B-SEGSTART=:D:=0; T:=5SEGSIZE; *RDIV ST
+        IF D><0 THEN CALL ERRFATAL FI; A=:CSEGN; T:=CORMBANK
+        FOR CNUMBER DO WHILE X:=LRUSEG.BPAGLINK><0
+           *LDATX DPGPR
+           IF A BIT 5WIP GO OUT
+           X=:CURPAGE; *LDATX DPAGL
+           A=:LRUSEG.BPAGLINK
+           IF X:=BPAGLINK=0 THEN
+              IF SEGLINK=0 THEN BSEGLINK=:SEGLINK; SEGREF=:BSEGLINK FI
+              LOGADR/\377-NUMBER
+           ELSE
+              *LDATX DALOG
+           FI; A=:CALOGNO:=CURPAGE; A:=:X; *STATX DPAGL
+           X=:BPAGLINK; CSEGN=:D
+           IF FLAG NBIT 5DEMAND THEN CALOGNO-1 ELSE CPNUMB FI
+           *STDTX DALOG
+        OD
+ OUT:   IF LRUSEG.BPAGLINK=0 THEN CALL SREMOVE FI
+        GO LREG
+ RBUS
+
+
+ %==============================================================================
+ % 37.17      S R E M O V E
+ %
+ % SUBROUTINE TO REMOVE A SEGMENT FROM SEGMENT LINK
+ % X=SEGMENT POINTER
+
+ SUBR SREMOVE
+ SREMOVE: T:="BSEGLINK"; X=:D:=BSEGLINK
+        DO WHILE X><D; IF X<0 GO OUT; X=:T:=X.SEGLINK OD
+        X.SEGLINK; 0=:X.SEGLINK; A=:T.SEGLINK
+ OUT:   D=:X; EXIT
+ RBUS
+
+
+ %==============================================================================
+ %            S R E S E R   -   S R E L E S
+ %
+ % SUBROUTINES TO RESERVE AND RELEASE ALL SWAPPING RESOURCES
+ %
+ % ENTRY:     B=MONITOR CALL WORKING FIELD
+ %
+ SUBR SRESER,SRELES,ZSRELES
+ INTEGER BRG,CINDX,XREGG
+ INTEGER POINTER CLR
+
+ SRESER: A:=L=:"CLR":=B=:BRG; X=:XREGG
+        X:=RTREF; "CLFIE"=:B; CALL BRESERVE
+        IF A<0 THEN
+           CALL SRELES
+           X.STATUS BONE 5WAIT=:X.STATUS
+           BRG=:B; OLDPAGE BONE 5SWWAIT=:OLDPAGE; GO VENT
+ OUT:   FI; 0=:CINDX
+        DO WHILE X:=CINDX<=3
+           IF MASSNO(X)><0 THEN
+              CALL LOGPH; A=:B; X:=RTREF; CALL BRESERVE
+              IF A<0 THEN
+                 CALL SRELES; CALL FREXQU; CALL TOWQU; GO VENT
+              FI
+           FI; MIN CINDX
+        OD
+        BRG=:B; X:=XREGG; GO CLR
+ VENT:  BRG=:B; ZPREG-1=:ZPREG; GO M61RET
+
+ INTEGER CPROG,XINDX,BBRG,XXRG
+ INTEGER POINTER CLLR
+
+ ZSRELES: X=:CPROG=:XXRG; GO FELLS
+ SRELES: RTREF=:CPROG; X=:XXRG
+ FELLS: A:=L=:"CLLR":=B=:BBRG
+        0=:XINDX
+        DO WHILE X:=XINDX<=3
+           IF MASSNO(X)><0 THEN
+              CALL LOGPH; IF A.RTRES=CPROG THEN X=:B; X:=CPROG; CALL BRELEASE FI
+           FI; MIN XINDX
+        OD; "CLFIE"=:B; X:=CPROG; IF RTRES=X THEN CALL BRELEASE FI
+        BBRG=:B; X:=XXRG; GO CLLR
+ RBUS
+
+
+ %============================================================================
+ % 37.18      A T R N S E G
+ %
+ % SUBROUTINE ON APPLICATION LEVEL TO START
+ % TRNSEG ON MONITOR LEVEL
+ %
+ % ENTRY:     A=NUMBER OF PAGES TO TRANSFER
+ %            X=ADDRESS OF CORMAP ENTRY
+ %            D=READ/WRITE FLAG
+ %            T=SEGMENT ADDRESS
+ %
+ SUBR ATRNSEG
+ INTEGER CT,CA,CD,CX,CB; TRIPLE CTAD=CT
+ INTEGER POINTER CLR
+ ATRNSEG: TAD=:CTAD; X=:CX:=L=:"CLR":=B=:CB
+ LOOP:  *IOF
+        "YTRNSEG"; *IRW MLEVB DP
+        CT; *IRW MLEVB DB
+        CX; *IRW MLEVB DX
+        CD; *IRW MLEVB DA
+        CA; *IRW MLEVB DD
+        MLEV; *MST PIE; MST PID
+        CALL STMLEV; MLEV; *MCL PIE
+        TAD:=CTAD; X:=CB=:B:=CX
+        GO CLR
+ RBUS
+
+ %============================================================================
+ % 37.21      O V E R L A P
+ %
+ SUBR OVERLAP
+ % SUBROUTINE TO SEARCH FOR OVERLAP AND DELETE PAGES
+ % ENTRY:     A=SEGM. ELEMENT POINTER, T=REENTRANT SEGMENT
+ %
+ %
+ INTEGER SEGAB,XREG,RSTART,REND,RESEG,PREVT
+ INTEGER POINTER SEG1:=XSGRT,BP1:=BPAG1   % SEGMENT 1
+ INTEGER POINTER LREG
+
+ OVERLAP: IF A=0 THEN EXIT FI
+        A=:SEGAB; T=:RESEG; X=:XREG:=L=:"LREG"; IF A.SEGLINK=0 GO OUT
+        RESEG.LOGADR/\377=:RSTART; X.LOGADR SHZ -10+RSTART=:REND
+        X:=SEGAB+1; T:=0
+ PSTART: DO
+           X=:D; T=:PREVT; *LDXTX DPAGL
+        WHILE X><0
+           T:=CORMBANK; *LDATX DALOG
+           IF A>=RSTART AND A<REND THEN          % OVERLAP
+              T:=CORMBANK; CALL CLPAGE; *LDATX DPAGL
+              D:=:X; T=:L:=PREVT; *STATX DPAGL          % REMOVE PAGE
+              X:=:D; T:=:L; BP1; *STATX DPAGL     % LINK TO DUMMY SEGMENT
+              X=:BP1; A:=1; *STATX DPGPR          % SET SEGMENT NUMBER
+              IF SEG1=0 THEN            % MOVE DUMMY SEGMENT TO END OF SEGMENT LINK
+                 BSEGLINK
+                 DO WHILE A.SEGLINK><-1 OD
+                 "SEG1"=:X.SEGLINK; T=:SEG1
+              FI; X:=D; T:=L; GO PSTART
+           FI; T:=CORMBANK
+        OD
+        IF SEGAB.BPAGLINK=0 THEN CALL SREMOVE FI
+ OUT:   X:=XREG; GO LREG
+ RBUS
+
+ %==============================================================================
+ % 36.9       S H R S O V E R L A P
+ %
+ % SUBROUTINE TO CHECK IF A REENTRANT SEGMENT ADDRESS OVERLAPS
+ % A NON DEMAND SEGMENT
+ % IF SHRSOVERLAP:
+ % ENTRY:     X=SEGMENT TABLE ADDRESS OF ACTUAL NONREENTRANT SEGMENT
+ %            A=SEGMENT FLAG OF ACTUAL NONREENTRANT SEGMENT
+ %            T=REENTRANT SEGMENT NUMBER
+ %
+ % EXIT:      NO OVERLAP
+ %
+ % ERROR AND EXIT TO RETXIT IF OVERLAP
+ %
+
+ SUBR SHRSOVERLAP
+ INTEGER CSTRA,CLA,CLRS
+
+ SHRSOVERLAP:  IF A BIT 5DEMAND OR T=0 GO OUT
+               A:=T*5SEGSIZE+SEGSTART:=:X=:T
+               X.LOGADR/\377=:CSTRA; X.LOGADR SHZ -10=:CLA; X:=T
+               IF X=0 GO OUT
+               X.LOGADR SHZ -10=:CLRS; X.LOGADR/\377
+               IF A>CSTRA THEN
+                  IF A-CLA<T GO 45ERR
+               ELSE
+                  IF A+CLRS>T GO 45ERR
+ OUT:          FI; EXIT
+ 45ERR: CALL 9ERRA(#45); GO RETXIT
+
+ RBUS
+
+
+
+
+
+ %==============================================================================
+ %
+ %   3 8 . 0     S Y S T E M   S T A R T  A N D  S T O P
+ %
+ %==============================================================================
+ % 38.1       P W F A I L   R E S T A R T   S E T P T A B L
+ %
+
+ INTEGER ARRAY PCCS:=(2,12,22,32,42,3652,62,72,102,112,3722,132,3742,3752,3762,2)
+
+ INTEGER ARRAY LEV1=?
+ INTEGER LEV14=?,URERTP=?
+ INTEGER PIEREG,PIDREG
+ SUBR PWFAIL,RESTART,SETPTABL
+
+ %INTEGER PDELY:=6000          % DELAY COUNTER
+ INTEGER LEVC,SRBI(0); *SRB 10
+ INTEGER ARRAY QMSDF:=(DRFIE,DRFI2,BIGDI,BIGD2,BIGD3,BIGD4,GIGDI,GIGD2,WIGDI,WIGD2,-1)
+ DISP 0; REAL FS0, RCTRG=CTRG, RTRG=TRG; PSID
+
+ %ROUTINE ON LEVEL 14, ACTIVATED BY POWER FAIL
+ %CAN ALSO BE CALLED BY THE STOP-SYSTEM COMMAND
+ PWFAIL: *PIOF
+ *"8N500
+"        -15=:LEVC; SRBI; X:="LEV1"
+        FOR LEVC DO; *EXR SA
+              X+10; A+10
+        OD
+        *TRA PIE
+        A=:PIEREG; *TRA PID
+        A=:PIDREG
+        CALL PFXMSG
+ *"8N500
+"        IF SEGMC><0 AND A.FLAG BIT 5WPM AND X:=X.BPAGLINK><0 THEN
+           T:=CORMBANK
+           DO
+              *LDBTX DALOG; 177700                % MIC. PROGRAM BUG!!!!!
+              AD:=DOU0; *STDTX DPGPR
+              *LDXTX DPAGL
+           WHILE X><0
+           OD
+        FI
+ *"8N500
+" % SAVE WINDOW ENTRIES IN PAGE TABLE 3
+        B:=-10                                    % B:=177770
+        X:="SVPT3"
+        DO WHILE B><0; DOU0=:X.DOU0; X+2; B+2; OD
+        FOR X:=-2000 DO; OD                       % DELAY BEFORE STOP
+ PWAIT: *WAIT; JMP *
+
+
+ %- - - POWER UP AGAIN:
+ RESTART:
+ %      FOR A:=0 TO PDELY DO; FOR X:=-1000 DO; OD; OD   % DELAY AFTER POWER UP
+        2000; *TRR IIE; TRA IIC  %ENABLE POWER FAIL
+        *SEX
+        IF HWINFO(0)/\377=2 THEN
+           *143500                                % ND-100 CX.
+        FI
+
+ % IF DISK DMA WAS ACTIVE AT POWER FAIL TIME, FORCE NEW CALL
+
+        X:="QMSDF"; X=:B
+ QL0:   X:=S0; IF X=-1 GO SETPTABL; IF X=0 GO QL1
+        100=:X.DIFTCOUNT                % WAIT 100B*3 SECS. BEFORE TIMOUT ON DISC
+        0=:X.BUSFL            % FORCE NEW CALL
+        A:=X.TACNS=:X.TACOU; TAD:=X.RCTRG=:X.RTRG; A:=X.CXRG=:X.XRG
+ QL1:   B+1; GO QL0
+ *)FILL
+
+ %   COMMON FOR INITIAL START AND RESTART:
+
+ SETPTABL: 0=:PWRFREST; 177000=:B; A:=162000; D:=0
+ % MAP RESIDENT INTO PIT 0 AND PIT 3
+ % AND CLEAR THE REST OF THE PAGE INDEX TABLES
+        X:=177600
+        DO AD=:DOU0=:X.DOU0; D+1; B+2; X+2; WHILE D<=LRESP OD
+        DO WHILE B><177600
+           0=:S0=:S1; B+2; *TRA IIC
+           IF A=12 GO PWAIT
+        OD; DO WHILE X><0; 0=:X.S0=:X.S1; X+2; OD
+ %  *"CXCPU
+ % MAP XMSG AND TERMINAL DRIVER INTO PIT 3
+        A:="9SMRE" SHZ -12=:D
+        A:="9EPT3" SHZ -12=:L; IF "9EPT3"/\1777><0 THEN L+1 FI
+        X:=177600+D+D; A:=162000
+        DO AD=:X.DOU0; WHILE D><L; X+2; D+1; OD
+ %  *"
+        GO PT3L1; *)FILL
+ PT3L1:
+ % SET BUFFER WINDOW PIT ENTRY TO ZERO
+        "5BFPAGE" SH 1+177000=:B; A:=0=:D; AD=:DOU0
+ % SET SYSTEM SEGMENT PIT ENTRIES TO ZERO
+        "5SSSZ"-=:X; A:="SYSST" SH 1+177000=:B; A:=0=:D
+        FOR X DO AD=:DOU0; B+2 OD; CALL CLERT
+ % INITIALIZE PCR ON ALL LEVELS
+        FOR X:=0 TO 17 DO
+           PCCS(X); *TRR PCR
+        OD
+        IF PIDREG><0 THEN       %AFTER POWER FAIL
+ % RESTORE PIT ENTRIES FOR RT'S SYSTEM SEGMENT.
+           IF BACKGROUND=0 THEN CALL SETRT FI
+           SEGMA; CALL RSPTABL; SEGMB; CALL RSPTABL; SEGMC; CALL RSPTABL
+ *"8XMSG
+" % RESTORE PIT ENTRIES FOR SEGMENT #33
+           IF "SG33".FLAG BIT 5FIX THEN
+              X:=X.BPAGLINK; T:=CORMBANK
+              DO WHILE X><0
+                 *LDATX DALOG
+                 A/\77 SH 1+177600=:B
+                 *LDDTX DPGPR
+                 A BONE 5WIP; AD=:DOU0
+                 *LDXTX DPAGL
+              OD
+           FI
+ *"
+" % RESTORE PIT ENTRIES FOR PIT3-SEGMENT
+           X:="SG41".BPAGLINK; T:=CORMBANK
+           DO WHILE X><0
+              *LDATX DALOG
+              A/\77 SH 1+177600=:B
+              *LDDTX DPGPR
+              AD=:DOU0
+              *LDXTX DPAGL
+           OD
+
+ % RESTORE WINDOW ENTRIES IN PAGE TABLE 3
+           B:=-10                                 % B:=177770
+           X:="SVPT3"
+           DO WHILE B><0; X.DOU0=:DOU0; B+2; X+2; OD
+           CURPROG.ACTPRI /\3773; *TRR PCR
+           "ERR14"=:LEV14
+        FI
+        CALL TBUSPEED
+        GO CLADV
+ *)FILL
+ INTEGER ARRAY SVPT3(10)      % PIT 3 WINDOW ENTRIES (PAGE 374 - 377)
+ INTEGER 5IX:=0, 500IOX
+ INTEGER ARRAY 5IOXARR(0)     % ND-500 IOX TABLE
+ *"8N500; 60  ;"              % ASCENDING IOX PLEASE !
+" *"8CP55; 560 ;"
+" *"8CP53; 660 ;"
+" *"8CP54; 760 ;"
+" *"8CP52; 1060;"
+" *"
+" * -1
+
+ % CLEAR ALL DEVICES EXCEPT CUSTOMER RESERVED DEVICES
+
+ INTEGER CCIOX
+ CLADV: 5IOXARR(0)=:500IOX
+        0=:CCIOX
+        DO
+           IF CCIOX=500IOX THEN                   % ND-500 DEVICE NUMBER
+              CALL 5MCST; X:=5IX+1=:5IX; 5IOXARR(X)=:500IOX
+              CCIOX+20=:CCIOX; GO NXIOX
+           FI; X:=0
+           DO WHILE X<<"USDVSIZE*2"               % DO NOT CLEAR USER RESERVED DEV.NO'S
+              AD:=USIOXTAB(X)
+              IF A>>=CCIOX AND D<<=T THEN
+                 A:=D/\177774=:CCIOX; GO NXIOX
+              FI; X+2
+           OD; T:=CCIOX+"DCONT"; A:=20; *IOXT     % CLEAR DEVICE
+ NXIOX: WHILE CCIOX+4><0
+           A=:CCIOX
+        OD; GO L1
+ *)FILL
+ INTEGER CCNTRG
+
+ L1:
+        LGCOLDSTART; CALL LOGPH
+        IF A=0 OR A.TYPRING NBIT 5TERM THEN X:="DT01R" FI
+        T:="CNTREG"; CALL XGTDFADDR; A BZERO "0"=:CCNTRG
+        T:="HDEV"; CALL XGTDFADDR; T:=A+DCONT; CCNTRG; *IOXT
+        IF VDDFLAG = 0 THEN
+
+ %         ONLY IF SWAPPING NOT DONE VIA VDD/VDP PAIR.
+ %         CLEAR SWAPPING DEVICE (CLEAR DEVICE AND READ STATUS, THEN WAIT FOR READY)
+
+           MASSNO(0); CALL LOGPH; A.HDEV+"164000+5"=:T; 20; *EXR ST
+           IF T BIT 11 THEN A:=34004; *EXR ST    % RETURN TO ZERO SEEK IF BIG DISC
+           FI; T-1                               % READ STATUS (4=READ STATUS)
+ DDLAY:    FOR X:=-200 DO; OD                    % DELAY
+           *EXR ST; BSKP ZRO 160 DA; JMP ADLAY   % ON CYLINDER
+           *BSKP ONE 030 DA; JMP DDLAY           % UNTIL ON CYLINDER
+        FI
+ ADLAY: *BSET ZRO SSZ
+        *TRA IIC; TRA PEA; TRA PGS
+        "0"; *TRR PID; TRR PIE
+        "LV0"; *IRW 0 DP; ION
+ LV0:   *IOF
+        IMASK; *TRR IIE
+ % SET CACHE INHIBIT AND CLEAR:
+        IF CPSTA BIT 5N100 THEN
+          LCACHLIM; *TRR 11             % LOWER LIMIT
+          UCACHLIM; *TRR 12             % UPPER LIMIT
+        ELSE
+          CACHLIM; *TRR 12
+        FI; *TRR 10
+        GO BYPAX; *)FILL
+
+ %%%    INITIALIZE BUS EXPANDER
+
+ INTEGER CURBX                          % TRACKING OF BUS EXPANDER ADDRESS
+
+ BYPAX:
+ *"8BEX1
+"
+        GO L2; *)FILL
+
+ % RESTORE REGISTER BLOCKS
+ INTEGER LEVCN,LRBI(0); *LRB 10
+ L2:    X:="LEV1"; -16=:LEVCN; LRBI
+        FOR LEVCN DO; *EXR SA
+              X+10; A+10 OD
+        "FREQU+160001"; *IOX DCONT RTCLD
+        9TIM0; *IOX DDW RTCLD
+        PIEREG; *TRR PIE
+        PIDREG ; *TRR PID
+        IF PIDREG><0 THEN
+ *"8CLI1+8CLI2+8CLI3+8CLI4+8CLI5+8CLI6
+"              IF X:=URESTART><0 THEN; *JPL ,X
+              FI
+              IF URPRO><0 THEN A=:URERTP
+                "URERTP"+3=:B; MQUEU=:MLINK; A:=B=:MQUEU
+              FI
+        FI
+ @LIB CXCPU
+        GO PENT0
+ *)FILL
+
+ % SUBROUTINE TO SET SPEED FOR TERMINAL BUFFER AND MULTITERMINAL INTERFACE
+ % THE SPEED IS FOUND IN INPUT DATAFIELD; -1 MEANS DO NOT SET SPEED
+
+ INTEGER POINTER INDXX,CLREG; INTEGER ICNTI,CHDEV
+ DISP 12; INTEGER CCDFILD; PSID
+ TBUSPEED: A:=L=:"CLREG"
+        X=:D; "TMRTE"-2=:"INDXX"
+        DO WHILE X:=INDXX><-1 OR "INDXX"="TMRTE"  % IN TIMER TABLE
+              IF X><0 AND X><-1 THEN
+                 IF X.TYPRING BIT 5TERM THEN      % TERMINAL
+                    T:="HDEV"; CALL XGTDFADDR; A=:CHDEV
+                    IF A NBIT 2 THEN
+                       T:="TSPEED"; CALL XGTDFADDR
+                       IF A+1><0 THEN
+                          T:=CHDEV+1; A-1; *IOXT
+              FI FI FI FI; MIN "INDXX"
+        OD
+        1=:ICNTI
+        FOR ICNTI TO MXLIN DO          % SET SPEED FOR SIN/SIN COMMUNICATION
+          X:=LINAR(ICNTI); IF X.TSPEED><-1 THEN
+            T:=X.CCDFILD.HDEV+1; *EXR ST
+          FI
+        OD D=:X; GO CLREG
+
+ %SUBROUTINE TO SET CONTENTS TO PAGETABLE
+ INTEGER XWIP
+ RSPTABL: IF =0 THEN EXIT FI; A=:D
+        IF A=SEGMC AND A.FLAG BIT 5WPM AND X:=X.BPAGLINK><0 THEN
+           T:=CORMBANK
+           DO
+              *LDBTX DALOG; 177700; LDDTX DPGPR        % MIC. PROGRAM BUG!!!!
+              AD=:DOU0; *LDXTX DPAGL
+           WHILE X><0
+           OD
+        ELSE
+           IF D.FLAG BIT 5WPM THEN 10000 ELSE A:=0 FI; A=:XWIP
+           IF X:=X.BPAGLINK=0 THEN EXIT FI; T:=CORMBANK
+           DO
+              *LDBTX DALOG; 177700; LDDTX DPGPR        % MIC. PROGRAM BUG!!!!
+              A\/XWIP; AD=:DOU0; *LDXTX DPAGL
+           WHILE X><0
+           OD
+        FI; EXIT
+ RBUS
+ @ICR
+ INTEGER ARRAY LEV1:=(
+ ERRFA,0,0,0,0,0,0,0,
+ ERRFA,0,0,0,0,0,0,0,
+ MONEN,0,0,0,0,0,0,0,
+ ERRFA,0,0,0,0,0,0,0,
+ ERRFA,0,0,0,0,0,0,0,
+ ERRFA,0,0,0,0,0,0,0,
+ ERRFA,0,0,0,0,0,0,0,
+ ERRFA,0,0,0,0,0,0,0,
+ ERRFA,0,0,0,0,0,0,0,
+ ID10+5,0,0,0,0,0,0,0,
+ ID11+5,0,0,0,0,0,0,0,
+ ID12+5,0,0,0,0,0,0,0,
+ ID13+5,0,0,0,0,0,0,0);
+ INTEGER LEV14:=(
+ ENT14,0,0,0,0,0,0,0);
+ @CR;
+
+
+
+ DOUBLE ARRAY XCCTAB(0); * *+CCNO+CCNO+20/
+
+
+ *"8LAMU
+" %
+
+ %=========================================================================
+ %      L A M A R R
+ %
+ % PHYSICAL MEMORY PARTS AVAILABLE FOR LAMUS
+ %
+ % FORMAT: 2 LOCATIONS FOR EATCH ENTRY
+ %         FIRST PHYSICAL PAGE IN AREA
+ %         LAST PHYSICAL PAGE IN AREA
+ %
+ INTEGER ARRAY LAMARR(NINSZ*2)
+ * LAMAR<*; )ZERO
+ *"
+"
+
+ %==============================================================================
+ % 36.24      N S W P A G E  -  N I N I T P A G E  -   C U M T A B L E
+ %
+ % NSWPAGE    : MEMORY AREA NOT USED AS SWAPPING AREA
+ % NINITPAGE  : MEMORY AREA NOT LEGAL TO INITIALIZE
+ %
+ % THE LAYOUT IN THE TABLES:
+ %      TWO WORDS FOR EACH ENTRY, FIRST PAGE AND LAST PAGE IN AREA
+ %      THE TABLES ARE TERMINATED BY A ZERO
+ %
+ DOUBLE ARRAY NSWPAGE(NNSWSZ)           % MEMORY AREAS UNAVAILABLE FOR SWAPPING
+ *NINSZ
+ DOUBLE ARRAY NINITPAGE(NINSZ)          % MEMORY AREAS NOT ACCESSED IN START-UP (SHARED BETWEEN CPU'S)
+ DOUBLE ARRAY CUMTABLE(CUMSIZE)         % CUSTOMER RESERVED MEMORY AREAS
+ DOUBLE ARRAY USIOXTAB(USDVSIZE)        % CUSTOMER RESERVED PHYSICAL DEVICE NUMBERS (SHOULD NOT BE CLEARED)
+ * NSWPA<*; )ZERO
+ *"8VDD+8VDP
+"

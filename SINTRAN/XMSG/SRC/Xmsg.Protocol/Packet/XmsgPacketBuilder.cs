@@ -14,7 +14,7 @@ namespace NDInsight.Sintran.Xmsg.Packet
     /// machine 100 accepts (channel = connect-channel + 4, decrementing trailing counter);
     /// <see cref="CreateReachabilityReply"/> the subtype-<c>0x13</c> reply; and
     /// <see cref="CreateNetworkError"/> the subtype-<c>0x07</c> reject whose Flags2 is a negative
-    /// XE* code. No stateful sequencing lives here — the layer owns that and passes final values in.
+    /// XE* code. No stateful sequencing lives here - the layer owns that and passes final values in.
     /// </remarks>
     public static class XmsgPacketBuilder
     {
@@ -85,7 +85,7 @@ namespace NDInsight.Sintran.Xmsg.Packet
 
         /// <summary>
         /// Builds a session-data (subtype <c>0x0E</c>) packet whose channel is DERIVED from the
-        /// envelope model rather than supplied — the correct way to emit responder session frames
+        /// envelope model rather than supplied - the correct way to emit responder session frames
         /// (MOTD, prompts, terminal control) so their Protocol ID is consistent with their
         /// Flags1 / Counter / XMCSM. Replaying a canned channel from another session instead has the
         /// wrong Base and crashes the peer's XMSG (XXPER); this computes it.

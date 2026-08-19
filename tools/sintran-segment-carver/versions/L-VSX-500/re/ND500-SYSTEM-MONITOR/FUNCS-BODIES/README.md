@@ -5,12 +5,16 @@ Per-routine disassembly of the `FUNCS` operation routines (the ND-500 operations
 Grouped by category into annotated `.ASM` files (a folder-per-routine would be ~60 folders; grouped
 listings are equivalent and complete).
 
-## Common pattern (VERIFIED)
-Each `FUNCS[code]` routine: validates the request, reads/writes fields of the **message block**
-(`LDX ,B -11` = the message pointer; `,X <off>` = message fields per `../ND500-5MPM-MESSAGE-AND-ACTIVATION.md`),
-and `JPL`s to the shared IOX helpers (`WADR`/`WRDAT`/`RDATL`/`REDAT` in the `051023B` driver) to move
-data across the 3022. The reads/writes to the ND-500 register block and memory all funnel through that
-IOX driver (`../ND500-3022-IOX-INTERFACE.md`).
+## Common pattern (CORRECTED 2026-08-10 - see `SINTRAN\ND500\CARVE-ANSWER-RESULT-BLOCKS-2026-08-10.md`)
+Each `FUNCS[code]` routine: validates the request, reads its parameters from and writes its RESULTS
+into the **MON 60 info block** (`LDX ,B -11` = `S500DF-ZPREG` = static cell `165777B`; `,X 40/43/46/...`
+= the `5DD1..5DD5`/`5P1..5P5` parameter records, L07 SYMBOL), touches the **5MPM message** through a
+SEPARATE frame cell (`LDX ,B -67` = window address of the caller's MESSBUFF; `,X 7/10/11/13/14` =
+message fields per `../ND500-5MPM-MESSAGE-AND-ACTIVATION.md`), and `JPL`s to the shared helpers
+(`063007` build-message/MICFU:=A, `104236` send+wait, `141567`/`141600` OK/error exits, plus the
+`051023B` IOX driver `WADR`/`WRDAT`/`RDATL`/`REDAT` for the 3022). **The prior claim here that
+`B-11` is "the message pointer" was WRONG** - it is the info block; its `,X 40+` stores are the
+result slots the NPL post-return `FUNCS` copies back to the user.
 
 ## Groups carved - ALL FUNCS ROUTINE BODIES DONE (2026-07-15)
 | file | routines | codes |

@@ -28,8 +28,11 @@ on different sides of the machine.** `RPHS` runs on the ND-500 and resolves its 
 "the physical segment table pointer" (`ND-05.009.4` 16.31), which is the ND-500's own `PSTP` /
 PST hardware structure. `PSPHS` is an **ND-100-side** table inside segment `030-S3SM5`, written
 by SINTRAN. Whether SINTRAN builds the ND-500 PST from `PSPHS`, or the two are merely parallel
-bookkeeping, is **UNPROVEN**. The name correspondence and the matching role are suggestive, not
-evidence. See section 4 for what is and is not established.
+bookkeeping, was **UNPROVEN** when this was written. **SETTLED 2026-08-11: parallel
+bookkeeping — the PST entries are swapper-maintained and the base is a SINTRAN allocation
+handed over via control-store cell `0o21`; see
+`CARVE-ANSWER-PST-WRITER-VS-PSPHS-2026-08-11.md`.** See section 4 for what this doc itself
+established.
 
 ---
 

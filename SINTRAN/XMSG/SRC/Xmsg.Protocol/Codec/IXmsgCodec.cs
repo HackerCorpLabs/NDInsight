@@ -18,7 +18,7 @@ namespace NDInsight.Sintran.Xmsg.Codec
 
     /// <summary>
     /// The XMSG codec seam: parse bytes coming up from the link into packets, and encode packets
-    /// going down to the transport. Pure parse/encode — it holds NO session or reliability state
+    /// going down to the transport. Pure parse/encode - it holds NO session or reliability state
     /// (that lives one layer up in <c>XmsgLayer</c>, per the plan's decision table).
     /// </summary>
     /// <remarks>

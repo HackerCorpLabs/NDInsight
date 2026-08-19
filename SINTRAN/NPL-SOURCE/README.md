@@ -30,10 +30,13 @@ The `SYMBOLS/` subfolder contains **symbol tables for three SINTRAN III versions
 
 ```
 SYMBOLS/
+├── J/      (5 files - SINTRAN III version J, from distribution floppies gen. 86-08-04)
 ├── K03/    (6 files - SINTRAN III version K, level 03)
 ├── L07/    (7 files - SINTRAN III version L, level 07)
 └── M06/    (8 files - SINTRAN III version M, level 06)
 ```
+
+The `J/` set was extracted 2026-08-18 from the four original distribution floppies `N-900-188-I..IV` ("SINTRAN III VERSION J", MACM-1718, gen. date 86.08.04, on backup disk `D:\ND\Frode`), converted from ND 8-bit parity text to plain ASCII. It has no level number on the labels, so the folder is just `J`. It contains FILSYS-SYMBOLS, RTLO-SYMBOLS, SYMBOL-1-LIST, SYMBOL-2-LIST and LIBRARY-MARKS - no N500-SYMBOLS and no XMSG-SYMBOL-LIST were on the floppies. Its LIBRARY-MARKS first line matches the marks list in the version-J SI-GEN build log `../NPL-SOURCE-2/BOUT-6.SYMB` word for word. The version-J NPL source that goes with these symbols is in `../NPL-SOURCE-2/`.
 
 The version naming convention uses a **letter** for the major version (K, L, M) and a **number** for the level within that version (03, 07, 06). These represent successive generations of SINTRAN III.
 

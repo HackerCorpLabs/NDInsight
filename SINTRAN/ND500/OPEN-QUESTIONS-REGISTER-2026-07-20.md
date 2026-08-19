@@ -486,9 +486,9 @@ Items marked **§1** duplicate a section-1 entry and are cross-referenced rather
 
 | ID | Question | Source | Route | Blocking |
 |---|---|---|---|---|
-| Q-TRP-01 | What exactly does the microcode place in a trap report — which word is access type, which the failing logical address, how is the segment encoded? | §1 C5 | MICROCODE | Yes — our trap fields are demonstrably wrong |
+| Q-TRP-01 | **ANSWERED 2026-08-11** — per-trap offsets + MMS bit numbers carved: page fault 46B = LA@17-20/phys-seg@21/MMS@22-23; GEN3-class = LA@17-20/MMS@21-22/PHYS@23-24/seg@25/WR@26(+27/30); access type = MMS STATE7-5 bits 31-29 + bit 6 DATA/PROGRAM; segment = top 5 bits of the LA. See `CARVE-ANSWER-TRAP-RECORD-OFFSETS-AND-MMS-BITS-2026-08-11.md`. Residue: classic 10611 trap writer unread [OPEN] | §1 C5 | MICROCODE + MANUAL | No — closed for B30 |
 | Q-TRP-02 | The full ND-500 trap-code / stop-reason table (`TRAPDECODER`, `SPCTRAP` set) | `ND500-BUS-OCTOBUS-HW-INTERFACE.md:302-305` | CARVE | No — partial table ships by design |
-| Q-TRP-03 | Is the fault-address slot at message offset `0o17` correct? (marked `[D]`) | `…SERVICER-IMPLEMENTATION-REFERENCE…:246` | CARVE / MICROCODE (`TRAP_GEN3`) | Yes |
+| Q-TRP-03 | **ANSWERED 2026-08-11** — YES: the fault LA starts at message hw `0o17` in BOTH trap classes (`TRAP_GEN3` 013536 / `TRAP_GEN4` 013602, ORCON=0x1E). Same carve doc as Q-TRP-01 | `…SERVICER-IMPLEMENTATION-REFERENCE…:246` | CARVE / MICROCODE (`TRAP_GEN3`) | No — closed |
 
 ### DOMAIN / PLACE-RUN
 

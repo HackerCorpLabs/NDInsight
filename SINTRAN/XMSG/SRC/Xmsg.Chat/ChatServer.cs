@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 
 using NDInsight.Sintran.Xmsg.Api;
+using NDInsight.Sintran.Xmsg.Protocol;
 
 namespace NDInsight.Sintran.Xmsg.Chat
 {
@@ -29,7 +31,15 @@ namespace NDInsight.Sintran.Xmsg.Chat
     {
         private readonly XmsgKernel _kernel;
         private readonly XroutDirectory _directory;
-        private readonly List<Member> _members;
+        // THE RULES LIVE IN ChatRoom, not here. Who is in the room, which names are free and who
+        // must be told what are identical for a port conversation and for somebody typing at a
+        // SINTRAN terminal; only the plumbing differs. Written twice they would drift, and the
+        // drift would be in the awkward cases.
+        private readonly ChatRoom _room;
+
+        // The magic number each member is reachable at, keyed by the same handle the room uses.
+        // The room deliberately knows nothing about addresses.
+        private readonly Dictionary<long, XmsgMagicNumber> _addresses;
         private readonly byte[] _scratch;
 
         private XmsgPortNumber _port;
@@ -64,7 +74,8 @@ namespace NDInsight.Sintran.Xmsg.Chat
 
             _kernel = kernel;
             _directory = directory;
-            _members = new List<Member>();
+            _room = new ChatRoom();
+            _addresses = new Dictionary<long, XmsgMagicNumber>();
             _scratch = new byte[ChatMessageBufferSize];
             _name = string.Empty;
             _greeting = string.Empty;
@@ -89,7 +100,7 @@ namespace NDInsight.Sintran.Xmsg.Chat
         /// </summary>
         public int MemberCount
         {
-            get { return _members.Count; }
+            get { return _room.Count; }
         }
 
         /// <summary>
@@ -100,11 +111,7 @@ namespace NDInsight.Sintran.Xmsg.Chat
         /// </returns>
         public string[] Members()
         {
-            string[] names = new string[_members.Count];
-            for (int i = 0; i < _members.Count; i++)
-            {
-                names[i] = _members[i].Nickname;
-            }
+            string[] names = _room.CopyNicknames();
 
             return names;
         }
@@ -204,6 +211,14 @@ namespace NDInsight.Sintran.Xmsg.Chat
 
                 XmsgMagicNumber sender = _kernel.GetMessageStatus(arrived.Message).Sender;
 
+                // A ROUTED message is one XROUT forwarded, and forwarding it cost this port one of
+                // its free seats - spent before the room saw a single byte of the body. So the seat
+                // is owed back by the ARRIVAL, not by any particular kind of message, and that is
+                // why the accounting lives here rather than in the handlers.
+                bool spentASeat = arrived.MessageType == XmsgMessageType.XMROU;
+                long id = Handle(sender);
+                bool wasMember = _room.Contains(id);
+
                 int read;
                 _kernel.Read(arrived.Message, _scratch, 0, out read);
                 _kernel.ReleaseBuffer(arrived.Message);
@@ -217,6 +232,18 @@ namespace NDInsight.Sintran.Xmsg.Chat
                 // A message we cannot decode is dropped on purpose - one confused client must not
                 // stop the room. It still counts as handled so a caller draining the port
                 // terminates.
+                //
+                // Note that the seat below is settled for it too. An undecodable letter is exactly
+                // the case that used to leak: the body never reaches a handler, so no handler could
+                // ever have given the seat back.
+                if (spentASeat && !(!wasMember && _room.Contains(id)))
+                {
+                    // The letter did not seat anybody new, so the seat it spent is free again. The
+                    // condition is deliberately "became a member", not "was accepted": a member who
+                    // sends a second letter spends a second seat, and only one of them is theirs.
+                    ReleaseSeat();
+                }
+
                 handled++;
             }
         }
@@ -237,12 +264,21 @@ namespace NDInsight.Sintran.Xmsg.Chat
         /// </summary>
         public void Close()
         {
-            for (int i = 0; i < _members.Count; i++)
+            long[] leaving = _room.CopyMemberIds();
+            for (int i = 0; i < leaving.Length; i++)
             {
-                SendTo(_members[i].Magic, new ChatMessage(ChatMessageKind.Left, _members[i].Nickname, "room closed"));
+                string who;
+                _room.TryGetNickname(leaving[i], out who);
+                SendTo(_addresses[leaving[i]], new ChatMessage(ChatMessageKind.Left, who, "room closed"));
             }
 
-            _members.Clear();
+            for (int i = 0; i < leaving.Length; i++)
+            {
+                string ignored;
+                _room.TryLeave(leaving[i], out ignored);
+            }
+
+            _addresses.Clear();
 
             if (_name.Length > 0)
             {
@@ -265,8 +301,16 @@ namespace NDInsight.Sintran.Xmsg.Chat
                     HandleSay(sender, message);
                     break;
 
+                case ChatMessageKind.Rename:
+                    HandleRename(sender, message);
+                    break;
+
                 case ChatMessageKind.Leave:
                     HandleLeave(sender);
+                    break;
+
+                case ChatMessageKind.Who:
+                    HandleWho(sender);
                     break;
 
                 default:
@@ -278,78 +322,175 @@ namespace NDInsight.Sintran.Xmsg.Chat
 
         private void HandleJoin(XmsgMagicNumber sender, ChatMessage message)
         {
-            if (message.Nickname.Length == 0)
+            long id = Handle(sender);
+
+            string refusal;
+            if (!_room.TryJoin(id, message.Nickname, out refusal))
             {
-                SendTo(sender, new ChatMessage(ChatMessageKind.Reject, string.Empty, "a nickname is required"));
-                ReleaseSeat();
+                // NO ReleaseSeat here. The seat came with the ARRIVAL, not with the join, and Poll
+                // settles it there for every letter - including the ones that never reach a handler
+                // at all, which is the case this used to miss.
+                SendTo(sender, new ChatMessage(ChatMessageKind.Reject, message.Nickname, refusal));
                 return;
             }
 
-            if (IndexOfNickname(message.Nickname) >= 0)
-            {
-                SendTo(sender, new ChatMessage(ChatMessageKind.Reject, message.Nickname, "that nickname is taken"));
-                ReleaseSeat();
-                return;
-            }
-
-            if (IndexOfMagic(sender) >= 0)
-            {
-                // Already in the room on this port: a duplicate join costs a seat we must return.
-                SendTo(sender, new ChatMessage(ChatMessageKind.Reject, message.Nickname, "already joined"));
-                ReleaseSeat();
-                return;
-            }
-
-            _members.Add(new Member(message.Nickname, sender));
+            _addresses[id] = sender;
 
             // The welcome goes straight to the address the join arrived from. This is the reply
             // that reveals the server's own address, and it is why nothing after it needs XROUT.
             SendTo(sender, new ChatMessage(ChatMessageKind.Welcome, message.Nickname, _greeting));
 
-            Broadcast(new ChatMessage(ChatMessageKind.Joined, message.Nickname, string.Empty), _members.Count - 1);
+            Broadcast(new ChatMessage(ChatMessageKind.Joined, message.Nickname, string.Empty), id);
+        }
+
+        /// <summary>
+        /// Answers a member asking who else is in the room.
+        /// </summary>
+        /// <param name="sender">
+        /// The member's address.
+        /// </param>
+        /// <remarks>
+        /// <para><b>Members only, and silent to anybody else</b></para>
+        /// A stranger gets nothing back, for the same reason <see cref="HandleSay"/> stays silent:
+        /// answering would confirm to something that never joined that this port is a chat room, and
+        /// would hand it the membership list as well.
+        /// <para><b>The answer is one line, not one message per member</b></para>
+        /// The names go in the text separated by single spaces. A message each would multiply the
+        /// scarcest thing XMSG has - the ten data transmit blocks measured in
+        /// <c>DOC/BRINGUP-ORDER-AND-TRAPS-2026-08-18.md</c> - by the size of the room.
+        /// </remarks>
+        private void HandleWho(XmsgMagicNumber sender)
+        {
+            string asker;
+            if (!_room.TryGetNickname(Handle(sender), out asker))
+            {
+                return;
+            }
+
+            string[] names = _room.CopyNicknames();
+
+            // Built by hand rather than with string.Join so the separator rule is visible: single
+            // space between names, nothing before the first and nothing after the last. The PLANC
+            // client splits on exactly that.
+            StringBuilder list = new StringBuilder();
+            for (int i = 0; i < names.Length; i++)
+            {
+                if (list.Length > 0) { list.Append(' '); }
+                list.Append(names[i]);
+            }
+
+            SendTo(sender, new ChatMessage(ChatMessageKind.Who, string.Empty, list.ToString()));
         }
 
         private void HandleSay(XmsgMagicNumber sender, ChatMessage message)
         {
-            int index = IndexOfMagic(sender);
-            if (index < 0)
+            string speaker;
+            if (!_room.TryGetNickname(Handle(sender), out speaker))
             {
                 // Not in the room. Silence is the right answer: replying would confirm the port is
                 // a chat server to something that never joined.
                 return;
             }
 
-            Broadcast(new ChatMessage(ChatMessageKind.Said, _members[index].Nickname, message.Text), -1);
+            Broadcast(new ChatMessage(ChatMessageKind.Said, speaker, message.Text), NoSkip);
         }
 
-        private void HandleLeave(XmsgMagicNumber sender)
+        /// <summary>
+        /// Answers a member asking to be known by a different name.
+        /// </summary>
+        /// <param name="sender">
+        /// The member's address.
+        /// </param>
+        /// <param name="message">
+        /// The request, carrying the wanted name.
+        /// </param>
+        /// <remarks>
+        /// <para>
+        /// A rename can fail for exactly the reasons a join can, so it is answered the same way -
+        /// with a <see cref="ChatMessageKind.Reject"/> naming the reason - rather than ignored.
+        /// </para>
+        /// <para>
+        /// NO SEAT IS INVOLVED here, and no handler in this class touches one any more: seats are
+        /// settled in <see cref="Poll"/>, against the arrival that actually spent one. Releasing a
+        /// seat here would hand back one the member is still sitting in, the room would then admit
+        /// one more person than it has room for, and the fault would show up much later as XROUT
+        /// refusing joins for no visible reason.
+        /// </para>
+        /// </remarks>
+        private void HandleRename(XmsgMagicNumber sender, ChatMessage message)
         {
-            int index = IndexOfMagic(sender);
-            if (index < 0)
+            long id = Handle(sender);
+
+            // A STRANGER GETS SILENCE, exactly as in HandleSay, and the check has to happen HERE
+            // rather than being left to the room: TryRename reports "you are not in the room" as a
+            // refusal like any other, so falling through would answer a Reject to something that
+            // never joined - confirming the port is a chat server to anybody who probes it.
+            //
+            // This is also what CHATSV.PLNC does, which is the reason it is written out. That
+            // program tests membership once, before it looks at the message kind at all, so every
+            // kind gets the same silence. The two implementations share no code, so a rule that
+            // lives only in the C# is a rule the PLANC will drift away from.
+            string existing;
+            if (!_room.TryGetNickname(id, out existing))
             {
                 return;
             }
 
-            string nickname = _members[index].Nickname;
-            _members.RemoveAt(index);
+            string previous;
+            string refusal;
+            if (!_room.TryRename(id, message.Nickname, out previous, out refusal))
+            {
+                if (refusal.Length == 0)
+                {
+                    // Asking for the name you already have: nothing changed, and it is not an
+                    // error either, so there is nothing to say.
+                    return;
+                }
+
+                // NO ReleaseSeat here - see the remarks.
+                SendTo(sender, new ChatMessage(ChatMessageKind.Reject, message.Nickname, refusal));
+                return;
+            }
+
+            // Everybody hears it, INCLUDING the member who asked - that is their confirmation, and
+            // it means one message kind covers both jobs.
+            Broadcast(new ChatMessage(ChatMessageKind.Renamed, message.Nickname, previous), NoSkip);
+        }
+
+        private void HandleLeave(XmsgMagicNumber sender)
+        {
+            long id = Handle(sender);
+
+            string nickname;
+            if (!_room.TryLeave(id, out nickname))
+            {
+                return;
+            }
+
+            _addresses.Remove(id);
 
             // Give the seat back. Forget this and the room fills up permanently: XROUT stops
             // forwarding joins long before anybody notices the members left.
             ReleaseSeat();
 
-            Broadcast(new ChatMessage(ChatMessageKind.Left, nickname, string.Empty), -1);
+            Broadcast(new ChatMessage(ChatMessageKind.Left, nickname, string.Empty), NoSkip);
         }
 
-        private void Broadcast(ChatMessage message, int skipIndex)
+        private void Broadcast(ChatMessage message, long skipId)
         {
-            for (int i = 0; i < _members.Count; i++)
+            long[] ids = _room.CopyMemberIds();
+            for (int i = 0; i < ids.Length; i++)
             {
-                if (i == skipIndex)
+                if (ids[i] == skipId)
                 {
                     continue;
                 }
 
-                SendTo(_members[i].Magic, message);
+                XmsgMagicNumber address;
+                if (_addresses.TryGetValue(ids[i], out address))
+                {
+                    SendTo(address, message);
+                }
             }
         }
 
@@ -368,43 +509,33 @@ namespace NDInsight.Sintran.Xmsg.Chat
             }
         }
 
-        private int IndexOfNickname(string nickname)
+        /// <summary>
+        /// The room's handle for a client, derived from the address it writes from.
+        /// </summary>
+        /// <param name="magic">
+        /// The client's magic number.
+        /// </param>
+        /// <returns>
+        /// A stable handle for that client.
+        /// </returns>
+        /// <remarks>
+        /// The room tells members apart by a number and does not care what it means. Here it is
+        /// the magic number, which identifies a (system, port) endpoint - the same thing that
+        /// decided membership before the rules were pulled out.
+        /// </remarks>
+        private static long Handle(XmsgMagicNumber magic)
         {
-            for (int i = 0; i < _members.Count; i++)
-            {
-                if (string.Equals(_members[i].Nickname, nickname, StringComparison.OrdinalIgnoreCase))
-                {
-                    return i;
-                }
-            }
-
-            return -1;
+            return magic.Value;
         }
 
-        private int IndexOfMagic(XmsgMagicNumber magic)
-        {
-            for (int i = 0; i < _members.Count; i++)
-            {
-                if (_members[i].Magic.Equals(magic))
-                {
-                    return i;
-                }
-            }
+        /// <summary>
+        /// Passed to <c>Broadcast</c> when everybody should hear it, including the member who
+        /// caused it.
+        /// </summary>
+        /// <remarks>
+        /// A real handle is never negative, so this cannot collide with one.
+        /// </remarks>
+        private const long NoSkip = -1;
 
-            return -1;
-        }
-
-        private readonly struct Member
-        {
-            internal Member(string nickname, XmsgMagicNumber magic)
-            {
-                Nickname = nickname;
-                Magic = magic;
-            }
-
-            internal string Nickname { get; }
-
-            internal XmsgMagicNumber Magic { get; }
-        }
     }
 }

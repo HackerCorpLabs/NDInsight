@@ -13,7 +13,7 @@ namespace NDInsight.Sintran.Xmsg.Live
     /// <remarks>
     /// NOT-LIVE-TESTED: this class talks to a real socket and cannot be exercised against a
     /// live bridge in the unit-test suite. The bridge is a transparent byte pipe
-    /// (XMSG-PROTOCOL.md section 1), so this transport only moves bytes — all framing and
+    /// (XMSG-PROTOCOL.md section 1), so this transport only moves bytes - all framing and
     /// protocol logic lives in <see cref="LiveNode"/>, which IS tested over
     /// <see cref="InMemoryDuplex"/>.
     /// </remarks>

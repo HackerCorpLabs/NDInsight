@@ -85,7 +85,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
 
         /// <summary>
         /// A 7CERS control frame arriving mid-login (as the real client sends answering each CESC) is
-        /// NOT treated as a password line — the login still completes (spec 22.15 frames 3/6a).
+        /// NOT treated as a password line - the login still completes (spec 22.15 frames 3/6a).
         /// </summary>
         [Fact]
         public void CersMidLogin_IsIgnored_LoginStillCompletes()
@@ -95,7 +95,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
 
             clientCodec.SendPacket(new XmsgPacket(client.BuildConnect("D102")));
             clientCodec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));   // username
-            clientCodec.SendPacket(new XmsgPacket(client.BuildCers()));            // answers our CESC — not input
+            clientCodec.SendPacket(new XmsgPacket(client.BuildCers()));            // answers our CESC - not input
             clientCodec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));   // password
 
             // If the CERS had been mis-read as the password, login would have failed; it did not.
@@ -118,7 +118,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         }
 
         /// <summary>
-        /// The Echo command (an odd-length reply, "IPSUM LORUM") is delivered — the exact case that hung
+        /// The Echo command (an odd-length reply, "IPSUM LORUM") is delivered - the exact case that hung
         /// before the alignment fix.
         /// </summary>
         [Fact]
@@ -252,8 +252,8 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
 
         /// <summary>
         /// The reactive asker driver (TadAskerSession) drives the connect-to handshake against the
-        /// responder to the greeting: connect → accept → session-setup → port-assign → DUMM →
-        /// terminal-setup → RESE/RECO → banner. The asker renders the MOTD "ENTER " prompt, proving the
+        /// responder to the greeting: connect -> accept -> session-setup -> port-assign -> DUMM ->
+        /// terminal-setup -> RESE/RECO -> banner. The asker renders the MOTD "ENTER " prompt, proving the
         /// standalone client's state machine end to end in-memory.
         /// </summary>
         [Fact]
@@ -292,7 +292,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
 
             SendAll(asker.Start());
 
-            // The banner burst ends with BDAT("\r\nENTER ") — the asker rendered it.
+            // The banner burst ends with BDAT("\r\nENTER ") - the asker rendered it.
             Assert.Contains("ENTER", banner.ToString());
         }
 
@@ -565,6 +565,107 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         /// <returns>
         /// The terminal text captured for the command.
         /// </returns>
+
+
+        /// <summary>
+        /// A terminal user cannot take a nickname somebody in the room already answers to.
+        /// </summary>
+        /// <remarks>
+        /// The rule comes from ChatRoom, which the port-to-port server uses too - this checks the
+        /// terminal door reaches the same answer and shows the reason rather than swallowing it.
+        /// </remarks>
+        [Fact]
+        public void ServerHost_ChatRoom_RefusesATakenNickname()
+        {
+            TerminalCapture terminal = new TerminalCapture();
+            TadConnectClient ronny = BuildViaServerHost(
+                terminal, null, out XmsgCodec clientCodec, out _, out _);
+
+            clientCodec.SendPacket(new XmsgPacket(ronny.BuildConnect("D102")));
+            clientCodec.SendPacket(new XmsgPacket(ronny.BuildInput("SYSTEM")));
+            clientCodec.SendPacket(new XmsgPacket(ronny.BuildInput("SYSTEM")));
+
+            TadConnectClient anna = new TadConnectClient(100, 102, 0x02C6, seed: 0x14);
+            clientCodec.SendPacket(new XmsgPacket(anna.BuildConnect("D102")));
+            clientCodec.SendPacket(new XmsgPacket(anna.BuildInput("SYSTEM")));
+            clientCodec.SendPacket(new XmsgPacket(anna.BuildInput("SYSTEM")));
+
+            clientCodec.SendPacket(new XmsgPacket(ronny.BuildInput("chat join RONNY")));
+
+            terminal.Clear();
+            clientCodec.SendPacket(new XmsgPacket(anna.BuildInput("chat join ronny")));
+
+            Assert.Contains("that nickname is taken", terminal.Text);
+        }
+
+        /// <summary>
+        /// Saying something before joining tells the user how to join.
+        /// </summary>
+        [Fact]
+        public void ServerHost_ChatSay_BeforeJoining_SaysHowToJoin()
+        {
+            TerminalCapture terminal = new TerminalCapture();
+            TadConnectClient client = BuildViaServerHost(
+                terminal, null, out XmsgCodec clientCodec, out _, out _);
+
+            clientCodec.SendPacket(new XmsgPacket(client.BuildConnect("D102")));
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));
+            terminal.Clear();
+
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("chat say hello")));
+
+            Assert.Contains("join the room first", terminal.Text);
+        }
+
+
+
+
+
+
+
+
+        /// <summary>
+        /// One chat command from a logged-in terminal reaches the room and answers on screen.
+        /// </summary>
+        /// <remarks>
+        /// <para><b>ONE COMMAND PER SESSION is all this harness can drive, and that is a limit of
+        /// the harness rather than of the server.</b></para>
+        /// <para>
+        /// A command reply is a windowed burst that the server releases as the peer consumes it.
+        /// A real 100 sends the secure ACK and the 7DUMM that advance that window; this test client
+        /// sends neither, so the SECOND command on the same session never renders and the capture
+        /// comes back empty.
+        /// </para>
+        /// <para>
+        /// MEASURED 2026-08-11 with a control that has nothing to do with chat: "who" followed by
+        /// "stat" on one session shows nothing for "stat" either. So a chat test that appeared to
+        /// fail was really measuring the harness. Anything needing a conversation - join then say,
+        /// join then part - is therefore covered by ChatRoomRulesTests instead, where the rules
+        /// live, and the live two-user run over a real terminal is still owed.
+        /// </para>
+        /// <para><b>The gate is understood, and it is the acknowledgement.</b>
+        /// Output streams under <c>TadOutputMode.CompleteSegments</c>, whose drain returns while
+        /// <c>OutstandingOutputCount</c> is above zero - and a reply's FINAL frame is tracked as
+        /// outstanding like any other. Telling the server directly, <c>NotifyAck(node, flags1)</c>,
+        /// releases it and the second reply goes out in full; <c>OutputWindowDiagnosticTests</c>
+        /// proves both halves.
+        /// </para>
+        /// <para>
+        /// What does NOT work is sending that same acknowledgement as a FRAME from this test
+        /// client, which was tried and reverted. So the remaining gap is in the client
+        /// acknowledgement or its routing, not in the server - a much smaller question, and the
+        /// place to start if these tests are ever unblocked.
+        /// </para>
+        /// </remarks>
+        [Fact]
+        public void ServerHost_ChatWho_AnswersOnTheTerminal()
+        {
+            string screen = RunLoggedInCommand("chat who");
+
+            Assert.Contains("in the room", screen);
+        }
+
         private static string RunLoggedInCommand(string command)
         {
             TerminalCapture terminal = new TerminalCapture();
@@ -591,18 +692,55 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         private static TadConnectClient BuildViaServerHost(
             TerminalCapture terminal, TadUserDirectory? users, out XmsgCodec clientCodec, out XmsgServerHost serverHost, out TadServer tadServer)
         {
+            return BuildViaServerHost(terminal, users, 102, out clientCodec, out serverHost, out tadServer);
+        }
+
+        /// <summary>
+        /// Wires the client against a server on a CHOSEN node number.
+        /// </summary>
+        /// <param name="terminal">
+        /// Collects the BDAT terminal text the server sends back.
+        /// </param>
+        /// <param name="users">
+        /// The login accounts, or null for the built-in pair.
+        /// </param>
+        /// <param name="serverNode">
+        /// The server's system number.
+        /// </param>
+        /// <param name="clientCodec">
+        /// Receives the client-side codec.
+        /// </param>
+        /// <param name="serverHost">
+        /// Receives the server host.
+        /// </param>
+        /// <param name="tadServer">
+        /// Receives the registered TAD server.
+        /// </param>
+        /// <returns>
+        /// The connect-to client bound to the server.
+        /// </returns>
+        /// <remarks>
+        /// The node is a parameter because every node in every capture - 100, 102, 103, 200 - fits in a
+        /// BYTE, so a rig fixed at 102 cannot see an eight-bit truncation. That is exactly how the
+        /// port-assignment system number shipped wrong: correct for 102, and 19999 (0x4E1F) went out as
+        /// 0x001F. A test node ABOVE 255 is the only thing that catches that whole class of defect.
+        /// </remarks>
+        private static TadConnectClient BuildViaServerHost(
+            TerminalCapture terminal, TadUserDirectory? users, ushort serverNode,
+            out XmsgCodec clientCodec, out XmsgServerHost serverHost, out TadServer tadServer)
+        {
             PipeTransport serverToClient = new PipeTransport();
             PipeTransport clientToServer = new PipeTransport();
 
             XmsgCodec serverCodec = new XmsgCodec("server", serverToClient);
-            XmsgLayer serverLayer = new XmsgLayer(serverCodec, 102, 0x00);
+            XmsgLayer serverLayer = new XmsgLayer(serverCodec, serverNode, 0x00);
             // Match the live runner's flags EXACTLY: AcknowledgeData=false (the legacy generic path is
             // off) and AcknowledgeTadFrames=true (session data is secure-ACKed). This reproduces the live
             // condition so the ServerHost_SessionData_IsSecureAcked regression actually bites - the old
             // buggy gate (if AcknowledgeData) would emit NO ACK here, exactly as it did against 100.
             serverLayer.AcknowledgeData = false;
             serverLayer.AcknowledgeTadFrames = true;
-            XmsgServerHost host = new XmsgServerHost(102);
+            XmsgServerHost host = new XmsgServerHost(serverNode);
             TadServer server = new TadServer(FixedClock, users);
             host.Register(server);
             serverLayer.ServerHost = host;
@@ -610,7 +748,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             tadServer = server;
 
             clientCodec = new XmsgCodec("client", clientToServer);
-            TadConnectClient client = new TadConnectClient(100, 102, 0x0283, seed: 0x14);
+            TadConnectClient client = new TadConnectClient(100, serverNode, 0x0283, seed: 0x14);
             XmsgCodec capturedClientCodec = clientCodec;
             clientCodec.PacketReceived += delegate (string linkId, XmsgPacketInfo packet)
             {
@@ -622,6 +760,184 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             serverToClient.Target = bytes => capturedClientCodec.ProcessBytes(bytes);
 
             return client;
+        }
+
+        /// <summary>
+        /// The port assignment carries the server's system number as SIXTEEN bits, so a node above 255
+        /// survives it intact.
+        /// </summary>
+        /// <remarks>
+        /// <para><b>The defect this pins</b></para>
+        /// <para>
+        /// The parameter is <c>07 05 | 00 | sysHi sysLo | portHi portLo</c>, and it was written with a
+        /// cast to <see cref="byte"/>. That is correct for every node that appears in any capture - 102
+        /// is <c>0x0066</c> and fits - and silently wrong for a real one: 19999 is <c>0x4E1F</c> and
+        /// truncated to <c>0x1F</c>, telling the peer the session lived on system 31.
+        /// </para>
+        /// <para>
+        /// MEASURED against a real server in <c>conn-to-d102-from-100.pcapng</c>, whose answer to the
+        /// same session-setup reads <c>07 05 00 00 66 04 c2</c>.
+        /// </para>
+        /// <para>
+        /// The assertion is on the RULE - the node's two bytes appear, the truncated form does not -
+        /// rather than on a snapshot of our own output. A golden-byte test taken at node 102 would have
+        /// passed happily throughout the bug's life.
+        /// </para>
+        /// </remarks>
+        [Fact]
+        public void ServerHost_PortAssignment_CarriesTheFullSixteenBitSystemNumber()
+        {
+            const ushort BigNode = 19999;   // 0x4E1F - the low byte alone is 0x1F
+
+            TerminalCapture terminal = new TerminalCapture();
+            TadConnectClient client = BuildViaServerHost(
+                terminal, null, BigNode, out XmsgCodec clientCodec, out _, out _);
+
+            StringBuilder seen = new StringBuilder();
+            clientCodec.PacketReceived += delegate (string linkId, XmsgPacketInfo packet)
+            {
+                seen.Append(Convert.ToHexString(packet.RawBytes));
+            };
+
+            clientCodec.SendPacket(new XmsgPacket(client.BuildConnect("D" + BigNode)));
+
+            // The port assignment answers the SESSION-SETUP, not the connect letter - the accept comes
+            // first and carries no port block at all.
+            clientCodec.SendPacket(new XmsgPacket(client.BuildSessionSetup()));
+
+            string wire = seen.ToString();
+
+            // 07 05 00 <sysHi> <sysLo> - the node's own two bytes, in the parameter block.
+            Assert.Contains("0705004E1F", wire);
+
+            // The truncated form the bug produced: the high byte lost, 0x001F in its place.
+            Assert.DoesNotContain("070500001F", wire);
+        }
+
+        /// <summary>
+        /// Two sessions must be told two different TAD logical units.
+        /// </summary>
+        /// <remarks>
+        /// <para><b>The defect this guards</b></para>
+        /// <para>
+        /// The 7LUN index was a compile-time constant, so every session's port assignment carried
+        /// <c>0B 02 03 02</c> and every terminal was told <c>TAD LOGICAL UNIT NO: 770</c>. MEASURED
+        /// 2026-08-17 against a real ND: two terminals connected at once, our side held them as tty1
+        /// and tty2, and both were handed unit 770. The unit number is how the far end names the
+        /// line, so two sessions sharing one is wrong whatever value the real machine would pick.
+        /// </para>
+        /// <para>
+        /// The assertion is UNIQUENESS, not a particular second value. That tty1 keeps <c>0x02</c>
+        /// matches every captured working login; that tty2 gets <c>0x03</c> is only our allocation,
+        /// and the real rule is still unknown - so pinning it exactly would pin a guess.
+        /// </para>
+        /// </remarks>
+        [Fact]
+        public void ServerHost_TwoSessions_AreGivenDifferentTadLogicalUnits()
+        {
+            TerminalCapture terminal = new TerminalCapture();
+            TadConnectClient first = BuildViaServerHost(
+                terminal, null, out XmsgCodec clientCodec, out _, out TadServer server);
+
+            List<string> assignments = new List<string>();
+            clientCodec.PacketReceived += delegate (string linkId, XmsgPacketInfo packet)
+            {
+                string hex = Convert.ToHexString(packet.RawBytes);
+                int at = hex.IndexOf("0B0203", StringComparison.Ordinal);
+                if (at >= 0 && at + 8 <= hex.Length)
+                {
+                    assignments.Add(hex.Substring(at + 6, 2));
+                }
+            };
+
+            clientCodec.SendPacket(new XmsgPacket(first.BuildConnect("D102")));
+            clientCodec.SendPacket(new XmsgPacket(first.BuildSessionSetup()));
+
+            // A second, independent terminal on the same server - its own client port, so the server
+            // sees a distinct endpoint and allocates tty2 alongside the first.
+            TadConnectClient second = new TadConnectClient(100, 102, 0x02C6, seed: 0x14);
+            clientCodec.SendPacket(new XmsgPacket(second.BuildConnect("D102")));
+            clientCodec.SendPacket(new XmsgPacket(second.BuildSessionSetup()));
+
+            Assert.Equal(2, server.SessionCount);
+
+            Assert.True(
+                assignments.Count >= 2,
+                $"expected a 7LUN index in each session's port assignment, saw {assignments.Count}");
+
+            Assert.True(
+                assignments[0] != assignments[1],
+                "both sessions were handed the SAME TAD logical unit index ("
+                    + assignments[0] + ") - a real terminal is told 'TAD LOGICAL UNIT NO: "
+                    + (768 + Convert.ToInt32(assignments[0], 16)) + "' for both, which is the"
+                    + " compile-time-constant bug this guards.");
+        }
+
+        /// <summary>
+        /// The connect-accept, the port assignment and the priming DUMM carry our OWN consecutive
+        /// Flags 1 - they never repeat a number, and never echo the asker's.
+        /// </summary>
+        /// <remarks>
+        /// <para><b>The defect this pins</b></para>
+        /// <para>
+        /// Those frames used to echo the request's Flags 1. With our own counter behind the asker's, the
+        /// echo pulled the port assignment up and left the priming DUMM REPEATING the accept's number -
+        /// live, they went out <c>0000, 0001, 0000</c>. A repeated number is dropped in silence, so D100
+        /// acknowledged all three at the link layer and its CONNECT-TO program then did nothing.
+        /// </para>
+        /// <para><b>Why the rule is right</b></para>
+        /// <para>
+        /// <c>conn-to-d102-from-100.pcapng</c> has a real ND answering these rungs while the two sides'
+        /// counters are 0x37 apart, which is what separates an echo from an own counter that happens to
+        /// line up:
+        /// </para>
+        /// <code>
+        /// client 100:   connect 00f8    session-setup 00f9    reply 00fa
+        /// server 102:   accept  012f    port-assign   0130    DUMM  0131
+        /// </code>
+        /// <para>
+        /// The accept answers a letter numbered <c>00f8</c> and goes out <c>012f</c>. Its own counter,
+        /// consecutive, not the asker's.
+        /// </para>
+        /// <para>
+        /// The assertion is that the numbers are DISTINCT and ASCENDING, not that they equal any
+        /// particular value - the starting point depends on link history, and pinning it would make this
+        /// a snapshot of today's run rather than a statement of the rule.
+        /// </para>
+        /// </remarks>
+        [Fact]
+        public void ServerHost_SetupFrames_UseOurOwnAscendingFlags1_NeverRepeating()
+        {
+            TerminalCapture terminal = new TerminalCapture();
+            TadConnectClient client = BuildViaServerHost(terminal, out XmsgCodec clientCodec);
+
+            List<ushort> serverFlags1 = new List<ushort>();
+            clientCodec.PacketReceived += delegate (string linkId, XmsgPacketInfo packet)
+            {
+                // Data frames only: acknowledgements legitimately carry the number being acknowledged.
+                if (packet.Frame.Header != null
+                    && packet.Frame.Header.Subtype == SintranPacketSubtype.Data)
+                {
+                    serverFlags1.Add(packet.Frame.Header.Flags1);
+                }
+            };
+
+            clientCodec.SendPacket(new XmsgPacket(client.BuildConnect("D102")));
+            clientCodec.SendPacket(new XmsgPacket(client.BuildSessionSetup()));
+
+            // The accept, the port assignment and the priming DUMM.
+            Assert.True(
+                serverFlags1.Count >= 3,
+                "expected at least the accept, port assignment and DUMM, got " + serverFlags1.Count);
+
+            for (int i = 1; i < serverFlags1.Count; i++)
+            {
+                Assert.True(
+                    serverFlags1[i] > serverFlags1[i - 1],
+                    "frame " + i + " went out at Flags1 0x" + serverFlags1[i].ToString("X4")
+                        + " after 0x" + serverFlags1[i - 1].ToString("X4")
+                        + " - the setup frames must ascend, and a repeat is dropped in silence by the peer.");
+            }
         }
 
         /// <summary>
@@ -672,7 +988,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
 
             // Poison attempt: a command frame that is valid EXCEPT its Counter, which implies link
             // seed 0x16 instead of 0x14 (the measured live poisoning signature). The server must
-            // answer it — and everything after it — with envelopes still derived from the TRUE seed.
+            // answer it - and everything after it - with envelopes still derived from the TRUE seed.
             XmsgFrame poisoned = client.BuildInput("help");
             poisoned.Header!.Counter = (byte)(poisoned.Header.Counter + 2);
             poisoned.ClearRawBytes();
@@ -695,7 +1011,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
                 checkedFrames++;
             }
 
-            Assert.True(checkedFrames > 0, "no server data frames captured — the scenario did not run");
+            Assert.True(checkedFrames > 0, "no server data frames captured - the scenario did not run");
         }
 
         /// <summary>
@@ -795,11 +1111,11 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
 
         /// <summary>
         /// In the default <see cref="TadOutputMode.CompleteSegments"/> mode the FIRST frame of a
-        /// >255-byte reply is a COMPLETE BDAT segment of at most 240 bytes — NOT a 255-byte sentinel —
+        /// >255-byte reply is a COMPLETE BDAT segment of at most 240 bytes - NOT a 255-byte sentinel -
         /// and carries no RFI (more follows). This is the receiver-decode-backed construct
-        /// (COS-CONN-TO-E02-Analysis.md §5b): no count==0xFF anywhere, plain complete elements, window-of-1.
-        /// (The in-memory harness is single-shot — it does not pump the client ACKs that release later
-        /// segments — so only the first frame is observable here, as in the sentinel test above; whole-reply
+        /// (COS-CONN-TO-E02-Analysis.md section 5b): no count==0xFF anywhere, plain complete elements, window-of-1.
+        /// (The in-memory harness is single-shot - it does not pump the client ACKs that release later
+        /// segments - so only the first frame is observable here, as in the sentinel test above; whole-reply
         /// delivery is a live-machine property.)
         /// </summary>
         [Fact]
@@ -945,8 +1261,8 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             TadConnectClient client = BuildViaServerHost(terminal, out XmsgCodec clientCodec);
 
             // Connect, then the full client-driven bring-up ladder as every real capture shows it:
-            // TMOD chain (host stays silent) → ESCA (host: ESRS + RESE#1) → RECO (host: RESE#2)
-            // → RECO (host: the MOTD banner). See XMSG-TAD-REAL-SETUP-REFERENCE-2026-07-07.md §1.
+            // TMOD chain (host stays silent) -> ESCA (host: ESRS + RESE#1) -> RECO (host: RESE#2)
+            // -> RECO (host: the MOTD banner). See XMSG-TAD-REAL-SETUP-REFERENCE-2026-07-07.md section 1.
             clientCodec.SendPacket(new XmsgPacket(client.BuildConnect("D102")));
             clientCodec.SendPacket(new XmsgPacket(client.BuildTerminalSetup()));
             clientCodec.SendPacket(new XmsgPacket(client.BuildEsca()));
@@ -964,7 +1280,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
 
         /// <summary>
         /// The bring-up follows the captured client-driven ladder byte-for-byte in shape
-        /// (XMSG-TAD-REAL-SETUP-REFERENCE-2026-07-07.md §1): the host is SILENT after the TMOD chain;
+        /// (XMSG-TAD-REAL-SETUP-REFERENCE-2026-07-07.md section 1): the host is SILENT after the TMOD chain;
         /// ESCA is answered by ESRS (ff 0x86) + RESE#1 (ff 0x96); the first RECO by RESE#2 (ff 0x92);
         /// the second RECO by the banner (ff 0x96). Regression for the old unprompted
         /// 0x20+RESE+RESE+MOTD burst, which no real capture contains.
@@ -1016,8 +1332,167 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         }
 
         /// <summary>
-        /// A XENSE reject (subtype 0x07, code 0xFFDE in Flags2) of our connect-accept — the peer's
-        /// XMSG restarted while our persisted sequence had climbed — must be answered by re-sending
+        /// A TAD message type we cannot name is answered with a REJE carrying that type, not with
+        /// silence.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// From the version J driver: the normal-priority walk in
+        /// <c>SINTRAN/NPL-SOURCE-2/NPL-CLEAN/20-COS-TAD-POF-CODE.NPL</c> falls through to
+        /// <c>CALL REJECT</c> for anything it does not accept, and <c>REJECT</c> writes exactly
+        /// <c>7REJE</c>, a count of 1, and the offending type.
+        /// </para>
+        /// <para>
+        /// Before this change the server returned an empty frame list here, which leaves a real peer's
+        /// suspended program waiting for a response that never comes.
+        /// </para>
+        /// </remarks>
+        [Fact]
+        public void ServerHost_UnknownTadOpcode_IsAnsweredWithReje()
+        {
+            TerminalCapture terminal = new TerminalCapture();
+            List<XmsgFrame> fromServer = new List<XmsgFrame>();
+            TadConnectClient client = BuildViaServerHost(terminal, out XmsgCodec clientCodec);
+            clientCodec.PacketReceived += delegate (string linkId, XmsgPacketInfo packet)
+            {
+                fromServer.Add(packet.Frame);
+            };
+
+            clientCodec.SendPacket(new XmsgPacket(client.BuildConnect("D102")));
+
+            fromServer.Clear();
+            clientCodec.SendPacket(new XmsgPacket(client.BuildBareControl(0x77)));
+
+            byte[] reject = FindTadMessage(fromServer, 0xFE);
+            Assert.Equal(new byte[] { 0xFE, 0x01, 0x77 }, reject);
+        }
+
+        /// <summary>
+        /// An ISRQ - the peer's program asking how many input characters are waiting - is answered
+        /// with an ISRS instead of leaving that program suspended.
+        /// </summary>
+        /// <remarks>
+        /// <c>BISIZ</c>/<c>OISIZ</c> in <c>06-COS-TAD-RES-CODE.NPL</c> send the request and then
+        /// suspend the caller until the matching response arrives. We hold no per-session input
+        /// buffer, so the honest count is zero - two bytes, high byte first, the order the driver
+        /// reads them back in.
+        /// </remarks>
+        [Fact]
+        public void ServerHost_Isrq_IsAnsweredWithIsrs()
+        {
+            TerminalCapture terminal = new TerminalCapture();
+            List<XmsgFrame> fromServer = new List<XmsgFrame>();
+            TadConnectClient client = BuildViaServerHost(terminal, out XmsgCodec clientCodec);
+            clientCodec.PacketReceived += delegate (string linkId, XmsgPacketInfo packet)
+            {
+                fromServer.Add(packet.Frame);
+            };
+
+            clientCodec.SendPacket(new XmsgPacket(client.BuildConnect("D102")));
+
+            fromServer.Clear();
+            clientCodec.SendPacket(new XmsgPacket(client.BuildBareControl((byte)TadOp.Isrq)));
+
+            byte[] response = FindTadMessage(fromServer, (byte)TadOp.Isrs);
+            Assert.Equal(new byte[] { 0x23, 0x02, 0x00, 0x00 }, response);
+        }
+
+        /// <summary>
+        /// An escape is answered with ESRS while escape is enabled and with EDRS while it is
+        /// inhibited - the two are different messages, and which one goes out depends on our own
+        /// state rather than on the arriving message.
+        /// </summary>
+        /// <remarks>
+        /// <c>ESCDIS</c> in <c>20-COS-TAD-POF-CODE.NPL</c>: escape enabled processes the escape and
+        /// answers from the prebuilt <c>ERESP</c> head; escape disabled answers from <c>EDRSP</c>
+        /// ("ESCAPE RESPONSE ESCAPE DISABLED BUFFER") and runs no escape handling at all. We announce
+        /// our state with every CESC we send, and the login sends CESC 00 while the password is typed.
+        /// The responder used to send ESRS unconditionally.
+        /// </remarks>
+        [Fact]
+        public void ServerHost_EscapeWhileEscapeDisabled_IsAnsweredWithEdrsNotEsrs()
+        {
+            TerminalCapture terminal = new TerminalCapture();
+            List<XmsgFrame> fromServer = new List<XmsgFrame>();
+            TadConnectClient client = BuildViaServerHost(terminal, out XmsgCodec clientCodec);
+            clientCodec.PacketReceived += delegate (string linkId, XmsgPacketInfo packet)
+            {
+                fromServer.Add(packet.Frame);
+            };
+
+            // Drive the whole bring-up ladder so the MOTD is out and the session is past the
+            // client-driven ESCA/RECO steps - only then does an ESCA reach the escape responder.
+            clientCodec.SendPacket(new XmsgPacket(client.BuildConnect("D102")));
+            clientCodec.SendPacket(new XmsgPacket(client.BuildTerminalSetup()));
+            clientCodec.SendPacket(new XmsgPacket(client.BuildEsca()));
+            clientCodec.SendPacket(new XmsgPacket(client.BuildReco()));
+            clientCodec.SendPacket(new XmsgPacket(client.BuildReco()));
+
+            // At the "ENTER " prompt escape is still enabled, so an escape gets the ordinary ESRS.
+            fromServer.Clear();
+            clientCodec.SendPacket(new XmsgPacket(client.BuildEsca()));
+            Assert.Equal(new byte[] { 0x20, 0x00 }, FindTadMessage(fromServer, (byte)TadOp.Esrs));
+            Assert.Null(FindTadMessage(fromServer, (byte)TadOp.Edrs));
+
+            // The username line makes the host inhibit escape for the password (it sends CESC 00).
+            clientCodec.SendPacket(new XmsgPacket(client.BuildInput("SYSTEM")));
+
+            fromServer.Clear();
+            clientCodec.SendPacket(new XmsgPacket(client.BuildEsca()));
+            Assert.Equal(new byte[] { 0x29, 0x00 }, FindTadMessage(fromServer, (byte)TadOp.Edrs));
+            Assert.Null(FindTadMessage(fromServer, (byte)TadOp.Esrs));
+            Assert.Null(FindTadMessage(fromServer, (byte)TadOp.Esrs));
+        }
+
+        /// <summary>
+        /// Returns the on-wire bytes of the first TAD message with the given opcode in a captured
+        /// list of frames, or null when none carries it.
+        /// </summary>
+        /// <param name="frames">
+        /// The captured frames.
+        /// </param>
+        /// <param name="opcode">
+        /// The opcode to find.
+        /// </param>
+        /// <returns>
+        /// The message bytes as opcode, count and data, or null.
+        /// </returns>
+        private static byte[]? FindTadMessage(List<XmsgFrame> frames, byte opcode)
+        {
+            for (int i = 0; i < frames.Count; i++)
+            {
+                if (frames[i].Tad == null)
+                {
+                    continue;
+                }
+
+                IReadOnlyList<TadMessage> messages = frames[i].Tad!.Messages;
+                for (int j = 0; j < messages.Count; j++)
+                {
+                    if (messages[j].Opcode != opcode)
+                    {
+                        continue;
+                    }
+
+                    byte[] data = messages[j].Data;
+                    byte[] whole = new byte[data.Length + 2];
+                    whole[0] = messages[j].Opcode;
+                    whole[1] = (byte)data.Length;
+                    for (int k = 0; k < data.Length; k++)
+                    {
+                        whole[k + 2] = data[k];
+                    }
+
+                    return whole;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// A XENSE reject (subtype 0x07, code 0xFFDE in Flags2) of our connect-accept - the peer's
+        /// XMSG restarted while our persisted sequence had climbed - must be answered by re-sending
         /// the accept ONE Flags1 lower with a formula-consistent envelope (step-down convergence).
         /// Regression for the live 2026-07-07 hang: the ServerHost path had no XENSE recovery (only
         /// the legacy TadResponder did), so the connect-to stalled forever.
@@ -1095,7 +1570,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         }
 
         /// <summary>
-        /// Counts the data frames (frames with a sub-header — ACKs carry none) in a captured list.
+        /// Counts the data frames (frames with a sub-header - ACKs carry none) in a captured list.
         /// </summary>
         /// <param name="frames">
         /// The captured frames.

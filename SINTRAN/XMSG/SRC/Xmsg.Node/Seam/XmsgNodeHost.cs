@@ -211,6 +211,48 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
         }
 
         /// <summary>
+        /// Sends frames a server built outside the request/response flow. For SHUTDOWN only.
+        /// </summary>
+        /// <param name="frames">
+        /// The frames to send, in order.
+        /// </param>
+        /// <returns>
+        /// The number of frames handed to the codec.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="frames"/> is null.
+        /// </exception>
+        /// <remarks>
+        /// <para><b>Deliberately narrow, and why it exists at all</b></para>
+        /// <para>
+        /// A server normally answers an incoming frame or queues pending output for
+        /// <see cref="Pump"/>; there is no general out-of-band send, and that restraint is worth
+        /// keeping. Shutdown is the one case it cannot cover: the teardown is not a reply to
+        /// anything and there is no later tick to drain it on.
+        /// </para>
+        /// <para>
+        /// MEASURED 2026-08-17: stopping the runner with three TAD sessions open killed D100's XMSG
+        /// outright - a fatal internal inconsistency from holding half a session - and cost an
+        /// emulator restart. Use this from a <c>Stopping</c> handler and nowhere else; for anything
+        /// during normal running, queue the output and let <see cref="Pump"/> carry it.
+        /// </para>
+        /// </remarks>
+        public int SendFrames(IReadOnlyList<XmsgFrame> frames)
+        {
+            if (frames == null)
+            {
+                throw new ArgumentNullException(nameof(frames));
+            }
+
+            for (int i = 0; i < frames.Count; i++)
+            {
+                _codec.SendPacket(new XmsgPacket(frames[i]));
+            }
+
+            return frames.Count;
+        }
+
+        /// <summary>
         /// Tells a peer that OUR XMSG has just started, so it resets the datagram sequence it
         /// expects from us and both sides begin at <c>0x0000</c>.
         /// </summary>
@@ -267,6 +309,48 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
             // announcing to us may reset it.
             XmsgFrame request = XmsgFrameBuilder.ReachabilityRequest(remoteNode, NodeNumber, 0x00);
             _codec.SendPacket(new XmsgPacket(request));
+        }
+
+        /// <summary>
+        /// Announces our restart AND zeroes our own stored sequence for that node - the recovery
+        /// for a pair that is already diverged with us AHEAD.
+        /// </summary>
+        /// <param name="remoteNode">
+        /// The node to announce to and reset against.
+        /// </param>
+        /// <remarks>
+        /// <para><b>This is the experiment, not the settled answer. Read before using.</b></para>
+        /// <para>
+        /// <see cref="AnnounceRestart"/> deliberately keeps our counter, because D103 did NOT reset
+        /// its expectation when told, so zeroing ourselves put us BEHIND and every frame afterwards
+        /// was dropped in silence. That measurement stands and is why the two methods are separate.
+        /// </para>
+        /// <para>
+        /// But it leaves no way out of the opposite disagreement. When our counter is AHEAD - the
+        /// peer's XMSG restarted and ours did not - every frame draws a XENSE, and the only
+        /// step-down recovery we have moves one number per reject. MEASURED 2026-08-09: against a
+        /// drift of that size it does not converge, it storms - 127 resends walking 0x009E, 0x009D,
+        /// 0x009C down, and still going when the runner was killed.
+        /// </para>
+        /// <para>
+        /// So this method exists to answer ONE question against a real machine: <b>does D100 reset
+        /// its expected-from-us when it receives our reachability request?</b> If it does, the frame
+        /// we send at <c>0x0000</c> afterwards is accepted and this is the cure. If it does not, the
+        /// frame is dropped in silence exactly as D103's was, and we have learned that cheaply
+        /// instead of by inference. Do NOT promote this to automatic until a run says which.
+        /// </para>
+        /// <para>
+        /// The request carries Flags 1 <c>0xFFFF</c>, outside the ordinary sequence, so it can
+        /// always be sent whatever state the counters are in.
+        /// </para>
+        /// </remarks>
+        public void AnnounceRestartAndResetOurs(ushort remoteNode)
+        {
+            AnnounceRestart(remoteNode);
+
+            // KEEPING the link matters: we can only learn a link from an inbound datagram, so
+            // dropping it here leaves us unable to address a peer we were talking to a moment ago.
+            ServerHost?.ResetSequenceKeepingLink(remoteNode);
         }
 
         /// <summary>

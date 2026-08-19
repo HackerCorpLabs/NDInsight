@@ -1,0 +1,191 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "formatName": "DOM",
+  "fullName": "New ND-500(0) Domain / Segment Format",
+  "description": "Self-contained domain (:DOM) and free-segment (:SEG) format produced by the ND Linker (ND-211224) and run directly by the ND-500(0) Monitor.",
+  "docFile": "DOM-FILE-FORMAT.md",
+  "byteOrder": "big-endian",
+  "verification": {
+    "status": "struct layout transcribed from working C code (pcc-nd500 dom.h/dom_utils.c), used to run real .DOM files; FLAGS byte (0x06) independently confirmed against a freshly CONVERT-DOM-A03-produced LINKAGE-LOAD-H02.DOM",
+    "sourceFile": "/home/ronny/repos/ragge/pcc-nd500/src/include/nd500/dom.h",
+    "date": "2026-08-10"
+  },
+  "headerSizeBytes": 4096,
+  "pageSizeBytes": 2048,
+  "maxSegments": 32,
+  "maxIndirectSegments": 32,
+  "maxLinkedSegments": 32,
+  "maxN100Segments": 10,
+  "maxChildDomains": 16,
+  "fileHeader": {
+    "offset": "0x00",
+    "sizeBytes": 16,
+    "sharedByDomAndSeg": true,
+    "fields": [
+      { "name": "linklock", "offset": "0x00", "size": 4, "type": "uint32", "description": "Random lock value; segments linked to this domain must match." },
+      { "name": "version", "offset": "0x04", "size": 1, "type": "uint8", "description": "ND Linker version." },
+      { "name": "revision", "offset": "0x05", "size": 1, "type": "uint8", "description": "ND Linker revision." },
+      { "name": "flags", "offset": "0x06", "size": 1, "type": "bitfield", "description": "Domain flags, see flagsBits.", "verified": true },
+      { "name": "machine", "offset": "0x07", "size": 1, "type": "uint8", "description": "Target machine type." },
+      { "name": "osId", "offset": "0x08", "size": 1, "type": "uint8", "description": "Operating system ID." },
+      { "name": "reserved", "offset": "0x09", "size": 1, "type": "uint8" },
+      { "name": "subsystemKey", "offset": "0x0A", "size": 6, "type": "bytes" }
+    ]
+  },
+  "flagsBits": [
+    { "bit": 3, "name": "TRAPBLOCK_VALID", "value": "0x08" },
+    { "bit": 4, "name": "IS_DOMAIN_FILE", "value": "0x10", "description": "TRUE if :DOM file (vs :SEG)." },
+    { "bit": 5, "name": "IS_ROOT_DOMAIN", "value": "0x20", "description": "Root-domain (Multidomain)." },
+    { "bit": 6, "name": "IS_SINTRAN_III", "value": "0x40", "description": "SIN-III domain." },
+    { "bit": 7, "name": "IS_ND500", "value": "0x80", "description": "TRUE if ND-500/5000." }
+  ],
+  "segmentPart": {
+    "sizeBytes": 28,
+    "description": "One program OR one data segment's descriptor.",
+    "fields": [
+      { "name": "lb", "offset": 0, "size": 4, "type": "uint32", "description": "Lower Bound (file offset), OR name-pool index if LINKED_SEGMENT bit set." },
+      { "name": "sz", "offset": 4, "size": 4, "type": "uint32", "description": "Size in bytes, OR LINKKEY if LINKED_SEGMENT." },
+      { "name": "att", "offset": 8, "size": 4, "type": "bitfield", "description": "Attributes, see segAttBits." },
+      { "name": "fla", "offset": 12, "size": 4, "type": "uint32", "description": "Fixed Lower Address (virtual load address)." },
+      { "name": "fua", "offset": 16, "size": 4, "type": "uint32", "description": "Fixed Upper Address." },
+      { "name": "afa", "offset": 20, "size": 4, "type": "uint32", "description": "Absolute Fix Address." },
+      { "name": "minp", "offset": 24, "size": 2, "type": "uint16", "description": "Min pages, OR MIN name index if LINKED_SEGMENT." },
+      { "name": "maxp", "offset": 26, "size": 2, "type": "uint16", "description": "Max pages, OR MAX name index if LINKED_SEGMENT." }
+    ]
+  },
+  "segAttBits": [
+    { "bit": 10, "name": "FIXED_ABSOLUTE" },
+    { "bit": 11, "name": "FIXED_CONTIGUOUS" },
+    { "bit": 12, "name": "FIXED_SCATTERED" },
+    { "bit": 13, "name": "SEGMENT_USED", "description": "Slot contains valid data - test before reading." },
+    { "bit": 14, "name": "LINKED_SEGMENT", "description": "LB/SZ hold name-pool index / link key, not offset/size." },
+    { "bit": 15, "name": "ROUTINE_VECTOR" },
+    { "bit": 16, "name": "INSUFF_LOADED" },
+    { "bit": 17, "name": "FORTRAN_COMMON" },
+    { "bit": 18, "name": "OTHER_MACHINE" },
+    { "bit": 19, "name": "START_VECTOR" },
+    { "bit": 20, "name": "INDIRECT" },
+    { "bit": 21, "name": "SHARED_ND100" },
+    { "bit": 22, "name": "COPY_CAPABILITY" },
+    { "bit": 23, "name": "CLEAR_CAPABILITY" },
+    { "bit": 24, "name": "CACHE" },
+    { "bit": 25, "name": "FILE_AS_SEGMENT" },
+    { "bit": 26, "name": "EMPTY_DATA" },
+    { "bit": 27, "name": "SHARED_DATA" },
+    { "bit": 28, "name": "PROGRAM_SEGMENT" },
+    { "bit": 29, "name": "SWAP_ON_SWAPFILE" },
+    { "bit": 30, "name": "PARAMETER_ACCESS" },
+    { "bit": 31, "name": "WRITE_PERMIT" }
+  ],
+  "domainReference": {
+    "sizeBytes": 8,
+    "description": "Mother/child domain reference.",
+    "fields": [
+      { "name": "minIndex", "offset": 0, "size": 2, "type": "uint16", "description": "MIN index to name in name pool." },
+      { "name": "maxIndex", "offset": 2, "size": 2, "type": "uint16", "description": "MAX index to name in name pool." },
+      { "name": "linkKey", "offset": 4, "size": 4, "type": "uint32", "description": "Should match referenced domain's linklock." }
+    ]
+  },
+  "commonPart": {
+    "offset": "0xC6",
+    "sizeBytes": 66,
+    "sharedByDomAndSeg": true,
+    "fields": [
+      { "name": "freind", "offset": "0xC6", "size": 2, "type": "uint16", "description": "Free byte pointer in name pool." },
+      { "name": "debLb", "offset": "0xC8", "size": 4, "type": "uint32", "description": "Debug info lower bound." },
+      { "name": "debSz", "offset": "0xCC", "size": 4, "type": "uint32", "description": "Debug info size." },
+      { "name": "linkLb", "offset": "0xD0", "size": 4, "type": "uint32", "description": "Link info lower bound." },
+      { "name": "linkSz", "offset": "0xD4", "size": 4, "type": "uint32", "description": "Link info size." },
+      { "name": "staddr", "offset": "0xD8", "size": 4, "type": "uint32", "description": "Start address." },
+      { "name": "restaddr", "offset": "0xDC", "size": 4, "type": "uint32", "description": "Restart address." },
+      { "name": "tha", "offset": "0xE0", "size": 4, "type": "uint32", "description": "Trap Handler Address." },
+      { "name": "mte2", "offset": "0xE4", "size": 4, "type": "uint32", "description": "Memory Trap Enable, high word." },
+      { "name": "mte1", "offset": "0xE8", "size": 4, "type": "uint32", "description": "Memory Trap Enable, low word." },
+      { "name": "ote2", "offset": "0xEC", "size": 4, "type": "uint32", "description": "Own Trap Enable, high word." },
+      { "name": "ote1", "offset": "0xF0", "size": 4, "type": "uint32", "description": "Own Trap Enable, low word." },
+      { "name": "cte2", "offset": "0xF4", "size": 4, "type": "uint32", "description": "Child Trap Enable, high word." },
+      { "name": "cte1", "offset": "0xF8", "size": 4, "type": "uint32", "description": "Child Trap Enable, low word." },
+      { "name": "temm2", "offset": "0xFC", "size": 4, "type": "uint32", "description": "Trap Enable Mod Mask, high word." },
+      { "name": "temm1", "offset": "0x100", "size": 4, "type": "uint32", "description": "Trap Enable Mod Mask, low word." },
+      { "name": "priority", "offset": "0x104", "size": 4, "type": "uint32", "description": "Process priority." }
+    ]
+  },
+  "indirectSegment": {
+    "sizeBytes": 10,
+    "fields": [
+      { "name": "minIndex", "offset": 0, "size": 2, "type": "uint16" },
+      { "name": "maxIndex", "offset": 2, "size": 2, "type": "uint16" },
+      { "name": "linkKey", "offset": 4, "size": 4, "type": "uint32" },
+      { "name": "slog", "offset": 8, "size": 1, "type": "uint8", "description": "Logical segment number." },
+      { "name": "reserved", "offset": 9, "size": 1, "type": "uint8" }
+    ]
+  },
+  "domHeader": {
+    "totalSizeBytes": 4096,
+    "layout": [
+      { "field": "fileHeader", "offset": "0x000", "size": 16, "ref": "fileHeader" },
+      { "field": "privileges", "offset": "0x010", "size": 8, "type": "uint16[4]", "description": "Domain privileges." },
+      { "field": "padding", "offset": "0x018", "size": 14 },
+      { "field": "mother", "offset": "0x026", "size": 8, "ref": "domainReference" },
+      { "field": "children", "offset": "0x02E", "size": 128, "type": "domainReference[16]" },
+      { "field": "padding", "offset": "0x0AE", "size": 24 },
+      { "field": "commonPart", "offset": "0x0C6", "size": 66, "ref": "commonPart" },
+      { "field": "indirectSegments", "offset": "0x108", "size": 320, "type": "indirectSegment[32]" },
+      { "field": "languageMsal", "offset": "0x248", "size": 4, "type": "uint32" },
+      { "field": "idxFreeMin", "offset": "0x24C", "size": 2, "type": "uint16" },
+      { "field": "idxFreeMax", "offset": "0x24E", "size": 2, "type": "uint16" },
+      { "field": "padding", "offset": "0x250", "size": 4 },
+      { "field": "segmentTable", "offset": "0x254", "size": 1792, "type": "segmentDescriptor[32]", "description": "32 x (program part + data part), 56 bytes each." },
+      { "field": "namePool", "offset": "0x954", "size": 1708, "type": "bytes" }
+    ]
+  },
+  "segHeader": {
+    "totalSizeBytes": 4096,
+    "description": "Holds exactly one program+data segment pair; no mother/child, no segment table.",
+    "layout": [
+      { "field": "fileHeader", "offset": "0x000", "size": 16, "ref": "fileHeader" },
+      { "field": "padding", "offset": "0x010", "size": 4 },
+      { "field": "programPart", "offset": "0x014", "size": 28, "ref": "segmentPart" },
+      { "field": "dataPart", "offset": "0x030", "size": 28, "ref": "segmentPart" },
+      { "field": "padding", "offset": "0x04C", "size": 36 },
+      { "field": "progLogseg", "offset": "0x070", "size": 1, "type": "uint8" },
+      { "field": "dataLogseg", "offset": "0x071", "size": 1, "type": "uint8" },
+      { "field": "n100Count", "offset": "0x072", "size": 2, "type": "uint16" },
+      { "field": "n100Segments", "offset": "0x074", "size": 120, "type": "n100RtSegment[10]" },
+      { "field": "commonPart", "offset": "0x0C6", "size": 66, "ref": "commonPart" },
+      { "field": "indirectSegments", "offset": "0x108", "size": 320, "type": "indirectSegment[32]" },
+      { "field": "languageMsal", "offset": "0x1C8", "size": 4, "type": "uint32" },
+      { "field": "idxMin", "offset": "0x1CC", "size": 2, "type": "uint16" },
+      { "field": "idxMax", "offset": "0x1CE", "size": 2, "type": "uint16" },
+      { "field": "reserved", "offset": "0x1D0", "size": 4 },
+      { "field": "linkedSegments", "offset": "0x1D4", "size": 512, "type": "linkedSegment[32]" },
+      { "field": "namePool", "offset": "0x3D4", "size": 3116, "type": "bytes" }
+    ]
+  },
+  "n100RtSegment": {
+    "sizeBytes": 12,
+    "fields": [
+      { "name": "n100sw", "offset": 0, "size": 6, "type": "bytes", "description": "ND-100 segment name." },
+      { "name": "n100sno", "offset": 6, "size": 2, "type": "uint16", "description": "ND-100 segment number." },
+      { "name": "n500logpa", "offset": 8, "size": 2, "type": "uint16", "description": "Map address in ND-500 logical memory (pages)." },
+      { "name": "n100size", "offset": 10, "size": 2, "type": "uint16", "description": "ND-100 segment size (pages)." }
+    ]
+  },
+  "linkedSegment": {
+    "sizeBytes": 16,
+    "fields": [
+      { "name": "progMin", "offset": 0, "size": 2, "type": "uint16" },
+      { "name": "progMax", "offset": 2, "size": 2, "type": "uint16" },
+      { "name": "progKey", "offset": 4, "size": 4, "type": "uint32" },
+      { "name": "dataMin", "offset": 8, "size": 2, "type": "uint16" },
+      { "name": "dataMax", "offset": 10, "size": 2, "type": "uint16" },
+      { "name": "dataKey", "offset": 12, "size": 4, "type": "uint32" }
+    ]
+  },
+  "namePool": {
+    "domStart": "0x954",
+    "segStart": "0x454",
+    "end": "0x1000",
+    "resolution": "name = pool[minIndex..maxIndex); minIndex==0 || maxIndex==0 || minIndex>=maxIndex means no name."
+  }
+}

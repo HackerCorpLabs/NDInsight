@@ -1,0 +1,1790 @@
+% ---------------------------------------------------------------------------
+% CHAT - the chat client, an ordinary SINTRAN PROG.
+%
+% COMPILED AND RUN ON D100, 2026-08-18. Two terminals, one room, both
+% directions:
+%
+%     @CHAT
+%     CHAT: joining, type and press return
+%     RONNY: HELLO FROM A REAL ND
+%
+% This header said "NOT COMPILED, NOT RUN" for as long as that was true and for
+% a while after it stopped being true, which is its own small lesson - see the
+% note at the end of the file about what else went stale with it.
+%
+% Run it with @CHAT. It joins CHAT-LOBBY on the local system, then sits in a
+% loop watching two things at once: the keyboard and the port. Type a line and
+% it is said to the room; anything the room says appears on the screen.
+%
+% THE TWO-THINGS-AT-ONCE PROBLEM, which looked like the hard part, is solved by
+% two facts from the manuals rather than by any trickery:
+%
+%   XMPFRCV WITHOUT XFWTF returns AT ONCE rather than waiting, so the port can
+%   be polled. A message arrived exactly when the status is POSITIVE: the
+%   constants file says the message TYPE is the successful status from XFRCV,
+%   and the types run XMTNO=1 to XMTPS=6 while every user error is negative.
+%
+%   TerminalNoWait (MON 307B) switches the terminal to no-wait, after which
+%   InByte (MON 1B) returns at once too. Device 1 is your own terminal.
+%
+% So no second RT program, no shared buffer and no timeouts: an ordinary loop.
+%
+% AND WHAT DOES InByte GIVE BACK WHEN NOTHING WAS TYPED? Not a character:
+% "In No Wait, the program does not wait for input or output to complete.
+% Monitor calls like InByte return ERROR CODE 3 instead." - the NoWaitSwitch
+% entry in the Monitor Calls manual. In PLANC a monitor-call error arrives as a
+% ROUTINEERROR, handled with ON ROUTINEERROR DO ... ENDON and read from ErrCode,
+% which is the form that manual's own PLANC example for InByte uses.
+%
+% An earlier version of this loop assumed InByte returned some value that would
+% mask to 31 or below and could be ignored. That was a guess and it was wrong.
+%
+% THE PARITY TRAP, and the Monitor Calls manual warns about it in so many
+% words: terminal input sets bit 7 as an even-parity bit, so carriage return
+% arrives as 141, NOT 13. Compare against 13 and the client never sees the user
+% press return, and looks hung rather than wrong. Everything read is masked
+% with 127 before it is looked at.
+%
+% Sending the join is the letter sequence from the COSMOS Programmer Guide's
+% own worked example (page 99): XMPBLET builds an XSLET letter header in a
+% local buffer, XMPFGET reserves an XMSG buffer, XMPFWRI writes the header into
+% it and then writes OUR data after it, and XMPROUT sends the whole thing via
+% XROUT. The room's name is looked up by XROUT; we never need its address.
+% That trailing-data arrangement is exactly how the join carries a nickname.
+%
+% THREE CORRECTIONS FROM APPENDIX G, the guide's own sample CLIENT and SERVER:
+%
+%   flags are 2**BIT      XFWTF is a BIT POSITION (15), not a flags word. The
+%                         samples both write "2**XFWTF =: FLAGS". Passing 15
+%                         would set bits 0,1,2,3 - four unrelated options - and
+%                         the wait would simply not happen.
+%   XMMSGIDENTIFIER       the message-identifier type, with two M's. Written
+%                         "XMMSGIDENTIFIER: MSGIDENT" in the sample.
+%   XMUSERADDRESS         and the address idiom is
+%                         ADDR(BUF(0)) FORCE XMUSERADDRESS.
+%
+%                         ROUND brackets. The guide's sample prints this with
+%                         square ones and it does not compile: PLANC F answers
+%                         EXPECTS ")" ILLEGAL SYNTAX "[" and then INVALID
+%                         PARAMETER LIST for the call around it. Array indexing
+%                         in this language uses parentheses like everything
+%                         else. Trust the compiler over the typesetting.
+%
+% ---------------------------------------------------------------------------
+
+% THE INCLUDE NAMES ON THIS MACHINE, and they are NOT the manual's.
+% The COSMOS guide says XMP:DEFS and XMP:IMPT. Neither exists on D100:
+% the constants ship as (UTILITY)XMSG-PL-VALUES-L:INCL, and there is no
+% :IMPT file at all - the whole UTILITY user was listed to be sure. So the
+% routine and type declarations are ours, built from the guide's reference
+% tables and the PLANC manual's declaration syntax.
+%
+% Our own include is called XMPIMP:INCL on the machine, short, because our
+% file transfer cannot carry a filespec longer than 13 characters. The repo
+% keeps it under the readable name XMSG-PL-IMPORT.INCL and the build renames
+% it on the way over; do not "fix" this to the long name or the transfer
+% silently has nothing to send.
+MODULE chat
+
+% THE INCLUDES GO INSIDE THE MODULE, and this is not a style choice. Placed
+% above MODULE they are compiled into the outer scope, the module body cannot
+% see them, and every call fails with NOT PREVIOUSLY DECLARED "XMPFOPN" while
+% the include's own lines draw no diagnostic at all - so the declarations look
+% accepted and are simply not there. Measured on D100: 33 diagnostics, none of
+% them on the include. The COSMOS guide's appendix G sample has them after
+% MODULE for exactly this reason.
+% THE REAL COSMOS BINDING, installed from ND-10609 on 1998-08-17 (2026-08-17
+% our time) by the product's own COS-LIB-IN-B02:PROG. These are the genuine ND
+% files, not our transcription:
+%
+%   XMP-B02:DEFS   the constants, including the ones that exist nowhere else -
+%                  XMOK=0, and the XMX... standard status values. Its own
+%                  comment records that the library REMAPS the kernel's status:
+%                  "NOTE change from XMSG OK=1".
+%   XMP-B02:IMPT   the types and the IMPORT declarations for 54 routines.
+%   XMP-100-1-B02:BRF  the code behind those names, linked in by CHATCC:MODE.
+%
+% DO NOT ALSO INCLUDE XMSG-PL-VALUES-L:INCL. The two files share 184 constant
+% names, so including both is 184 redefinitions. VALUES-L is the authority for
+% the RAW MON 200B interface and is newer than B02; DEFS is the authority for
+% this library layer. One file per layer - they do not compete.
+$INCLUDE XMP-B02:DEFS
+$INCLUDE XMP-B02:IMPT
+
+    % MON1 IS INBIT - read one byte from a device. This is how PLANC reaches a
+    % monitor call: the runtime provides them as ordinary routines named MONn,
+    % declared exactly like this, and the COSMOS guide's own sample does the
+    % same thing one call along with IMPORT (ROUTINE VOID,VOID: MONO) for MON0.
+    % The signature is copied from ND-60.117.5 appendix 0.2:
+    %
+    %     ROUTINE VOID, BYTE ( INTEGER ) : MON1 (dev)
+    %
+    % NOT MONITOR_CALL. That wants either a MON-CALL-NAMES file this machine
+    % does not have, or generates 5MON_P which neither PLANC runtime defines.
+    IMPORT ( ROUTINE VOID, BYTE (INTEGER) : MON1 )
+
+    % ----- THE THREE MORE THAT CHAT:CNFG NEEDS ------------------------------
+    % All copied from ND-60.117.5 EN PLANC Reference Manual, the MONn appendix,
+    % which is the ONLY place these signatures are written down correctly:
+    %
+    %     ROUTINE VOID, INTEGER ( BYTES, BYTES, INTEGER ) : MON50 (file, default, code)
+    %     ROUTINE BYTE, VOID ( INTEGER )                  : MON2  (dev)
+    %     ROUTINE VOID, VOID ( INTEGER )                  : MON43 (dev)
+    %
+    % MON50 RETURNS THE DEVICE NUMBER and raises a ROUTINEERROR on failure - it
+    % has no status out-parameter, so a missing file can only be learned by
+    % catching the raise. MON2 takes the byte as its IN-VALUE, which is why it
+    % is called "b MON2(dev)" and not "MON2(dev, b)".
+    %
+    % MON43 IS CLOSE, AND IT IS NOT 54. A note in this file used to list the
+    % available calls as "50/54/1/2", which reads as though 54 were the close.
+    % The manual's own table says otherwise: 43B is CloseFile and 54B is
+    % DeleteFile. Getting that wrong would not have failed to compile - it
+    % would have deleted the user's config file every time they set a nickname.
+    IMPORT ( ROUTINE VOID, INTEGER (BYTES, BYTES, INTEGER) : MON50 )
+    IMPORT ( ROUTINE BYTE, VOID (INTEGER) : MON2 )
+    IMPORT ( ROUTINE VOID, VOID (INTEGER) : MON43 )
+
+    % MON70 IS CALLCOMMAND - hand SINTRAN a line as if it had been typed.
+    %
+    %     ROUTINE VOID, VOID ( BYTES ) : MON70 (command)
+    %
+    % Needed because CREATING a file is its own monitor call, CreateFile /
+    % CRALF 221B, and 221 is NOT among the MONn routines the PLANC runtime
+    % provides - the appendix stops at MON263 and has no 221. MON50 opens what
+    % exists; it has no size parameter and cannot make a file. See writeCnfg.
+    IMPORT ( ROUTINE VOID, VOID (BYTES) : MON70 )
+
+    % ----- message kinds, mirroring ChatMessageKind.cs ----------------------
+    INTEGER : kJoin    := 1
+    INTEGER : kWelcome := 2
+    INTEGER : kReject  := 3
+    INTEGER : kSay     := 4
+    INTEGER : kSaid    := 5
+    INTEGER : kLeave   := 6
+    INTEGER : kJoined  := 7
+    INTEGER : kLeft    := 8
+    INTEGER : kRename  := 9
+    INTEGER : kRenamed := 10
+
+    % ONE KIND, BOTH DIRECTIONS. We send it with an empty text to ask; the room
+    % answers with the same kind and the members' names in the text, separated
+    % by single spaces. A second kind for the reply would buy nothing - we know
+    % we asked, and a room never asks us.
+    %
+    % This is the eleventh kind, and the note that stood here saying there was
+    % no eleventh kind is now wrong and has gone. What it warned about still
+    % holds and is worth keeping in plain words: kHello lived here for one day
+    % as half of a handshake we invented, and it was wrong because the sender's
+    % address arrives WITH the message - there was nothing to hand shake about.
+    % /who is different: the membership list is real information that only the
+    % room has, so there is something to ask for.
+    INTEGER : kWho     := 11
+
+    INTEGER : ownTerminal := 1        % device number of your own terminal
+    INTEGER : inputFlag   := 0        % IOFlag 0 = input, 1 = output
+    INTEGER : noWaitOn    := 1        % any non-zero switches no-wait ON
+    INTEGER : parityMask  := 127      % strip the even-parity bit, see above
+    INTEGER : carriageRet := 13
+    INTEGER : emptyInput  := 3        % InByte in no-wait: nothing was typed
+    % How many messages one drain pass will take before going back to the
+    % keyboard. See drainPort: the unbounded version hung on the first run.
+    INTEGER : maxDrain    := 32
+
+    INTEGER ARRAY : stack(0:1000)
+
+    BYTES : letterBuf(0:63)           % the XSLET header XMPBLET builds
+    BYTES : outBuf(0:255)             % our own message, sent after the header
+    % SIZE OF inBuf, named because the read below must clamp against it. XMSG
+    % reports the sender's message size; nothing stops that being larger than
+    % this array, and PLANC checks no bound.
+    INTEGER : inBufSize := 256
+    BYTES : inBuf(0:255)              % what arrives, inBufSize bytes
+    % THE LINE BEING TYPED, and its size is a named constant because the loop
+    % below has to test against it. PLANC does not check array bounds: without
+    % the test, an 81st character is written past the end of this array and into
+    % whatever the compiler laid out next - which here is roomName, typedLen,
+    % serverMagic and joined. A user holding a key down would quietly corrupt
+    % the program's own state.
+    % THE LONGEST ROOM OR NICK NAME a command may carry. This was USED by
+    % handleCommand and never DECLARED - the compiler answered ILLEGAL SYNTAX
+    % "MAXNAMELEN" twice, the loader pass built CHAT:PROG regardless, and every
+    % /join and /nick then answered "too long" for any argument at all. A build
+    % with errors still produces a program; only the LISTING says otherwise.
+    INTEGER : maxNameLen := 16
+    INTEGER : maxTyped := 80
+    BYTES : typed(0:79)               % 0:maxTyped-1
+
+    % One character wide, so a BYTE can be printed as a CHARACTER: 'ALn' formats
+    % a STRING, and handing it a byte prints the byte's NUMBER instead. See
+    % showArrived, where that turned RONNY into 8279787889 on screen.
+    BYTES : oneChar(0:0)
+
+    % TWENTY-ONE BYTES OF STORAGE, NOT A LITERAL - and this was a live defect,
+    % not tidying. It was BYTES : roomName := 'CHAT-LOBBY', exactly ten bytes,
+    % while /join accepts an argument up to maxNameLen = 16 and copies it in
+    % here. Eleven characters onwards wrote past the end, into whatever the
+    % loader laid out next. The comment on "typed" above already warns that
+    % roomName is what an overlong typed line runs into; roomName had the same
+    % fault pointing at whatever follows IT.
+    %
+    % Twenty-one is the prefix (5) plus the room's own limit (16).
+    BYTES : roomName(0:20)
+    INTEGER : lenRoomName := 10
+
+    % THE PREFIX EVERY ROOM'S REGISTERED NAME CARRIES, and forgetting it is
+    % why /join never worked.
+    %
+    % ChatRooms.NamePrefix in the C# library says "CHAT-", and ChatRooms.NameFor
+    % builds "CHAT-" + the room's short name in upper case. So the LOBBY room is
+    % registered with XROUT as CHAT-LOBBY. /join used to copy the typed argument
+    % in raw, so "/join GENERAL" asked XROUT for a name called GENERAL - which no
+    % room ever registers. XROUT answered "no such name" and the client sat in
+    % the room it was already in, which is exactly the reported symptom.
+    %
+    % The startup default below is built the same way, from the prefix and the
+    % short name, so there is one rule and not two.
+    BYTES : roomPrefix := 'CHAT-'
+    INTEGER : lenPrefix := 5
+
+    % The room joined at start-up when nobody says otherwise. SHORT name: the
+    % prefix is added by setRoom, the same as for a typed /join.
+    BYTES : homeRoom := 'LOBBY'
+    INTEGER : lenHomeRoom := 5
+    BYTES : hereSystem := ''          % length 0 means the LOCAL system
+    INTEGER : lenHereSystem := 0
+
+    % SIXTEEN BYTES OF STORAGE, NOT A LITERAL, and the change is not cosmetic.
+    %
+    % This was BYTES : myName := 'RONNY', which reserves five bytes and exactly
+    % five. Asking for a longer name would have written past the end of it into
+    % whatever the loader happened to put next, with nothing to stop it - PLANC
+    % checks no array bound. The same defect, in the other direction, is what
+    % the guard in CHATSV.handleMessage exists for.
+    %
+    % Sixteen is the ROOM's number: ChatRoom.MaxNicknameLength says sixteen and
+    % CHATSV drops anything longer, so a name this side cannot send is one the
+    % other side would refuse anyway.
+    BYTES : myName(0:15)
+    INTEGER : lenMyName := 5
+
+    % The name used when nobody types one AND nothing was remembered. Kept as a
+    % separate literal because myName is now a buffer and has to be filled at
+    % start-up rather than declared full - see setupName.
+    BYTES : defaultName := 'RONNY'
+    INTEGER : lenDefault := 5
+
+    % ----- CHAT:CNFG, the remembered nickname -------------------------------
+    % IN THE USER'S OWN FILE AREA, which is the whole point: OLAV and ANNA log
+    % in as themselves and each gets their own. Nothing here names a user -
+    % SINTRAN resolves an unqualified name against whoever is logged in, so the
+    % separation is free and cannot be got wrong.
+    %
+    % MEASURED 2026-08-18 on D100: user OLAV, "@CREATE-FILE CHAT:CNFG,1"
+    % succeeded and "@CHAT" ran from that user's terminal, so both halves - a
+    % writable file of one's own, and permission to run the client - are real
+    % rather than assumed.
+    %
+    % THE FILE IS ONE LINE: the nickname, ended by a carriage return.
+    % Deliberately not a key=value format. There is one setting, a reader that
+    % has to parse nothing cannot misparse anything, and a person can fix it
+    % with any editor on the machine.
+    BYTES : cnfgName   := 'CHAT'
+    BYTES : cnfgType   := 'CNFG'
+
+    % MAKING THE FILE IS A COMMAND, NOT AN OPEN, and that cost a build cycle.
+    %
+    % The first version passed the name QUOTED to MON50 - '"CHAT"' - on the
+    % rule that quoting is what asks SINTRAN to create. MEASURED 2026-08-18 as
+    % user ANNA, who had no config file: the open did not fail loudly, but
+    % every MON2 after it raised, and afterwards LIST-FILES showed ANNA still
+    % owned no files at all. Nothing was created.
+    %
+    % The reason is in the manual rather than in the quoting: creating a file
+    % is its OWN monitor call, CreateFile / CRALF 221B, and 221 is not among
+    % the MONn routines the PLANC runtime provides. MON50 opens; it has no size
+    % parameter and cannot make a file that is not there.
+    %
+    % So the file is made the way a person would make it, by handing SINTRAN
+    % the command - MON70, CallCommand. One page, which is what
+    % "@CREATE-FILE CHAT:CNFG,1" gives and far more than one line needs.
+    BYTES : cnfgMake := 'CREATE-FILE "CHAT:CNFG",1'
+
+    % Access codes for MON50, from the Monitor Calls manual's own table:
+    %   0  sequential write
+    %   1  sequential read
+    INTEGER : openRead  := 1
+    INTEGER : openWrite := 0
+
+    % A "nameRemembered" BOOLEAN stood here, to word the prompt differently for
+    % a remembered name than for the built-in one. It was set and never read.
+    % The prompt shows the actual name either way, which answers the same
+    % question better than a different wording would have.
+
+    INTEGER : myPort
+    INTEGER : returnStatus
+    INTEGER : offSet, uLength, wLength
+    INTEGER : msgType, remotePortHash, nBytes, readLength, readAmount
+    INTEGER : typedLen := 0
+    INTEGER : ch
+    % MON1's out-value is a BYTE, so it lands here first and is widened into ch
+    % before the parity bit is masked off.
+    BYTE : rawCh
+    INTEGER4 : senderMagic
+    % ZERO until the welcome arrives and reveals the real address. It is set
+    % explicitly rather than left to whatever the loader put there, because the
+    % joined test below is what keeps it from ever being used - and a guard is
+    % worth more when the thing it guards is a known value.
+    INTEGER4 : serverMagic := 0
+    % An INTEGER4 myMagic lived here to hold our own port's magic number, read
+    % with XMPFP2M purely so a diagnostic could print it. Both are gone - see
+    % the note in chatClient for what they settled (the reply address was
+    % correct all along) and why that ended the need for them.
+    BOOLEAN : joined := FALSE
+    % TRUE once RETURN has been seen, so a line half typed when the port
+    % needs draining survives the trip round the outer loop.
+    BOOLEAN : lineReady := FALSE
+    BOOLEAN : running := TRUE
+
+    % -----------------------------------------------------------------------
+    % Build one of our messages into outBuf. Returns its total length.
+    %
+    % Same layout as ChatMessage.cs, which is the only specification it has:
+    % kind, name length, name, two length bytes, text.
+    %
+    % THE EXACT BYTES ARE PINNED in
+    % SRC/Xmsg.Chat.Tests/ChatMessageGoldenBytesTests.cs - a Said, a Renamed, a
+    % Join and a 300-character line that proves the text length is big-endian.
+    % There is no shared code between that and this, only those goldens, so if
+    % the layout ever changes both sides change in the SAME commit or they
+    % disagree in silence.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER) : buildOwn(kind, textLength)
+        INTEGER : i, at
+        kind =: outBuf(0)
+        lenMyName =: outBuf(1)
+        2 =: at
+        % SUBSCRIPT FROM ZERO. myName is a BYTES declared from a literal, so its
+        % first character is at index 0. This said myName(i) and that is why the
+        % server saw the nickname as ONNY, not RONNY: the R was skipped and one
+        % byte was read past the end of the string. MEASURED 2026-08-18 in a raw
+        % dump of the arriving letter - the length byte said 5 and the five bytes
+        % were 'O','N','N','Y',0. Nothing reports this; PLANC checks no bound,
+        % and a wrong name is not an error to anyone. Compare cmdIs below, which
+        % has always had it right with word(i - 1).
+        FOR i IN 1:lenMyName DO
+            myName(i - 1) =: outBuf(at)
+            at + 1 =: at
+        ENDFOR
+        0 =: outBuf(at)
+        textLength =: outBuf(at + 1)
+        at + 2 =: at
+        FOR i IN 1:textLength DO
+            typed(i - 1) =: outBuf(at)
+            at + 1 =: at
+        ENDFOR
+        % The out-value goes BEFORE the keyword. ND-60.117.5 prints it as
+        % "result RETURN" in the complex-addition example; writing "RETURN at"
+        % makes the compiler read RETURN as a type and answer
+        % ILLEGAL DATA TYPE "RETURN".
+        at RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Build a RENAME, which does NOT have the same shape as every other
+    % message and is the one place buildOwn cannot be used.
+    %
+    % THE NEW NAME GOES IN THE NAME FIELD, and the text is empty. This client
+    % had it the other way round - new name in the TEXT, current name in the
+    % NAME field - and the rename was thrown away in silence every time.
+    %
+    % MEASURED 2026-08-18 on D100: "/nick OLAV" was accepted by the client,
+    % sent, and changed nothing; the room went on saying RONNY. Nothing was
+    % printed by either side, because the path it took is a deliberate
+    % do-nothing:
+    %
+    %   the server reads the new name from the NAME field;
+    %   the client had put the CURRENT name there;
+    %   so sameName(slot, ...) matched, and the server took its
+    %   "already your name: not news" RETURN, which prints nothing.
+    %
+    % TWO WRONG THINGS AGREEING TO DO NOTHING. Each side was self-consistent
+    % and the pair was broken, which is why it survived a working build.
+    %
+    % THE C# PAIR IS THE ARBITER and it is unambiguous - ChatClient.Rename
+    % sends "new ChatMessage(ChatMessageKind.Rename, nickname, string.Empty)",
+    % the NEW nickname in the name field and an EMPTY text, and
+    % ChatServer.HandleRename reads it back with _room.TryRename(id,
+    % message.Nickname, ...). The PLANC SERVER already matched that. Only this
+    % side did not.
+    %
+    % The sender is identified by its MAGIC NUMBER, not by the name it sends -
+    % findByMagic(senderMagic) is what picks the seat - so the name field is
+    % free to carry the new name and nothing is lost by not sending the old one.
+    %
+    % myName is deliberately NOT changed here. Our own name changes when the
+    % room says so with kRenamed, so a refused rename leaves us as we were.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER) : buildRename(nameFrom, newLength)
+        INTEGER : i, at
+        kRename =: outBuf(0)
+        newLength =: outBuf(1)
+        2 =: at
+        FOR i IN 1:newLength DO
+            typed(nameFrom + i - 1) =: outBuf(at)
+            at + 1 =: at
+        ENDFOR
+        % An empty text, spelled out as its two length bytes.
+        0 =: outBuf(at)
+        0 =: outBuf(at + 1)
+        at + 2 =: at
+        at RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Say what "no access" actually means, because the number alone sends
+    % people to the wire.
+    %
+    % XRUNN and XRNRO are the same fault seen from two sides, and BOTH mean the
+    % peer has not been told to trust this system. XRUNN reads "unknown name of
+    % server or system" and it is the SYSTEM half of that phrase - not the
+    % server half - which is what sent two earlier investigations chasing
+    % *CHATSV when the room was fine.
+    %
+    % Everything else looks healthy while this is wrong: the peer lists the
+    % system, LIST-SYSTEMS says ON NET, LIST-LINKS says State Run with
+    % thousands of frames received. Nothing comes back because the rejection
+    % happens before XROUT is asked, so there is no error to send.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID : showFriendAdvice
+        OUTPUT(1, 'AL54', 'CHAT: the PEER has not defined us as a FRIEND system.$')
+        OUTPUT(1, 'AL32', 'CHAT: on that machine:  @X-COMM$')
+        OUTPUT(1, 'AL53', 'CHAT:   X-C: DEFINE-FRIEND-SYSTEM   System? <our no>$')
+        OUTPUT(1, 'AL50', 'CHAT: check it with LIST-ROUTING-INFO - it prints$')
+        OUTPUT(1, 'AL46', 'CHAT:   "T: *, but no access to system NNNNN"$')
+        OUTPUT(1, 'AL51', 'CHAT: NOTE: DEF-REMOTE CLEARS the friend entry, so$')
+        OUTPUT(1, 'AL52', 'CHAT: the name comes first and the friend AFTER it.$')
+    ENDROUTINE
+
+    ROUTINE VOID, VOID (BYTES, INTEGER) : showStatus(where, code)
+        % NOT "offset" - the module already has a global offSet for the letter, and
+        % PLANC ignores case, so that spelling collided with it and the compiler
+        % said IDENTIFIER ALREADY SPECIFIED/DECLARED.
+        %
+        % AND IT IS A RANGE, NOT A PLAIN INTEGER, because this is what CASE
+        % selects on. ND-60.117.5 section 6.3: the CASE expression "may have a
+        % maximum of 256 different values, and must be either an enumeration
+        % with a maximum of 256 different values, or integers ranging between 0
+        % and 255", with the note that an INTEGER RANGE used this way must have
+        % a lower bound of 0. A plain INTEGER spans -32768..32767, so the
+        % compiler answered OUT OF RANGE on both CASE statements - a WARNING,
+        % which is exactly the kind that gets skimmed past.
+        INTEGER RANGE (0:255) : xmxOffset
+
+        OUTPUT(1, 'AL6', 'CHAT: ')
+        OUTPUT(1, 'AL24', where)
+        OUTPUT(1, 'AL8', ' status ')
+        OUTPUT(1, 'I6', code)
+        OUTPUT(1, 'AL1', ' ')
+
+        IF code = XMOK THEN
+            OUTPUT(1, 'AL12', 'XMOK - done$')
+            RETURN
+        ENDIF
+
+        IF code < 0 THEN
+            OUTPUT(1, 'AL36', 'raw kernel error, not a library one$')
+            RETURN
+        ENDIF
+
+        IF code < XMXKXXX THEN
+            OUTPUT(1, 'AL27', 'message type, not an error$')
+            RETURN
+        ENDIF
+
+        % XROUT ERRORS SIT ABOVE THE KERNEL ONES, at their own base
+        % XRXXX = 16960 = 41100B, so this test has to come FIRST - the XMX
+        % block below would otherwise decode 16972 as XMX offset 76 and say
+        % nothing useful. Two of these are the same fault wearing two names,
+        % and it is the one that costs a whole evening every time, so it gets
+        % told in full rather than named.
+        IF code >= XRXXX THEN
+            code - XRXXX =: xmxOffset
+            CASE xmxOffset
+                INCASE 2
+                    OUTPUT(1, 'AL39', 'XRUNN unknown name of server OR SYSTEM$')
+                    showFriendAdvice
+                INCASE 12
+                    OUTPUT(1, 'AL33', 'XRNRO no access to remote system$')
+                    showFriendAdvice
+                INCASE 0
+                    OUTPUT(1, 'AL24', 'XRSOK ok - not an error$')
+                INCASE 1
+                    OUTPUT(1, 'AL29', 'XRISN illegal service number$')
+                INCASE 3
+                    OUTPUT(1, 'AL41', 'XRDDF another port already has this name$')
+                INCASE 4
+                    OUTPUT(1, 'AL30', 'XRNSP no space left for names$')
+                INCASE 7
+                    OUTPUT(1, 'AL27', 'XRUNM unknown magic number$')
+                INCASE 10
+                    OUTPUT(1, 'AL32', 'XRPRV caller was not privileged$')
+                INCASE 11
+                    OUTPUT(1, 'AL38', 'XRISY illegal system number parameter$')
+                ELSE
+                    OUTPUT(1, 'AL23', 'XROUT error, XR offset ')
+                    OUTPUT(1, 'I6', xmxOffset)
+                    OUTPUT(1, 'AL1', '$')
+            ENDCASE
+            RETURN
+        ENDIF
+
+        code - XMXKXXX =: xmxOffset
+        CASE xmxOffset
+            INCASE 0
+                OUTPUT(1, 'AL39', 'XMXENTM not terminated - nothing there$')
+            INCASE 1
+                OUTPUT(1, 'AL31', 'XMXENOT no more XT-blocks free$')
+            INCASE 2
+                OUTPUT(1, 'AL38', 'XMXEIRM non-local remote port illegal$')
+            INCASE 4
+                OUTPUT(1, 'AL36', 'XMXETMM task allowed no more memory$')
+            INCASE 5
+                OUTPUT(1, 'AL33', 'XMXENIM facility not implemented$')
+            INCASE 6
+                OUTPUT(1, 'AL39', 'XMXEIBP illegal message buffer pointer$')
+            INCASE 7
+                OUTPUT(1, 'AL33', 'XMXEBNY message buffer not yours$')
+            INCASE 8
+                OUTPUT(1, 'AL41', 'XMXEIRT illegal function for RT programs$')
+            INCASE 9
+                OUTPUT(1, 'AL32', 'XMXENOP no more ports available$')
+            INCASE 10
+                OUTPUT(1, 'AL42', 'XMXEIDR function not available to drivers$')
+            INCASE 11
+                OUTPUT(1, 'AL27', 'XMXENDM no default message$')
+            INCASE 12
+                OUTPUT(1, 'AL35', 'XMXEMCH message is already chained$')
+            INCASE 13
+                OUTPUT(1, 'AL30', 'XMXEBFC message is in a queue$')
+            INCASE 14
+                OUTPUT(1, 'AL35', 'XMXEAIN kernel already initialised$')
+            INCASE 15
+                OUTPUT(1, 'AL35', 'XMXEBNC return of a bounce message$')
+            INCASE 16
+                OUTPUT(1, 'AL26', 'XMXEWNA write not allowed$')
+            INCASE 17
+                OUTPUT(1, 'AL33', 'XMXENVI no valid indirect buffer$')
+            INCASE 18
+                OUTPUT(1, 'AL30', 'XMXEILF illegal function code$')
+            INCASE 19
+                OUTPUT(1, 'AL29', 'XMXEIMA invalid magic number$')
+            INCASE 20
+                OUTPUT(1, 'AL27', 'XMXEMFL message space full$')
+            INCASE 21
+                OUTPUT(1, 'AL29', 'XMXEILM illegal message size$')
+            INCASE 22
+                OUTPUT(1, 'AL28', 'XMXEIPN illegal port number$')
+            INCASE 23
+                OUTPUT(1, 'AL42', 'XMXEPRV privileged function, no privilege$')
+            INCASE 24
+                OUTPUT(1, 'AL34', 'XMXEPVR privilege request refused$')
+            INCASE 25
+                OUTPUT(1, 'AL36', 'XMXERNA remote system not available$')
+            ELSE
+                OUTPUT(1, 'AL26', 'library error, XMX offset ')
+                OUTPUT(1, 'I6', xmxOffset)
+                OUTPUT(1, 'AL1', '$')
+        ENDCASE
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Read the remembered nickname out of CHAT:CNFG into myName.
+    %
+    % A MISSING FILE IS NOT AN ERROR and must not look like one. The first time
+    % anybody runs this there is no file, and that is the ordinary case rather
+    % than a fault - so a failed open leaves myName alone and says nothing. The
+    % caller has already put RONNY there.
+    %
+    % ROUTINEERROR IS THE ONLY WAY TO LEARN THE OPEN FAILED. MON50 does not
+    % return a status; it returns a device number and raises on failure, the
+    % same as MON1 does at end of file. Without the handler a first run - which
+    % is every user's first run - would unwind the program before it joined.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID : readCnfg
+        INTEGER : dev, n
+        INTEGER : c
+
+        0 =: dev
+        ON ROUTINEERROR DO
+            % No file, no name, nothing to say. Leaving dev at zero is what
+            % tells the rest of this routine there is nothing open.
+            0 =: dev
+        ENDON
+        MON50(cnfgName, cnfgType, openRead) =: dev
+
+        IF dev = 0 THEN
+            RETURN
+        ENDIF
+
+        0 =: n
+        ON ROUTINEERROR DO
+            % End of file arrives this way, and on a one-line file it is the
+            % NORMAL ending rather than a fault: a name with no carriage
+            % return after it is still a name. Zero stops the loop below.
+            0 =: c
+        ENDON
+        DO
+            0 =: c
+            MON1(dev) =: c
+            c AND parityMask =: c
+
+            % Stop at the end of the line. Everything after it is somebody
+            % else's business - a second line, or a comment they added.
+            IF c < 32 THEN
+                0 =: c
+            ENDIF
+
+            IF c >< 0 THEN
+                IF n < maxNameLen THEN
+                    c =: myName(n)
+                    n + 1 =: n
+                ENDIF
+            ENDIF
+            WHILE c >< 0
+        ENDDO
+
+        MON43(dev)
+
+        % A FILE THAT EXISTS BUT IS EMPTY KEEPS THE DEFAULT. It is the state a
+        % bare CREATE-FILE leaves behind, so it is a state real users will have.
+        IF n > 0 THEN
+            n =: lenMyName
+        ENDIF
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Write myName back to CHAT:CNFG, so the next run offers it.
+    %
+    % PLAIN OPEN FIRST, CREATE ONLY IF THAT FAILS, and the order is the point.
+    % A quoted name asks SINTRAN to CREATE, and a create at a name that already
+    % exists is refused - measured on the FA wire as SINTRAN error 62, "File
+    % already exists". Trying the create first would therefore fail on every
+    % run after the first. Trying the plain open first fails only on the very
+    % first, which is exactly when a create is what we want.
+    %
+    % NOTHING HERE IS FATAL. A user with no space, or a read-only area, still
+    % gets a working chat - they just get asked their name every time. Saying
+    % so once is better than either failing or pretending it worked.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID : writeCnfg
+        INTEGER : dev, i
+        BYTE : b
+        BOOLEAN : saveFailed
+
+        0 =: dev
+        ON ROUTINEERROR DO
+            0 =: dev
+        ENDON
+        MON50(cnfgName, cnfgType, openWrite) =: dev
+
+        IF dev = 0 THEN
+            % Not there yet. Ask SINTRAN to make it, then open it for real.
+            % MON70 hands the command processor a line exactly as if it had
+            % been typed, so this is the same CREATE-FILE anybody would use.
+            ON ROUTINEERROR DO
+                % A create that fails is not worth its own message - the open
+                % below will fail too, and that one already has one.
+            ENDON
+            MON70(cnfgMake)
+
+            ON ROUTINEERROR DO
+                0 =: dev
+            ENDON
+            MON50(cnfgName, cnfgType, openWrite) =: dev
+        ENDIF
+
+        IF dev = 0 THEN
+            OUTPUT(1, 'AL31', 'CHAT: cannot save the nickname$')
+            RETURN
+        ENDIF
+
+        % ONE MESSAGE, NOT ONE PER BYTE. The first version put this handler
+        % around the write loop and printed inside it, so a failed save said
+        % "nickname not fully saved" five times - once per character of ANNA
+        % plus the carriage return. A handler that fires per byte must not
+        % print per byte; it sets a flag and the caller speaks once.
+        FALSE =: saveFailed
+        ON ROUTINEERROR DO
+            TRUE =: saveFailed
+        ENDON
+
+        FOR i IN 1:lenMyName DO
+            myName(i - 1) =: b
+            b MON2(dev)
+        ENDFOR
+
+        % THE CARRIAGE RETURN MATTERS. readCnfg stops at the first byte below
+        % 32, and a SINTRAN text file is expected to have one - without it the
+        % last line runs into whatever follows.
+        carriageRet =: b
+        b MON2(dev)
+
+        % CLOSE, ALWAYS - including after a failed write. A file opened for
+        % sequential write is truncated at CLOSE, not at OPEN, so a program
+        % that opens and never closes leaves the OLD contents in place and the
+        % save silently does nothing.
+        MON43(dev)
+
+        IF saveFailed THEN
+            OUTPUT(1, 'AL31', 'CHAT: nickname not fully saved$')
+        ENDIF
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Settle who we are, before the join goes out. NOTHING IS ASKED.
+    %
+    % THE PROMPT THAT USED TO BE HERE IS GONE, and the reason is worth keeping
+    % because it was a real design mistake rather than a bug. It asked
+    % "nickname?" on every single run, which is the wrong shape for a chat
+    % client on a machine where you have already told SINTRAN who you are by
+    % logging in. Being asked your name again, every time, by a program running
+    % in your own file area, is nagging.
+    %
+    % The order of preference is now:
+    %
+    %   1. CHAT:CNFG in your own file area - what /nick last settled on;
+    %   2. the built-in fallback, for a user who has never renamed.
+    %
+    % THE FALLBACK SHOULD BE THE SINTRAN USER NAME and is not yet. That needs
+    % GetUserName (GUSNA 214B), and 214 is NOT among the MONn routines the
+    % PLANC runtime provides - the appendix stops at MON263 and has no 214, the
+    % same gap that CreateFile 221B falls into. The manual gives the way round
+    % it: "Any monitor calls not listed here, may be called from a PLANC
+    % routine if a suitable interface routine is constructed by the user. If
+    % this is done, the user must load the interface routine BEFORE the PLANC
+    % runtime library." MAC is installed on this machine, so that door is open
+    % - it is the next piece of work, not a closed one.
+    %
+    % Changing the name is /nick, and the room has to agree to it: the save
+    % happens when the SERVER confirms with kRenamed, never when the request is
+    % sent. See showArrived.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID : setupName
+        INTEGER : i
+
+        % The fallback first, then whatever CHAT:CNFG remembers on top of it.
+        % That way readCnfg can fail, or find an empty file, and simply leave a
+        % good name in place - it never has to know what to fall back to, and
+        % no path reaches the join with an empty name.
+        FOR i IN 1:lenDefault DO
+            defaultName(i - 1) =: myName(i - 1)
+        ENDFOR
+        lenDefault =: lenMyName
+
+        readCnfg
+
+        % SAY WHO YOU ARE, ONCE. Not a question - a statement, so somebody who
+        % expected a different name knows immediately that /nick is what fixes
+        % it, rather than discovering it when the room greets a stranger.
+        OUTPUT(1, 'AL14', 'CHAT: you are ')
+        FOR i IN 1:lenMyName DO
+            myName(i - 1) =: oneChar(0)
+            OUTPUT(1, 'AL1', oneChar)
+        ENDFOR
+        OUTPUT(1, 'AL20', '  (/nick to change)$')
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Point at a room, given its SHORT name - "LOBBY", not "CHAT-LOBBY".
+    %
+    % THE ONE PLACE THE PREFIX IS ADDED. /join used to copy the typed argument
+    % straight into roomName, so it asked XROUT for "GENERAL" while the room is
+    % registered as "CHAT-GENERAL". XROUT has no such name, the join came back
+    % refused, and the client stayed where it was - "/join doesn't work".
+    %
+    % shortAt is an index into "typed"; a caller with the name somewhere else
+    % copies it into typed first. That keeps this routine to one source and one
+    % rule, which is the whole point of having it.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID (INTEGER, INTEGER) : setRoom (shortAt, shortLen)
+        INTEGER : i
+
+        FOR i IN 1:lenPrefix DO
+            roomPrefix(i - 1) =: roomName(i - 1)
+        ENDFOR
+        FOR i IN 1:shortLen DO
+            typed(shortAt + i - 1) =: roomName(lenPrefix + i - 1)
+        ENDFOR
+        lenPrefix + shortLen =: lenRoomName
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Say which room we are in, IN PARENTHESES.
+    %
+    % The client joins a room at start-up whether or not anybody asked it to,
+    % and until now nothing on screen said which one - so every line you typed
+    % went somewhere you had not been told about. The short name is shown, the
+    % prefix left off: "CHAT-" is on every room and carries no information.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID : showRoom
+        INTEGER : i
+
+        OUTPUT(1, 'AL1', '(')
+        FOR i IN lenPrefix + 1:lenRoomName DO
+            roomName(i - 1) =: oneChar(0)
+            OUTPUT(1, 'AL1', oneChar)
+        ENDFOR
+        OUTPUT(1, 'AL1', ')')
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Send the join, as a LETTER through XROUT.
+    %
+    % The room is reached by NAME - XROUT looks it up and forwards, and this is
+    % also where the seat is taken, before the server ever sees us. Everything
+    % after the join goes port to port with no name lookup at all, which is why
+    % the server's magic number is kept from its first reply.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID : sendJoin
+        XMMSGIDENTIFIER : msgIdent
+        INTEGER : length
+
+        % The XSLET header, built in a local buffer. 123 is our reference
+        % number, echoed back so a task with several requests outstanding can
+        % tell the answers apart.
+        % A SUBARRAY, because roomName is now storage rather than a literal.
+        %
+        % XMPBLET takes portName as BYTES and appends it as parameter 1 of the
+        % letter - a PLANC BYTES argument carries its own length, so handing it
+        % the whole 21-byte array would ask XROUT for a name with eleven bytes
+        % of leftovers on the end. roomName(0:lenRoomName-1) is exactly the name
+        % and nothing else. Runtime bounds in a subarray are legal: the PLANC
+        % manual's own example is ia1(0:10,i:k-2).
+        xmpblet(letterBuf, 64, offSet, 123, hereSystem, &
+            roomName(0:lenRoomName - 1)) =: returnStatus
+        IF returnStatus >< XMOK THEN
+            showStatus('xmpblet', returnStatus)
+            RETURN
+        ENDIF
+
+        xmpfget(0, 200, msgIdent) =: returnStatus
+        IF returnStatus >< XMOK THEN
+            showStatus('xmpfget', returnStatus)
+            RETURN
+        ENDIF
+
+        % The header first...
+        offSet =: uLength
+        xmpfwri(0, 0, &
+            ADDR(letterBuf(0)) FORCE XMUSERADDRESS, &
+            0, uLength, wLength) =: returnStatus
+
+        % ...then OUR data after it. XROUT reads only the header and forwards
+        % the rest untouched, so this is where the nickname rides.
+        buildOwn(kJoin, 0) =: length
+        xmpfwri(0, wLength, &
+            ADDR(outBuf(0)) FORCE XMUSERADDRESS, &
+            0, length, offSet) =: returnStatus
+
+        xmprout(0, msgIdent, myPort) =: returnStatus
+        IF returnStatus >< XMOK THEN
+            showStatus('xmprout (the join)', returnStatus)
+        ENDIF
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Send one of our messages straight to the server, no XROUT involved.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID (INTEGER) : sendToServer(length)
+        XMMSGIDENTIFIER : ident
+        xmpfget(0, length, ident) =: returnStatus
+        IF returnStatus >< XMOK THEN
+            RETURN
+        ENDIF
+        xmpfwri(0, 0, &
+            ADDR(outBuf(0)) FORCE XMUSERADDRESS, &
+            0, length, wLength) =: returnStatus
+        xmpfsnd(0, myPort, serverMagic) =: returnStatus
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Show what arrived. The room speaks in the same message format we send.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID : showArrived
+        INTEGER : kind, nameLength, textLength, textAt, i
+        % Only used by the kRenamed branch: is this rename about US?
+        BOOLEAN : sameAsOurs
+        INTEGER : newLen
+
+        inBuf(0) =: kind
+        inBuf(1) =: nameLength
+
+        % THE JOIN IS ONE STEP, and a two-step handshake used to live here.
+        %
+        % It was added on the reading that "sending the join through XROUT does
+        % not put the nickname in front of the server" - that the server's
+        % connection port is handed a bare 4-byte connect, so a kHello reply was
+        % needed before the nickname could be sent. That reading was WRONG, and
+        % it was wrong because the SERVER was reading the wrong bytes: a letter
+        % arrives with its XSLET header still attached, and the server was
+        % parsing the header's serial number as a message kind.
+        %
+        % The nickname was in the first letter the whole time. sendJoin writes it
+        % after the header and the Programmer Guide is explicit that XROUT
+        % forwards it untouched. The server's WELCOME is the answer that hands
+        % over the magic number, which is all this side ever needed. See the
+        % header skip in CHATSV.PLNC for the layout and the manual reference.
+        %
+        % Nothing replaces this block: the welcome below already sets
+        % serverMagic, and always did.
+
+        % ---- TRUST NOTHING THAT ARRIVED, ON THIS SIDE TOO ------------------
+        % The server checks exactly these three things before it reads a name or
+        % a text; this side did not, and the reasoning is identical. inBuf holds
+        % 256 bytes and PLANC checks no array bound:
+        %
+        %   nameLength is ONE BYTE, so it can say 255. The name loop would then
+        %   read inBuf(2)..inBuf(256) - past the end - and textAt would already
+        %   be 257 before any text was touched.
+        %
+        %   textLength is TWO BYTES, so it can say 65535, and the text loop
+        %   would walk tens of thousands of bytes off the end of the array.
+        %
+        %   A SHORT message is the quieter half: without testing against
+        %   readLength the loops print whatever the previous, longer message
+        %   left behind in inBuf.
+        %
+        % "The server would never send that" is not a reason. A truncated
+        % message does it by accident, and a client that only survives a
+        % well-behaved peer is not one worth writing.
+        % Both tests are against readLength, which the read below clamps to the
+        % size of inBuf - so a field that fits the MESSAGE also fits the ARRAY.
+        IF 2 + nameLength + 1 > readLength THEN
+            RETURN
+        ENDIF
+
+        2 + nameLength =: textAt
+        inBuf(textAt) * 256 + inBuf(textAt + 1) =: textLength
+        textAt + 2 =: textAt
+
+        IF textAt + textLength > readLength THEN
+            RETURN
+        ENDIF
+
+        % The WELCOME is what reveals the server's address: everything after it
+        % goes straight there.
+        IF kind = kWelcome THEN
+            senderMagic =: serverMagic
+            TRUE =: joined
+        ENDIF
+
+        % ---- OUR OWN NAME CHANGES ONLY WHEN THE ROOM SAYS SO ---------------
+        % A comment in handleCommand has promised this for as long as /nick has
+        % existed - "our own name changes only when the room says so, with
+        % kRenamed" - and nothing implemented it. The name in myName therefore
+        % stayed at the old one after a successful rename, so the next thing
+        % this client SENT went out under a name the room no longer knew.
+        %
+        % A Renamed carries the NEW name in the name field and the OLD one as
+        % its text, which is exactly what is needed to tell whether it is about
+        % us: compare the OLD name with what we currently believe we are called.
+        % Everybody in the room gets every Renamed, so without that test this
+        % client would take somebody else's new name for itself.
+        %
+        % This is also the ONLY place CHAT:CNFG is written. Saving when /nick is
+        % SENT would remember a name the server may be about to refuse - it
+        % refuses an empty one, and one already taken - so the save waits for
+        % the room's confirmation. A refused rename changes nothing, on screen
+        % or on disk.
+        IF kind = kRenamed THEN
+            IF textLength = lenMyName THEN
+                TRUE =: sameAsOurs
+                FOR i IN 1:textLength DO
+                    IF inBuf(textAt + i - 1) >< myName(i - 1) THEN
+                        FALSE =: sameAsOurs
+                    ENDIF
+                ENDFOR
+
+                IF sameAsOurs THEN
+                    % Bounded by the buffer, not by what arrived. A server that
+                    % sent a longer name than we can hold would otherwise write
+                    % past the end of myName - and the room's own limit and
+                    % this buffer are both sixteen, so a name that does not fit
+                    % here is one the room should never have accepted.
+                    nameLength =: newLen
+                    IF newLen > maxNameLen THEN
+                        maxNameLen =: newLen
+                    ENDIF
+                    FOR i IN 1:newLen DO
+                        inBuf(2 + i - 1) =: myName(i - 1)
+                    ENDFOR
+                    newLen =: lenMyName
+
+                    writeCnfg
+                ENDIF
+            ENDIF
+        ENDIF
+
+        % A BYTE HANDED TO 'AL1' PRINTS AS A NUMBER, NOT A CHARACTER.
+        %
+        % MEASURED on D100 2026-08-18, the first run in which the join actually
+        % completed: the welcome arrived, was received and released correctly,
+        % and printed as
+        %
+        %     8279787889: 7269767679
+        %
+        % which is 82 79 78 78 89 = RONNY and 72 69 76 76 79 = HELLO, each byte
+        % rendered as its decimal value. The message was perfect; only the
+        % printing was wrong, and it looked alarming enough to be mistaken for
+        % a decode fault.
+        %
+        % 'ALn' formats a STRING. inBuf(x) is a BYTE, so it takes the integer
+        % path. Copying the byte into a one-character BYTES first gives 'AL1'
+        % the string it is asking for. This uses nothing new - BYTES arrays,
+        % assignment and OUTPUT with ALn on a BYTES all appear above and all
+        % compile.
+        % THE /who ANSWER IS NOT A LINE SOMEBODY SAID, so it does not get the
+        % "$NAME: text" shape below. Its name field is empty on purpose - the
+        % room is answering, not a member - and the generic printer would open
+        % with a bare colon. Printed here and returned.
+        IF kind = kWho THEN
+            OUTPUT(1, 'AL10', '$CHAT: in ')
+            showRoom
+            OUTPUT(1, 'AL2', ': ')
+            FOR i IN 1:textLength DO
+                inBuf(textAt + i - 1) =: oneChar(0)
+                OUTPUT(1, 'AL1', oneChar)
+            ENDFOR
+            OUTPUT(1, 'AL1', '$')
+            RETURN
+        ENDIF
+
+        OUTPUT(1, 'AL1', '$')
+        FOR i IN 1:nameLength DO
+            inBuf(2 + i - 1) =: oneChar(0)
+            OUTPUT(1, 'AL1', oneChar)
+        ENDFOR
+        OUTPUT(1, 'AL2', ': ')
+        FOR i IN 1:textLength DO
+            inBuf(textAt + i - 1) =: oneChar(0)
+            OUTPUT(1, 'AL1', oneChar)
+        ENDFOR
+        OUTPUT(1, 'AL1', '$')
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Take everything the port is holding and print it, WITHOUT WAITING.
+    %
+    % flags ZERO means no XFWTF, and that is XMSG's own no-wait: the call
+    % returns at once whether or not a message was there. Nothing about the
+    % terminal is involved, which is why this works on a machine where the
+    % no-wait TERMINAL switch (TNOWAIT 307B) cannot be reached from PLANC.
+    %
+    % A SUCCESSFUL RECEIVE DOES RETURN ZERO ON THIS MACHINE, and the opposite
+    % claim used to stand here. It read: "A SUCCESSFUL RECEIVE DOES NOT RETURN
+    % ZERO ... a message arrived exactly when the status is POSITIVE", citing
+    % the constants file's "Message types: Returned as successfull status from
+    % XFRCV", XMTNO=1 through XMTPS=6.
+    %
+    % MEASURED 2026-08-18: the server, doing the same call, prints st= 0 with
+    % the type in the msgType out-parameter. The constants file is describing
+    % the RAW MON 200B interface underneath; through the XMP library the status
+    % is XMOK and the type comes back separately. Appendix G's sample agrees -
+    % it tests "IF RETURNSTATUS >< XMOK" and only then reads MSGTYPE.
+    %
+    % Excluding zero cost the whole join: XMPFRCV took the welcome off the
+    % queue, returned XMOK, and the test below dropped straight out of the loop
+    % without printing, reading or releasing it. See the note on the test.
+    % -----------------------------------------------------------------------
+    % PLANC HAS NO "WHILE cond DO ... ENDWHILE". WHILE is a CONTINUE-TEST
+    % written INSIDE a DO ... ENDDO body: reaching it with a false condition
+    % leaves the loop. ND-60.117.5 shows it that way ("continue the loop only
+    % for negative array elements ... WHILE a(i)<0"), and writing the header
+    % form gets WHILE NOT INSIDE LOOP followed by ILLEGAL SYNTAX "ENDWHILE".
+    % -----------------------------------------------------------------------
+    % Print an XMSG status with its name and meaning, then say where it came
+    % from. Called on every path that gives up, so a failure never leaves just
+    % a number - or worse, nothing at all.
+    %
+    % THE LIBRARY'S STATUS MODEL IS NOT THE KERNEL'S, and that difference cost
+    % a whole evening. Through the XMP routines:
+    %
+    %   0                  XMOK - done. The kernel's own OK is 1; XMP-B02:DEFS
+    %                      remaps it and says so: "NOTE change from XMSG OK=1".
+    %   16896              XMXENTM - NOT TERMINATED. This is what an EMPTY port
+    %                      answers, and it is NOT an error.
+    %   16896 + n          an error, where n is the absolute value of the raw
+    %                      kernel code. So the raw XEIBP = -6 appears here as
+    %                      XMXEIBP = 16902.
+    %   1 .. 6             a MESSAGE TYPE. Documented as a status from XFRCV,
+    %                      but MEASURED 2026-08-18 the library answers XMOK and
+    %                      puts the type in the msgType out-parameter instead.
+    %                      Both forms are accepted on a receive for that reason.
+    %
+    % Which is why testing a receive with "> 0" is wrong: 16896 and every error
+    % are positive too. Measured live: type=0 rel=16902, an empty port being
+    % read as a message and then released, for ever.
+    %
+    % AND WHY TESTING IT WITH "1..6 ONLY" IS EQUALLY WRONG, which took longer to
+    % find because it fails SILENTLY: XMPFRCV dequeues the message and returns
+    % XMOK, the test rejects it, and the loop exits having printed nothing. A
+    % receive must accept XMOK **or** 1..6 - see drainPort.
+    %
+    % The numbers are from XMP-B02:DEFS as extracted from the ND-10609 media;
+    % the texts are the matching XE... comments in XMSG-PL-VALUES-L:INCL.
+    % -----------------------------------------------------------------------
+
+    ROUTINE VOID, VOID : drainPort
+        XMMSGIDENTIFIER : msgIdent
+        INTEGER : taken
+
+        % THIS LOOP IS BOUNDED, and that is not caution for its own sake - the
+        % unbounded version hung the client on the first live run. It kept being
+        % handed a message, printed it, and asked again for ever; the terminal
+        % filled with the same line until ESC broke it. Whether the message was
+        % never really released or the peer kept re-offering it is not settled,
+        % but either way a loop that only ends when the PEER says so is a loop
+        % the peer can hang. One pass takes at most this many and then returns
+        % to the keyboard; anything still waiting is taken on the next pass.
+        0 =: taken
+
+        DO
+            xmpfrcv(0, myPort, msgType, remotePortHash, msgIdent, nBytes) &
+                =: returnStatus
+
+            % XMOK IS A SUCCESSFUL RECEIVE. THIS TEST MUST ACCEPT ZERO.
+            %
+            % It did not, and that single missing case is what silently ate the
+            % welcome. MEASURED on D100 2026-08-18, end to end:
+            %
+            %   the server prints  SV: rcv st=  0  t=  2  len= 25
+            %                                  ^ XMOK, with the type in msgType
+            %
+            %   the client's port  LIST-PORTS: port 13  Qhead 161641  Qlen 1
+            %   one keystroke later                     Qhead 0       Qlen 0
+            %   and the client printed NOTHING - not even the unconditional
+            %   "type= / rel=" line below, which every taken message reaches.
+            %
+            % That is the whole story: XMPFRCV succeeded, returned XMOK, and
+            % DEQUEUED the message - which is why Qlen fell to zero - and then
+            % this continue-test read 0 >= XMTNO as false and left the loop
+            % before a single byte was printed, before XMPFMST, before XMPFREA,
+            % and before XMPFREL. The message was received and abandoned. It was
+            % never returned to the sender either, which is why the server saw
+            % no bounce.
+            %
+            % THE OLD COMMENT HERE ARGUED THE OPPOSITE and was wrong. It claimed
+            % "a successful receive does not return zero", on the reasoning that
+            % 0 means OK, 16896 means an empty port, and a bare "> 0" test is
+            % true for both - all of which is correct ABOUT THE OTHER CALLS and
+            % does not follow for XMPFRCV. The vendor sample in Appendix G tests
+            % "IF RETURNSTATUS >< XMOK THEN bad status" and only then looks at
+            % MSGTYPE, so XMOK is the success case and the TYPE lives in the
+            % out-parameter, not in the status.
+            %
+            % The earlier "type=0 rel=16902" reading that seemed to prove the
+            % old rule was an EMPTY port being read and then released - a real
+            % fault, but a different one, and fixing it by excluding zero threw
+            % out every genuine message with it.
+            %
+            % CHATSV was widened for exactly this reason and this client never
+            % was. Both sides now spell the same rule, and the range is kept
+            % beside XMOK rather than replaced by it, because which form turns
+            % up is measured rather than assumed.
+            %
+            % 16896 (XMXENTM, "not terminated") is what an EMPTY port answers
+            % and is still correctly excluded - it is neither XMOK nor 1..6.
+            WHILE returnStatus = XMOK OR &
+                  (returnStatus >= XMTNO AND returnStatus <= XMTPS)
+
+            taken + 1 =: taken
+            WHILE taken <= maxDrain
+
+            xmpfmst(0, msgIdent, msgType, senderMagic, nBytes) =: returnStatus
+
+            % CLAMP BEFORE READING. nBytes is the SENDER'S message size, handed
+            % back by XMSG - not a size this program chose. inBuf holds
+            % inBufSize bytes and PLANC checks no array bound, so passing nBytes
+            % straight in lets anyone who sends a longer message write straight
+            % past the end of it. That is a WRITE overflow and it happens before
+            % a single field is parsed, so none of the checks in showArrived
+            % could save it.
+            nBytes =: readAmount
+            IF readAmount > inBufSize THEN
+                inBufSize =: readAmount
+            ENDIF
+
+            xmpfrea(0, 0, &
+                ADDR(inBuf(0)) FORCE XMUSERADDRESS, &
+                0, readAmount, readLength) =: returnStatus
+            % A RETURN MESSAGE IS OUR OWN LETTER COMING BACK UNDELIVERED.
+            % XMTRE is the type XMSG uses for "abnormal condition", and the
+            % commonest reason a join bounces is that the peer does not have us
+            % as a friend - the same fault XRUNN and XRNRO report from the
+            % other direction. Saying so here means the user is told once,
+            % whichever way the machine chooses to complain.
+            IF msgType = XMTRE THEN
+                OUTPUT(1, 'AL46', 'CHAT: that message came BACK - undeliverable.$')
+                showFriendAdvice
+            ENDIF
+
+            xmpfrel(0, msgIdent) =: returnStatus
+
+            % A "type= rel=" line used to print here on every message taken.
+            % It was temporary, it said so, and it has done its job: the loop
+            % that printed the same message for ever is understood and fixed
+            % (see the ROUTINEERROR handler in the main loop), and the empty
+            % port being read and released - the "type=0 rel=16902" reading -
+            % is excluded by the continue-test above.
+            %
+            % What it proved is kept in the comments that surround it rather
+            % than on the user's screen. Put it back if this loop ever misbehaves
+            % again: msgType and returnStatus are the two numbers that say why.
+
+            showArrived
+        ENDDO
+
+        % ---- DID THE PORT GO AWAY WHILE WE WERE NOT LOOKING? ---------------
+        % The loop above ends on ANY status that is not a message, and until now
+        % it ended silently on all of them. That is right for XMXENTM, which
+        % just means the port is empty and is the normal way round; it is wrong
+        % for XMXENRU, "XMSG is not running", because the client then sits at
+        % its prompt looking perfectly connected to a room that no longer
+        % exists, and everything typed goes nowhere.
+        %
+        % MEASURED 2026-08-18: XMSG went down under a running server. The
+        % SERVER span at full speed on the same status (it waits with XFWTF, so
+        % a receive that cannot block returns instantly for ever); this client
+        % would not have spun, because its drain never waits - it would just
+        % have gone quiet and told nobody. Two different failures from one
+        % cause, which is why both programs needed their own answer.
+        %
+        % Stopping is the honest one here. There is no reconnect to attempt: a
+        % port belongs to an XMSG that is gone, and when it comes back this
+        % program has to open a new one and rejoin from the beginning - which
+        % is exactly what starting it again does.
+        IF returnStatus = XMXENRU THEN
+            OUTPUT(1, 'AL33', 'CHAT: XMSG has stopped - leaving$')
+            FALSE =: joined
+            0 =: serverMagic
+            FALSE =: running
+        ENDIF
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Does the typed line begin with "/word"? Case is folded, so /WHO and /who
+    % are the same command.
+    %
+    % typed(0) is the slash, so the word starts at 1. A match also requires the
+    % character AFTER the word to be a space or the end of the line - without
+    % that test "/nickname" would match "/nick" and the rest be read as an
+    % argument.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER (BYTES, INTEGER) : cmdIs(word, wordLen)
+        INTEGER : i, c, w
+
+        IF typedLen < wordLen + 1 THEN
+            0 RETURN
+        ENDIF
+
+        FOR i IN 1:wordLen DO
+            typed(i) =: c
+            % Fold lower case to upper: 'a' is 97, 'z' is 122.
+            IF c >= 97 AND c <= 122 THEN
+                c - 32 =: c
+            ENDIF
+            word(i - 1) =: w
+            IF c >< w THEN
+                0 RETURN
+            ENDIF
+        ENDFOR
+
+        % The word must END here - the next character is a space or nothing.
+        IF typedLen = wordLen + 1 THEN
+            1 RETURN
+        ENDIF
+
+        IF typed(wordLen + 1) = 32 THEN
+            1 RETURN
+        ENDIF
+
+        0 RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % A line beginning with "/" is a command, not something to say.
+    %
+    % WHAT IS AND IS NOT IMPLEMENTED, and the difference matters. /nick, /leave
+    % and /quit map onto message kinds that ALREADY EXIST on the wire - kRename
+    % and kLeave - and /join re-sends the join CHAT already sends at startup, to
+    % a different room name. None of those invent anything.
+    %
+    % /who does NOT map onto anything. There is no query kind in the format, and
+    % the format is pinned byte-for-byte by ChatMessageGoldenBytesTests on the
+    % C# side, so adding one is a change to BOTH ends in the same commit - not
+    % something this file may do on its own. It says so rather than pretending.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID : handleCommand
+        INTEGER : at, argLen, i, length
+
+        IF cmdIs('HELP', 4) = 1 THEN
+            OUTPUT(1, 'AL15', 'CHAT commands:$')
+            OUTPUT(1, 'AL11', 'you are in ')
+            showRoom
+            OUTPUT(1, 'AL1', '$')
+            OUTPUT(1, 'AL47', '  /join <room>   join another room, short name$')
+            OUTPUT(1, 'AL38', '  /nick <name>   change your nickname$')
+            OUTPUT(1, 'AL37', '  /who           who is in this room$')
+            OUTPUT(1, 'AL32', '  /leave         leave the room$')
+            OUTPUT(1, 'AL32', '  /quit          leave and stop$')
+            OUTPUT(1, 'AL36', '  anything else is said to the room$')
+            RETURN
+        ENDIF
+
+        % /who - ask the room for its membership list.
+        %
+        % This used to print three lines saying the format had no kind for it.
+        % It has one now: kWho = 11, added to ChatMessageKind.cs, CHATSV.PLNC
+        % and here together, which is what those lines said the change needed.
+        % The answer arrives later as an ordinary message and is printed by
+        % showArrived - nothing waits here.
+        IF cmdIs('WHO', 3) = 1 THEN
+            IF NOT joined THEN
+                OUTPUT(1, 'AL40', 'CHAT: not in a room yet - wait or /join$')
+                RETURN
+            ENDIF
+            buildOwn(kWho, 0) =: length
+            sendToServer(length)
+            RETURN
+        ENDIF
+
+        IF cmdIs('JOIN', 4) = 1 THEN
+            6 =: at
+            typedLen - at =: argLen
+            IF argLen < 1 THEN
+                OUTPUT(1, 'AL30', 'CHAT: /join needs a room name$')
+                RETURN
+            ENDIF
+            IF argLen > maxNameLen THEN
+                OUTPUT(1, 'AL33', 'CHAT: that room name is too long$')
+                RETURN
+            ENDIF
+
+            % LEAVE THE OLD ROOM FIRST. Without this the old room still counts
+            % us as a member and still holds our seat: it never hears that we
+            % went, and a room only gives a seat back on a clean leave or on a
+            % reap. Two or three /joins and the room is full of people who are
+            % not there. The reported "/join doesn't work" hid this one - the
+            % join never reached a room, so the leak never had a chance to show.
+            IF joined THEN
+                buildOwn(kLeave, 0) =: length
+                sendToServer(length)
+            ENDIF
+
+            % Re-point the room and send the join again. setRoom adds the
+            % "CHAT-" prefix; the raw copy that stood here is the whole of the
+            % /join defect.
+            setRoom(at, argLen)
+            FALSE =: joined
+            0 =: serverMagic
+            OUTPUT(1, 'AL14', 'CHAT: joining ')
+            showRoom
+            OUTPUT(1, 'AL4', '...$')
+            sendJoin
+            RETURN
+        ENDIF
+
+        IF cmdIs('NICK', 4) = 1 THEN
+            6 =: at
+            typedLen - at =: argLen
+            IF argLen < 1 THEN
+                OUTPUT(1, 'AL25', 'CHAT: /nick needs a name$')
+                RETURN
+            ENDIF
+            IF argLen > maxNameLen THEN
+                OUTPUT(1, 'AL28', 'CHAT: that name is too long$')
+                RETURN
+            ENDIF
+            IF NOT joined THEN
+                OUTPUT(1, 'AL26', 'CHAT: not in the room yet$')
+                RETURN
+            ENDIF
+
+            % THE NEW NAME GOES IN THE NAME FIELD - see buildRename, which is
+            % where the whole story of this being wrong the other way round is
+            % written down. It reads the name straight out of typed, so there is
+            % no shuffling to do here either.
+            buildRename(at, argLen) =: length
+            sendToServer(length)
+
+            % Our own name changes only when the room says so, with kRenamed.
+            RETURN
+        ENDIF
+
+        IF cmdIs('LEAVE', 5) = 1 THEN
+            IF NOT joined THEN
+                OUTPUT(1, 'AL26', 'CHAT: not in the room yet$')
+                RETURN
+            ENDIF
+            buildOwn(kLeave, 0) =: length
+            sendToServer(length)
+            FALSE =: joined
+            0 =: serverMagic
+            OUTPUT(1, 'AL20', 'CHAT: left the room$')
+            RETURN
+        ENDIF
+
+        IF cmdIs('QUIT', 4) = 1 THEN
+            IF joined THEN
+                buildOwn(kLeave, 0) =: length
+                sendToServer(length)
+            ENDIF
+            FALSE =: running
+            OUTPUT(1, 'AL10', 'CHAT: bye$')
+            RETURN
+        ENDIF
+
+        OUTPUT(1, 'AL34', 'CHAT: no such command - try /help$')
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % The program.
+    % -----------------------------------------------------------------------
+    PROGRAM : chatClient
+        XMMSGIDENTIFIER : msgIdent
+        INTEGER : length
+        INTEGER : i                   % the start-up room copy below uses it
+
+        INISTACK stack
+
+        xmpfopn(0, myPort) =: returnStatus
+        IF returnStatus >< XMOK THEN
+            showStatus('xmpfopn', returnStatus)
+            RETURN
+        ENDIF
+
+        % A "port = N magic= M st= S" line used to print here, from a XMPFP2M
+        % call kept only to feed it. It was there to answer one question: the
+        % server was receiving the join, parsing it exactly right and answering
+        % with status 0, and nothing was arriving back - so was the reply going
+        % to the wrong address?
+        %
+        % IT WAS NOT. The reply address was never the bug. The two magic numbers
+        % matched, which is what sent the search to the receive test in drainPort
+        % where the real fault was: XMPFRCV returned XMOK, the test excluded
+        % zero, and the welcome was dequeued and dropped. That is the whole
+        % reason this diagnostic earned its keep, and the reason it can now go.
+        %
+        % XMPFP2M went with it. Nothing else read myMagic.
+
+        % ===================================================================
+        % HOW THIS CLIENT WATCHES TWO THINGS WITHOUT A NO-WAIT TERMINAL.
+        %
+        % The obvious design polls both: switch the terminal to no-wait with
+        % TNOWAIT (307B) so INBT stops blocking, then spin on keyboard and port
+        % together. TNOWAIT CANNOT BE HAD HERE (see the note below), so this
+        % client is built the other way round and needs it not at all:
+        %
+        %   THE PORT IS DRAINED WITHOUT WAITING - xmpfrcv with flags ZERO.
+        %   That is XMSG'S OWN no-wait and has nothing to do with the terminal:
+        %   without XFWTF the call returns at once whether or not a message was
+        %   there. So everything waiting can be taken and printed in a tight
+        %   loop that never blocks.
+        %
+        %   THE KEYBOARD IS ALLOWED TO BLOCK - MON1, one character at a time,
+        %   until carriage return.
+        %
+        % The one thing it costs: arriving lines are shown when you finish
+        % yours, not the instant they land. Press RETURN on an empty line to
+        % look. That is the whole price, and it buys a client that needs no
+        % missing product, no assembler and no interface routine.
+        %
+        % Reading the keyboard needs INBT (1B). Getting a NO-WAIT terminal
+        % would additionally need TNOWAIT (307B), and that is the one that
+        % cannot be had:
+        %
+        % MONITOR_CALL IS THE WRONG TOOL, both ways round, and both were tried:
+        %
+        %   By NAME - Monitor_Call('InByte', ...), the form the Monitor Calls
+        %   manual prints for PLANC - needs the MON-CALL-NAMES file. The
+        %   compiler answers THE MON-CALL-NAMES FILE WAS NOT FOUND, and no such
+        %   file exists under any of the nine users on this machine.
+        %
+        %   By NUMBER - MONITOR_CALL(1B, ...) - compiles and then does not
+        %   link: it generates a call to 5MON_P, which is in neither
+        %   PLANC-1BANK-F00 nor PLANC-2BANK-F00 (LIST-ENTRIES-UNDEFINED after
+        %   loading both).
+        %
+        % WHAT THE PLANC MANUAL ACTUALLY SAYS (ND-60.117.5, appendix 0.2,
+        % "Monitor Calls Available on the ND-100 and the ND-500"): the runtime
+        % provides monitor calls as ORDINARY ROUTINES, one per call, named MONn
+        % and IMPORTed like anything else -
+        %
+        %     ROUTINE VOID, BYTE (INTEGER) : MON1 (dev)      % INBIT
+        %
+        % which is why the COSMOS guide's own sample opens with
+        % IMPORT (ROUTINE VOID, VOID: MONO) - that is MON0, LEAVE. These are
+        % the MN1, MN122, MN310 ... units sitting in PLANC-1BANK-F00. So INBT
+        % is reachable, correctly, as MON1(1) - no MONITOR_CALL, no names file,
+        % no 5MON_P.
+        %
+        % TNOWAIT IS NOT. The appendix lists MON 0,1,2,3,4,11,12,17,21,45,47,
+        % 50,54,62,63,64,65,104,113,114,117,120,144,161,162,167,263 - and 307
+        % is not among them. The manual says what to do about that in as many
+        % words: "Any monitor calls not listed here, may be called from a PLANC
+        % routine if a suitable interface routine is constructed by the user.
+        % If this is done, the user must load the interface routine BEFORE the
+        % PLANC runtime library."
+        %
+        % A hand-written interface routine for MON 307B, loaded ahead of
+        % PLANC-1BANK-F00, is what the manual says to do about that.
+        %
+        % THIS COMMENT USED TO SAY THAT WAS IMPOSSIBLE HERE. It claimed "D100 has
+        % neither MAC nor NPL installed (LIST-FILES found only MACM-AREA:DATA)".
+        % BOTH HALVES ARE WRONG, and the way they were wrong is worth keeping.
+        %
+        % LIST-FILES IS THE WRONG COMMAND FOR THIS QUESTION. Compilers and other
+        % subsystems are loaded into shared memory across users, not kept as :PROG
+        % files in anybody's area, so LIST-FILES was never going to find one and
+        % its silence proved nothing. The command that answers it is
+        % LIST-REENTRANT. On D100, 2026-08-18:
+        %
+        %   START RESTART SEGMENT   NAME
+        %  177777B 177776B    107B   MAC
+        %      0B      1B    110B   NPL
+        %    752B    752B    111B   PLANC-100
+        %     0B      0B    112B   PED
+        %    11B     11B    113B   FORTRAN-100
+        %
+        % MAC and NPL are BOTH there, alongside the PLANC that builds this program.
+        % @MAC answers "- MAC -".
+        %
+        % So the door the manual describes is open: any monitor call outside the
+        % runtime's ready-made MONn set can be reached with an interface routine
+        % assembled in MAC and loaded BEFORE the PLANC library. TNOWAIT (307B) is
+        % the one this program wanted, and with it the loop below could stop being
+        % a busy one - see "what is not finished" at the foot of the file.
+        %
+        % The design below still stands on its own: it needs no interface routine,
+        % and it works. But it is now a CHOICE rather than the only option, and
+        % nobody should read this comment and conclude the machine cannot do it.
+        % ===================================================================
+
+        % SETTLE THE NAME BEFORE THE JOIN, because the join CARRIES it and
+        % there is no second chance to put one in. Nothing is asked of the
+        % user - see setupName.
+        setupName
+
+        % THE DEFAULT ROOM, BUILT BY THE SAME RULE AS A TYPED /join.
+        %
+        % This client joins a room at start-up whether or not the user asked
+        % for one, and the bug report was right that nothing said so. It is
+        % said now, with the name in parentheses.
+        %
+        % The short name goes through "typed" because setRoom reads from there.
+        % That is deliberate: the prefix is then added in ONE place for both
+        % paths, and the start-up name cannot drift from the /join name.
+        FOR i IN 1:lenHomeRoom DO
+            homeRoom(i - 1) =: typed(i - 1)
+        ENDFOR
+        setRoom(0, lenHomeRoom)
+
+        OUTPUT(1, 'AL14', 'CHAT: joining ')
+        showRoom
+        OUTPUT(1, 'AL25', ' - type and press return$')
+        sendJoin
+
+        DO
+            % ---- take everything the port is holding, without waiting -------
+            drainPort
+
+            % ---- then take whatever HAS been typed, without waiting ---------
+            % MON1 CAN RAISE A ROUTINEERROR, AND IT MUST BE CAUGHT HERE.
+            %
+            % Measured on D100: without this handler the client printed the
+            % same arriving message for ever and ESC broke it out of a SPIN,
+            % not out of a wait - so MON1 was not blocking at all. The terminal
+            % is in no-wait, and the Monitor Calls manual says what that means:
+            % "In No Wait, the program does not wait for input or output to
+            % complete. Monitor calls like InByte return ERROR CODE 3 instead."
+            % In PLANC that arrives as a ROUTINEERROR, and an unhandled one
+            % unwinds the program - which re-entered, re-sent the join, and
+            % produced another undeliverable letter coming back. One missing
+            % handler, three symptoms.
+            %
+            % Caught, it is exactly the poll the design wanted: ErrCode 3 means
+            % nothing was typed, so leave ch at zero and let the loop go round
+            % to look at the port again. ErrCode is supplied by the runtime and
+            % must NOT be declared.
+            % lineReady stays FALSE until RETURN is seen. typedLen is NOT reset
+            % here: a line half typed when the port needs draining has to
+            % survive the trip round the outer loop, so it is only cleared once
+            % the line has been dealt with.
+            FALSE =: lineReady
+            DO
+                0 =: ch
+                ON ROUTINEERROR DO
+                    IF ErrCode >< emptyInput THEN
+                        OUTPUT(1, 'AL27', 'CHAT: terminal read failed$')
+                    ENDIF
+                    0 =: rawCh
+                ENDON
+                MON1(ownTerminal) =: rawCh
+                % PARITY. Terminal input carries an even-parity bit in bit 7,
+                % so carriage return arrives as 141, NOT 13. Compare without
+                % masking and the client never sees the user press return and
+                % looks hung rather than wrong.
+                rawCh =: ch
+                ch AND parityMask =: ch
+
+                IF ch = carriageRet THEN
+                    TRUE =: lineReady
+                ENDIF
+
+                % Leave the moment the keyboard runs dry (ch = 0, nothing was
+                % typed) or the line is finished. Going round again on an empty
+                % buffer is what turns this into a spin instead of a poll.
+                WHILE ch >< 0 AND NOT lineReady
+
+                IF ch > 31 THEN
+                    % The bound. A full line stops accepting characters rather
+                    % than writing past the end of typed - PLANC checks no array
+                    % bound, so this test is the only thing between a held-down
+                    % key and the variables laid out after it.
+                    IF typedLen < maxTyped THEN
+                        ch =: typed(typedLen)
+                        typedLen + 1 =: typedLen
+                    ENDIF
+                ENDIF
+            ENDDO
+
+            IF lineReady AND typedLen > 0 THEN
+                % NOTHING IS SENT BEFORE THE WELCOME. serverMagic is not known
+                % until then, so sending here would post the line to address
+                % zero. ChatClient.Say refuses the same way; this is that test.
+                % A LEADING SLASH MAKES IT A COMMAND, not something to say.
+                IF typed(0) = 47 THEN
+                    handleCommand
+                ELSE
+                    IF joined THEN
+                        buildOwn(kSay, typedLen) =: length
+                        sendToServer(length)
+                    ELSE
+                        OUTPUT(1, 'AL26', 'CHAT: not in the room yet$')
+                    ENDIF
+                ENDIF
+            ENDIF
+
+            % Cleared only once the finished line has been dealt with, so a
+            % line still being typed is not thrown away by a drain pass.
+            IF lineReady THEN
+                0 =: typedLen
+            ENDIF
+
+            % /quit clears this. The continue-test goes LAST so the leave
+            % message it sends is on its way before the loop ends.
+            WHILE running
+        ENDDO
+    ENDROUTINE
+
+ENDMODULE
+
+% NO $EOF HERE, deliberately, and it is not an oversight - an earlier version
+% had one and it broke the build.
+%
+% $EOF belongs at the end of an INCLUDED source, where it stops the compiler
+% reading past the file's end and calling that the end of the whole
+% compilation. XMPIMP:INCL has one for exactly that reason, and so does the
+% shipped (UTILITY)XMSG-PL-VALUES-L:INCL.
+%
+% In the MAIN source it does something else: it ends the compiler SESSION. The
+% compiler links and returns to SINTRAN there and then, so every command after
+% the COMPILE - the EXIT, and any LOAD - is handed to SINTRAN instead, which
+% answers ILLEGAL COMMAND and aborts the batch job. Measured on D100: the LOAD
+% line arrived at the shell as "L".
+%
+% The library is brought in afterwards by BRF-LINKER-C01. See CHATCC:MODE.
+
+% ---------------------------------------------------------------------------
+% WHAT IS NOT FINISHED:
+%
+%  1. TWO ITEMS THAT USED TO BE ON THIS LIST WERE STALE, and they are recorded
+%     here rather than quietly deleted, because a list of open problems that
+%     keeps solved ones on it is worse than no list: it sends the next person
+%     to work that is already done.
+%
+%       "Nothing has been compiled."   It compiles and it runs. See the header.
+%
+%       "No way to leave. kLeave is declared and never sent."   /leave and
+%       /quit both send it - handleCommand, which was written after this line
+%       and never came back to cross it off.
+%
+%     The remaining items below were re-read against the code on 2026-08-18 and
+%     are still true.
+%
+%  2. THE LOOP IS A BUSY ONE. It reads the keyboard and the port as fast as the
+%     machine will go, which on a shared SINTRAN is antisocial. The server does
+%     not have this problem - it BLOCKS on XFWTF - but a client watching two
+%     things cannot block on either one.
+%
+%     THE EXPERIMENT TO RUN, which is one specific thing rather than a research
+%     project. Both halves have a documented wake:
+%
+%       the terminal   after a no-wait call, "SuspendProgram or WaitForRestart
+%                      may passivate the program afterwards. The program
+%                      restarts when input or output to the device is
+%                      completed."          (Monitor Calls, NoWaitSwitch)
+%
+%       the port       XMPFRCV with XFWAK and WITHOUT XFWTF returns at once and
+%                      ARMS a wake: "the next transmission to this port will
+%                      lead to a wake up of the receiver task". Note that "when
+%                      the wake up is done, the message is not received, and so
+%                      the receiving must be repeated."   (COSMOS guide, XFWAK)
+%
+%     So the shape to try is: arm the port with XFWAK, then WaitForRestart, and
+%     on waking re-issue the receive and re-read the keyboard, because either
+%     could be what woke us.
+%
+%     AND THE OTHER ROUTE IS OPEN AFTER ALL: MAC and NPL are BOTH installed on
+%     D100 (verified 2026-08-18 with LIST-REENTRANT, which is the command that
+%     answers this - subsystems live in shared memory, not as :PROG files, so
+%     LIST-FILES finding nothing proved nothing). So TNOWAIT (307B) can be reached
+%     the way the PLANC manual says: an interface routine assembled in MAC and
+%     loaded BEFORE PLANC-1BANK-F00. That is now a real option to weigh against the XFWAK
+%     experiment below, not a closed door.
+%
+%     WHAT IS NOT ESTABLISHED is whether an XMSG wake-up actually restarts a
+%     BACKGROUND PROGRAM passivated that way. The call that makes the wake-up
+%     context explicit, XMPFWDF, is for DRIVERS - the guide says so, and adds
+%     "not permitted for RT-programs". So this is one measurement, not a
+%     deduction, and until it is made the loop stays as it is: honest and rude.
+%     A short HOLD is the fallback if the wake does not arrive.
+%
+%  3. THE NAME IS NO LONGER FIXED AT RONNY, and this item is kept in corrected
+%     form because it went through a wrong shape on the way.
+%
+%     It was briefly a PROMPT at start-up, and that was a mistake: on a machine
+%     where you have already told SINTRAN who you are by logging in, being
+%     asked your name again on every run is nagging. It is now read from
+%     CHAT:CNFG in your own file area, changed with /nick, and saved only when
+%     the ROOM confirms the rename - never when the request is sent, because
+%     the room can refuse it.
+%
+%     WHAT IS STILL MISSING is the right fallback for somebody who has never
+%     renamed: it should be the SINTRAN user name and it is still RONNY.
+%     GetUserName is GUSNA 214B, and the PLANC runtime provides no MON214 -
+%     the same gap CreateFile 221B falls into, which is why creating CHAT:CNFG
+%     goes through MON70 instead. There is no command-level way round 214, so
+%     it needs the route the PLANC manual describes in as many words: an
+%     interface routine assembled in MAC and loaded BEFORE the PLANC runtime
+%     library. MAC is installed here - LIST-REENTRANT shows it - so this is
+%     work, not a wall.
+%
+%  4. The ON ROUTINEERROR form is taken from the Monitor Calls manual's own
+%     PLANC example for InByte. That ErrCode 3 specifically means "nothing was
+%     typed" is from the NoWaitSwitch entry, which says so for no-wait calls
+%     generally rather than for InByte in particular. If some other code turns
+%     up in practice, the handler above prints and carries on rather than
+%     mistaking it for a keystroke.
+% ---------------------------------------------------------------------------

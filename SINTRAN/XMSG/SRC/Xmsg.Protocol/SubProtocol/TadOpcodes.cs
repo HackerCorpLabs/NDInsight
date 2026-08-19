@@ -60,6 +60,13 @@ namespace NDInsight.Sintran.Xmsg.SubProtocol
             table.Add(0x17, "RECO");
             table.Add(0x18, "DUMM");
             table.Add(0x1F, "OPSV");
+
+            // 0x20 ESRS and 0x29 EDRS were BOTH missing from the dissector table this was copied from,
+            // so a captured escape response printed as a bare "0x20". Added 2026-08-18: 7ESRS=000040
+            // and 7EDRS=000051 octal, present and identical in all four symbol tables under
+            // SINTRAN/NPL-SOURCE/SYMBOLS (J, K03, L07, M06). EDRS is the answer sent instead of ESRS
+            // when the escape function is disabled - see TadOp.Edrs.
+            table.Add(0x20, "ESRS");
             table.Add(0x21, "CERS");
             table.Add(0x22, "ISRQ");
             table.Add(0x23, "ISRS");
@@ -67,6 +74,7 @@ namespace NDInsight.Sintran.Xmsg.SubProtocol
             table.Add(0x25, "TNOW");
             table.Add(0x26, "NWRE");
             table.Add(0x27, "RLOC");
+            table.Add(0x29, "EDRS");
             table.Add(0x2A, "TREP");
             table.Add(0x2B, "UMOD");
             table.Add(0x2C, "78MOD");

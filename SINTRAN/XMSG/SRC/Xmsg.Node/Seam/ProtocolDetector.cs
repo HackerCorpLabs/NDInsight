@@ -4,7 +4,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
 {
     /// <summary>
     /// The L3 protocol a payload is classified as. This is a classification concept that lives ABOVE
-    /// the link (the composition root's routing vocabulary) — it is deliberately NOT part of
+    /// the link (the composition root's routing vocabulary) - it is deliberately NOT part of
     /// <see cref="ILink"/>. The link carries opaque payloads and never knows which protocol it moves;
     /// deciding X.25 vs XMSG is <see cref="IProtocolDetector"/>'s job here, not the link's.
     /// </summary>
@@ -29,8 +29,13 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
     /// See XMSG-TRANSPORT-SEAM-PLAN.md section 5. Byte-level sniffing is deliberately deferred and
     /// is known to be unreliable: <c>0x21 0x13</c> is also a valid X.25 GFI/LCN ("logical channel
     /// 19"), so a single-byte test cannot distinguish the two. A future heuristic (byte0 == 0x21 AND
-    /// byte1 ∈ {0x12,0x13} AND byte3 a known XMSG subtype AND the sub-header marker <c>0x21 0x00</c>
-    /// at its expected offset) can replace this stub without restructuring anything above it.
+    /// byte1 a HOP COUNT no greater than <c>0x13</c> AND byte3 a known XMSG subtype AND the
+    /// sub-header marker <c>0x21 0x00</c> at its expected offset) can replace this stub without
+    /// restructuring anything above it.
+    ///
+    /// Note byte1 is deliberately NOT the old allow-list {0x12,0x13}: word 0 is the kernel's
+    /// <c>XDROU</c>, "NETWORK INFO (VERSION, PROTOCOL, HOP COUNT)", so byte1 counts DOWN once per
+    /// relay and a two-hop frame reads <c>0x11</c>. See <c>LapbFrame.IsSintranInfo</c>.
     /// </remarks>
     public interface IProtocolDetector
     {
@@ -51,7 +56,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
 
     /// <summary>
     /// The per-link-binding detector: always reports the fixed binding it was constructed with,
-    /// ignoring the payload. This is the "real mechanism" for now — each HDLC link is configured to
+    /// ignoring the payload. This is the "real mechanism" for now - each HDLC link is configured to
     /// carry X.25 or XMSG, matching the ND machine's installed software.
     /// </summary>
     public sealed class BoundProtocolDetector : IProtocolDetector

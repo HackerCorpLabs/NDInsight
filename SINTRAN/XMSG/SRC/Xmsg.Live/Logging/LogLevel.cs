@@ -12,27 +12,27 @@ namespace NDInsight.Sintran.Xmsg.Live.Logging
     public enum LogLevel : byte
     {
         /// <summary>
-        /// No logging (<c>0</c>) — the log file is not written at all.
+        /// No logging (<c>0</c>) - the log file is not written at all.
         /// </summary>
         Off = 0,
 
         /// <summary>
-        /// Errors only (<c>1</c>) — failures that stop or corrupt an operation.
+        /// Errors only (<c>1</c>) - failures that stop or corrupt an operation.
         /// </summary>
         Error = 1,
 
         /// <summary>
-        /// Warnings and errors (<c>2</c>) — recoverable anomalies plus errors.
+        /// Warnings and errors (<c>2</c>) - recoverable anomalies plus errors.
         /// </summary>
         Warn = 2,
 
         /// <summary>
-        /// Informational progress plus warnings and errors (<c>3</c>) — the default.
+        /// Informational progress plus warnings and errors (<c>3</c>) - the default.
         /// </summary>
         Info = 3,
 
         /// <summary>
-        /// Full debug detail including per-frame traces (<c>4</c>) — the most verbose.
+        /// Full debug detail including per-frame traces (<c>4</c>) - the most verbose.
         /// </summary>
         Debug = 4,
     }

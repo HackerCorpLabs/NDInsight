@@ -69,5 +69,63 @@ namespace NDInsight.Sintran.Xmsg.Chat
         /// Server to clients: somebody left the room.
         /// </summary>
         Left = 8,
+
+        /// <summary>
+        /// A member asking to be known by a different name from now on.
+        /// </summary>
+        /// <remarks>
+        /// Sent by the member; the server decides. A rename can be refused for the same reason a
+        /// join can - somebody else already answers to that name - so it is a request, not a
+        /// statement.
+        /// </remarks>
+        Rename = 9,
+
+        /// <summary>
+        /// The room being told that somebody is now known by a different name.
+        /// </summary>
+        /// <remarks>
+        /// Carries the NEW name in <c>Nickname</c> and the old one in <c>Text</c>. Both are needed:
+        /// a client showing a transcript has the old name on screen and would otherwise have no way
+        /// to connect the two.
+        /// </remarks>
+        Renamed = 10,
+
+        /// <summary>
+        /// Asking the room who is in it, and the room's answer.
+        /// </summary>
+        /// <remarks>
+        /// <para><b>One kind, both directions</b></para>
+        /// A client sends it with an empty <c>Text</c>; the room answers with the same kind and the
+        /// members' names in <c>Text</c>, separated by single spaces. A second kind for the reply
+        /// would buy nothing - the client knows it asked, and the room never asks.
+        /// <para><b>Why the names go in the TEXT</b></para>
+        /// The text is the only variable-length field in the format, and its length is two bytes
+        /// big-endian, so a full room fits comfortably. The <c>Nickname</c> field carries the ASKER
+        /// on the way out and is empty on the way back.
+        /// </remarks>
+        Who = 11,
+    }
+
+    /// <summary>
+    /// Facts about <see cref="ChatMessageKind"/> that the decoder needs at runtime.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Why this exists at all</b></para>
+    /// <c>ChatMessage.TryDecode</c> rejects a kind above the last one defined, and that bound has
+    /// now been left behind TWICE by a new kind added above it. Each time the effect was the same
+    /// and silent: the new kind decoded as a malformed message and was dropped, so one end sent it
+    /// and the other never saw it, with nothing failing anywhere. It cost a build cycle on a real
+    /// ND-100 the first time and a test run the second.
+    /// <para><b>The fix is that the bound has a name and a test</b></para>
+    /// <see cref="Highest"/> is what the decoder compares against, and
+    /// <c>ChatWhoTests.TheDecoderBoundCoversEveryKind</c> checks it against the enum itself. Adding
+    /// a twelfth kind without touching this constant now fails a test instead of losing messages.
+    /// </remarks>
+    public static class ChatMessageKinds
+    {
+        /// <summary>
+        /// The largest value <see cref="ChatMessageKind"/> defines.
+        /// </summary>
+        public const byte Highest = (byte)ChatMessageKind.Who;
     }
 }

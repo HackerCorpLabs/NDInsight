@@ -11,7 +11,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
     /// Every field here is populated from an OBSERVED negotiation message in the captured
     /// connect-to. The field meanings are VERIFIED against
     /// <c>TAD/TAD-Message-Formats.md</c> (the opcode table and per-message layouts), but the
-    /// concrete VALUES are OBSERVED (single capture) — for example only terminal type
+    /// concrete VALUES are OBSERVED (single capture) - for example only terminal type
     /// <c>0x0000</c> and OS/proto version <c>4C 01 04</c> were ever seen. A nullable field
     /// that is still <c>null</c> means that message has not been observed on this session.
     /// </remarks>
@@ -32,10 +32,31 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// <c>null</c> if none has been observed.
         /// </summary>
         /// <remarks>
-        /// OBSERVED (single capture): the client sent flags <c>0x08</c>. VERIFIED bit layout:
-        /// TAD-Message-Formats.md 4.1.
+        /// OBSERVED (single capture): the client sent flags <c>0x08</c>. The bit meanings are now
+        /// decoded from the version J NPL source - see <see cref="TerminalModeFlags"/>, under which
+        /// <c>0x08</c> reads as "log me out if the carrier drops".
         /// </remarks>
         public byte? TerminalMode { get; set; }
+
+        /// <summary>
+        /// Gets the terminal mode as decoded flag bits, or <c>null</c> when no TMOD has been observed.
+        /// </summary>
+        /// <remarks>
+        /// A convenience view over <see cref="TerminalMode"/>; the raw byte stays the stored value
+        /// because bits 4-7 have no known meaning and must survive a round trip untouched.
+        /// </remarks>
+        public TerminalModeFlags? TerminalModeFlagsValue
+        {
+            get
+            {
+                if (!TerminalMode.HasValue)
+                {
+                    return null;
+                }
+
+                return (TerminalModeFlags)TerminalMode.Value;
+            }
+        }
 
         /// <summary>
         /// Gets or sets the escape character from a DESC (<c>0x0F</c>) message, or

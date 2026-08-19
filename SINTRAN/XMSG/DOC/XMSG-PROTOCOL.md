@@ -494,6 +494,51 @@ directly after DCON `0x0015`), and the responder's accept is ITS own `last + 1`
   path; the reachability resync is the no-state path [INFERRED split — both
   behaviours individually verified].
 
+**RE-CONFIRMED 2026-08-11 on THREE machines and TWO transports** — see
+`DOC/captures/TRIO-SEQUENCE-2026-08-11/FINDINGS.md`, three captures and `seqtrace.py`.
+Everything above held. What the new run adds:
+
+- **The counter is per (SENDER, PEER) pair**, proved directly rather than inferred: D100
+  talking to two peers at once ran `0x0410..0x04A1` toward D102 and `0x000E..0x0025`
+  toward D19999 **simultaneously**, both spans exact against their frame counts. A
+  per-machine counter would have carried the second run on from the first.
+- **It never resets in use.** Three captures, six conversations, a twenty-minute gap and a
+  live `DEF-NETWORK-CONN` gave one unbroken run `0x0000 → 0x04A1`.
+- **Same law on HDLC**, so it is not an Ethernet artefact: D103 reached D19999 through the
+  relay and both sides counted their own run from zero after the `FFFF` exchange.
+
+**HOW TO SETTLE PER-SENDER vs SHARED — COUNT, DO NOT READ THE LADDER.** A symmetric
+exchange sends one data frame each way per exchange, so two independent counters stay level
+for thousands of frames and every line fits either model. The discriminator is the frame
+count against the value span: D100 sent 602 data frames, D102 sent 602, and 602 values were
+used — one shared counter would have consumed about 1204. Two sessions got this wrong by eye
+before anyone counted.
+
+**THE PERSISTED VALUE GOES STALE WHEN THE PEER'S XMSG RESTARTS, and the peer tells you which
+way you are wrong.** Measured 2026-08-11, same runner, same state file, four minutes apart:
+
+| our stored Flags1 for D100 | what D100 answered |
+|---|---|
+| `0x001F` (persisted, but D100 had restarted since it was written) | `XENSE 0xFFDE`, echoing `0x001F` and then `0x0020` |
+| `0x0000` (corrected in place, file NOT deleted) | accepted - `Ack f1=0x0000`, `Ack f1=0x0001`, zero XENSE |
+
+Which makes the asymmetry above a working diagnostic:
+ - **XENSE means your value is AHEAD** - so the peer reset and yours did not. Set that peer's
+   entry to `0x0000`.
+ - **Silence means your value is BEHIND** - no ack and no error at all.
+
+Correct the ONE peer's entry; do not delete the file and lose every other peer's position.
+Stepping down one per XENSE converges only on a small drift - `XmsgServerHost.ResyncAcceptDown`
+records 127 rejects in sixteen seconds when the cause is something else, which is why it gives
+up rather than storming.
+
+**OPERATIONAL WARNING.** The persistence rule above is not advice, it is the difference
+between working and not. Deleting a persisted-sequence state file is correct ONLY when the
+peer genuinely reset — which on Ethernet it does NOT do just because your process restarted.
+Doing it anyway puts you behind the peer's expectation, and the symptom is a silent drop with
+no error at all (or `XENSE 0xFFDE` once you announce). An afternoon of "file-access defects"
+on 2026-08-11 was this and nothing else.
+
 ### 4.3 Protocol ID (offset 12)  [VERIFIED — derived channel; see Section 18.5]
 
 Within any single class-stream this byte reads as a **stable sub-protocol

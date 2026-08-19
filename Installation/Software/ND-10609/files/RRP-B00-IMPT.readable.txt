@@ -1,0 +1,72 @@
+%=============================================================================%
+%                                                                             %
+%                           I M P O R T                                       %
+%                                                                             %
+%                 D E C L A R A T I O N S     F O R                           %
+%                                                                             %
+%                               R R                                           %
+%                                                                             %
+%                          L I B R A R Y                                      %
+%                                                                             %
+%                          F O R    T H E                                     %
+%                                                                             %
+%            N D 1 0 0   /   N D 5 0 0   /  M C 6 8 0 0 0                     %
+%                                                                             %
+%                                                                             %
+%  INITIAL VERSION:  30.4.83    R.G.Jones                                     %
+%                                                                             %
+%    MODIFICATIONS:                                                           %
+%                                                                             %
+%=============================================================================%
+
+
+IMPORT (ROUTINE VOID,INTEGER(INTEGER ARRAY,INTEGER ARRAY,RRMD,INTEGER,&
+                             BYTES,BYTES ARRAY,INTEGER,RRSP):&
+        RRPBinit),&
+       (ROUTINE VOID,INTEGER(INTEGER ARRAY,RRTM,RREV,RREV WRITE):&
+        RRPBwait),&
+       (ROUTINE VOID,INTEGER(INTEGER ARRAY,RRID,BYTES):&
+        RRPBdcrq),&
+       (ROUTINE VOID,INTEGER(INTEGER ARRAY,RRID,INTEGER WRITE,&
+                             BYTES POINTER WRITE):&
+        RRPBdcin),&
+       (ROUTINE VOID,INTEGER(INTEGER ARRAY,RRID):&
+        RRPBabrt)
+
+IMPORT (ROUTINE VOID,INTEGER(INTEGER ARRAY,BYTES,BYTES,BYTES,&
+                             BYTES POINTER,RRTM,RRID READ WRITE,&
+                             BYTES POINTER WRITE,INTEGER WRITE):&
+        RRPCslct),&
+       (ROUTINE VOID,INTEGER(INTEGER ARRAY,RRID,BYTES,BYTES POINTER,&
+                             RRTM,BYTES POINTER WRITE,INTEGER WRITE):&
+        RRPCcall),&
+       (ROUTINE VOID,INTEGER(INTEGER ARRAY,RRID,BYTES,RRTM,&
+                             INTEGER WRITE):&
+        RRPCdisc)
+
+IMPORT (ROUTINE VOID,INTEGER(INTEGER ARRAY,BYTES,BYTES,BYTES,&
+                             BYTES POINTER,RRID WRITE):&
+        RRPCcnrq),&
+       (ROUTINE VOID,INTEGER(INTEGER ARRAY,RRID,BYTES POINTER WRITE):&
+        RRPCcncf),&
+       (ROUTINE VOID,INTEGER(INTEGER ARRAY,RRID,BYTES,BYTES POINTER):&
+        RRPCsnrq),&
+       (ROUTINE VOID,INTEGER(INTEGER ARRAY,RRID,BYTES POINTER WRITE):&
+        RRPCgtrs),&
+       (ROUTINE VOID,INTEGER(INTEGER ARRAY):&
+        RRPCend)
+
+IMPORT (ROUTINE VOID,INTEGER(INTEGER ARRAY,RRID,BYTES POINTER WRITE,&
+                             BYTES POINTER WRITE):&
+        RRPScnin),&
+       (ROUTINE VOID,INTEGER(INTEGER ARRAY,RRID,BYTES):&
+        RRPScnrs),&
+       (ROUTINE VOID,INTEGER(INTEGER ARRAY,RRID,BYTES POINTER WRITE,&
+                             BYTES POINTER WRITE):&
+        RRPSgtrq),&
+       (ROUTINE VOID,INTEGER(INTEGER ARRAY,RRID,BYTES):&
+        RRPSsnrs),&
+       (ROUTINE VOID,INTEGER(INTEGER ARRAY):&
+        RRPSend)
+%-----------------------------------------------------------------------------%
+$EOF

@@ -35,6 +35,7 @@ NDInsight/
 │   ├── OS/                      ← Installing SINTRAN III from distribution floppies
 │   ├── Communication/           ← Installing COSMOS/Ethernet/TCP-IP/X.21/X.25 products
 │   ├── Software/                ← Installing application software (later phase)
+│   ├── OWS/                     ← Office Work Station: WinLink/WinPrint/WinSMX, PC-NOTIS, SPRINT printing, SIBAS/R
 │   ├── Installation-Description/← OCR'd "Program Description" install/requirements sheets
 │   └── Product-Info/            ← OCR'd product data-sheets/brochures
 ├── Operations/                  ← Operator and user guides (COSMOS, SINTRAN)
@@ -106,7 +107,7 @@ Each top-level folder has its own README with full navigation; this page only su
 | Section | Contents | Index |
 |---|---|---|
 | **[Developer/](Developer/)** | Language guides (NPL, MAC, PLANC, PASCAL, FORTRAN, COBOL, BASIC, C), editors (QED, PED, LED), build workflow | [README.md](Developer/README.md) |
-| **[Installation/](Installation/)** | How to install SINTRAN III and applications; OCR'd install-description and product-info sheets | [README.md](Installation/README.md) |
+| **[Installation/](Installation/)** | How to install SINTRAN III and applications; OCR'd install-description and product-info sheets; the [OWS/](Installation/OWS/README.md) office-workstation family | [README.md](Installation/README.md) |
 | **[Operations/](Operations/)** | Operator/admin guides for COSMOS networking and SINTRAN system operation | [README.md](Operations/README.md) |
 | **[Reference-Manuals/](Reference-Manuals/)** | Official Norsk Data reference manuals across the whole product line - CPU architecture, assemblers, languages, editors, NOTIS office suite, NORD-1/NORD-10 | [README.md](Reference-Manuals/README.md) |
 | **[SINTRAN/](SINTRAN/)** | The core: kernel docs, source code, device drivers, ND-500/ND-5000 integration, protocols, emulator | [README.md](SINTRAN/README.md) |

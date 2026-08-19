@@ -7,11 +7,11 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
     /// </summary>
     /// <remarks>
     /// <para><b>Why an explicit context</b></para>
-    /// Most sub-header bytes cannot be derived — the per-direction counter, the frame-flags
+    /// Most sub-header bytes cannot be derived - the per-direction counter, the frame-flags
     /// byte (<c>0x82</c>/<c>0x84</c>/<c>0x86</c>/<c>0x96</c> all seen), the role byte and the
     /// port fields are all runtime-allocated by SINTRAN and only known from capture. So the
     /// builder is given the exact context (OBSERVED values) rather than inventing them; this
-    /// keeps the state machine honest — it reproduces what was captured and does not fabricate
+    /// keeps the state machine honest - it reproduces what was captured and does not fabricate
     /// envelope bytes it never saw. Only the user-data length (XMLEN) is derived, because it
     /// equals the trailer length in 100% of observed data frames.
     /// </remarks>

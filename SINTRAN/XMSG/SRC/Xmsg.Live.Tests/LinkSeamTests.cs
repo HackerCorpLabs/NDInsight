@@ -14,9 +14,9 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
 {
     /// <summary>
     /// Phase 3 gate for the link seam: an incoming SINTRAN information field round-trips through
-    /// <see cref="LapbLayerAdapter"/> — it surfaces UP as <see cref="ILink.PayloadReceived"/>, and a
+    /// <see cref="LapbLayerAdapter"/> - it surfaces UP as <see cref="ILink.PayloadReceived"/>, and a
     /// <see cref="ILink.SendSintranFrame"/> in response goes DOWN and appears on the wire as a LAPB
-    /// I-frame carrying those exact bytes — all over an in-memory duplex, deterministically.
+    /// I-frame carrying those exact bytes - all over an in-memory duplex, deterministically.
     /// </summary>
     public sealed class LinkSeamTests
     {
@@ -64,7 +64,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
             Assert.Contains(LinkStatus.Active, statuses);
 
             // DOWN: among the frames written to the wire there is a data I-frame whose info field is
-            // exactly the echoed SINTRAN bytes — proof the seam carried the reply out to the wire.
+            // exactly the echoed SINTRAN bytes - proof the seam carried the reply out to the wire.
             byte[] written = duplex.GetWrittenBytes();
             Assert.True(ContainsIFrameWithInfo(written, SintranInfo),
                 "expected an outbound LAPB I-frame carrying the echoed SINTRAN payload");

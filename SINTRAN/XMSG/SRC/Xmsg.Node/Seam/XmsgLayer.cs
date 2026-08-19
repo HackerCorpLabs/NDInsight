@@ -19,7 +19,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
     /// but the TAD session service (<see cref="TadTerminalResponder"/>, its terminal menu and frame
     /// context) and the byte-verified multi-frame orchestration (<see cref="XmsgNode.HandleFrames"/>)
     /// live in <c>Xmsg.Live</c>, and <c>Xmsg.Protocol</c> cannot depend on <c>Xmsg.Live</c>. Rather
-    /// than relocate all of TAD (a large, risky churn against the locked "façade over proven
+    /// than relocate all of TAD (a large, risky churn against the locked "facade over proven
     /// internals" decision), <c>XmsgLayer</c> lives here and reuses the proven services unchanged;
     /// the reachability / XSGSY / secure-ACK logic it drives remains pure in <c>Xmsg.Protocol</c>
     /// (<see cref="ListRoutingServer"/>, <see cref="SecureDatagramReceiver"/>). At migration,
@@ -104,7 +104,23 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
         /// <summary>
         /// Occurs when a packet is received and dispatched.
         /// </summary>
+        /// <remarks>
+        /// A split message is rejoined BEFORE this fires, so a subscriber always sees the whole
+        /// message and never a fragment - see <c>XmsgNode.AcceptFragment</c> for what it cost when
+        /// that was not true.
+        /// </remarks>
         public event XmsgMessageReceived? MessageReceived;
+
+        /// <summary>
+        /// Occurs when the first half of a split message has been taken and held, so nothing can be
+        /// reported about it until its continuation arrives.
+        /// </summary>
+        /// <remarks>
+        /// Purely so the frame is not invisible. It is followed by an ordinary
+        /// <see cref="MessageReceived"/> for the joined message once the continuation lands, or by
+        /// a reassembler log line if it never does.
+        /// </remarks>
+        public event XmsgMessageReceived? FragmentHeld;
 
         /// <summary>
         /// Occurs when a TAD terminal session is opened.
@@ -149,6 +165,28 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
         public ushort NodeNumber
         {
             get { return _node.NodeNumber; }
+        }
+
+        /// <summary>
+        /// Gets or sets the sink for the node's own diagnostics.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Without this the node's log went NOWHERE on the seam path - the layer wrapped
+        /// <c>XmsgNode</c> privately and never offered a way to reach its <c>Log</c>, so its
+        /// warnings and its network-error reports were built and dropped.
+        /// </para>
+        /// <para>
+        /// That is the second diagnostic found unconnected in one day (the first was
+        /// <c>XmsgServerHost.Log</c> on the Ethernet path). A live push looked like plain silence
+        /// while the peer was in fact answering with a NAMED error, twice. When something looks
+        /// silent, check that the log is plugged in before believing the wire.
+        /// </para>
+        /// </remarks>
+        public XmsgLogHandler? Log
+        {
+            get { return _node.Log; }
+            set { _node.Log = value; }
         }
 
         /// <summary>
@@ -225,6 +263,33 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
         /// </param>
         private void OnPacketReceived(string linkId, XmsgPacketInfo packet)
         {
+            // REJOIN A SPLIT MESSAGE BEFORE ANYONE SEES IT. A file-content message is 1032 bytes
+            // and arrives as a first fragment (0x0A) and a continuation (0x0C). Everything that
+            // watches inbound traffic - the events below AND the dispatch - has to see the WHOLE
+            // message, so the rejoin happens here, at the front, not inside HandleFrames.
+            //
+            // It used to happen inside HandleFrames, which runs AFTER MessageReceived. The
+            // file-access CLIENT subscribes to MessageReceived, so a pull was handed a first
+            // fragment and a continuation separately and never saw the content they carry.
+            // Measured live on 2026-08-11: the read ladder ran perfectly, D100 sent the file, and
+            // the bytes went on the floor. See XmsgNode.AcceptFragment.
+            XmsgFrame? rejoined = _node.AcceptFragment(packet.Frame);
+            if (rejoined == null)
+            {
+                // The first half. Nothing can be answered or reported until its continuation
+                // arrives - the reply belongs to the whole message - but say so, because a frame
+                // that vanishes without a line in the log is expensive to diagnose from outside.
+                FragmentHeld?.Invoke(linkId, packet);
+                return;
+            }
+
+            // Not a fragment at all, in the overwhelming majority of cases: Accept returns the
+            // frame unchanged, and this is the same object the codec handed us.
+            if (!ReferenceEquals(rejoined, packet.Frame))
+            {
+                packet = new XmsgPacketInfo(rejoined);
+            }
+
             // Surface the message first, then act on it.
             MessageReceived?.Invoke(linkId, packet);
             RaiseSessionEvents(linkId, packet);

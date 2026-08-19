@@ -1,0 +1,977 @@
+ @DEV 1
+ @DEV (S-S-J)CDR2
+
+
+ %=============================================================================
+ %      C D R 2
+ %=============================================================================
+
+
+
+ *"8MT1+8MT2+8MT3+8MT4
+" %==============================================================================
+ % 34.3       M C 1 4 4
+ %
+ %
+ % CALL MAGTP(FUNC,CORAD,LOG.DEV,MAXWORDS,READWORDS)
+ % ENTRY: B=DF-DATAFIELD
+ %       PARAMETERS ARE IN DATAFIELD
+ % EXIT: A=0 IF OK
+ %
+
+ SUBR MC144
+
+ % VARIABLES IN I/O DATAFIELD:
+
+ DISP 25; INTEGER CASUN; PSID           % DEVICE UNIT NUMBER
+
+ % VARIABLES IN "DF" DATAFIELDS:
+
+ DISP 35
+    INTEGER DMLOG                % LOGICAL DEVICE NUMBER OF MASS STORAGE DEVICE
+    INTEGER DMFLD                % DATA FIELD ADDRESS OF MASS STORAGE DEVICE
+    INTEGER IUNIT                % DEVICE UNIT NUMBER
+    INTEGER MDBUF                % DEVICE BUFFER ADDRESS: LEAST SIG. 16 BITS
+    INTEGER CMDBUF               % DEVICE BUFFER ADDRESS: LEAST SIG. 16 BITS
+                                 % WILL BE INCREMENTED WITH 1K FOR EACH K WORDS
+                                 % TO READ/WRITE
+    INTEGER MDFI                 % DEVICE BUFFER HEADER ADDRESS
+    INTEGER FIMAX                % NO. OF WORDS TO READ OR WRITE IF FLOPPY DISC
+    INTEGER SVXERR=DMLOG         % TEMPORARLY SAVING OF X-REGISTER
+    INTEGER TSAVE=MDBUF          % TEMPORARLY SAVING OF T-REGISTER
+ PSID
+
+ %      DISPLACEMENTS IN INTERNAL BLOCK DEVICE DATAFIELDS.
+
+ DISP -3
+    INTEGER DBLDN             % LOGICAL DEVICE NUMBER OF DBH RESERVED FOR THIS IBD. (ONLY FIRST). .
+    INTEGER INWORDS           % NO. OF WORDS IN BUFFER                                            .  INPUT PART ONLY
+    INTEGER IDFOPP            % ADDRESS OF OUTPUT DATAFIELD                                       .
+ PSID
+ DISP 13
+    INTEGER BREGC
+ PSID
+
+ MC144: A:=L=:"MCLRG"
+        CALL SPT3PIT; GO PT3MC144       % CONTINUE ON PIT3-SEGMENT
+
+ RBUS
+
+ *"8DMAS
+" *BLOCK=TEXIT; BUNLO=TEXIT
+ *"
+"
+ @MAC
+""065352
+
+ *"8MT1+8CAS1+8DMVC+8CDLI+8FDI1+8FDI2+8BFD1+8BFD2+8MT2+8CAS2+8MT3+8MT4
+" %==============================================================================
+ % 34.10      C B G E T   C B P U T   C A I C L   S M T R A   C A O C L
+ %
+ %
+ % IOTRANS ROUTINE FOR MAG.TAPE, VERSATEC ON DMA, CASSETTE
+ % AND FLOPPY DISC
+ %
+
+ SUBR CBGET,CBPUT,CAICL,SMTRA,CAOCL
+
+ % VARIABLES IN I/O DATAFIELD
+ DISP 24
+ INTEGER LREGC                % RETURN ADDRESS AFTER IOTRANS IS EXECUTED
+ INTEGER CASUN                % DEVICE UNIT NUMBER
+ INTEGER CERROR               % CURRENT ERROR CODE
+ INTEGER LASTC                % CURRENT CHARACTER
+ INTEGER NOWRE                % NUMBER OF CHARACTERS TO READ/WRITE
+ INTEGER CPARM(4)             % PARAMETER LIST FOR MTRANS (FIRST WORD IN MEMORY
+                              % BUFFER ADDRESS IS MBUFB.
+ INTEGER MBUFB                % BANK NUMBER IN WHICH THE DEVICE BUFFERS LIE.
+ INTEGER MABUF                % SECOND WORD IN MEMORY BUFFER ADDRESS
+ DOUBLE MBPAG=MBUFB
+ INTEGER VEFUNC               % PRINT OR PLOT MODUS IF VERSATEC (10=PLOT,11=PRINT)
+ INTEGER CIOLOG               % LOGICAL DEVICE NUMBER OF I/O DATAFIELD
+ INTEGER FDIADR               % FLOPPY DISC ADDRESS
+ INTEGER POINTER PLREGC=LREGC
+ PSID
+ DISP -1; INTEGER ADRBHEAD; PSID        % BUFFER HEADER ADDRESS
+
+ % VARIABLES IN DMA DEVICE DATAFIELD
+ DISP 12; INTEGER MRTREF; PSID          % PROGRAM CALLING CLOSE
+ DISP 13; INTEGER BREGC; PSID       % ADDRESS OF I/O DATAFIELD
+ DISP 0; REAL RFMAX=MAX; DOUBLE DBHOLD=BHOLD; PSID
+ INTEGER BREG=?
+
+ CBGET: A:=L=:LREGC; *PION              % LEVEL 4
+        CALL CBF1
+        IF BHOLD><0 THEN
+           IF A=1 AND CERROR><0 THEN A=:DERROR FI
+           *PIOF
+           CALL DBGET; *PION
+           MIN LREGC; GO PLREGC
+        FI
+        A:=B; *IRW MLEVB DB
+        "CGMLEV"; *IRW MLEVB DP
+        MLEV; *MST PID; WAIT
+        CALL ERRFATAL
+        *)FILL
+
+ % MONITOR LEVEL
+
+ CGMLEV:CALL CBF2; CALL MTRANS; CALL BRELEASE; CALL CBUNLOCK
+        CALL MBFDISC; X:=BREGC;0=:X.CERRO
+        IF TYPRING BIT 5FLOP THEN
+           IF HSTAT NBIT 4 THEN
+              IF A BIT 5 THEN A BONE 4=:HSTAT; 3=:CERRCODE; A:=0
+              ELSE
+                 X:=BREGC.CASUN; X:=FDIFORM(X); WDSCT(X)     % WORDS PER SECTOR ACCORDING TO FORMAT
+              FI
+           ELSE
+              A:=0
+           FI; A=:BREGC.NOWRE
+        FI
+        IF HSTAT BIT 4 THEN X:=:B; CALL MERRCODE; X:=:B
+           IF T:=X.NOWRE=0 THEN A=:X.DERROR ELSE A=:X.CERROR FI
+        FI
+ CBGE1: X=:B;NOWRE SHZ 1=:BHOLD;0=:HENTE
+        GO STUPR
+
+ ERR1:  A:=172                % NO DEVICE BUFFER AVAILABLE
+ ERR:   A=:DERROR; GO PLREGC
+ *)FILL
+
+ INTEGER BREG
+ INTEGER POINTER REGL
+
+ % RESERVE THE DFOPP-DATAFIELD AND RESERVE DEVICE BUFFER
+
+ CBF1:  T:=L=:"REGL"
+        CALL CHDVBUF; GO CNBUF; GO L1
+ CNBUF: CLOGDV; CALL LOGPH; IF A=0 THEN 2; GO ERR FI
+        IF A.TYPRING BIT 5FLOP THEN
+              X=:D; A:=X+CASUN+"FDIFORM"=:X; X.S0+D+"WDSCT"=:X
+              X.S0 SH 1=:MAX
+        FI
+        T:=CIOLOG; MAX SHZ -1; CALL G5BUF; GO ERR1
+        AD=:MBPAG; A:=D=:BUFST; T=:ADRBHEAD                 % PUT ADDRESS OF DEVICE BUFFER AND DEVICE BUFFER HEADER
+        0=:BHOLD=:FYLLE=:HENTE; MAX=:CFREE                  % IN THE FLOPPY INBYTE/OUTBYTE DATA FIELD.
+ L1:    IF X:=DFOPP=0 GO REGL
+        IF X.RTRES><RTREF THEN
+           B=:D:=X; X:=T; CALL BRESERVE; D=:B
+           IF A<0 THEN A:=205; GO ERR FI          % DEV. ALREADY RESERVED
+        FI; GO REGL
+
+ CBF2:  A:=L=:"REGL"
+        *IRR ALEVB DP
+        A-1;*IRW ALEVB DP
+        MAX SHZ -1=:NOWRE; CLOGDV; CALL LOGPH
+        IF A=0 THEN 2; GO ERR FI        % NO  "DMA" DATAFIELD
+        A:=:B;A=:BREG; CALL CBLOCK;X:=RTREF;CALL BRESERVE  % RESERVE "DMA" DATAFIELD
+        IF A<0 THEN CALL FREXQU;CALL TOWQU; CALL CBUNLOCK
+              GO STUPR FI               % WAIT FOR "DMA" DEVICE TO BE FREE
+        IF TYPRING BIT 5FLOP THEN
+           1=:BREG.NOWRE
+           X:=X.CASUN; NFDIADR(X)=:BREG.FDIADR
+        FI; BREG=:BREGC; A+"CPARM"; GO REGL
+ *)FILL
+
+ CBPUT: X:=L=:LREGC;A=:LASTC; *PION
+        CALL CBF1
+        IF CFREE><0 THEN
+           LASTC; *PIOF
+           CALL DBPUT; *PION
+           MIN LREGC; GO PLREGC
+        FI
+        A:=B; *IRW MLEVB DB
+        "CBMLEV"; *IRW MLEVB DP
+        MLEV; *MST PID; WAIT
+
+ % MONITOR LEVEL
+ CBMLEV:CALL CBF2
+        CALL MTRANS;CALL BRELEASE; CALL CBUNLOCK
+        CALL MBFDISC; X:=BREGC
+        IF HSTAT BIT 4 THEN X:=:B; CALL MERRCODE; X:=:B; A=:X.DERROR FI
+        X=:B;MAX=:CFREE;0=:FYLLE=:BHOLD;GO STUPR
+ *)FILL
+
+ % INCREMENT DISC ADDRESS IF FLOPPY DISC
+ MBFDISC: IF TYPRING BIT 5FLOP THEN
+              X:=BREGC.CASUN; MIN NFDIADR(X); 0/\0
+          FI; EXIT
+
+
+ % IOSET ROUTINE FOR MAG.TAPE, VERSATEC ON DMA, LINE-PRINTER, FLOPPY
+ % AND CASSETTE
+
+
+ INTEGER POINTER LREG=?
+
+ % ENTRY POINT FOR INPUT
+ CAICL: IF A><-1 AND ><-2 THEN EXIT FI
+ CAICF: A:=L=:"LREG"
+        CALL CHDVBUF; GO CAIC1
+        "CAIC4"; *IRW BLEVB DP
+        CIOLOG; *IRW BLEVB DT
+        BLEV; *MST PID
+ CAIC1: 0=:BHOLD=:HENTE=:BUFST=:ADRBHEAD; MAX=:CFREE
+        A:=0; GO LREG
+ CAIC4: CALL R5BUF; CALL ERRFATAL; *WAIT
+        CALL ERRFATAL
+
+ INTEGER SAVEB
+ INTEGER REGB=?,XREG=?
+ INTEGER POINTER LREG
+
+ % ENTRY POINT FOR OUTPUT
+ CAOCL: IF A><-1 THEN IF A=-2 GO CAICF; EXIT FI
+        IF BHOLD=0 GO CAICF
+        A:=L=:"LREG"; CALL CHDVBUF; GO CAIC1
+        X=:XREG
+        A:=B=:REGB;CLOGDV;CALL LOGPH;A=:B
+        X:=XREG; CALL CB2LOCK; X:=RTREF;CALL BRESERVE
+        IF A<0 THEN           % WAIT FOR "DMA"DEVICE
+              CALL FREXQU;CALL TOWQU; XREG=:B; ZPREG-1=:ZPREG
+              CALL CBUNLOCK; GO RETSTUPR; *)FILL
+        FI
+        RTREF=:MRTREF; X:=REGB; X:=:B; CALL CHDVBUF; GO UT; X=:B
+        IF TYPRING BIT 5FLOP THEN
+           IF REGB.BHOLD><X.MAX THEN
+              A:=B=:SAVEB; X=:B
+              DO WHILE BHOLD><MAX
+                 *PIOF
+                 A:=0; CALL DBPUT; *PION
+              OD; A:=SAVEB=:B
+           FI
+        FI; GO FILSK; *)FILL
+
+ INTEGER REGB,XREG
+
+ FILSK: REGB=:BREGC=:B; "SMTRA"=:MFUNC
+        IF BHOLD BIT "0" THEN           % ODD NUMBER OF BYTES IN BUFFER
+           *PIOF
+           A:=0; CALL DBPUT; *PION
+        FI
+        IF TYPRING BIT 5MT THEN
+           DO WHILE BHOLD<22            % RECORD OF AT LEAST 22 BYTES MUST
+              *PIOF                     % BE WRITTEN ON MAG TAPE FOR IT TO
+              A:=0; CALL DBPUT; *PION   % BE DISTINGUISHED FROM NOISE
+           OD
+        FI
+        A:=BHOLD SHZ -1=:NOWRE; CALL RTACT
+        X:=RTREF; CALL WDATA
+ UT:    XREG=:B; GO RET
+ *)FILL
+
+ % SUBROUTINE TO SET UP A CALL TO THE MASS STORAGE DRIVER
+ % MONITOR LEVEL
+
+ SMTRA: X=:B                            % LEVEL 3
+        CLOGDV; CALL LOGPH; A=:X
+        "SRETRA"=:X.MFUNC
+        IF X.TYPRING BIT 5FLOP THEN
+           X=:D; 1=:NOWRE; CASUN+X+"NFDIADR"=:X; X.S0; MIN X.S0; 0/\0
+          A=:FDIADR; D=:X
+        FI
+        A:=B+"CPARM"; X=:B;CALL CMTRANS
+        IF HSTAT BIT 4 THEN X:=:B; CALL MERRCODE; X:=:B ELSE A:=0 FI; A=:D
+        IF CURPROG=MRTREF THEN
+            A:=D; *IRW ALEVB DA
+        ELSE
+           A:=D; X:=MRTREF.RTDLGADDR; T:=0; *STATX XTDAR
+        FI; X:=MRTREF
+        "RETRANS"=:MFUNC; CALL BRELEASE; CALL CBUNLOCK; BREGC=:B
+        "IORES"=:MFUNC
+ OUT:   0=:BHOLD=:HENTE=:FYLLE; MAX=:CFREE
+        CALL CHDVBUF; GO STUPR
+        T:=CIOLOG; CALL R5BUF; CALL ERRFATAL; 0=:ADRBHEAD
+        GO STUPR
+
+ RBUS
+
+
+ *"8MT1+8MT2+8CAS1+8CAS2+8FDI1+8FDI2+8BFD1+8BFD2+8DLP1+8DLP2+8DMVC+8DVE1+8DVE2+8MT3+8MT4
+" %==============================================================================
+ % 34.11      C M T R A N S   S R E T R A
+ %
+ %
+ % SUBROUTINE TO START DRIVER ON LEVEL 11
+ % MONITOR LEVEL
+ % ENTRY: B=DATAFIELD ADDRESS
+ %        A=ADDRESS OF PARAMETER LISTE
+ %
+ SUBR CMTRANS,SRETRA
+
+ DISP 12;INTEGER MRTREF;PSID  % RT PROGRAM CALLING CLOSE (IOSET)
+
+ CMTRANS: *IOF
+        *IRW LV11B DX; TRR 10
+        "STDRIV";*IRW LV11B DT
+        A:=B; *IRW LV11B DB
+        "SLV11"; *IRW LV11B DP
+        A:=L=:"TRLREG"
+        LV11;*MST PID
+        X:=MRTREF;CALL WDATA
+        *ION
+        IF X=RTREF GO RWAIT; GO MONEN
+
+ % X=DATAFIELD ADDRESS
+ SRETRA: X=:B:=MRTREF;IF X=0 GO MONEN
+        CALL RDATA;GO TRLREG
+
+ RBUS
+
+ *"8HDMA
+" %===========================================================================
+ % 34.21      C H D V B U F
+ %
+ % SUBROUTINE TO CHECK IF A DEVICE BUFFER IS RESERVED FOR THIS LOGICAL
+ % DEVICE UNIT BY THE PROGRAM WHICH HAS RESERVED THE LOGICAL
+ % DEVICE UNIT
+ %
+ % ENTRY:     B=ADDRESS OF I/O DATAFILELD
+ % EXIT:      NO DEVICE BUFFER RESERVED
+ % EXITA:     DEVICE BUFFER RESERVED
+ %
+ SUBR CHDVBUF
+ DISP -1; INTEGER ADRBHEAD; PSID        % ADDRESS OF BUFFER HEADER
+ DISP 5; INTEGER LGIOLOG; PSID          % LOGICAL DEVICE NUMBER IN BUFFER
+ DISP 40; INTEGER CIOLOG; PSID          % LOGICAL DEVICE NUMBER IN DATAFIELD
+
+ CHDVBUF:
+        X=:D
+        IF ADRBHEAD=0 OR A.RTRES><RTRES OR X.LGIOLOG><CIOLOG THEN
+           X:=D
+           EXIT
+        FI
+        X:=D; EXITA
+ RBUS
+
+
+
+
+ %==============================================================================
+ % 34.22      P S T W O R D    P L D W O R D    D B S T W    D B L D W
+ %
+ % SUBROUTINES TO READ/WRITE VALUE IN ANY LOCATION IN EXISTING MEMORY
+ %
+ %      ROUTINES DBSTW AND DBLDW RETURN WITH PAGING-OFF AND INTERRUPT UNCHANGED
+ %      - CALLED FROM ROUTINES OPERATING ON DEVICE BUFFERS.
+ %
+ %      PSTWORD AND PLDWORD RETURN WITH ION AND PAGING-OFF
+ %      - CALLED FROM DMA-DRIVERS WITH ION.
+ %
+ % ENTRY: T=VALUE TO STORE IF PSTWORD OR DBSTWORD.
+ %        AD=ADDRESS OF LOCATION TO ACCESS.
+ %
+ % EXIT:  T=VALUE IF PLDWORD OR DBLDWORD.
+ %        AD IS INCREMENTED BY ONE
+ %
+
+ SUBR PSTWORD,PLDWORD,DBSTWORD,DBLDWORD
+
+ INTEGER SVT,SVA,SVD,SVX,FLGX,PITAB; DOUBLE SVAD=SVA; REAL SVTAD=SVT
+ INTEGER 5BFAD(0); *5BFPA@12
+ INTEGER 5BFXX(0); *177400+5BFPA
+
+ DBSTWORD: K:="0"; GO PS1
+ DBLDWORD: K:="0"; GO PL1
+ PSTWORD: *IOF
+        K:=1
+ PS1:   0=:FLGX; GO FELLS
+ PLDWORD: *IOF
+        K:=1
+ PL1:   T:=1=:FLGX
+ FELLS: X=:SVX
+           IF X:=FLGX=0 THEN
+              *DEPO
+           ELSE
+              *EXAM
+           FI; *POF
+        D+1; A:=A+C; X:=SVX
+        IF K THEN; *ION       % PSTWORD/PLDWORD
+             FI; EXIT
+ RBUS
+ *"8FDI1+8FDI2
+"
+
+ %
+
+
+ *"
+"
+
+ *"MERRC
+" %==============================================================================
+ % 34.25      M E R R C O D E
+ %
+ %
+ % SUBROUTINE TO DECODE HARDWARE STATUS TO ERROR CODE
+ % ANY LEVEL
+ %
+ % ENTRY: A=HARDWARE STATUS, X=ADDRESS OF DATAFIELD
+ % RETURN: A=ERROR CODE, D IS DESTROYED
+ %
+ SUBR MERRCODE
+ DISP 22; INTEGER DIS22; PSID
+ INTEGER CINSTR(0); *COPY SA DB
+ MERRCODE: A=:D; IF X.CERRCODE><0 THEN 0=:X.CERRCODE; EXIT FI
+        IF D=-1 THEN A:=174; EXIT FI          % ILLEGAL PARAMETER IN CALL
+        IF X.TYPRING BIT 5IBDV THEN A:=D; EXIT FI
+        IF A BIT 5FLOP THEN
+              IF X.DIS22-CINSTR><0 THEN 171; EXIT FI  % NEW FLOPPY (BIG-FLOPPY)
+              IF D BIT 10 THEN 204; EXIT FI
+              IF D BIT 11 THEN 175; EXIT FI
+        FI
+        IF A NBIT 5MT THEN A:=171; EXIT FI % MASS.DEV.ERROR
+
+ % MAG. TAPE
+        IF X."TRNSF"><"HMAGT" THEN      % IF "SMAGT" OR "TMAGT" !!
+              IF D NBIT "0" THEN 204; EXIT FI     % NOT READY
+        ELSE
+              IF D NBIT 16 THEN 204; EXIT FI      % NOT READY
+        FI
+        IF D BIT 7 THEN A:=3; EXIT FI      % END OF FILE
+        IF D BIT 11 THEN A:=146; EXIT FI             % END OF TAPE
+        IF D BIT 14 THEN A:=163; EXIT FI           % OVERFLOW IN READ
+        IF D BIT 13 THEN A:=164; EXIT FI          % DMA ERROR
+        IF X."TRNSF"><"HMAGT" THEN         % NOT HEWLET-PACKARD.
+           IF D BIT 6 THEN A:=165; EXIT FI    % BAD DATABLOCK
+           IF D BIT 5 THEN A:=166; EXIT FI        % CONTROL/MODUS WORD ERROR
+        ELSE                            % H.P. MAG.TAPE
+           IF D BIT 12 THEN A:=167; EXIT FI   % PARITY ERROR
+           IF D BIT 6 THEN A:=170; EXIT FI        % LRC ERROR
+        FI; A:=171; EXIT                          % MASS STORAGE DEVICE ERROR
+ RBUS
+ *"
+"
+
+
+
+
+ %==============================================================================
+ % 34.26      M 8 O U T B   M O U R E T
+ %
+ % MONITOR CALL TO OUTPUT 8 BYTES
+ % INBT/OUTBT LEVEL
+ SUBR B8INSYN,B8OUSYN,BM8OUT,BB8OUT
+ RBUS
+ %
+ SUBR M8OUTB,MOURET,M8OTERM,CH8BY,M8OINDV,B8OUT,B8OTERM,B8OINDV,CH4WO,T2P01,T2P02
+ INTEGER POINTER PTTNO:=TTNO,PBCHFLAG:=BCHFLAG
+ M8OUTB: B:=0; GO FELLS
+ B8OUT: B:=1
+ FELLS: *IRR ALEVB DT
+        IF X:=BACKGROUND><0 AND X:=PBCHFLAG=0 THEN
+              IF A=1 THEN A:=PTTNO FI
+        FI; IF A=0 GO MOURET; IF A=:D/\177700=100 GO E240  % NOT ALLOWED ON FILE
+        A:=D; CALL LOGPH; IF D=0 GO E240
+        D:=:B                                     % D IS "OLD CFLAG"
+        IF X:=RTREF><RTRES THEN 5; GO ERR FI
+ @LIB CXCPU
+ @LIB CXCPU-,
+        IF DFOPP=0 GO E240; *PIOF
+        A.TYPRING; X:=RTREF
+ @ELIB
+        IF A BIT 5TERM THEN
+              IF D=0 GO M8OTERM;  GO B8OTERM
+        FI
+        IF A BIT 5BAD THEN
+              IF D=0 THEN
+ T2P01:          GO BM8OUT; 0/\0
+              ELSE
+ T2P02:          GO BB8OUT; 0/\0
+              FI
+        FI
+ *"8CLI1+8CLI2+8CLI3+8CLI4+8CLI5+8CLI6
+"        *IRR ALEVB DT
+        IF A>177 AND A<300 THEN
+              IF D=0 GO M8OINDV; GO B8OINDV
+        FI
+ *"8VIPS
+" E240:  240
+ ERR:   *IRW ALEVB DA
+ L1:    *PION; WAIT; JMP * 1; IOF; WAIT
+ MOURET: *IRR ALEVB DP; AAA 1; IRW ALEVB DP
+        GO L1
+ RBUS
+
+ @ICR
+ SUBR M8INTERM,B8INTERM,B8IINDV,M8IINDV,M8INCOM,B4INTERM,
+      B4IINDV,B4WICOM,M8IBTERM,M8IBCOM,BB4INW,BB8INP;
+ RBUS
+ @CR;
+ SUBR M8INB,B8INB,B4INW,T8INP,T2P03,T2P04,T2P05
+ INTEGER POINTER PTTNO:=TTNO,PBCHFLAG:=BCHFLAG
+ M8INB: B:=0; GO FELLS
+ B8INB: B:=1; GO FELLS
+ B4INW: B:=2; GO FELLS
+ T8INP: B:=3
+ FELLS: *IRR ALEVB DT
+        IF X:=BACKGROUND><0 AND X:=PBCHFLAG=0 THEN
+              IF A=1 THEN PTTNO FI
+        FI; IF A=0 GO MOURET
+        IF A=:D/\177700=100 GO E240               % NOT ALLOWED ON FILE
+        A:=D; CALL LOGPH; IF A=0 GO E240
+        B=:D:=A                                             % D IS "OLD CFLAG"
+        IF X:=RTREF><RTRES THEN 5; GO ERR FI; *PIOF
+        IF TYPRING BIT 5TERM THEN
+              D GOSW M8INTERM,B8INTERM,B4INTERM,M8IBTERM
+        FI
+        IF A BIT 5BAD THEN
+              IF D=0 GO M8INTERM
+              IF D=1 THEN
+ T2P03:          GO M8INTERM; 0/\0
+              FI
+              IF D=2 THEN
+ T2P04:          GO BB4INW; 0/\0
+              FI
+              IF D=3 THEN
+ T2P05:          GO BB8INP; 0/\0
+              FI
+        FI
+        IF A BIT 5COM THEN
+              D GOSW M8INCOM,M8INCOM,B4WICOM,M8IBCOM
+        FI
+        *IRR ALEVB DT
+        IF A>177 AND A<300 THEN
+              D GOSW M8IINDV,B8IINDV,B4IINDV
+        FI
+ *"8VIPS
+" E240:  240
+ ERR:   *IRW ALEVB DA; PION; WAIT
+        CALL ERRFATAL
+ RBUS
+
+
+ %=============================================================================
+ %
+ %
+ SUBR GRTDA,GSGNO,GRTNA,3GRTDA,3GSGNO,3GRTNA
+
+ GSGNO: T:="P0"; CALL GET0; CALL S3NOALT; GO 3GSGNO
+ GRTDA: T:="P0"; CALL GET0; CALL S3NOALT; GO 3GRTDA
+ GRTNA: CALL GET1; CALL S3NOALT; GO 3GRTNA
+ RBUS
+
+
+ %==============================================================================
+ % 34.29      I P R I V
+ %
+ SUBR IPRIV
+ INTEGER OBREG,NBREG,CAREG
+ IPRIV: CALL GET0
+        T:=ZTREG; X:=ZXREG; A:=ZDREG=:D
+        A:=B=:OBREG:=ZAREG=:CAREG:=ZBREG=:B:=CAREG
+        *EXR ST
+        A=:CAREG:=B=:NBREG:=OBREG=:B
+        A:=NBREG=:ZBREG:=D=:ZDREG
+        T=:ZTREG; X=:ZXREG; CAREG=:ZAREG
+        GO RET
+
+ RBUS
+
+ *"8CXHD+8C1X2+8C2X2+8C3X2+8C4X2
+"
+
+ %=======================================================================
+ % 34.31     X T L X    S T U S P   S T L 1 2    S T L 1 3
+ %
+ %      MONITOR CALL HDLC
+ %
+ %=======================================================================
+ %
+ %
+ %PUROSE: SIMULATE XTLX MONITOR CALLS FOR COMMUNICATION
+ %        WITH HDCL-DRIVER.
+ %
+ %ARGUMENTS:
+ %
+ %ENTRY: X-DEMFIELD, B-PARAMPOINTER
+ %      PT=0, APT=USER PT, LEV 3 ENABLED, PON, ION
+ %
+ %EXIT: WHEN ENTRING THE CODE IN POF (HDLC),THE B-REG WILL
+ %      POINT TO THE APPROPRIATE BASEFIELD,WHICH IN TURN
+ %      WILL CONTAIN THE USER CALL PARAMETERS.
+ %
+ %
+ %CALLING SEQUENCE:
+ %
+ %      A-REG - POINTER TO PARAM ADDRESSES
+ %      MON  HDLC
+ %      POINTER TO PARAM1
+ %      POINTER TO PARAM2
+ %      POINTER TO BUFFER
+ %      POINTER TO PARAM4
+ %      POINTER TO PARAM5
+ %
+ %      P1 - FUNCTION. SEND OR RECEIVE
+ %      P2 - PORT NO. (LOGICAL UNIT NO.)
+ %      P3 - BUFFER
+ %      P4 - BYTECOUNT
+ %      P5 - P1 - 1  MAX BYTECOUNT OF MESSAGE
+ %           P1 - 2  WAIT/CONTINUE IF NO MESSAGE IN QUEUE
+ %
+ %
+ DISP -9
+        INTEGER HXDOK                   %LOCK,OPERATED BY X21(1-LOCKED,0-OPEN)
+        INTEGER HXTMO                   %ADDRESS OF TIMEOUT-ROUTINE IN POF
+ PSID
+ SUBR XTLX,STUSP,IMHDLC
+ %
+ %      TEMPORARY WORKING AREA
+ %
+ INTEGER ARRAY POINTER TDAFI                      %CURRENT DATAFIELD
+ INTEGER ARRAY POINTER TDEFI                      %DEMANDFIELD
+ INTEGER TEMP
+ INTEGER BFADR
+ %
+ XTLX:  *BSET ZRO
+        CALL GAPIT; CALL DALTON
+        A:="P2"=:BFADR                            %USER BUFFER ADDRESS
+        IF P0 = FRECV OR A=FMXRECV THEN
+              A:="P3"=:TEMP                       %RETURN ADDRESS OF BYTECOUNT
+              CALL GET5; *BSET ZRO
+              TEMP=:X.D3
+        ELSE
+              IF P0 = FSEND THEN
+                 CALL GET5
+              ELSE
+                 T:=EFUNC; GO ERET   %ILLEGAL FUNCTION
+              FI
+        FI; *BSET ZRO
+        BFADR=:X.D2
+        X=:"TDEFI"
+ %
+ %      LEV 3 DISABLED, TURN OFF PAGING
+ %
+        CALL ALTON; *POF                          %SET ALT PAG AND KEEP IT
+ %
+ %      FIND DATAFIELD AND RESERVE IT
+ %
+        A:=X.D1; CALL LOGPH;
+        IF A = 0 THEN A:=D FI                     %TRY OUTPUT-FIELD
+        IF A = 0 THEN T:=E2; GO ERET; FI
+        A=:"TDAFI"=:B
+        IF X.TYPRING >< 0 THEN T:=EDEVN; GO ERET FI         %*81F*
+        IF HXCC >< HXCOD THEN T:=EDEVN; GO ERET FI  % CORRECT DATAFIELD ?
+        IF CURPR><RTRES THEN                      % *80B*
+          T:=E1;  GO ERET;                        % *80B* *81F*
+        FI                                        % *80B*
+ %
+ %      COPY DATA TO DATAFIELD AND RELEASE DEMFIELD
+ %
+        A:="TDAFI"+OFSET=:"TDAFI"
+        FOR X:= ST TO SP DO TDEFI(X)=:TDAFI(X) OD;
+        A:="TDEFI"=:B
+        X:=CURPROG; CALL BRELEASE;
+        A:="TDAFI"-OFSET=:"TDAFI"=:B              %DATAFIELDPOINTER
+ %
+ %
+        CALL HDLC                                 % GO TO POF AREA
+ %
+ %
+ %      RETURN SEQUENCE
+ %
+ %      ARGUMENTS:
+ %            B - DATAFIELDPOINTER
+ %            T = 0, OK, GIVE SKIP RETURN
+ %            MESSID = MESSAGE IDENTIFICATOR
+ %
+ %      T ><0, ERROR, NO SKIP RETURN
+ %
+ %      POF
+ %
+ HBACK: IF T><0 THEN
+            B+OFSET
+ ERET1:     T=:ZAREG; GO RET                      %*81F*
+       FI
+       A:=MESSID; B+OFSET; A=:ZAREG
+       ZPREG+1=:ZPREG; GO RET
+ ERET: X=:B; GO ERET1                             % *81F*
+ %
+ %      ROUTINE FOR STORING IN USER PARAM
+ %
+ %      T - VALUE TO BE STORED
+ %
+ %      USER ADDR. IN DDD3 IN DATAFIELD
+ %
+ DISP 0; INTEGER HNULL; PSID
+ STUSP: MLEV; *IOF; MST PIE; PION                 %MUST ALLOW PAGEFAULT
+        X:=B+OFSET; *BSET ZRO
+        CALL GAPIT; CALL DALTON; *BSET ZRO
+        A:=DDD3; A=:B; *BSET ONE
+        T=:HNULL; X=:B; *BSET ZRO                  %STORE IN USER PARAM
+        CALL ALTON; B-OFSET
+        MLEV; *MCL PIE; POF
+        GO IMHDLC                                 % CONTINUE IN ROUTINE HDLC IN POF
+ RBUS
+
+ %      START LEVEL 12/13 IN POF AREA AT ADDRESS IN T-REG
+ %      B-REG FROM CALLIN LEVEL IS COPIED
+ %      RETURN TO CALLER WITH PIOF
+
+ SUBR STL12                                       %*80B*
+ STL12: "SLV12"; *IOF; IRW LV12B DP               %*80B*
+        A:=B; *IRW LV12B DB                       %*80B*
+        A:=T; *IRW LV12B DT                       %*80B*
+        LV12; *MST PID; PION; PIOF; EXIT          %*80E*
+ RBUS                                             %*80B*
+ SUBR STL13                                       %*80B*
+ STL13: "SLV13"; *IOF; IRW LV13B DP               %*80B*
+        A:=B; *IRW LV13B DB                       %*80B*
+        A:=T; *IRW LV13B DT                       %*80B*
+        LV13; *MST PID; PION; PIOF; EXIT          %*80B*
+ RBUS                                             %*80B*
+
+
+ %=======================================================================
+ % 34.32     H D T M 2      H D T M 3
+ %      OUTPUT TIMEOUT ROUTINE
+ %
+ %PURPOSE:    ACTIVATE TIMEOUT ROUTINE ON LEVEL 12 IN POF AREA
+ %
+ SUBR   HDTM2
+ HDTM2: T:=HXTMO; GO STL12                        % *80B*
+ RBUS
+ %
+ %
+ %       INPUT TIMEOUT ROUTINE
+ %
+ %       PURPOSE: ACTIVATE TIMEOUT ROUTINE ON LEVEL 13
+ %
+ SUBR X21IN,X2STA,X21TO
+ RBUS
+ SUBR HDTM3
+ HDTM3: T:=HXTMO; GO STL13                        % *80B*
+ RBUS
+ %
+ %      SOME ROUTINES TO GET INTO PIT3 FROM POF
+
+ SUBR X32ST,X321T,O3CHA,S3L13,D3CHA,X321I,X3T12,X3T13
+ INTEGER SAVL,SAVL1,SAVL2
+ INTEGER LOGBA,PHBAS                   % LOGICAL AND PHYSICAL BASE
+ FFF:   X:="SG41"; A:=X.LOGADR/\77=:LOGBA
+        X:=X.BPAGLINK; T:=CORMBANK; *LDATX DPAGP
+        A=:PHBAS; EXIT
+ X32ST: *PON
+        GO X2STA
+ X321T: *PON
+        GO X21TO
+ X321I: *PON
+        GO X21IN
+ O3CHA: A:=L=:SAVL; X=:D; CALL FFF; A:=0; AD SHZ 6; A-LOGBA+PHBAS
+        AD SHZ -6; D=:X; *POF
+        CALL OCHAIN; *PON
+        A:=SAVL=:P
+ S3L13: A:=L=:SAVL1; *POF
+        CALL STL13; *PON
+        A:=SAVL1=:P
+ D3CHA: A:=L=:SAVL2; *POF
+        CALL DICHAIN; GO NSKIP
+        MIN SAVL2; P+0
+        X=:D; CALL FFF; A:=0; AD SHZ 6; A-PHBAS+LOGBA; AD SHZ -6; D=:X
+ NSKIP: *PON
+        A:=SAVL2=:P
+ X3T12: *POF
+        GO DRIVER
+ X3T13: *POF
+        T=:P
+ RBUS
+
+
+ %=========================================================================
+ %      I N B X 2 1
+ %
+ % SUBROTINE TO SET UP THE PHYSICAL ADDRESS OF THE "X21-BUFFERS" INTO
+ % THE "X21" DATAFIELDS
+ %
+ % CALLED FROM OLDSTART
+ %
+ SUBR INBX21
+
+ INTEGER ARRAY ADRX21(0)
+ *"8C1X2
+" *      X21F1;X2S01;X2E01
+ *"8C2X2
+" INTEGER ARRAY EAX21(0)
+ *"8C1X2+8C2X2+8C3X2+8C4X2+8C5X2+8C6X2
+" INTEGER CINDX,CADR,16BADR; DOUBLE DCAD=CADR
+ DISP 0; TRIPLE FS0; PSID
+ *"
+" INBX21:
+ *"8C1X2+8C2X2+8C3X2+8C4X2+8C5X2+8C6X2
+"        X:="ADRX21"=:CINDX
+        DO WHILE CINDX<<"EAX21"
+           X:="SG41".BPAGLINK; T:=CORMBANK; *LDDTX DPGPR
+           A:=0; AD SHZ 12=:DCAD
+           TAD:=CINDX.FS0; X:=T
+           A:=:D-D-1 SH 1=:X.MAX
+           A:=D-"XSPT3"+16BADR=:X.BUFST
+           CADR=:X.MASTB; CINDX+3=:CINDX
+        OD
+ *"
+"        EXIT
+ RBUS
+
+
+ *"8D023
+"
+ %========================================================================
+ %  34.36     E D T R M
+ %
+ % MONITOR CALL TO ENABLE/DISABLE PROGRAM TERMINATION HANDLING
+ %
+ % MONITOR CALL (206): ISTAT=EDTRM(<ENABLE/DISABLE>,<RT/UB/FE>
+ %                                 <  1   /   0   >,< 0/ 1/ 2>
+ %
+ %
+
+ SUBR EDTRM
+
+ EDTRM: CALL GET2
+        IF BACKGROUND><0 THEN
+              IF D1=0 GO ILLPA
+        ELSE
+              IF D1>0 GO ILLPA
+        FI
+        IF D1=0 THEN          % RT
+              IF D0=0 THEN    % DISABLE
+                 0=:FLRTTERM
+              ELSE            % ENABLE
+                 IF RTTERM=0 GO ILLPA
+                 1=:FLRTTERM
+              FI
+        ELSE                  % BACKGROUND
+              MLEV; *MST PIE  % ENABLE MONITOR LEVEL
+              T:=5OPSEG; X:="PETECOM"; CALL GET1L; GO ERR
+              IF A="TECBUF" GO ILLPA
+              IF D1 BIT "0" THEN % USER-BREAK
+                 IF D0=0 THEN   % DISABLE
+                    FLBGTERM BZERO "0"=:FLBGTERM
+                 ELSE           % ENABLE
+                    FLBGTERM BONE "0"=:FLBGTERM
+                 FI
+              FI
+              IF D1 BIT 1 THEN % FATAL-ERROR
+                 IF D0=0 THEN   % DISABLE
+                    FLBGTERM BZERO 1=:FLBGTERM
+                 ELSE           % ENABLE
+                    FLBGTERM BONE 1=:FLBGTERM
+                 FI
+              FI
+        FI; A:=0; GO OUT
+
+ ERR:   -1; GO OUT            % ERROR WHEN ACCESSING OPCOM SEGMENT
+ ILLPA: 174                   % ILLEGAL PARAMETER
+ OUT:   A=:ZAREG; GO RET
+ RBUS
+
+
+ %========================================================================
+ %  34.37     M P A S E T   M P A G E T
+ %
+ %  MONITOR CALL TO SET (56) AND GET (57) USER PARAMETERS
+ %  CALLABLE FROM BACKGROUND ONLY
+ %
+ %  IERR=PASET(APAR),  IERR=PAGET(APAR)
+ %
+
+ SUBR MPASET,MPAGET
+
+ DISP 0; REAL FS0=S0; DOUBLE DIS3=S3; PSID
+
+ MPASET: K:=1; GO FSGPAR
+ MPAGET: K:="0"
+ FSGPAR: T:="P0"; CALL GET0; T=:D0
+        IF DEMAND><0 THEN MLEV; *MST PIE
+        FI
+        IF K THEN             % SET PARAMETERS
+              X:=D0; CALL ALTON; X.FS0; CALL ALTOF; TAD=:"USPAR".FS0
+              X:=D0; CALL ALTON; X.DIS3; CALL ALTOF; AD=:"USPAR".DIS3
+        ELSE                  % GET PARAMETERS
+              "USPAR".FS0; X:=D0; CALL ALTON; TAD=:X.FS0; CALL ALTOF
+              "USPAR".DIS3; X:=D0; CALL ALTON; AD=:X.DIS3; CALL ALTOF
+        FI; A:=0
+ OUT:   A=:ZAREG; GO RET
+
+ RBUS
+
+
+ %=============================================================================
+ %  34.38     R E R R P
+ %
+ %  MONITOR CALL (207) TO READ ERROR PARAMETERS (9ERRP+ABPRO)
+ %
+ %  CALL RERRP(IARR)
+ %
+ %      IARR(1) = ERNUMB (ASCII)
+ %      IARR(2) = ERPREG
+ %      IARR(3) = N1 (A-REG)
+ %      IARR(4) = N2 (T-REG)
+ %      IARR(5) = RTPROG
+ %      IARR(6) = ABPRO (0 IF ABORTED BY SYSTEM, ELSE RTPROG)
+ %
+
+ SUBR RERRP
+
+ DISP 0; REAL FS0=S0,FS1=S3; PSID
+
+ RERRP: T:="P0"; CALL GET0; T=:D0
+        IF DEMAND><0 THEN MLEV; *MST PIE
+        FI; RTREF=:D; D0; T:=6; CALL CHLIM; GO ILLAD
+        "9ERRP".FS0; X:=D0; CALL ALTON; TAD=:X.FS0; CALL ALTOF
+        "9ERRP".FS1; X:=D0; CALL ALTON; TAD=:X.FS1; CALL ALTOF
+        A:=0
+ OUT:   A=:ZAREG; GO RET
+ ILLAD: 153; GO OUT           % ILLEGAL ADDRESS REF. IN MONITOR CALL
+
+ RBUS
+
+
+
+ *"-8NSDB
+" %==========================================================================
+ % 34.39      B R P N T   D E B U G
+ %
+ %  SPECIAL MONITOR CALLS FOR NORD SYMBOLIC DEBUGGER (MON 204 AND 205)
+ %
+
+ *)9RLPL
+
+% @MAC
+)9SCLC
+MAXUS=0
+"8DB04;)KILL MAXUS;MAXUS=4
+"8NSDB
+)9RCLC
+%
+% *)9SLPL
+)9SLPL
+ INTEGER NMAXUSERS; * *-1/MAXUS
+ INTEGER ARRAY BUFFR(7)
+ INTEGER CUIDX
+ * *<* MAXUS
+ *)ZERO
+ INTEGER ARRAY DBGPROGS(0); * *+MAXUS/
+
+ SUBR BRPNT,DEBUG,ESCDEBUG,3BRPNT,3DEBUG
+
+ BRPNT: CALL GET0; MLEV; *MST PIE
+        CALL S3NOALPIT; GO 3BRPNT
+ DEBUGGER: CALL GET0; MLEV; *MST PIE
+        CALL S3NOALPIT; GO 3DEBUG
+
+ % CALLED FROM MESCAPE
+ INTEGER POINTER ELREG
+ ESCDBUG: X:=L=:"ELREG":=B; T:="DBPROG"; CALL XGTDFADDR
+          FOR X:=0 TO NMAXUSERS-1 DO
+             IF T:=DBGPROGS(X)=A THEN 0=:DBGPROGS(X); GO ELREG FI
+          OD; GO ELREG
+ RBUS
+
+ *"
+"
+ *"8VDD+8VDP
+" %==============================================================================
+ %
+ % 34.40 ***************** VIRTUAL DISK DRIVER ROUTINES ************************
+ *"8VDD+8VDP
+" @LIB OLDPIOC

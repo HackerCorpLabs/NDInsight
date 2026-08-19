@@ -1,0 +1,56 @@
+ @DEV 1
+ @DEV (S-S-J)XMSG-SYSTABS
+
+
+ %============================================================================
+ %      X M S G - S Y S T A B S
+ %============================================================================
+
+
+ %============================================================================
+ % 34.40      X M S G - S Y S T A B S
+ %
+ %
+ % DEFINITIONS FOR TABLES COMMON TO BOTH RESIDENT AND POF CODE
+ %
+ %****************************************************************************
+
+ % DEFINE THE INTERRUPT LEVEL THAT XMSG WILL USE
+ SYMBOL 5XLEV=5               % INTERRUPT LEVEL FOR RUNNING DRIVER MONITOR
+ SYMBOL XLEVL=5XLEV,XLEVB=10*5XLEV      % DEDUCTIONS FROM THE ABOVE
+ *XLEV=1@5XLEV                          % BIT MASK FOR MST(CL) PID(E)
+
+ % DESCRIPTION OF AN XT-BLOCK:
+
+ DISP 5TLEN=0                 % TASK DESCRIPTOR BLOCK (EXTENSION OF RT-DESCR)
+        INTEGER XTCHN         % CHAIN FOR FREE/WAITING FOR RESOURCES
+        INTEGER XTSTA         % STATUS WORD
+        INTEGER XTRTA         % RT-ADDRESS OR 0 IF DRIVER
+        INTEGER XTPRT         % PORT CHAIN HEADER (POINTS TO FIRST IN QUEUE)
+        INTEGER XTMEM         % NUMBER OF BYTES OF MEMORY IN USE
+        INTEGER XTMMX         % MAX AMOUNT OF MEMORY ALLOWED
+        INTEGER XTCMS         % TASK CURRENT MESSAGE
+        INTEGER XTSTS         % BIT 17: PAGING STATUS. 0-4: INTERRUPT LEVEL
+        INTEGER XTPRG,XTXRG,XTTRG,XTARG,XTDRG,XTLRG,XTSRG,XTBRG % SAVE AREA
+        DOUBLE XTMRG=XTARG              % AD REGS
+        TRIPLE XTFRG=XTTRG              % TAD REGS
+        INTEGER XTAPR         % SAVED ACTPRI WHILE ON LEVEL 1 IN XMSG (YSTL1)
+        INTEGER XTTAP         % ACTPRI TO USE TO SET UP WINDOWS FOR TRANSFER
+        INTEGER XTUBF         % USER BUFFER ADDRESS
+        INTEGER XTSBK, XTSBF  % SYSTEM BUFFER BANK/ADDR. BIT 15=>USER->SYS
+        DOUBLE XTSAD=XTSBK    % COLLECTIVE NAME
+        INTEGER XTCNT         % TRANSFER COUNT IN BYTES
+        INTEGER XTTCN         % DYNAMIC COUNTER USED BY XTRAN
+        INTEGER POINTER XTHOM % RETURN ADDRESS FROM XTRAN. ALSO USED BY XDHAN!
+        % SAVE AREA FOR SEGMENT INFORMATION DURING INDIRECT TRANSFER
+        INTEGER XTASG         % ACTUAL SEGMENTS 1 AND 2
+        INTEGER XTRSG         % RE-ENTRANT SEGMENT
+        INTEGER XTBM0,XTBM1   % BIT MAP
+        INTEGER XTBM2,XTBM3
+        TRIPLE XTBMA=XTRSG; DOUBLE XTBMB=XTBM2
+ PSID
+ % BITS IN XTSTA ARE NOW DEFINED IN XMSG-POFTABS
+ %*************************************************************************
+ %      END OF XMSG-SYSTABS:SYMB
+ %*************************************************************************
+

@@ -1,0 +1,49 @@
+
+175777/8REST MAGTP 8ECBR 8LPPU TELIX CRDLY 8LOG 8HIST 8BCH1 IND01 IND02 8SM05 77XPO                 
+175777/8WDIS 8WD1 2W1U0                                                                             
+175777/8BFD1                                                                                        
+175777/8F1U0                                                                                        
+175777/8TR5 8BP5 8TR6 8BP6 8TR7 8BP7 8TR8 8BP8                                                      
+175777/8TR9 8BP9 8TR10 8BP10 8TR11 8BP11                                                            
+175777/8CXHD          % COMMON HDLC LIB.-MARK                                                       
+175777/8C1HD 8C2HD                                                                                  
+175777/8HMO3 8HMO4                                                                                  
+NALME=0011                                                                                          
+175777/8QBPO          % TPS FOR X21                                                                 
+175777/8C1X2 8C2X2                                                                                  
+175777/SLP1 SLP2 SLP3 SLP4                                                                          
+SLD1=00044                                                                                          
+SLD2=00045                                                                                          
+SLD3=00046                                                                                          
+SLD4=00047                                                                                          
+175777/ 8CLI5 CASY5                                                                                 
+175777/C01L5 N01L5 C02L5 B02L5 C03L5 N03L5 C04L5 B04L5 C05L5                                        
+175777/POOL4                                                                                        
+8RTN=0213                                                                                           
+175777/IND01 IND02 IND03 IND04 IND05 IND06                                                          
+175777/IND07 IND08 IND09                                                                            
+175777/IBL01                                                                                        
+175777/8BCH1                                                                                        
+175777/8BU10 8BU1     % 10 DEVICE BUFFERS                                                           
+175777/8NSDB 8DB00 8DB02                                                                            
+175777/8ACC           % CPU ACCOUNTING FOR RT PROGRAMS                                              
+175777/8IOAC          % BLOCK I/O ACCOUNTING                                                        
+175777/8PACL          % PANEL CLOCK                                                                 
+175777/8SIBA                                                                                        
+175777/8HDM1                                                                                        
+175777/RQIBM RQHON RQUNI RQCDC                                                                      
+CCNO=06                       % RT-COMMON SIZE                                                      
+175777/8SREE 8RSEG 8QBPO                                                                            
+8SGN=216                    % USER SEGMENTS                                                         
+175777/9TR27 9TR28 9BP28                                                                            
+175777/8EXAD                                                                                        
+175777/99ENS 8XMSG 8ECBR 8XON 8STRN 8MOLI                                                           
+175777/8BCH2 8BCH3                                                                                  
+175777/8ALME                                                                                        
+175777/8CONS                                                                                        
+LBSEG=100000                                                                                        
+)DEC                                                                                                
+33CPU=900                                                                                           
+33CPN=10188                                                                                         
+)OCT                                                                                                
+)LINE

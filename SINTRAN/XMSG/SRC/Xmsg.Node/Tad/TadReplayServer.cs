@@ -14,7 +14,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
     /// is not enough evidence to build a general, correct server: response rules vary by
     /// terminal type (only <c>0x0000</c> was captured), the echo/mode negotiation variants are
     /// unknown, and port/magic allocation is only partially observed (see TAD-MISSING.md). So
-    /// this class does the only faithful thing possible — it replays exactly what the captured
+    /// this class does the only faithful thing possible - it replays exactly what the captured
     /// server sent for exactly the inputs the captured client sent, and returns an
     /// INFERRED/unhandled note otherwise. It does NOT pretend to be a correct general server.
     /// <para><b>What IS trustworthy here</b></para>

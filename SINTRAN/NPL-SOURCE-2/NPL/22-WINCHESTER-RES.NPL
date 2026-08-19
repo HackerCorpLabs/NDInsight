@@ -1,0 +1,716 @@
+147000  % *"8WDIS+8WDIM+8ZWDI
+147000  "8WDIS+8WDIM+8ZWDI
+147000  % 
+
+147000  % *)9SLPL
+147000  )9SLPL
+147000   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+147000   %                                                                                 %
+147000   %   FILE NAME   : WINCHESTER:NPL                                                  %
+147000   %   PROGRAM NO. : HUT-2475 A.6                                                    %
+147000   %   ISSUED      : 82.02.18             BY: DG AND TP                              %
+147000   %                                                                                 %
+147000   %   LAST CHANGED: 83.10.03             BY: MJH                                    %
+147000   %   LAST CHANGED: 85.09.04             BY: KGT USE AD-REG FOR SECTOR ADDRESS      %
+147000   %                                                                                 %
+147000   % T R A N S F E R   R O U T I N E   F O R    8"   W I N C H E S T E R    D I S K  %
+147000   %                                                                                 %
+147000   % INCLUDING BAD TRACK REALLOCATION, BUT NO ERROR CORRECTION                       %
+147000   %                                                                                 %
+147000   %                                                                                 %
+147000   %                                                                                 %
+147000   % CALLING SEQUENCE:                                                               %
+147000   %      JPL I (WIDIS          % OR  JPL I (ZWDIS  IF SWAP DRIVER                   %
+147000   %      JMP   ERROR           % ERROR    EXIT                                      %
+147000   %      JMP   BUSY            % BUSY     EXIT                                      %
+147000   %      JMP   FINIS           % FINISHED EXIT                                      %
+147000   %                                                                                 %
+147000   % CALLING PARAMETERS:                                                             %
+147000   %      X-REG = NUMBER OF SECTORS TO TRANSFER                                      %
+147000   %      T-REG (BIT 0-5)  = FUNCTION CODE:                                          %
+147000   %                          0 - READ                                               %
+147000   %                          1 - WRITE                                              %
+147000   %                          2 - READ PARITY                                        %
+147000   %                          3 - COMPARE                                            %
+147000   %                         20 - READ STATUS                                        %
+147000   %             BIT  6-7  = UNIT NUMBER                                             %
+147000   %             BIT     8 = TRACK TEST                                              %
+147000   %             BIT     9 = NOT USED                                                %
+147000   %             BIT    10 = LATE DATA STROBE 
+147000   %             BIT 11-13 = NOT USED                                                %
+147000   %             BIT    14 = EARLY DATA STROBE                                      %
+147000   %             BIT    15 = BAD TRACK                                               %
+147000   %      AD-REG = SECTOR ADDRESS (LOGICAL)                                           %
+147000   %                                                                                 %
+147000   %      THE MEMORY ADDRESS (24 BITS) IS FOUND IN THE DATAFIELD DOUBLE WORD CMAD1   %
+147000   %                                                                     AND CMAD2   %
+147000   %                                                                                 %
+147000   %                                                                                 %
+147000   % RETURN INFORMATION:                                                             %
+147000   %      ERROR    EXIT: X = HARDWARE STATUS                                         %
+147000   %      BUSY     EXIT: THE ROUTINE MUST BE CALLED AFTER INTERRUPT                  %
+147000   %      FINISHED EXIT: X = HARDWARE STATUS                                         %
+147000   %                                                                                 %
+147000   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+147000   
+147000   *"8ZWDI -8WDIS
+"147000   
+147000   *WIDIS, JMP WISTA
+147001   
+147001   *"8WDIS+8WDIM+8ZWDI
+"147001   
+147001   SYMBOL ACTIV=2 , ICERR=4 , ADDMI=10 , ONCYL=16 , TEST=10
+147001   
+147001   % LOCAL VARIABLES IN DRIVER ------------------------------------------ 
+147001   
+147001   INTEGER IRETR:=-4
+147002   INTEGER 9TREG     % SAVED T-REG IN CALL
+147003   INTEGER 9AREG     % SAVED A-REG IN CALL
+147004   INTEGER 9DREG     % SAVED D-REG IN CALL
+147005   INTEGER 9XREG     % SAVED X-REG IN CALL
+147006   INTEGER SSTAT     % SAVED HARDWARE STATUS
+147007   TRIPLE SATAD=9TREG
+147007   
+147007   
+147007   % DATA FIELD VARIABLES USED BY THE DRIVER:
+147007   %
+147007   % ADMIA      SAVED ADDR MISMATCH BLOCK ADDR
+147007   % ADMIS      SAVED ADDR MISMATCH STATUS
+147007   % ALTPO      ADDRESS OF ALTERNATIVE TRACK POINTER
+147007   % BADDR      BAD ADDR
+147007   % BADIP      BAD ADDR IN PROCESS (EXTRA ADDRESS BIT)
+147007   % BADTR      BAD TRACK FLAG
+147007   % BUSFL      BUSY FLAG
+147007   % CMAD1      MEM ADDR
+147007   % CMAD2       "   "
+147007   % ERRC1      RETRY COUNTER
+147007   % HDEV       DEVICE NUMBER (0500,0510)
+147007   % HTABL(2)   DISK DESCRIPTOR TABLE
+147007   % LCYLI(2)   LAST CYLINDER
+147007   % NOSEC      NO. OF SECTORS IN TRANSFER
+147007   % RTZFL      RETURN-TO-ZERO FLAG
+147007   % SEEKF      SEEK FLAG
+147007   % SHEAD      HEAD NO.
+147007   % SSEC       NO. OF SECTORS IN LAST TRANSFER
+147007   % SSTEP      SAVED LAST STEP COUNT
+147007   % SVLBB      SAVED DISK ADDR (CYLINDER AND SECTOR)
+147007   % SVLCA      SAVED LEAST MEM ADDR
+147007   % SVLCO      SAVED CONTROL WORD
+147007   % SVLWC      SAVED WORD COUNT
+147007   % TRTZ       RETURN-TO-ZERO FLAG
+147007   % WANKN      SAVED MOST MEM ADDR
+147007   
+
+147007   % DISK TYPE SPECIFICATION:   -------------------------------------------
+147007   
+147007   INTEGER WSECW        % WORDS/SECTOR
+147010   INTEGER WSECT        % SECTORS/TRACK
+147011   INTEGER WSECY        % SECTORS/CYLINDER
+147012   INTEGER WMXCY        % MAX CYL. VALUE
+147013   TRIPLE  DISDE=WSECW
+147013   DISP 0 ; TRIPLE CDISD ; INTEGER CMAXC ; PSID
+147013   INTEGER STAT1=?
+147013   INTEGER STAT3=?
+147013   
+147013   *"8ZWDI -8WDIS
+"147013   
+147013   % DRIVER INITIALIZE ------------------------------------------------
+147013   
+147013   SUBR WIDIS
+147013   
+147013   % IOX DISPLACEMENTS:
+147013   
+147013   SYMBOL RMAR=0       % READ MEMORY ADDRESS REGISTER
+147013   SYMBOL LMAR=1       % LOAD MEMORY ADDRESS REGISTER
+147013   SYMBOL RSEEK=2      % READ SEEK CONDITION         
+147013   SYMBOL LDAD=3       % LOAD DISK   ADDRESS REGISTER
+147013   SYMBOL RSTAT=4      % READ HARDWARE STATUS
+147013   SYMBOL LCONT=5      % LOAD CONTROL WORD
+147013   SYMBOL RDAD=6       % READ DISK ADDRESS REGISTER
+147013   SYMBOL LWORD=7      % LOAD WORDCOUNT
+147013   SYMBOL IOXIN=164500 % IOX 500 DISC SYSTEM 1
+147013   SYMBOL IOXRS=164004
+147013   
+147013   *"8WDIM
+"147013   
+
+147013   %        WDISC:
+147013   %  >>>>>>>>>>>>V
+147013   %              V
+147013   %              V
+147013   %   -----------V----------------- YES
+147013   %   * IS IOX STAT1 OR IOX CONT4 >>>>>>>>>>>>>>>>>>>V
+147013   %   * WRONG                     *                  V
+147013   %   -----------V-----------------          --------V------------
+147013   %              V NO                        * GENERATE AL IOX'S *
+147013   %              V                           --------V------------
+147013   %              V                                   V
+147013   %              V<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+147013   %              V
+147013   %   -----------V---------------------
+147013   %   * READ STATUS. SAVE IT IN SSTAT *
+147013   %   -----------V---------------------
+147013   %              V
+147013   %         -----V---- YES 
+147013   %         * BUSY ? >>>>>>>> WBUSY:
+147013   %         -----V----
+147013   %              V NO
+147013   %         -----V--------- YES 
+147013   %         * ON CYLINDER ? >>>>>>>> RETZ:
+147013   %         -----V---------
+147013   %              V NO
+147013   %     NO  -----V-------- YES
+147013   %    <<<<<< BUSFL><0 ? >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+147013   %    V    --------------                                  V
+147013   %    V                                                    V
+147013   %  --V-------------------------------------   ------------V------------
+147013   %  * SELECT UNIT AND READ STATUS AND SAVE *   * INCLUSIVE OR OF ERROR * YES
+147013   %  * RESET SEEKF, BADTR, RTZFL AND TRTZ   *   * IN STATUS ?           >>>>>>>> IERR:
+147013   %  --V-------------------------------------   ------------V------------
+147013   %    V                                                    V NO
+147013   %    V                                             -------V----- YES
+147013   %  --V-------------                                * TRTZ><0 ? >>>>>>>> DSEEK:
+147013   %  * IS OPERATION *                                -------V-----
+147013   %  * READ STATUS  * YES                                   V NO
+147013   %  * (20) ?       >>>>>>>>>> DFIN:                 -------V------ YES 
+147013   %  --V-------------                                * SEEKF><O ? >>>>>>> RWDIS:
+147013   %    V NO                                          -------V------
+147013   %  --V-------------                                       V NO
+147013   %  * IS OPERATION * YES                         ----------V-------------- NO 
+147013   %  * >=4 ?        >>>>>>> DILLC:                * MAR=OLDMAR+OLDWORDC ? >>>>>>> MEMER:
+147013   %  --V-------------                             ----------V--------------
+147013   %    V NO                                                 V YES
+147013   %    V                                                ----V--------- YES
+147013   %    V                                                * BADTR><0 ? >>>>>>>> DBAD:
+147013   %    V                                                ----V---------
+147013   %    V                                                    V NO
+147013   %    V>>>>>>>>>>>>>>>>V<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<V
+147013   %                     V 
+147013   %                 ----V---- YES 
+147013   %                 * X=0 ? >>>>>>> DFIN:
+147013   %                 ----V----
+147013   %                     V NO
+147013   %                     V>>>>>>>>>> DSEEK:
+147013   
+
+147013   WISTA: TAD=:SATAD ; X=:9XREG           % SAVE T,A,D,X
+147015   
+147015   *"8WDIS+8WDIM
+"147015   
+147015          T SHZ 10 SHZ -16=:X             % UNIT NO IN X
+147020          X:=HTABL(X)                     % POINTER TO DESCRIPTOR FIELD IN X
+147021          TAD:=X.CDISD=:DISDE             % PUT WORDS/SECTOR, SECTORS/TRACK AND SECTORS/CYLINDER
+147023          X:=X.CMAXC=:WMXCY               % PUT MAX CYL. VALUE
+147025          X:=9XREG
+147026   
+147026   *"8WDIS+8WDIM+8ZWDI
+"147026   
+147026          IF A:=HDEV+IOXRS-STAT1><0 OR A+STAT1-STAT3><0    % TEST FIRST & LAST IOX  
+147034             THEN                                                        % IF NOT INITIALIZED THEN DO SO
+147035               A:=HDEV+IOXRS  ; * STA    STAT1; STA    STAT2; STA I (STAT3
+147042               A+"LDAD-RSTAT" ; * STA I (DAD1 ; STA I (DAD3
+147045               A+"RDAD-LDAD"  ; * STA I (DAD2
+147047               A+"LMAR-RDAD"  ; * STA I (LMAR1; STA I (LMAR2; STA I (LMAR3; STA I (LMAR4
+147054               A+"LCONT-LMAR" ; * STA    CONT1; STA    CONT2; STA I (CONT3; STA    CONT4; STA I (CONT5; STA I (CONT6
+147063               A+"LWORD-LCONT"; * STA I (WORD1; STA I (WORD2; STA I (WORD3; STA I (WORD4
+147070               A+"RMAR-LWORD" ; * STA    RMAR1; STA    RMAR2
+147073          FI
+147073   
+147073   % DRIVER MAIN ENTRY -----------------------------------------------
+147073   
+147073   *STAT1, IOXIN RSTAT                              % READ STATUS
+147074           A=:SSTAT
+147075           IF A BIT ACTIV  GO FAR WBUSY             % GO IF CONTROLLER BUSY
+147077           IF A NBIT ONCYL GO FAR RETZ              % IF NOT ON CYLINDER, ERROR, RECALIBRATE
+147101           IF T:=BUSFL><0                           % IF LAST LEAVE WAS A BUSY RETURN
+147102              THEN                                  % THEN  OLD TRANSFER IS TO BE CHECKED
+147104                IF A BIT ICERR GO     IERR          % GO IF INCLUSIVE OR OF ERRORS SET
+147106                IF A:=TRTZ><0  GO FAR DSEEK         % NEW SEEK IF LAST COMMAND WAS RECALIBRATE
+147111                IF A:=SEEKF><0 GO FAR RWDIS         % GO TO READ/WRITE ROUTINE IF SEEK FLAG SET
+147114   *RMAR1,      IOXIN RMAR                          % READ MEMORY ADDRESS REG. LOWER 16 BITS
+147115                T:=A
+147116   *RMAR2,      IOXIN RMAR                          % READ MEMORY ADDRESS REG. UPPER 8 BITS
+147117                A/\377:=:T-SVLCA
+147122                T:=T+C-1
+147124                A-SVLWC
+147125                T:=T+C-1
+147127                A:=:T-WANKN
+147131                IF A><0 OR T><0 GO FAR MEMER        % MEMORY ADDRESS ERROR
+147134                IF A:=BADTR><0  GO FAR DBAD         % GO TO BAD TRACK ROUTINE          
+147137              ELSE                                  % ELSE NEW TRANSFER
+147140                A:=9TREG/\300 SHZ 3 BONE 4
+147144   *CONT1,      IOXIN LCONT                         % SELECT UNIT, CLEAR DISC UNIT
+147145   *CONT2,      IOXIN LCONT                         % CLEAR DISC INTERFACE
+147146   *STAT2,      IOXIN RSTAT                         % READ STATUS
+147147                A=:SSTAT
+147150                0=:SEEKF=:BADTR
+147152                0=:RTZFL=:TRTZ=:NOSEC
+147155                IF A:=77/\9TREG-20=0 GO FAR DFIN    % GO IF READ STATUS COMMAND
+147162                IF A+14>=0           GO FAR DILLC   % GO IF ILLEGAL COMMAND
+147165          FI
+147165          IF X=0 GO FAR DFIN                        % GO IF ALL WORDS TRANSFERRED, FINISHED  !!!!!!!!
+147167          0=:BADIP
+147170          GO FAR DSEEK                              % EXECUTE SEEK
+147171   
+147171   *)FILL
+147232   
+
+147232   % ROUTINE TO HANDLE DISK STATUS ERROR -------------------------------
+147232   %
+147232   %      >>>>>>>>>>>>>>>>V
+147232   %                IERR: V
+147232   %            ----------V----------
+147232   %            * CLEAR DEVICE      *
+147232   %            ----------V----------
+147232   %                      V
+147232   %            ----------V---------- YES
+147232   %            * 9TREG BIT TEST    >>>>>>>> HDERR:
+147232   %            ----------V----------
+147232   %                      V NO
+147232   %            ----------V---------- YES
+147232   %            * SEEKF><0 ?        >>>>>>>> RETZ:
+147232   %            ----------V----------
+147232   %                      V NO
+147232   %            ----------V---------- YES
+147232   %            * TRTZ><0 ?         >>>>>>>> HDERR:
+147232   %            ----------V----------
+147232   %                      V NO
+147232   %         NO ----------V---------- YES
+147232   %       V<<<<< BADTR><0 ?        >>>>>>>>>>>>>>>>>>
+147232   %       V    ---------------------                V
+147232   %       V                                         V
+147232   %  -----V-----------------   ---------------------V--------------------
+147232   %  * CALCULATE THE VALUE *   * STEP THE BLOCK ADDRESS TO POINT TO THE *
+147232   %  * OF 9XREG PRIOR TO   *   * NEXT SECTOR ON THE BAD TRACK. DID THAT * YES
+147232   %  * LAST TRANSFER       *   * GIVE A TO BIG SECTOR NO. ?             >>>>>>>V 
+147232   %  -----V-----------------   ---------------------V--------------------      V
+147232   %       V                                         V NO                       V
+147232   %  -----V--------------                           V           ---------------V----------------
+147232   %  * HAS AL RETRYS    * NO                        V           * RESTORE BLOCK ADD AND STATUS *
+147232   %  * BEEN DONE (ERRC1)>>>>>>> RWDIS:              V           * OF THE ORIGINAL ERROR        *
+147232   %  -----V--------------                           V           ---------------V----------------
+147232   %       V YES                                     V                          V
+147232   %  -----V------------                             V                          V
+147232   %  * RESET RETRIES  *                             V                          V>>>>>> RETZ:
+147232   %  * (IRETR=:ERRC1) *                             V           
+147232   %  -----V------------                             V           
+147232   %       V                                         V           
+147232   %  -----V----------------                         V           
+147232   %  * WAS THE ERROR      * NO                      V           
+147232   %  * ADDRESS MISMATCH ? >>>>> RETZ:               V
+147232   %  -----V----------------                         V
+147232   %       V YES                                     V
+147232   %  -----V-----------------------------------      V
+147232   %  * SSTAT=:ADMIS. READ FAILING BLOCK ADD. *      V
+147232   %  * FROM THE INTERFACE. SAVE IT IN ADMIA. *      V
+147232   %  * CALCULATE BLOCK ADDRESS FOR THE FIRST.*      V
+147232   %  * SECTOR ON THAT TRACK.                 *      V
+147232   %  * SET AND BADIP BADTR><0.               *      V
+147232   %  -----V-----------------------------------      V
+147232   %       V                                         V
+147232   %       >>>>>>>>>>>>>>>>>>>V<<<<<<<<<<<<<<<<<<<<<<<
+147232   %                          V
+147232   %               -----------V----------------------
+147232   %               * LOAD BLOCK ADDRESS             *
+147232   %               * LOAD MAR WITH ADDRESS OF ALTPO *
+147232   %               * LOAD WORDC WITH 1.             *
+147232   %               * SET BIT 15 IN T (SEEK)         >>>>>>> WDACT:
+147232   %               ----------------------------------
+147232   
+
+147232   
+147232   IERR:   A:=20
+147233   *CONT4, IOXIN LCONT                           % DEVICE CLEAR
+147234           IF A:=9TREG BIT TEST GO FAR HDERR     % IF TEST SPECIFIED, NO ERROR HANDLING
+147237           IF A:=SEEKF><0       GO RETZ          % IF THE ERROR OCCURED DURING SEEK DO RETURN TO ZERO ZEEK
+147241           IF A:=TRTZ ><0       GO FAR HDERR     % IF RETURN TO ZERO SEEK ALREADY HAS BEEN DONE, ERROR RETURN
+147244           IF A:=BADTR><0                        % IF BAD TRACK FLAG SET THEN
+147245              THEN                               % TRY NEXT SECTOR ON THE TRACK
+147246                T:=BADDR+1                       % ERROR IN ALTERNATIVE ADDRESS FETCH INCR. SECT. ADDR. TO FIND A GOOD SECTOR
+147250                IF A:=37/\T-WSECT>=0             % TEST LEGAL SEC. COUNT
+147253                   THEN                          % THEN ALL SECTORS ON THE TRACK TRIED
+147254                     A:=ADMIA=:SVLBB             % REPORT THE ORIGINAL ERROR
+147256                     A:=ADMIS=:SSTAT
+147260                     GO RETZ
+147261                FI
+147261                A:=T                             % BLOCK ADDRESS OF NEXT SECTOR IN A
+147262              ELSE
+147263                A:=9XREG+NOSEC=:9XREG=:X         % RESTORE X AND 9XREG 
+147267                MIN ERRC1 ; GO FAR RWDIS         % DO AL RETRIES FIRST
+147271                A:=IRETR=:ERRC1                  % RESTORE RETRY COUNTER
+147273                IF A:=SSTAT NBIT ADDMI GO RETZ   % NOT ADDRESS MISMATCH,  RECALIBRATE  !    
+147276                A=:ADMIS                         % SAVE ADDRESS MISMATCH STATUS IN CASE OF REAL ADDRESS MISMATCH
+147277                A:=100000=:BADTR=:BADIP          % SET BAD TRACK FLAG
+147302   *DAD2,       IOXIN RDAD                       % READ LAST DISK ADDRESS
+147303                A-1=:ADMIA                       % SAVE FAILING BLOCK ADDRESS REG IN CASE OF REAL ADDRESS MISMATCH
+147305                A/\177740                        % BACK TO FIRST SECTOR ON THE TRACK
+147306                                                 % IT IS AN ADDRESS MISMATCH, TRY BAD TRACK BIT
+147306           FI
+147306   *DAD3,  IOXIN LDAD                            % LOAD FAILING ADDRESS
+147307           A=:BADDR 
+147310           A:=0=:WANKN
+147312   *LMAR3, IOXIN LMAR                            % LOAD UPPER MEM. ADDR.
+147313           A:="ALTPO"+B=:SVLCA
+147316   *LMAR4, IOXIN LMAR                            % LOAD LOWER MEM. ADDR.
+147317           A:=1=:SVLWC
+147321   *WORD4, IOXIN LWORD                           % LOAD WORD COUNT = 1 SECTOR
+147322           T:=100000                             % SET BAD TRACK BIT IN COMMAND
+147323           GO FAR WDACT                          % TRY TO READ FAILING SECTOR WITH BAD TRACK BIT SET
+147324   
+
+147324   % ROUTINE TO DO RETURN TO ZERO SEEK       ------------------------------      
+147324   
+147324   RETZ:   IF A:=RTZFL><0 GO FAR HDERR      % RECALIBRATE ALREADY DONE ?
+147327           0=:BADTR=:SEEKF=:SHEAD=:BADIP    % RESET BAD TRACK FLAG
+147333           A:=9TREG SHZ 10 SHZ -16 =:X      % UNIT INTO X
+147337           0=:LCYLI(X)                      % CLEAR CYLINDER NO IN BASE FIELD
+147340           A:=IRETR=:ERRC1                  % RESET RETRY COUNT
+147342           T:=34000                         % RETURN TO ZERO SEEK, RECALIBRATE
+147343           T=:RTZFL=:TRTZ                   % SET RECALIBRATE AND FLAG
+147345           GO FAR WDACT                     % ACTIVATE
+147346   
+
+147346   % ROUTINE TO GET ALTERNATIVE DISK ADDRESS ------------------------------      
+147346   
+147346   % ENTER HERE WHEN A SECTOR CONTAINING POINTERS TO THE ALTERNATIVE TRACK
+147346   % IS READ CORRECT
+147346   % PICK UP THE POINTER TO THE ALTERNATIVE TRACK FROM THE FIRST WORD IN THE MEMORY BUFFER
+147346   % FIND THE CYLINDER PART OF THE POINTER. SUBTRACT IT FROM THE CURRENT CYLINDER (LCYLI)
+147346   % THE DIFFERENCE (NO. CYLINDERS TO SEEK) IS WRITTEN OUT AS WORD COUNT.
+147346   % STORE THE NEW CYLINDER NO. IN LCYLI.
+147346   % FIND THE ALTERNATIVE TRACK'S HEAD NO., AND STORE IT IN SHEAD.
+147346   
+147346   DBAD:   T:=ALTPO                       % T <== ALTERNATIVE DISK CYL. ADDR.            
+147347           A:=9TREG SHZ 10 SHZ -16=:X     % UNIT NO. IN X
+147353           A:=T ; AD SHZ -5               % HEAD INTO UPPER 5 BITS OF D, CYLINDER IN A
+147355           A-LCYLI(X)                     % A <== NO. OF CYL'S TO GO
+147356   *WORD3, IOXIN LWORD
+147357           T SHZ -5 =:LCYLI(X)            % NEW CYL. ADDR. AFTER THIS SEEK
+147361           A:=0 ; AD SHZ 5 ; A=:SHEAD     % HEAD TO USE ON ALT TRACK
+147364           A:=-1=:SEEKF                   % SET SEEK FLAG
+147366           0=:BADTR                       % RESET BAD TRACK FLAG
+147367           T:=60000                       % SEEK COMMAND
+147370           GO WDACT                       % ACTIVATE
+147371   
+147371   *)FILL
+147406   
+
+147406   % ROUTINE TO SEEK ON DISK ---------------------------------------------          
+147406   
+147406   INTEGER TEMPX
+147407   
+147407   DSEEK:  0=:TRTZ                        % RESET RECALIBRATE FLAG
+147410           A:=9DREG=:D
+147412           A:=9TREG/\300 SHZ 3 BONE 4
+147416   *CONT5, IOXIN LCONT                    % DEVICE CLEAR
+147417   *CONT6, IOXIN LCONT                    % DEVICE CLEAR
+147420           A:=9AREG 
+147421           X-1;D+X;IF C THEN A+1;FI; X+1  % AD= LAST LOGICAL DISK ADDR.
+147427           T:=WSECY ; * RDIV ST % A<= CYL. NO.    D<= NO. OF SEC'S IN LAST CYL
+147431           IF A>>T:=WMXCY GO LAOUR        % GO IF WANTED LOGICAL ADDRES>MAX LOGICAL ADDRESS
+147434           X=:TEMPX
+147435           T:=9TREG SHZ 10 SHZ-16=:X      % UNIT NO. IN X
+147441           T:=LCYLI(X)
+147442           A=:LCYLI(X)
+147443           X:=TEMPX
+147444           A-T ; * BLDC 170 DA            % SAVE SEEK DIRECTION IN K
+147446           IF A<0 THEN A:=A- FI           % NEGATIVE STEP COUNT
+147450   *WORD1, IOXIN LWORD                    % LOAD WORD COUNT WITH TRACK DIFFERENCE
+147451           A=:SSTEP
+147452           A:=0 ; T:=WSECT ; * RDIV ST    % A<= HEAD NO.     D<= NO. OF SEC'S ON LAST TRACK
+147455           A=:SHEAD
+147456           A:=D+1=:SSEC
+147460           IF A:=SSTEP><0
+147461              THEN                        % IF NOT ON CORR. CYL
+147462                A=:SEEKF                  % SET SEEK FLAG
+147463                T:=20000 ; * BSTA 160 DT  % STEP COMMAND INCLUDE DIRECTION
+147465                GO WDACT                  % ACTIVATE
+147466          FI
+147466   
+
+147466   % ROUTINE TO READ OR WRITE ON DISK -----------------------------------      
+147466   
+147466   
+147466   RWDIS:  0=:SEEKF                                 % RESET SEEK FLAG
+147467           T:=SSEC=:D
+147471           IF X<<T THEN T:=X FI                     % IF WHOLE TRANSFER WITHIN THIS TRACK THEN T<= NO. OF SEC'S TO TRANSFER
+147474           T=:NOSEC
+147475           X-T=:9XREG                               % X<= REMAINING SECTORS
+147477           D-T                                      % D<= FIRST SECTOR
+147500           A:=9TREG SHZ 10 SHZ -16=:X               % UNIT NO. IN X
+147504           A:=LCYLI(X) SHZ 5 \/D                    % SHIFT CYLINDER ADDR. TO CORR. POSITION COMBINE CYL. & SEC. ADDRESS
+147507   *DAD1,  IOXIN LDAD
+147510           A=:SVLBB
+147511           A:=WSECW ; X:=9XREG ; * RMPY SA DX       % AD<= REMAINING WORDCOUNT
+147514           A:=:D+CMAD2:=:D
+147517           A:=A+C+CMAD1
+147521   *LMAR1, IOXIN LMAR                               % LOAD MEMORY ADDRESS, UPPER PART
+147522           A=:WANKN
+147523           IF A-400>=0 GO MORER                     % MEMORY OUT OF RANGE
+147525           A:=D
+147526   *LMAR2, IOXIN LMAR                               % LOAD MEMORY ADDRESS, LOWER PART
+147527           A=:SVLCA
+147530           A:=T*WSECW                               % A<= WORDCOUNT
+147532   *WORD2, IOXIN LWORD
+147533           A=:SVLWC
+147534           A:=3/\9TREG SHZ 13 =:T                   % FUNCTION CODE IN T
+147540   
+147540   
+147540   % ROUTINE TO CREATE CONTROLWORD FOR ACTIVATION -----------------------  
+147540   
+147540   WDACT:  A:=SHEAD SHZ 5   ; T\/A        % SHIFT HEAD NO. TO CORR. POSITION
+147543           A:=9TREG/\142000
+147545           A\/BADIP ; T\/A         
+147547           A:=9TREG SHZ 3/\3000\/T+5      % + UNIT NO. + ACTIVATE & INT. ENABLE
+147554   *CONT3, IOXIN LCONT
+147555           A=:SVLCO
+147556   *STAT3, IOXIN RSTAT
+147557           IF A NBIT ACTIV GO CNACT       % ERROR, NOT BUSY
+147561           A=:BUSFL
+147562   WBUSY:  TAD:=SATAD ; X:=9XREG
+147564           GO RETUR                       % BUSY EXIT
+147565   *)FILL
+147602   
+
+147602   % FINISHED & ERROR EXITS ----------------------------------------------
+147602   
+147602   DFIN:   T:=9TREG
+147603           L+1 ; GO WFINI                       % FINISHED EXIT
+147605   
+147605   MORER:  T:=1   ; GO DERR                     % ATTEMPT TO USE BANK NO. >>377.         BIT  8
+147607   MEMER:  T:=4   ; GO DERR                     % CORE ADDRESS REGISTER NOT AS EXPECTED  BIT 10
+147611   LAOUR:  T:=10  ; GO DERR                     % LOGICAL ADDRESS OUTSIDE DICE DEVICE    BIT 11
+147613   DILLC:  T:=100 ; GO DERR                     % ILLEGAL CODE                           BIT 14
+147615   CNACT:  T:=200 ; GO DERR                     % CONTROLLER NOT ACTIVE AFTER ACTIVATE   BIT 15
+147617   HDERR:  T:=0                                 % HARDWARE ERROR NO ADDITIONAL STATUS
+147620   
+147620   DERR:   L-1                                  % ERROR RETURN
+147621           T SHZ 10                             % GET THE ADDITIONAL STATUS
+147622           A:=9TREG/\377 ; T\/A
+147625   WFINI:  X:=SSTAT
+147626           A:=IRETR=:ERRC1
+147630           0=:BUSFL
+147631   RETUR:  EXITA                                % GENERAL EXIT
+147632   RBUS
+147637   
+147637   *)KILL LDAD  RSTAT LCONT LWORD 9TREG 9AREG 9DREG 9XREG
+147637   *)KILL SSTAT SATAD WSECW WSECY ACTIV ICERR ADDMI ONCYL TEST
+147637   *)KILL IRETR
+147637   *)KILL WSECT WMXCY STAT1 RMAR1 RMAR2 CONT1 STAT2 CONT4
+147637   *)KILL DAD2  DAD3  LMAR3 LMAR4 WORD4 WORD3 WORD1 DAD1  LMAR1 LMAR2
+147637   *)KILL WORD2 CONT3 STAT3 DISDE CDISD CMAXC CONT2
+147637   *)KILL CONT5 CONT6
+147637   
+147637   *"8ZWDI -8WDIS
+"147637   *"8WDIM; 8WDIM=0
+"147637   
+147637   @EOF
+147637  
+147637   
+
+147637   *)9SLPL
+147637   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+147637   %                                                                              %
+147637   % 50.0 STC MAGTAPE DRIVER    80-07-03   PHE      VERSION  AA                   %
+147637   %          LAST MODIFIED     82-02-03   TLS      REV.     01                   %
+147637   %          LAST MODIFIED     82-14-06   TP       BIT 6 TO BIT 3 IN STAKO       %
+147637   %          LAST MODIFIED     83-05-31   HKD      READ BACKWARDS (CORE.ADDR)    %
+147637   %          LAST MODIFIED     83-10-11   TP       ERROR IN STARE CORRECTED      %
+147637   %                                                                              %
+147637   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+147637   *"99SM1+99SM2
+"147637   *)9SCLC
+
+147637  % 
+147637  % @EOF
+147637  %
+147637  )LINE
+
+
+147637  %============================================================================
+147637  % 47.0       B U F F E R   S I Z E S
+147637  %
+147637  *"-8S3C
+147640  BPOOL/
+032305  *"
+032306  )MCDEF ACE9I $SIZB
+99EIO=9EIOB; )KILL 9EIOB; 9EIOB=99EIO+$SIZB ; )KILL 99EIO
+]
+032306  
+032306  %============================================================================
+032306  % 47.1       I O B U T
+032306  %
+032306  9EIOB=9EMRE                            % START OF I/O BUFFERS
+032306  IOBUT=*
+032306         1     ;40
+032310         100001;40
+032312         ACE9I 100
+
+032312  99EIO=9EIOB; )KILL 9EIOB; 9EIOB=99EIO+100; )KILL 99EIO
+032312  
+032312  "8SMO1+NSBM1
+032312         20006 ;MIBU1
+032314         120006;MOBU1
+032316  "8TR5; 44    ;40
+032320         100044;40
+032322         ACE9I 100
+
+032322  99EIO=9EIOB; )KILL 9EIOB; 9EIOB=99EIO+100; )KILL 99EIO
+032322  
+032322  "8TR6; 45    ;40
+032324         100045;40
+032326         ACE9I 100
+
+032326  99EIO=9EIOB; )KILL 9EIOB; 9EIOB=99EIO+100; )KILL 99EIO
+032326  
+032326  "8TR7; 46    ;40
+032330         100046;40
+032332         ACE9I 100
+
+032332  99EIO=9EIOB; )KILL 9EIOB; 9EIOB=99EIO+100; )KILL 99EIO
+032332  
+032332  "8TR8; 47    ;40
+032334         100047;40
+032336         ACE9I 100
+
+032336  99EIO=9EIOB; )KILL 9EIOB; 9EIOB=99EIO+100; )KILL 99EIO
+032336  
+032336  "8TR9; 60    ;40
+032340         100060;40
+032342         ACE9I 100
+
+032342  99EIO=9EIOB; )KILL 9EIOB; 9EIOB=99EIO+100; )KILL 99EIO
+032342  
+032342  "8TR10;61    ;40
+032344         100061;40
+032346         ACE9I 100
+
+032346  99EIO=9EIOB; )KILL 9EIOB; 9EIOB=99EIO+100; )KILL 99EIO
+032346  
+032346  "8TR11;62    ;40
+032350         100062;40
+032352         ACE9I 100
+
+032352  99EIO=9EIOB; )KILL 9EIOB; 9EIOB=99EIO+100; )KILL 99EIO
+032352  
+032352  "8TR12;63    ;40
+032354         100063;40
+032356         ACE9I 100
+
+032356  99EIO=9EIOB; )KILL 9EIOB; 9EIOB=99EIO+100; )KILL 99EIO
+032356  
+032356  "IND01;200   ;IDBUS
+032360         ACE9I IDBUS
+
+032360  99EIO=9EIOB; )KILL 9EIOB; 9EIOB=99EIO+IDBUS; )KILL 99EIO
+032360  
+032360  "IND02;201   ;IDBUS
+032362         ACE9I IDBUS
+
+032362  99EIO=9EIOB; )KILL 9EIOB; 9EIOB=99EIO+IDBUS; )KILL 99EIO
+032362  
+032362  "IND03;202   ;IDBUS
+032364         ACE9I IDBUS
+
+032364  99EIO=9EIOB; )KILL 9EIOB; 9EIOB=99EIO+IDBUS; )KILL 99EIO
+032364  
+032364  "IND04;203   ;IDBUS
+032366         ACE9I IDBUS
+
+032366  99EIO=9EIOB; )KILL 9EIOB; 9EIOB=99EIO+IDBUS; )KILL 99EIO
+032366  
+032366  "IND05;204   ;IDBUS
+032370         ACE9I IDBUS
+
+032370  99EIO=9EIOB; )KILL 9EIOB; 9EIOB=99EIO+IDBUS; )KILL 99EIO
+032370  
+032370  "IND06;205   ;IDBUS
+032372         ACE9I IDBUS
+
+032372  99EIO=9EIOB; )KILL 9EIOB; 9EIOB=99EIO+IDBUS; )KILL 99EIO
+032372  
+032372  "IND07;206   ;IDBUS
+032374         ACE9I IDBUS
+
+032374  99EIO=9EIOB; )KILL 9EIOB; 9EIOB=99EIO+IDBUS; )KILL 99EIO
+032374  
+032374  "IND08;207   ;IDBUS
+032376         ACE9I IDBUS
+
+032376  99EIO=9EIOB; )KILL 9EIOB; 9EIOB=99EIO+IDBUS; )KILL 99EIO
+032376  
+032376  "
+032376         500   ;100050
+032400         ACE9I 50
+
+032400  99EIO=9EIOB; )KILL 9EIOB; 9EIOB=99EIO+50; )KILL 99EIO
+032400  
+032400  "RQIBM;540   ;200
+032402         ACE9I 200
+
+032402  99EIO=9EIOB; )KILL 9EIOB; 9EIOB=99EIO+200; )KILL 99EIO
+032402  
+032402  "RQUNI;541   ;200
+032404         ACE9I 200
+
+032404  99EIO=9EIOB; )KILL 9EIOB; 9EIOB=99EIO+200; )KILL 99EIO
+032404  
+032404  "RQHON;542   ;200
+032406         ACE9I 200
+
+032406  99EIO=9EIOB; )KILL 9EIOB; 9EIOB=99EIO+200; )KILL 99EIO
+032406  
+032406  "RQCDC;543   ;200
+032410         ACE9I 200
+
+032410  99EIO=9EIOB; )KILL 9EIOB; 9EIOB=99EIO+200; )KILL 99EIO
+032410  
+032410  "9TR27;2076; 40
+032412         102076;40
+032414         ACE9I 100
+
+032414  99EIO=9EIOB; )KILL 9EIOB; 9EIOB=99EIO+100; )KILL 99EIO
+032414  
+032414  "9TR28;2077; 40
+032416         102077;40
+032420         ACE9I 100
+
+032420  99EIO=9EIOB; )KILL 9EIOB; 9EIOB=99EIO+100; )KILL 99EIO
+032420  
+032420  "8BCH1;1237  ;300
+032422         ACE9I 300
+
+032422  99EIO=9EIOB; )KILL 9EIOB; 9EIOB=99EIO+300; )KILL 99EIO
+032422  
+032422  "8BCH2;1241  ;300
+032424         ACE9I 300
+
+032424  99EIO=9EIOB; )KILL 9EIOB; 9EIOB=99EIO+300; )KILL 99EIO
+032424  
+032424  "8BCH3;1243  ;300
+032426         ACE9I 300
+
+032426  99EIO=9EIOB; )KILL 9EIOB; 9EIOB=99EIO+300; )KILL 99EIO
+032426  
+032426  "8C1HD;41360;4   
+032430       141361;4   
+032432         ACE9I 10
+
+032432  99EIO=9EIOB; )KILL 9EIOB; 9EIOB=99EIO+10; )KILL 99EIO
+032432  
+032432  "8C2HD;41362;4   
+032434        141363;4   
+032436         ACE9I 10
+
+032436  99EIO=9EIOB; )KILL 9EIOB; 9EIOB=99EIO+10; )KILL 99EIO
+032436  
+032436  "8HMO3;21364;MIBU3
+032440        121364;MOBU3
+032442  "8HMO4;21366;MIBU4
+032444        121366;MOBU4
+032446  "
+032446  -1
+032447  EIOBU=*
+032447  
+032447  )LINE
+

@@ -38,6 +38,15 @@ the conversion procedure below. [PD]
 Confirmed by downloading the double-density images and reading with `ndtool -t` — matches the PD
 sheet's own diskette listing exactly (17 files total across the two double-density disks).
 
+**Single-density set also confirmed** — disks `-02S` through `-10S` (downloaded via NDwiki,
+imaged by Torfinn "Tingo" Ingolfsen; `-01S` was not imaged) mount cleanly and match the PD sheet:
+`SIB2-PROG-F02:BPUN`/`SIB2-DATA-F02:BPUN` (02S), `SIBAS-SERV-F02:PROG` + `SIBLIB-1BANK-F02:BRF`/
+`SIBLIB-2BANK-F02:BRF` (03S), `MAKEDRL-F02:PROG` + `SIB2-DRL-A-F02:PROG` (04S), `SIB2-DRL-B-F02:PROG`
+(05S — confirms the two-part DRL split the `MAKEDRL` two-step process reassembles), `SIB2-DBM-100-F02:PROG`
+(06S), `SIBINTER-F00:PROG` (07S), `UE-ERMSG-EN-B04:ERR`/`UE-ERMSG-NO-B04:ERR` (08S), `SIB2-LOOKLOG-F00:PROG`/
+`SIB2-DBCONV-F02:PROG` (09S), `SIB2-DPA-F00:PROG` (10S, not previously listed on this page — a
+"Data Page Analysis" or similar utility, not covered by the PD sheet's own text, name only).
+
 ## Installation procedure — installer-driven (recommended path)
 
 Source: PD sheet §6 "Installation Using the Installation Program", verbatim. [PD]

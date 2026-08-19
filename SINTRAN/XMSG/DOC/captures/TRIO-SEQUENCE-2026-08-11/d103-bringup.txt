@@ -1,0 +1,430 @@
+--- on connect ---
+#0 Connected at 11/08/2026 16:23:02 from 127.0.0.1:23576 to TERMINAL 8/ TET9 L:47 (39)
+
+??????"
+--- after ESC, waiting for ENTER (or @ if already logged in) ---
+
+USER BREAK AT  124211B
+@
+--- already logged in, skipping login ---
+===> [SIN]
+SIN
+
+*
+===> [STOP-X]
+STOP-X
+
+OK: XMSG terminated.
+*
+===> [EXIT]
+EXIT
+
+@
+===> [LOGOUT]
+LOGOUT
+ 15.34.22     11 AUGUST   1998
+--EXIT--
+
+--- on connect ---
+#0 Connected at 11/08/2026 16:23:54 from 127.0.0.1:16662 to TERMINAL 8/ TET9 L:47 (39)
+
+??????"
+--- after ESC, waiting for ENTER (or @ if already logged in) ---
+
+ 15.34.33     11 AUGUST   1998
+ SINTRAN III - VSX/500 K 
+--- RETROCORE EMULATED K ---
+
+ENTER 
+--- login: SYSTEM ---
+SYSTEM
+PASSWORD: 
+
+OK
+@
+===> [SIN]
+SIN
+
+*
+===> [START-X]
+START-X
+
+OK: XMSG started.
+*
+===> [EXIT]
+EXIT
+
+@
+===> [LOGOUT]
+LOGOUT
+ 15.34.52     11 AUGUST   1998
+--EXIT--
+
+--- on connect ---
+#1 Connected at 11/08/2026 16:24:46 from 127.0.0.1:58628 to TERMINAL 9 L:60 (48)
+
+??????"
+--- after ESC, waiting for ENTER (or @ if already logged in) ---
+
+ 15.34.59     11 AUGUST   1998
+ SINTRAN III - VSX/500 K 
+--- RETROCORE EMULATED K ---
+
+ENTER 
+--- login: SYSTEM ---
+SYSTEM
+PASSWORD: 
+
+OK
+@
+===> [START-TAD]
+START-TAD
+
+@
+===> [TADA]
+TADA
+-------------------------------------------------------------------------------
+       TADADM  Version - K , Revision: 01.
+-------------------------------------------------------------------------------
+TAD/TYP RESERV ESCAP PORTNO - PORTNO TERMNO USER             SYSTEM
+768/  0  No    Enab  Discon - 
+769/  0  No    Enab  Discon - 
+770/  0  No    Enab  Discon - 
+771/  0  No    Enab  Discon - 
+772/  0  No    Enab  Discon - 
+773/  0  No    Enab  Discon - 
+774/  0  No    Enab  Discon - 
+775/  0  No    Enab  Discon - 
+776/  0  No    Enab  Discon - 
+777/  0  No    Enab  Discon - 
+-------------------------------------------------------------------------------
+@
+===> [SET-AVAIL]
+SET-AVAIL
+
+@
+===> [LOGOUT]
+LOGOUT
+ 15.35.18     11 AUGUST   1998
+--EXIT--
+
+--- on connect ---
+#0 Connected at 11/08/2026 16:25:37 from 127.0.0.1:27089 to TERMINAL 8/ TET9 L:47 (39)
+
+??????"
+--- after ESC, waiting for ENTER (or @ if already logged in) ---
+
+ 15.35.24     11 AUGUST   1998
+ SINTRAN III - VSX/500 K 
+--- RETROCORE EMULATED K ---
+
+ENTER 
+--- login: SYSTEM ---
+SYSTEM
+PASSWORD: 
+
+OK
+@
+===> [ABORT ENNS0]
+ABORT ENNS0
+
+ILLEGAL PARAMETER
+
+@
+===> [LOGOUT]
+LOGOUT
+ 15.35.29     11 AUGUST   1998
+--EXIT--
+
+waiting 10 seconds for ENNS0 to go down before starting it again...
+--- on connect ---
+#0 Connected at 11/08/2026 16:26:02 from 127.0.0.1:58263 to TERMINAL 8/ TET9 L:47 (39)
+
+??????"
+--- after ESC, waiting for ENTER (or @ if already logged in) ---
+
+ 15.35.37     11 AUGUST   1998
+ SINTRAN III - VSX/500 K 
+--- RETROCORE EMULATED K ---
+
+ENTER 
+--- login: SYSTEM ---
+SYSTEM
+PASSWORD: 
+
+OK
+@
+===> [X-C]
+X-C
+
+XMSG command program (210373L) of 87.12.30 13:17 
+Compiled for version 1987.02.08 (Release L)
+XMSG kernel version 1987.02.08 (Release L)
+Options: 
+   ND-100/CX only. XPIT. Trace. Watchdog.
+   Inter-system:  Network gateway/IOC.
+   (Type ? to get a list of the new commands.)
+
+X-C:
+===> [DEF-REMOTE,,D100 100]
+DEF-REMOTE,,D100 100
+*- WARNING: You can now bypass system protection mechanisms -*
+Ok
+
+X-C:
+===> [DEF-REMOTE,,D101 101]
+DEF-REMOTE,,D101 101
+Ok
+
+X-C:
+===> [DEF-REMOTE,,D102 102]
+DEF-REMOTE,,D102 102
+Ok
+
+X-C:
+===> [DEF-REMOTE,,D103 103]
+DEF-REMOTE,,D103 103
+Ok
+
+X-C:
+===> [DEF-REMOTE,,D200 200]
+DEF-REMOTE,,D200 200
+Ok
+
+X-C:
+===> [DEF-REMOTE,,D19999 19999]
+DEF-REMOTE,,D19999 19999
+Ok
+
+X-C:
+===> [START-NET-SERVER,ENNS0,,,N]
+START-NET-SERVER,ENNS0,,,N
+Error in communicating with XROUT.
+XMSG Routing/Naming error: Unknown RT-program name
+
+X-C:
+===> [DEF-NETWORK-CONN D100 ENNS0,,0,0,0,0]
+DEF-NETWORK-CONN D100 ENNS0,,0,0,0,0
+Error in communicating with XROUT.
+XMSG Routing/Naming error: Unknown name (of server or system)
+
+X-C:
+===> [DEF-NETWORK-CONN D102 ENNS0,,0,0,0,0]
+DEF-NETWORK-CONN D102 ENNS0,,0,0,0,0
+Error in communicating with XROUT.
+XMSG Routing/Naming error: Unknown name (of server or system)
+
+X-C:
+===> [DEF-NETWORK-CONN D200 ENNS0,,0,0,0,0]
+DEF-NETWORK-CONN D200 ENNS0,,0,0,0,0
+Error in communicating with XROUT.
+XMSG Routing/Naming error: Unknown name (of server or system)
+
+X-C:
+===> [DEF-NETWORK-CONN D19999 ENNS0,,0,0,0,0]
+DEF-NETWORK-CONN D19999 ENNS0,,0,0,0,0
+Error in communicating with XROUT.
+XMSG Routing/Naming error: Unknown name (of server or system)
+
+X-C:
+===> [START-LINK,1362,,,-1,,]
+START-LINK,1362,,,-1,,
+Error in communicating with XROUT.
+XMSG Routing/Naming error: Illegal/Reserved Logical Unit Number (LUN) for link
+
+X-C:
+===> [ENABLE-ROUTE-THROUGH]
+ENABLE-ROUTE-THROUGH
+Ok
+
+X-C:
+===> [EXIT]
+EXIT
+
+@
+*** ndterm: timed out waiting for 'X-C:' ***
+===> [LOGOUT]
+LOGOUT
+ 15.36.42     11 AUGUST   1998
+--EXIT--
+
+*** ndterm: timed out waiting for 'X-C:' ***
+--- on connect ---
+#1 Connected at 11/08/2026 16:30:19 from 127.0.0.1:58248 to TERMINAL 9 L:60 (48)
+
+??????"
+--- after ESC, waiting for ENTER (or @ if already logged in) ---
+
+ 15.37.45     11 AUGUST   1998
+ SINTRAN III - VSX/500 K 
+--- RETROCORE EMULATED K ---
+
+ENTER 
+--- login: SYSTEM ---
+SYSTEM
+PASSWORD: 
+
+OK
+@
+===> [MODE (PACK-ONE:COSMOS-BASIC)COS-START-E04:MODE,,]
+MODE (PACK-ONE:COSMOS-BASIC)COS-START-E04:MODE,,
+
+@CC =================================================================
+
+@CC =                                                               =
+
+@CC = FILE NAME: COS-START-E04:MODE                                 =
+
+@CC = START-UP OF COSMOS BASIC MODULE VERSION E                     =
+
+@CC = RUN THIS MODE FILE DURING WARM START, ANYTIME AFTER X-MESSAGE =
+
+@CC = AND TADADM ARE RUNNING.                                       =
+
+@CC =                                                               =
+
+@CC =================================================================
+
+@CC
+
+@OPERATOR *** START COSMOS BASIC MODULE ***
+
+@CC *****************
+
+@CC * FILE TRANSFER *
+
+@CC *****************
+
+@ABORT XFTRAD
+
+@RT XFTRAD
+
+@CC
+
+@CC *******************
+
+@CC * COSMOS SPOOLING *
+
+@CC *******************
+
+@RTON COSPO
+
+@START-SPOOLING COSMOS-SPOOLING
+@MODE (COSMOS-BASIC)COS-DEF-PRIN-E:MODE,,,
+
+@(COSMOS-BASIC)COS-SPOO-SER
+
+COSMOS Spooling Service program - Version E02 - 1987.10.07 09:34 
+
+
+C-S-S:Help,hh, Definition of DEFAULT printer:
+
+C-S-S:Help,hh, (Explanation of parameters below.)
+
+C-S-S:Def-pri,,ND-969,LINE-PRINTER,Y
+*** Internal program error: Error in communicating with XROUT:
+XMSG Routing/Naming error: Unknown name (of server or system)
+
+C-S-S:Help,hh,
+
+C-S-S:Help,hh, Definition of other printers:
+
+C-S-S:Help,hh,     Local spooling file name
+
+C-S-S:Help,hh,     ~         Remote system name
+
+C-S-S:Help,hh,     ~         ~         Remote spooling file name
+
+C-S-S:Help,hh,     ~         ~         ~       Extra header
+
+C-S-S:Help,hh,     ~         ~         ~       ~ No of local spooling files
+
+C-S-S:Help,hh,     ~         ~         ~       ~ ~
+
+C-S-S:Help,hh,     v         v         v       v v
+
+C-S-S:Def-pri,LINE-PRINTER,ND-969,LINE-PRINTER,Y,2
+
+File already exists,
+but it does not belong to COSMOS-SPOOLING.
+
+C-S-S:Def-pri,DIABLO-S,ND-1068,DIABLO,Y,1
+*** Internal program error: Error in communicating with XROUT:
+XMSG Routing/Naming error: Unknown name (of server or system)
+
+C-S-S:Def-pri,PHILIPS-T,ND-5005,PHILIPS,Y,1
+*** Internal program error: Error in communicating with XROUT:
+XMSG Routing/Naming error: Unknown name (of server or system)
+
+C-S-S:Def-pri,PHILIPS-S,ND-1068,PHILIPS,Y,3
+*** Internal program error: Error in communicating with XROUT:
+XMSG Routing/Naming error: Unknown name (of server or system)
+
+C-S-S:Help,hh,        ~
+
+C-S-S:Help,hh,        S: Sheet feeder, T: Tractor feeder
+
+C-S-S:Help,hh, NB! DIABLO-S etc. must be defined in (SYS)WP-PRINTERS!!!.
+
+C-S-S:Help,hh, NB! The first parameter must match the old local spooling file
+
+C-S-S:Help,hh, name when redefining printers:
+
+C-S-S:Help,hh, Ex: Def-pri,PHILIPS-S,ND-1050,PHILIPS,N,2
+
+C-S-S:Help,hh, NB!:Number of local spooling files will now still be 3,
+
+C-S-S:Help,hh, because spooling file no 3 will not be deleted when
+
+C-S-S:Help,hh, redefining printers.
+
+C-S-S:Help,hh, (To be safe: "Delete-printer" before "Define-printer".)
+
+C-S-S:ex
+
+@CC 
+
+@CC *****************************************
+
+@CC * REMOTE FILE ACCCESS, FILE SERVER PART *
+
+@CC *****************************************
+
+@MODE (COSMOS-BASIC)COS-FA-SERV-E:MODE,,,
+
+@SET-AVAILABLE
+
+@START-TADADM
+
+@ABORT FSART
+
+@RT FSART
+
+@HOLD 0,0
+
+@HOLD 10,2
+
+@FS-ADMINISTRATOR
+
+COSMOS File Server Administrator - Version: E02 - OCTOBER 7, 1987
+
+FSA: SELECT-FSA,,,,
+Connection established
+FSA(own system): START-SERVER 1,,,,
+ --- please wait ---  
+Server 1 started.     No of FACs attached: 30
+FSA(own system): EXIT
+@SET-UNAVAILABLE
+
+
+
+@
+===> [SET-AVAIL]
+SET-AVAIL
+
+@
+===> [LOGOUT]
+LOGOUT
+ 15.38.31     11 AUGUST   1998
+--EXIT--
+

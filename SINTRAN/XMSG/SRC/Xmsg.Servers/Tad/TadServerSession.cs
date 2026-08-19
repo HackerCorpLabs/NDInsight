@@ -124,10 +124,40 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
 
         /// <summary>
         /// Gets or sets the number of RECOs received during bring-up. The captured ladder is
-        /// ESCA → ESRS+RESE#1, first RECO → RESE#2, second RECO → MOTD
-        /// (XMSG-TAD-REAL-SETUP-REFERENCE-2026-07-07.md §1).
+        /// ESCA -> ESRS+RESE#1, first RECO -> RESE#2, second RECO -> MOTD
+        /// (XMSG-TAD-REAL-SETUP-REFERENCE-2026-07-07.md section 1).
         /// </summary>
         public int BringupRecoCount { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the escape function is currently ENABLED on our
+        /// side of this session. Starts enabled.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// This is the state a CESC message reports: <c>BCESC</c> in the version J driver
+        /// (<c>SINTRAN/NPL-SOURCE-2/NPL-CLEAN/06-COS-TAD-RES-CODE.NPL</c>) builds the payload as
+        /// <c>IF DFLAG BIT 5IESC THEN 0 ELSE 1</c>, so every <c>CESC 00</c> we send announces that we
+        /// have inhibited escape and every <c>CESC 01</c> announces that we have re-enabled it.
+        /// </para>
+        /// <para>
+        /// It matters on the receive side: an ESCA or RLOC arriving while escape is inhibited must be
+        /// answered with EDRS (0x29), not ESRS (0x20) - see <c>ESCDIS</c> in
+        /// <c>20-COS-TAD-POF-CODE.NPL</c>.
+        /// </para>
+        /// </remarks>
+        public bool EscapeEnabled { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets the opcode carried by the last REJE (0xFE) the peer sent us, or -1 when the
+        /// peer has never rejected anything.
+        /// </summary>
+        /// <remarks>
+        /// A reject means the far driver did not accept a message we sent and has failed its own
+        /// caller with TER01. Recording the offending type is the difference between "the session
+        /// went quiet" and "they refused our 0x03".
+        /// </remarks>
+        public int LastRejectedOpcode { get; set; } = -1;
 
         /// <summary>
         /// Gets a value indicating whether this session has completed login.

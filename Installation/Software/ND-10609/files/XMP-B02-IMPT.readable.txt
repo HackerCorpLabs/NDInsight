@@ -1,0 +1,183 @@
+%=============================================================================%
+%                                                                             %
+%                           I M P O R T                                       %
+%                                                                             %
+%                 D E C L A R A T I O N S     F O R                           %
+%                                                                             %
+%                             X M S G                                         %
+%                                                                             %
+%                          L I B R A R Y                                      %
+%                                                                             %
+%                          F O R    T H E                                     %
+%                                                                             %
+%            N D 1 0 0   /   N D 5 0 0   /  M C 6 8 0 0 0                     %
+%                                                                             %
+%                                                                             %
+%  VERSION/REVISION:  -B02  02.06.86   THNH                                   %
+%                                                                             %
+%                                                                             %
+%=============================================================================%
+
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%  Special defines due to possibly different INTEGER sizes                    %
+%                                                                             %
+%  NOTE: if using old MC68000 compiler (default INTEGER = INTEGER2) then      %
+%        modify XMUSERADDRESS = INTEGER4                                      %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+
+TYPE XMMSGIDENTIFIER = INTEGER
+TYPE XMUSERADDRESS = INTEGER  % NB: NEW MC68000 compiler!!
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%                     the routine IMPORT statements                           %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+
+IMPORT (ROUTINE VOID,INTEGER(INTEGER,BYTES,INTEGER WRITE):&
+        xmpopnm),&
+       (ROUTINE VOID,INTEGER(INTEGER,BYTES,INTEGER):&
+        xmpclnm),&
+       (ROUTINE VOID,INTEGER(INTEGER,BYTES,BOOLEAN,INTEGER,INTEGER WRITE):&
+        xmpopcn),&
+       (ROUTINE VOID,INTEGER(INTEGER,INTEGER,INTEGER,INTEGER):&
+        xmpinfc),&
+       (ROUTINE VOID,INTEGER(INTEGER,XMMSGIDENTIFIER,INTEGER,&
+                             XMUSERADDRESS,INTEGER,INTEGER,INTEGER WRITE):&
+        xmpread),&
+       (ROUTINE VOID,INTEGER(INTEGER,XMMSGIDENTIFIER,INTEGER,&
+                             XMUSERADDRESS,INTEGER,INTEGER,INTEGER WRITE):&
+        xmpwrte),&
+       (ROUTINE VOID,INTEGER(INTEGER,XMMSGIDENTIFIER,&
+                             INTEGER2,INTEGER2,INTEGER2):&
+        xmpwrhd),&
+       (ROUTINE VOID,INTEGER(INTEGER,XMMSGIDENTIFIER,INTEGER):&
+        xmprout),&
+       (ROUTINE VOID,INTEGER(INTEGER,XMMSGIDENTIFIER,INTEGER,INTEGER4):&
+        xmpsend),&
+       (ROUTINE VOID,INTEGER(INTEGER,INTEGER WRITE,INTEGER WRITE,&
+                             INTEGER WRITE):&
+        xmpconf)
+
+
+
+IMPORT (ROUTINE VOID,INTEGER(INTEGER,INTEGER WRITE):&
+        xmpfopn),&
+       (ROUTINE VOID,INTEGER(INTEGER,INTEGER):&
+        xmpfcls),&
+       (ROUTINE VOID,INTEGER(INTEGER,INTEGER,XMMSGIDENTIFIER WRITE):&
+        xmpfget),&
+       (ROUTINE VOID,INTEGER(INTEGER,XMMSGIDENTIFIER):&
+        xmpfrel),&
+       (ROUTINE VOID,INTEGER(INTEGER,INTEGER,INTEGER WRITE):&
+        xmpfgst),&
+       (ROUTINE VOID,INTEGER(INTEGER,INTEGER,XMUSERADDRESS,&
+                             INTEGER,INTEGER,INTEGER WRITE):&
+        xmpfrea),&
+       (ROUTINE VOID,INTEGER(INTEGER,INTEGER,XMUSERADDRESS,&
+                             INTEGER,INTEGER,INTEGER WRITE):&
+        xmpfwri),&
+       (ROUTINE VOID,INTEGER(INTEGER,XMMSGIDENTIFIER,&
+                             INTEGER2 WRITE,INTEGER2 WRITE,INTEGER2 WRITE):&
+        xmpfrhd),&
+       (ROUTINE VOID,INTEGER(INTEGER,&
+                             INTEGER2,INTEGER2,INTEGER2):&
+        xmpfwhd),&
+       (ROUTINE VOID,INTEGER(INTEGER,INTEGER,INTEGER4):&
+        xmpfsnd),&
+       (ROUTINE VOID,INTEGER(INTEGER,XMMSGIDENTIFIER,&
+                             INTEGER,INTEGER2):&
+        xmpfrtn),&
+       (ROUTINE VOID,INTEGER(INTEGER,INTEGER,INTEGER WRITE,&
+                             INTEGER WRITE,XMMSGIDENTIFIER WRITE,&
+                             INTEGER WRITE):&
+        xmpfrcv),&
+       (ROUTINE VOID,INTEGER(INTEGER,INTEGER,XMUSERADDRESS,INTEGER,INTEGER,&
+                             INTEGER WRITE,INTEGER WRITE,&
+                             XMMSGIDENTIFIER WRITE,INTEGER WRITE):&
+        xmpfrre),&
+       (ROUTINE VOID,INTEGER(INTEGER,INTEGER,INTEGER WRITE,&
+                             INTEGER WRITE,XMMSGIDENTIFIER WRITE,&
+                             INTEGER2 WRITE):&
+        xmpfrrh),&
+       (ROUTINE VOID,INTEGER(INTEGER,INTEGER,INTEGER WRITE,&
+                             INTEGER WRITE,XMMSGIDENTIFIER WRITE,&
+                             INTEGER WRITE):&
+        xmpfpst),&
+       (ROUTINE VOID,INTEGER(INTEGER,XMMSGIDENTIFIER,INTEGER WRITE,&
+                             INTEGER4 WRITE,INTEGER WRITE):&
+        xmpfmst),&
+       (ROUTINE VOID,INTEGER(INTEGER,INTEGER,XMMSGIDENTIFIER):&
+        xmpfscm),&
+       (ROUTINE VOID,INTEGER(INTEGER,INTEGER):&
+        xmpfprv),&
+       (ROUTINE VOID,INTEGER(INTEGER,INTEGER,INTEGER4 WRITE):&
+        xmpfp2m),&
+       (ROUTINE VOID,INTEGER(INTEGER,INTEGER):&
+        xmpfdmm),&
+       (ROUTINE VOID,INTEGER(INTEGER,INTEGER,INTEGER):&
+        xmpfalm),&
+       (ROUTINE VOID,INTEGER(INTEGER):&
+        xmpfdum),&
+       (ROUTINE VOID,INTEGER(INTEGER):&
+        xmpfdct),&
+       (ROUTINE VOID,INTEGER(INTEGER,XMMSGIDENTIFIER,INTEGER,&
+                             XMMSGIDENTIFIER WRITE,INTEGER WRITE,&
+                             INTEGER WRITE):&
+        xmpflmp),&
+       (ROUTINE VOID,INTEGER(INTEGER,INTEGER4,INTEGER):&
+        xmpfdub),&
+       (ROUTINE VOID,INTEGER(INTEGER,INTEGER,INTEGER WRITE):&
+        xmpffrm),&
+       (ROUTINE VOID,INTEGER(INTEGER,INTEGER):&
+        xmpfdbk),&
+       (ROUTINE VOID,INTEGER(INTEGER,INTEGER,INTEGER):&
+        xmpfwdf),&
+       (ROUTINE VOID,INTEGER(INTEGER,INTEGER4,INTEGER WRITE,INTEGER WRITE,&
+                             INTEGER WRITE,INTEGER WRITE):&
+        xmpfm2p),&
+       (ROUTINE VOID,INTEGER(INTEGER,XMMSGIDENTIFIER,INTEGER WRITE,&
+                             INTEGER WRITE):&
+        xmpfcpv),&
+       (ROUTINE VOID,INTEGER(INTEGER,INTEGER WRITE):&
+        xmpfsin),&
+       (ROUTINE VOID,INTEGER(INTEGER,XMUSERADDRESS,INTEGER,INTEGER,&
+                             INTEGER,INTEGER):&
+        xmpfabr),&
+       (ROUTINE VOID,INTEGER(INTEGER,INTEGER,XMUSERADDRESS,INTEGER WRITE):&
+        xmpfcrd),&
+       (ROUTINE VOID,INTEGER(INTEGER,INTEGER):&
+        xmpfstd),&
+       (ROUTINE VOID,INTEGER(INTEGER,INTEGER,XMUSERADDRESS,INTEGER,INTEGER WRITE,&
+                             INTEGER WRITE,INTEGER WRITE,INTEGER WRITE):&
+        xmpfsmc)
+
+
+IMPORT (ROUTINE VOID,INTEGER(BYTES,INTEGER,INTEGER READ WRITE,INTEGER,&
+                             BYTES,BYTES):&
+        xmpblet),&
+       (ROUTINE VOID,INTEGER(BYTES,INTEGER,INTEGER WRITE,&
+                             BYTES WRITE,INTEGER WRITE):&
+        xmpbloc)
+
+IMPORT (ROUTINE VOID,INTEGER(BYTES,INTEGER,INTEGER READ WRITE):&
+        xmpbini),&
+       (ROUTINE VOID,INTEGER(BYTES,INTEGER,INTEGER):&
+        xmpbrdy),&
+       (ROUTINE VOID,INTEGER(BYTES,INTEGER READ WRITE,INTEGER2,INTEGER):&
+        xmpbain),&
+       (ROUTINE VOID,INTEGER(BYTES,INTEGER READ WRITE,INTEGER4,INTEGER):&
+        xmpbadb),&
+       (ROUTINE VOID,INTEGER(BYTES,INTEGER READ WRITE,BYTES,INTEGER):&
+        xmpbast)
+
+IMPORT (ROUTINE INTEGER,VOID(INTEGER WRITE):&
+        xmpxets),&
+       (ROUTINE INTEGER,VOID(INTEGER WRITE):&
+        xmpxrts)
+
+%-----------------------------------------------------------------------------%
+$EOF

@@ -845,5 +845,74 @@ namespace NDInsight.Sintran.Xmsg.Api.Tests
             Assert.True(kernel.Read(XmsgMessageIdentifier.Current, one, 0, out read).IsSuccess);
             Assert.Equal(0x5A, one[0]);
         }
+
+        /// <summary>
+        /// A forwarded message arrives announced as routed.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// XFFWD is what XROUT uses to pass a letter on, so a message delivered with it came VIA
+        /// XROUT and <see cref="XmsgMessageType.XMROU"/> is what the receiver should read back.
+        /// </para>
+        /// <para>
+        /// This is the only thing that tells a receiver a SEAT was spent. XROUT takes one free
+        /// connection from a connection port to forward a letter, before anybody has looked at the
+        /// body - so a receiver that cannot recognise a letter cannot give the seat back either,
+        /// and a room quietly shrinks every time one arrives that it does not act on.
+        /// </para>
+        /// <para>
+        /// NOT MEASURED against hardware: the reasoning is the type's own definition and the queue
+        /// example in the snapshot code, which shows a connection port holding an XMROU message.
+        /// </para>
+        /// </remarks>
+        [Fact]
+        public void Deliver_WithForward_ArrivesAsARoutedMessage()
+        {
+            XmsgKernel kernel = new XmsgKernel(100, 0x1111, null);
+
+            XmsgPortNumber port;
+            Assert.False(kernel.OpenPort(out port).IsError);
+
+            XmsgMagicNumber magic;
+            Assert.False(kernel.ConvertPortToMagic(port, out magic).IsError);
+
+            XmsgMagicNumber somebodyElse = new XmsgMagicNumber(0x2222);
+            byte[] body = new byte[] { 0x01, 0x02 };
+
+            Assert.True(kernel.Deliver(magic, somebodyElse, body, XmsgSendFlags.Forward).IsSuccess);
+
+            XmsgReceiveResult arrived = kernel.Receive(port, XmsgWaitOptions.None);
+            Assert.True(arrived.Received);
+            Assert.Equal(XmsgMessageType.XMROU, arrived.MessageType);
+
+            // And the sender is left as XROUT set it - that is the other half of what XFFWD means.
+            Assert.Equal(somebodyElse, kernel.GetMessageStatus(arrived.Message).Sender);
+        }
+
+        /// <summary>
+        /// An ordinary delivery is still a normal message.
+        /// </summary>
+        /// <remarks>
+        /// The control for the test above. Without it, a change that marked EVERYTHING routed would
+        /// pass, and every receiver would then hand back seats that were never taken.
+        /// </remarks>
+        [Fact]
+        public void Deliver_WithoutForward_ArrivesAsANormalMessage()
+        {
+            XmsgKernel kernel = new XmsgKernel(100, 0x1111, null);
+
+            XmsgPortNumber port;
+            Assert.False(kernel.OpenPort(out port).IsError);
+
+            XmsgMagicNumber magic;
+            Assert.False(kernel.ConvertPortToMagic(port, out magic).IsError);
+
+            byte[] body = new byte[] { 0x01 };
+            Assert.True(kernel.Deliver(magic, new XmsgMagicNumber(0x2222), body, XmsgSendFlags.None).IsSuccess);
+
+            XmsgReceiveResult arrived = kernel.Receive(port, XmsgWaitOptions.None);
+            Assert.True(arrived.Received);
+            Assert.Equal(XmsgMessageType.XMTNO, arrived.MessageType);
+        }
     }
 }

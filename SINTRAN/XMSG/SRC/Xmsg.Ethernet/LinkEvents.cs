@@ -26,6 +26,32 @@ namespace NDInsight.Sintran.Xmsg.Ethernet
     public delegate void PeerLearned();
 
     /// <summary>
+    /// Raised when the peer re-sends a data frame it has already sent us.
+    /// </summary>
+    /// <param name="sequence">
+    /// The sequence the repeated frame carried.
+    /// </param>
+    /// <param name="expected">
+    /// The sequence we were waiting for.
+    /// </param>
+    /// <remarks>
+    /// <para><b>This is never normal, and it is the first thing to check</b></para>
+    /// <para>
+    /// A peer repeats a frame when it has not seen our acknowledgement. On 2026-08-10 D100 did
+    /// this for seconds on end because we were sending far ahead of our window; every repeat
+    /// reached the file server as a fresh request and it answered each one with a new session
+    /// counter and a new connection number, ending in SINTRAN error 267 octal. Nothing in the
+    /// file-access layer was wrong.
+    /// </para>
+    /// <para>
+    /// It took two nights to find, because the only evidence was byte-identical frames buried in
+    /// a log nobody was counting. Surfacing it means the next time this happens it is a warning
+    /// line, not an investigation.
+    /// </para>
+    /// </remarks>
+    public delegate void DuplicateDataFrameReceived(byte sequence, byte expected);
+
+    /// <summary>
     /// Raised after a frame has been handed to the transport.
     /// </summary>
     /// <param name="frame">

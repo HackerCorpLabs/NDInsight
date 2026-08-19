@@ -1,0 +1,642 @@
+ @DEV 1
+ @DEV (S-S-J)MRES-CDR1
+ %
+
+ %==============================================================================
+ %      M R E S - C D R 1
+ %=============================================================================
+
+
+ *"MODIN
+" %==============================================================================
+ % 38.1       M O D I N   M O D U T   M O D I 1
+ %
+
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ %   SYNCRONOUS MODEM DRIVER                 %
+ %   AND HANDLING ROUTINES FOR SINTRAN III   %
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ SUBR MODIN,MODUT,MODI1
+
+ DISP -12
+ INTEGER MOWSTAT
+ INTEGER TERSW,MOSW
+ PSID
+
+ SYMBOL EBSOH=1, EBSTX=2, EBETX=3, EBDLE=20, EBIUS=37, EBETB=46
+ SYMBOL EBEOT=67, EBSYN=62, EBPAD=377
+
+ SYMBOL ASSOH=1, ASSTX=2, ASETX=3, ASEOT=4, ASACK=6, ASBEL=7
+ SYMBOL ASDLE=20, ASDC1=21, ASNAK=25, ASSYN=26, ASETB=27, ASUS=37
+
+ % MODEM INPUT DRIVER
+
+ MODIN:
+        CALL ID12
+ MODI1: T:=HDEV+DDR;*EXR ST
+        A=:LAST
+        IF T:=CFREE=0 GO MOSWX
+
+ @ICR;
+        T:=MOSW GOSW MOSW0, FAR IBM1, FAR IBM2, MOSW3, MOSW4, MOSW4,  % 0-5
+                     FAR I3271, HASP1, HASP2, HASP3, FAR HASP4,       % 6-12
+                     FAR HASP5, FAR HASP6, FAR HASP7, FAR HASP8,      % 13-16
+                     FAR HASP9;                                       % 17
+ @CR;
+
+ MOSW4: GO MODIN
+
+ MOTERMF:
+        LAST                                      % TERMINATOR FOUND
+ MOSW3: T:=MBSYMOD; CALL TDBPUT
+ MOSWX: CALL RTACT
+        IF TERSW=7 OR =12 OR =14 GO MOSWY         % NTR/VIP-BTH/UTS-400
+        T:=HDEV+DCONT; 2204; *EXR ST
+        0=:TMR; 4=:MOSW                           % IGNORE NEXT CHARACTER
+        GO MODIN
+ MOSWY: T:=HDEV+DCONT; 2204; *EXR ST
+        205; *EXR ST                              % READ NEXT CHARACTER (IF SYNC)
+        0=:TMR=:MOSW
+        GO MODIN
+
+ *)FILL
+
+ % TEST FOR TERMINATION CONDITION
+
+ @ICR;
+ MOSW0: T:=TERSW GOSW FAR GEN0, FAR DCT0, FAR CDC0, FAR GER0, IBM0, VIP0, HASP0,
+                      FAR NTR0, FAR MSV20, FAR I3270, FAR BTH0, FAR SSAAB,
+                      FAR UTS0;
+ @CR;
+
+ %      HASP WS :
+ %
+ %      MOSW=0, TERSW=6 : DECODE 1. CHARACTER (SHOULD BE SYN)
+ %
+ HASP0: IF A><EBSYN GO MOSWY                      % ERROR: RESYNC
+        7=:MOSW; GO FAR MORET                     % READ SECOND
+
+ %
+ %      MOSW=7 : DECODE 2. CHARACTER (SHOULD ALSO BE SYNC)
+ %
+ HASP1: IF A><EBSYN GO FAR MOSWY                  % ERROR : RESYNC
+        10=:MOSW; GO FAR MORET
+ %
+ %      MOSW=10 : DECODE BLOCK FOLLOWING SYNC
+ %
+ HASP2: IF A=EBSYN GO FAR MORET
+        IF A=EBPAD GO FAR MOSWX                   % END OF BLOCK
+        T:=MBSYMOD; CALL TDBPUT
+        IF A=EBDLE THEN                           % ACK OR TRANSP. TEXT
+           11=:MOSW
+        ELSE
+           IF A=EBSOH THEN                        % ENQ OR NON-TRANSP. TEXT
+              12=:MOSW
+           FI
+        FI
+        GO FAR MODPIN
+
+ %
+ %      MOSW=11 : TRANSPARENT TEXT OR ACK (STARTS WITH DLE)
+ %
+ HASP3: T:=MBSYMOD; CALL TDBPUT
+        IF A=EBSTX THEN                           % TRANSP. TEXT-BLOCK
+           13=:MOSW
+        ELSE
+           GO MOSWX                               % ACK
+        FI
+        GO FAR MODPIN
+
+ %
+ %      MOSW=12 : NON-TRANSPARENT TEXT BLOCK OR ENQ (STARTS WITH SOH)
+ %
+ HASP4: T:=MBSYMOD; CALL TDBPUT
+        IF A=EBSTX THEN                           % TEXT-BLOCK WITH CRC FOLLOWS
+           15=:MOSW
+        ELSE
+           GO MOSWX                               % ENQ
+        FI
+        GO FAR MODPIN
+
+ %
+ %      MOSW=13 : TRANSPARENT TEXT BLOCK ENDED WITH DLE+ETB+CRC+CRC+PAD
+ %
+ HASP5: T:=MBSYMOD; CALL TDBPUT
+        IF A=EBDLE THEN MIN MOSW FI               % ETB MAY FOLLOW
+        GO FAR MODPIN
+
+ %
+ %      MOSW=14 : DLE WAS READ IN TRANSP. TEXT MODE, CHECK IF NEXT IS ETB
+ %
+ HASP6: T:=MBSYMOD; CALL TDBPUT
+        IF A=EBETB THEN                           % ETB : 2 CRC FOLLOWS
+           16=:MOSW
+        ELSE
+           13=:MOSW                               % RESET DLE-MODE
+        FI
+        GO FAR MODPIN
+
+ %
+ %      MOSW=15 : NON-TRANSPARENT TEXT BLOCK ENDED WITH ETB+CRC+CRC+PAD
+ %
+ HASP7: T:=MBSYMOD; CALL TDBPUT
+        IF A=EBETB THEN MIN MOSW FI
+        GO FAR MODPIN
+
+ %
+ %      MOSW=16 : 1. CRC CHARACTER
+ %
+ HASP8: T:=MBSYMOD; CALL TDBPUT
+        MIN MOSW; GO FAR MODPIN                   % READ NEXT CRC
+
+ %
+ %      MOSW=17 : 2. CRC CHARACTER
+ %
+ HASP9: T:=MBSYMOD; CALL TDBPUT
+        GO FAR MOSWX                              % END OF BLOCK
+ *)FILL
+
+ %      VIP CONTROL (HONEYWELL-BULL INTERACTIV TERMINALS)
+
+ VIP0:  IF A=0 OR =ASSYN GO FAR MORET
+        T:=MBSYMOD; CALL TDBPUT; A/\177
+        IF A=ASETX THEN
+           T:=2=:MOSW; GO FAR MODPIN              % BCB WILL FOLLOW AFTER ETX
+        FI
+        IF A=ASEOT GO FAR MOSWX                   % EOT : END OF BLOCK
+        GO FAR MODPIN
+
+ % IBM 3780/2780
+
+ IBM0:  IF A=EBSYN GO FAR MORET
+        T:=MBSYMOD; CALL TDBPUT
+        IF A=EBETX OR =EBETB OR =EBIUS THEN       % ETX,ETB,IUS : 2 CRC WILL FOLLOW
+           MIN MOSW                               % MOSW=1
+        FI
+        IF A=EBPAD GO FAR MOSWX                   % PAD : END OF BLOCK
+        GO FAR MODPIN
+ %
+ %      MOSW=1 : READ 1. CRC-CHARACTER
+ %
+ IBM1:  T:=MBSYMOD; CALL TDBPUT
+        MIN MOSW; GO FAR MODPIN
+ %
+ %      MOSW=2 : READ 2. CRC-CHARACTER
+ %
+ IBM2:  T:=MBSYMOD; CALL TDBPUT
+        0=:MOSW; GO FAR MODPIN                    % END OF BLOCK, READ PAD
+
+ %      GERTS-115
+
+ GER0:  IF A=0 OR =ASSYN OR =377 GO FAR MORET
+        T:=MBSYMOD; CALL TDBPUT
+        A/\177
+        IF A=ASETX THEN T:=3=:MOSW FI             % ETX : BCB WILL FOLLOW NEXT
+ *"8KGS
+"        GO FAR MODPIN
+ %
+ %      UNIVAC NTR
+ %
+ NTR0:  T:=MBSYMOD; CALL TDBPUT
+        IF A=ASETX THEN 3=:MOSW FI                % ETX : BCB WILL FOLLOW NEXT
+        GO FAR MODPIN
+
+ *)FILL
+
+ %
+ %      CD-200-USER
+ %
+ CDC0:  GO GER0
+ %
+ %      NOT DEFINED
+ %
+ GEN0:  GO GER0
+ %
+ %      DCT-2000
+ %
+ DCT0:  IF =0 OR =ASSYN OR =377 GO FAR MORET
+        T:=MBSYMOD; CALL TDBPUT
+        A/\177
+        IF A=ASETX OR =ASEOT OR =ASACK OR=ASNAK OR=ASBEL OR =ASDC1 THEN
+           3=:MOSW                                % AFTER ETX,EOT,ACK,NAK,BELL,DC1 : 1 BCC
+        FI
+        GO FAR MODPIN
+ %
+ %      SIEMENS MSV2
+ %
+ MSV20: IF A=ASSYN GO MORET
+        T:=MBSYMOD; CALL TDBPUT; A/\177
+        IF A=ASETX OR =ASETB OR =ASUS THEN MIN MOSW FI      % READ 2 CRC NEXT
+        IF A=177 GO FAR MOSWX                               % END OF BLOCK
+        GO MODPIN
+
+ %
+ %      IBM-3270 EMULATOR
+ %
+
+ I3270: IF A=EBSYN GO MORET
+        T:=MBSYMOD; CALL TDBPUT
+        IF A=EBSTX THEN T:=6=:MOSW FI             % STX : SET TEXT MODE
+        IF A=EBEOT GO FAR MOSWY                   % EOT : NEW SYNC MAY FOLLOW
+        IF A=EBPAD GO FAR MOSWX                   % ENDING PAD
+        GO MODPIN
+ %
+ %      MOSW=6 : 3270 IN TEXT MODE
+ %
+
+
+ I3271: T:=MBSYMOD; CALL TDBPUT
+        IF A=EBETX OR =EBETB THEN T:=1=:MOSW FI   % ETX/ETB : 2 CRC WILL FOLLOW
+        GO MODPIN
+
+ %
+ %      BTH/VIP 7750 INTERACTIVE TERMINALS
+ %
+ BTH0:  IF A=0 GO MORET
+        IF A=377 GO FAR MOSWX                     % PAD : END OF BLOCK
+        T:=MBSYMOD; CALL TDBPUT
+        A/\177
+        IF A=ASETX OR =ASETB THEN                 % ETX/ETB : BCC NEXT
+           2=:MOSW; GO MODPIN
+        FI
+        IF A=ASEOT GO FAR MOSWX                   % EOT
+        GO MODPIN
+
+ *)FILL
+
+ %
+ %      STANSAAB, ISO-1745 LINE PROCEDURE.
+ %
+
+ SSAAB: T:=177/\A=:D
+        IF D=0 OR D=ASSYN GO MORET
+        IF D=ASEOT OR D=ASNAK GO FAR MOSW3        % EOT/NAK : END OF BLOCK
+        T:=MBSYMOD; CALL TDBPUT; A/\177
+        IF A=ASDLE OR A=ASETX THEN 3=:MOSW FI     % DLE/ETX : 1 BCC WILL FOLLOW
+        GO MODPIN
+
+ %
+ %      UNIVAC UTS-400 EMULATOR
+ %
+ UTS0:  IF A=0 OR =ASSYN OR =377 GO FAR MORET     % UTS-400
+        T:=MBSYMOD; CALL TDBPUT; A/\177
+        IF A=ASETX THEN 3=:MOSW; FI               % AFTER ETX : 1 BCC
+        GO MODPIN
+
+ MODPIN:
+ MORET: 205; T:=HDEV+DCONT; *EXR ST
+        -2=:TMR
+        GO MODIN
+ %
+ % DRIVER FOR MODEM OUTPUT
+ MODUT: DO;*IOF
+           IF BHOLD=0 THEN 0=:TMR=:MOWSTAT; T:=0; CALL RTACT; GO HIT FI
+           T:=MBSYMOD; CALL TDBGET; T:=HDEV+DDW;*EXR ST
+           TTMR=:TMR
+           T:=5
+ HIT:      T=:A; T:=HDEV+DCONT;*EXR ST;ION
+           CALL ID10
+        OD
+
+ RBUS
+
+
+
+
+
+ *"8HMO1+8HMO2+8HMO3+8HMO4+8HMO5+8HMO6
+" %=================================================
+ % 38.11    H O D I N    H O D U T    H O D I 1
+ %
+
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ % SYNCRONOUS MODEM DRIVER FOR HDLC INTERFACE
+ % AND HANDLING ROUTINES FOR SINTRAN III
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ %      SEE SPECIAL MODIFICATION IN CASE OF COMMUNICATION BETWEEN
+ %      X21 AND X21-BIS ON NORD COMPUTERS AT LABEL "HODUT"
+
+ SUBR HODIN,HODUT,HODI1
+ DISP -13
+        INTEGER HOWSTAT
+        INTEGER HERSW
+        INTEGER HDXOK
+        INTEGER MOSW
+ PSID
+        INTEGER TELL:=0
+        INTEGER TELL1:=0
+        SYMBOL BUFSIZ=20
+        SYMBOL TELMA=BUFSIZ-1
+        INTEGER ARRAY BUFF(BUFSIZ)                % RECEIVER STATUS
+
+        SYMBOL EBSOH=1, EBSTX=2, EBETX=3, EBDLE=20, EBIUS=37, EBETB=46
+        SYMBOL EBEOT=67, EBSYN=62, EBPAD=377
+
+        SYMBOL ASSOH=1, ASSTX=2, ASETX=3, ASEOT=4, ASACK=6, ASBEL=7
+        SYMBOL ASDLE=20, ASDC1=21, ASNAK=25, ASSYN=26, ASETB=27, ASUS=37
+
+ % MODEM INPUT DRIVER
+
+ HODIN:
+        CALL ID13
+ HODI1: T:=HDEV+BRRTS; *EXR ST
+        A=:T                                      % ENTRY HERE IF X21
+        IF A NBIT 0 OR A/\60000><0 THEN           % NO DATA OR X21 ERROR?
+           MIN TELL; P+0
+           TELL/\ TELMA=:TELL1
+           T=:BUFF(TELL1)
+           IF HOWSTAT = 0 THEN                    % YES, PINNED FOR DATA?
+             304/\HDXOK; T:=HDEV+BWRTC; *EXR ST   % NO, ENABLE FOR STATUS CHANGE
+              GO HODIN                            % HDXOK MAY CLEAR BIT 100
+           ELSE
+              GO FAR MODPIN                       % FORGET DATA, ENABLE AGAIN
+           FI
+        FI
+        T:=HDEV+BRRDR;*EXR ST
+        A=:LAST
+        IF T:=CFREE=0 GO MOSWX
+
+ @ICR;
+        T:=MOSW GOSW MOSW0, FAR IBM1, FAR IBM2, MOSW3, MOSW4, MOSW4,  % 0-5
+                     FAR I3271, HASP1, HASP2, FAR HASP3, FAR HASP4,   % 6-12
+                     FAR HASP5, FAR HASP6, FAR HASP7, FAR HASP8,      % 13-16
+                     FAR HASP9;                                       % 17
+
+ @CR;
+
+ MOSW4: 300/\HDXOK; T:=X2DHD+BWRTC; *EXR ST       % ENABLE FOR MODEM STATUS CHANGE
+
+ MOTERMF:
+        LAST                                      % TERMINATOR FOUND
+ MOSW3: T:=MBSYMOD; CALL TDBPUT
+ MOSWX: CALL RTACT
+        IF HERSW=7 OR =12 OR =14 GO MOSWY         % NTR/VIP-BTH/UTS-400
+        T:=HDEV+BWRTC
+        300; *EXR ST
+        0=:TMR=:HOWSTAT; 4=:MOSW                  % IGNORE NEXT CHARACTER
+        GO HODIN
+ MOSWY: T:=HDEV+BWRTC
+        100; *EXR ST
+        307; *EXR ST                              % ENABLE INPUT AGAIN
+        0=:TMR=:MOSW                              % READ NEXT CHARACTER (IF SYNC)
+        GO HODIN
+
+ *)FILL
+
+ % TEST FOR TERMINATION CONDITION
+
+ @ICR;
+ MOSW0: T:=HERSW GOSW FAR GEN0, FAR DCT0, FAR CDC0, FAR GER0, IBM0, VIP0, HASP0,
+                      FAR NTR0, FAR MSV20, FAR I3270, FAR BTH0, FAR SSAAB,
+                      FAR UTS0;
+ @CR;
+
+ %      HASP WS :
+ %
+ %      MOSW=0, HERSW=6 : SKIP TEST FOR 1. CHAR WHEN HDLC IS USED, HDLC WILL
+ %                        NOT GIVE AN INTERRUPT BEFORE 2 SYNCS ARE RECEIVED.
+ %
+ HASP0: T:=10=:MOSW; GO HASP2
+ %
+ %      MOSW=7 : NOT USED IN HDLC
+ %
+ HASP1: T:=10=:MOSW; GO HASP2
+
+ %
+ %      MOSW=10 : DECODE BLOCK FOLLOWING SYNC
+ %
+ HASP2: IF A=EBSYN GO FAR MORET
+        IF A=EBPAD GO FAR MOSWX                   % END OF BLOCK
+        T:=MBSYMOD; CALL TDBPUT
+        IF A=EBDLE THEN                           % ACK OR TRANSP. TEXT
+           11=:MOSW
+        ELSE
+           IF A=EBSOH THEN                        % ENQ OR NON-TRANSP. TEXT
+              12=:MOSW
+           FI
+        FI
+        GO FAR MODPIN
+
+ %
+ %      MOSW=11 : TRANSPARENT TEXT OR ACK (STARTS WITH DLE)
+ %
+ HASP3: T:=MBSYMOD; CALL TDBPUT
+        IF A=EBSTX THEN                           % TRANSP. TEXT-BLOCK
+           13=:MOSW
+        ELSE
+           GO MOSWX                               % ACK
+        FI
+        GO FAR MODPIN
+
+ %
+ %      MOSW=12 : NON-TRANSPARENT TEXT BLOCK OR ENQ (STARTS WITH SOH)
+ %
+ HASP4: T:=MBSYMOD; CALL TDBPUT
+        IF A=EBSTX THEN                           % TEXT-BLOCK WITH CRC FOLLOWS
+           15=:MOSW
+        ELSE
+           GO MOSWX                               % ENQ
+        FI
+        GO FAR MODPIN
+
+ %
+ %      MOSW=13 : TRANSPARENT TEXT BLOCK ENDED WITH DLE+ETB+CRC+CRC+PAD
+ %
+ HASP5: T:=MBSYMOD; CALL TDBPUT
+        IF A=EBDLE THEN MIN MOSW FI               % ETB MAY FOLLOW
+        GO FAR MODPIN
+
+ %
+ %      MOSW=14 : DLE WAS READ IN TRANSP. TEXT MODE, CHECK IF NEXT IS ETB
+ %
+ HASP6: T:=MBSYMOD; CALL TDBPUT
+        IF A=EBETB THEN                           % ETB : 2 CRC FOLLOWS
+           16=:MOSW
+        ELSE
+           13=:MOSW                               % RESET DLE-MODE
+        FI
+        GO FAR MODPIN
+
+ %
+ %      MOSW=15 : NON-TRANSPARENT TEXT BLOCK ENDED WITH ETB+CRC+CRC+PAD
+ %
+ HASP7: T:=MBSYMOD; CALL TDBPUT
+        IF A=EBETB THEN MIN MOSW FI
+        GO FAR MODPIN
+
+ %
+ %      MOSW=16 : 1. CRC CHARACTER
+ %
+ HASP8: T:=MBSYMOD; CALL TDBPUT
+        MIN MOSW; GO FAR MODPIN                   % READ NEXT CRC
+
+ %
+ %      MOSW=17 : 2. CRC CHARACTER
+ %
+ HASP9: T:=MBSYMOD; CALL TDBPUT
+        GO FAR MOSWX                              % END OF BLOCK
+
+ *)FILL
+
+ %      VIP CONTROL (HONEYWELL-BULL INTERACTIV TERMINALS)
+
+ VIP0:  IF A=0 OR =ASSYN GO FAR MORET
+        T:=MBSYMOD; CALL TDBPUT;A/\177
+        IF A=ASETX THEN
+           T:=2=:MOSW; GO FAR MODPIN              % BCB WILL FOLLOW AFTER ETX
+        FI
+        IF A=ASEOT GO FAR MOSWX                   % EOT : END OF BLOCK
+        GO FAR MODPIN
+
+ % IBM 3780/2780
+
+ IBM0:  IF A=EBSYN GO FAR MORET
+        T:=MBSYMOD; CALL TDBPUT
+        IF A=EBETX OR =EBETB OR =EBIUS THEN       % ETX,ETB,IUS : 2 CRC WILL FOLLOW
+           MIN MOSW                               % MOSW=1
+        FI
+        IF A=EBPAD GO FAR MOSWX                   % PAD : END OF BLOCK
+        GO FAR MODPIN
+ %
+ %      MOSW=1 : READ 1. CRC-CHARACTER
+ %
+ IBM1:  T:=MBSYMOD; CALL TDBPUT
+        MIN MOSW; GO FAR MODPIN
+ %
+ %      MOSW=2 : READ 2. CRC-CHARACTER
+ %
+ IBM2:  T:=MBSYMOD; CALL TDBPUT
+        0=:MOSW; GO FAR MODPIN                    % END OF BLOCK, READ PAD
+
+ %      GERTS-115
+
+ GER0:  IF A=0 OR =ASSYN OR =377 GO FAR MORET
+        T:=MBSYMOD; CALL TDBPUT
+        A/\177
+        IF A=ASETX THEN T:=3=:MOSW FI             % ETX : BCB WILL FOLLOW NEXT
+ *"8KGS
+"        GO FAR MODPIN
+ %
+ %      UNIVAC NTR
+ %
+ NTR0:  T:=MBSYMOD; CALL TDBPUT
+        IF A=ASETX THEN 3=:MOSW FI                % ETX : BCB WILL FOLLOW NEXT
+        GO FAR MODPIN
+
+ *)FILL
+
+ %
+ %      CD-200-USER
+ %
+ CDC0:  GO GER0
+ %
+ %      NOT DEFINED
+ %
+ GEN0:  GO GER0
+ %
+ %      DCT-2000
+ %
+ DCT0:  IF =0 OR =ASSYN OR =377 GO FAR MORET
+        T:=MBSYMOD; CALL TDBPUT
+        A/\177
+        IF A=ASETX OR =ASEOT OR =ASACK OR=ASNAK OR=ASBEL OR =ASDC1 THEN
+           3=:MOSW                                % AFTER ETX,EOT,ACK,NAK,BELL,DC1 : 1 BCC
+        FI
+        GO FAR MODPIN
+ %
+ %      SIEMENS MSV2
+ %
+ MSV20: IF A=ASSYN GO MORET
+        T:=MBSYMOD; CALL TDBPUT; A/\177
+        IF A=ASETX OR =ASETB OR =ASUS THEN MIN MOSW FI      % READ 2 CRC NEXT
+        IF A=177 GO FAR MOSWX                               % END OF BLOCK
+        GO MODPIN
+
+ %
+ %      IBM-3270 EMULATOR
+ %
+
+ I3270: IF A=EBSYN GO MORET
+        T:=MBSYMOD; CALL TDBPUT
+        IF A=EBSTX THEN T:=6=:MOSW FI             % STX : SET TEXT MODE
+        IF A=EBEOT GO FAR MOSWY                   % EOT : NEW SYNC MAY FOLLOW
+        IF A=EBPAD GO FAR MOSWX                   % ENDING PAD
+        GO MODPIN
+ %
+ %      MOSW=6 : 3270 IN TEXT MODE
+ %
+
+
+ I3271: T:=MBSYMOD; CALL TDBPUT
+        IF A=EBETX OR =EBETB THEN T:=1=:MOSW FI   % ETX/ETB : 2 CRC WILL FOLLOW
+        GO MODPIN
+
+ %
+ %      BTH/VIP 7750 INTERACTIVE TERMINALS
+ %
+ BTH0:  IF A=0 GO MORET
+        IF A=377 GO FAR MOSWX                     % PAD : END OF BLOCK
+        T:=MBSYMOD; CALL TDBPUT
+        A/\177
+        IF A=ASETX OR =ASETB THEN                 % ETX/ETB : BCC NEXT
+           2=:MOSW; GO MODPIN
+        FI
+        IF A=ASEOT GO FAR MOSWX                   % EOT
+        GO MODPIN
+
+ *)FILL
+
+ %
+ %      STANSAAB, ISO-1745 LINE PROCEDURE.
+ %
+
+ SSAAB: T:=177/\A=:D
+        IF D=0 OR D=ASSYN GO MORET
+        IF D=ASEOT OR D=ASNAK GO FAR MOSW3        % EOT/NAK : END OF BLOCK
+        T:=MBSYMOD; CALL TSBPUT; A/\177
+        IF A=ASDLE OR A=ASETX THEN 3=:MOSW FI     % DLE/ETX : 1 BCC WILL FOLLOW
+        GO MODPIN
+
+ %
+ %      UNIVAC UTS-400 EMULATOR
+ %
+ UTS0:  IF A=0 OR =ASSYN OR =377 GO FAR MORET     % UTS-400
+        T:=MBSYMOD; CALL TDBPUT; A/\177
+        IF A=ASETX THEN 3=:MOSW; FI               % AFTER ETX : 1 BCC
+        GO MODPIN
+
+ MODPIN:
+ MORET: 305/\HDXOK; T:=HDEV+BWRTC;*EXR ST
+        -2=:TMR
+        GO HODIN
+ %
+ % DRIVER FOR MODEM OUTPUT
+ MODXX: 1; T:=HDEV+BWTCR; *EXR ST       % SEND SECOND SYN CHAR
+        105; T+"BWTTC-BWTCR"; *EXR ST
+        CALL ID12
+        A:=0; T:=HDEV+BWTCR; *EXR ST    % CLEAR TSOM , GO ON WITH DATA
+ %
+ %      IF THIS DRIVER IS RUNNING AS X21-BIS AND OTHER END IS NORD X21 THEN
+ %      WE CAN NOT TURN OFF RQTS WHEN TRANSFER IS FINISHED I.E. T:=100 NOT
+ %      T:=0
+ %
+ HODUT: DO;*IOF
+           IF BHOLD=0 THEN 0=:TMR=:HOWSTAT; T:=0; CALL RTACT; GO HIT FI
+           T:=MBSYMOD; CALL TDBGET; T:=HDEV+BWTDR;*EXR ST
+           TTMR=:TMR
+           T:=105
+ HIT:      T=:A; T:=HDEV+BWTTC; *EXR ST;ION
+           CALL ID12
+        OD
+
+ RBUS
+
+
+
+
+ *"8HDMA
+"
+ *"99NTB
+"

@@ -869,22 +869,67 @@ namespace NDInsight.Sintran.Xmsg.Api
             buffer.Data.Write(userData, 0, false, out written);
             buffer.Sender = sender;
             buffer.Secure = (flags & XmsgSendFlags.Secure) != 0;
-            buffer.Type = (flags & XmsgSendFlags.HighPriority) != 0
-                ? XmsgMessageType.XMTHI
-                : XmsgMessageType.XMTNO;
+
+            // XFFWD means XROUT passed this on without putting itself in the sender field, so what
+            // arrives is a ROUTED message and the receiver is entitled to know it. That matters
+            // beyond bookkeeping: XROUT spends one of a connection port's free seats to forward a
+            // letter, and XMROU is the only thing telling the receiver a seat was spent - the body
+            // could say anything, or be undecodable, and the seat is gone just the same.
+            //
+            // SETTLED, and not by us. Both sample servers in the COSMOS Programmer Guide
+            // (ND-60.164.3) wait for the forwarded letter and then refuse anything that is not
+            // XMROU - "IF MSGTYPE >< XMROU THEN 'WRONG MESSAGE TYPE'" in PLANC, and the same test
+            // in FORTRAN. Each then reads the CLIENT's magic out of the arrived message to answer
+            // it directly, which is the other half of what XFFWD means: the sender stays the
+            // original client, and the TYPE is what says XROUT carried it.
+            buffer.Type = ChooseType(flags);
 
             _buffers.Add(buffer.Id, buffer);
             Enqueue(target, buffer);
             return XmsgStatus.Completed;
         }
 
+        /// <summary>
+        /// Works out the type an arriving message is announced with.
+        /// </summary>
+        /// <param name="flags">
+        /// The send options the sender used.
+        /// </param>
+        /// <returns>
+        /// The message type the receiver reads back from XFRCV.
+        /// </returns>
+        /// <remarks>
+        /// <para>
+        /// Shared by both delivery paths so they cannot drift apart - one path is a local send and
+        /// the other is a datagram arriving from the node layer, but the receiver is not supposed
+        /// to be able to tell those apart, and it could if only one of them named a routed message.
+        /// </para>
+        /// <para>
+        /// <b>Order matters.</b> Forward is tested first because XFHIP and XFRRO are the SAME BIT,
+        /// and a letter forwarded with remote-route set would otherwise read as high priority.
+        /// </para>
+        /// </remarks>
+        private static XmsgMessageType ChooseType(XmsgSendFlags flags)
+        {
+            if ((flags & XmsgSendFlags.Forward) != 0)
+            {
+                return XmsgMessageType.XMROU;
+            }
+
+            // Bit 13 is HighPriority only while Route is clear - the manual's "acts as" rule.
+            if ((flags & XmsgSendFlags.HighPriority) != 0 && (flags & XmsgSendFlags.Route) == 0)
+            {
+                return XmsgMessageType.XMTHI;
+            }
+
+            return XmsgMessageType.XMTNO;
+        }
+
         private XmsgStatus Deliver(Buffer buffer, XmsgMagicNumber destination, Port source, XmsgSendFlags flags)
         {
             buffer.Sender = (flags & XmsgSendFlags.Forward) != 0 ? buffer.Sender : source.Magic;
             buffer.Secure = (flags & XmsgSendFlags.Secure) != 0;
-            buffer.Type = (flags & XmsgSendFlags.HighPriority) != 0 && (flags & XmsgSendFlags.Route) == 0
-                ? XmsgMessageType.XMTHI
-                : XmsgMessageType.XMTNO;
+            buffer.Type = ChooseType(flags);
 
             // Sending loses the buffer's currency either way (section 1.2.4).
             ForgetCurrency(buffer.Id);

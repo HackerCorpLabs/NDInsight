@@ -110,7 +110,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
 
         /// <summary>
         /// Optional diagnostics sink. Used for envelope anomalies (for example a received frame whose
-        /// implied seed disagrees with the established link seed — an out-of-model frame worth capturing).
+        /// implied seed disagrees with the established link seed - an out-of-model frame worth capturing).
         /// </summary>
         public XmsgLogHandler? Log { get; set; }
 
@@ -323,12 +323,115 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
         }
 
         /// <summary>
+        /// Gets or sets the store that remembers learned link seeds. Optional; without one the
+        /// node behaves exactly as before and can only address a peer that has spoken to it.
+        /// </summary>
+        public ILinkSeedStore? SeedStore { get; set; }
+
+        /// <summary>
+        /// Opens a link to a node we have met before, using the seed remembered from that meeting.
+        /// </summary>
+        /// <param name="remoteNode">
+        /// The node to open a link to.
+        /// </param>
+        /// <returns>
+        /// <see langword="true"/> when a link now exists - either it already did, or a remembered
+        /// seed was found and used. <see langword="false"/> when this node has never been heard
+        /// from, in which case it still cannot be addressed.
+        /// </returns>
+        /// <remarks>
+        /// <para><b>What this fixes</b></para>
+        /// <para>
+        /// The seed is learned from an inbound datagram and never derived, so a fresh process could
+        /// not originate to a peer that had not spoken since it started. Fine for a server;
+        /// useless for a daemon. MEASURED 2026-08-11: the folder-watch sync sat with a file queued
+        /// reporting "the XMSG layer cannot address node 100 yet" until somebody typed a command on
+        /// the far machine.
+        /// </para>
+        /// <para><b>What it does NOT do</b></para>
+        /// <para>
+        /// It never invents a seed. A node we have genuinely never heard from returns false and
+        /// stays unreachable, because guessing the value would put a Counter on the wire that the
+        /// peer cannot make sense of. This only stops us forgetting one we were told.
+        /// </para>
+        /// <para>
+        /// The outgoing sequence still comes from the sequence store, exactly as it does when an
+        /// inbound frame creates the link - the two stores answer different questions and neither
+        /// is derived from the other.
+        /// </para>
+        /// </remarks>
+        public bool OpenLinkFromRememberedSeed(ushort remoteNode)
+        {
+            if (_links.ContainsKey(remoteNode))
+            {
+                return true;
+            }
+
+            byte seed;
+            if (SeedStore == null || !SeedStore.TryLoadSeed(remoteNode, out seed))
+            {
+                return false;
+            }
+
+            ushort startingFlags1 = _store.LoadNextFlags1(remoteNode);
+            _links[remoteNode] = new XmsgLink(remoteNode, seed, startingFlags1);
+
+            Log?.Invoke(
+                $"[seq] node {remoteNode}: link opened from the REMEMBERED seed 0x{seed:X2}, "
+                + $"starting Flags1 0x{startingFlags1:X4} from the store (nothing was received first)");
+
+            return true;
+        }
+
+        /// <summary>
+        /// Zeroes our outgoing sequence for a node while KEEPING the learned link.
+        /// </summary>
+        /// <param name="remoteNode">
+        /// The node whose counter is being zeroed.
+        /// </param>
+        /// <remarks>
+        /// <para><b>Why this is not <see cref="ResetSequence"/></b></para>
+        /// <para>
+        /// <see cref="ResetSequence"/> answers the PEER telling us it restarted, and it drops the
+        /// in-memory link on purpose: a machine that has restarted may come back with different
+        /// link state, so keeping ours would be keeping something stale. That is safe there because
+        /// the peer is about to address us anyway, which rebuilds the link at once.
+        /// </para>
+        /// <para>
+        /// This one answers OUR OWN announce, where nothing about the peer's identity has changed -
+        /// only its expectation of our numbering. Dropping the link there strands us: we can only
+        /// LEARN a link from an inbound datagram, so after zeroing we would sit unable to address a
+        /// peer we were talking to a moment earlier. MEASURED 2026-08-11: the sync daemon did
+        /// exactly that, reporting "the XMSG layer cannot address node 100 yet" once every five
+        /// seconds with a file queued and a healthy link underneath it.
+        /// </para>
+        /// </remarks>
+        public void ResetSequenceKeepingLink(ushort remoteNode)
+        {
+            ushort discarded = _store.LoadNextFlags1(remoteNode);
+            _store.SaveNextFlags1(remoteNode, 0x0000);
+
+            // The live link carries its own next value, so zeroing only the store would be undone
+            // by the very next frame it stamps.
+            XmsgLink? link;
+            if (_links.TryGetValue(remoteNode, out link))
+            {
+                link.NextFlags1 = 0x0000;
+            }
+
+            _pendingAccepts.Remove(remoteNode);
+
+            Log?.Invoke(
+                $"[seq] node {remoteNode}: RESET to 0x0000 (was 0x{discarded:X4}); link KEPT");
+        }
+
+        /// <summary>
         /// Recovers from a XENSE (network sequencing error, code <c>0xFFDE</c>) reject of our
         /// connect-accept: our Flags 1 was AHEAD of the peer's expected-from-us (typically the peer's
         /// XMSG restarted while our persisted sequence had climbed). Rebuilds the accept one Flags 1
         /// LOWER and corrects the link + persisted sequence; one step per XENSE converges on the
         /// peer's exact expected value, at which point it answers with the session-setup instead of
-        /// another XENSE — the same learn-from-the-peer recovery the legacy responder used, with no
+        /// another XENSE - the same learn-from-the-peer recovery the legacy responder used, with no
         /// restart or state-file surgery.
         /// </summary>
         /// <param name="remoteNode">
@@ -369,7 +472,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
             // Correct the stored value too, so a later restart uses the recovered base (ACK-driven
             // persistence then advances it as usual).
             _store.SaveNextFlags1(remoteNode, f1);
-            Log?.Invoke($"[host] XENSE from node {remoteNode}: accept was ahead — resending at Flags1 0x{f1:X4}");
+            Log?.Invoke($"[host] XENSE from node {remoteNode}: accept was ahead - resending at Flags1 0x{f1:X4}");
 
             return AssembleDatagram(link, remoteNode, pending.ClientSystem, pending.ClientPort,
                 pending.SourcePort, pending.ControlService, pending.FrameFlags, pending.Role,
@@ -576,7 +679,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
 
             // Retain the accept so a XENSE reject (our sequence AHEAD of the peer's expected-from-us,
             // e.g. after the peer's XMSG restarted while our persisted sequence had climbed) can be
-            // recovered by ResyncAcceptDown — the same step-down-one-per-XENSE convergence the legacy
+            // recovered by ResyncAcceptDown - the same step-down-one-per-XENSE convergence the legacy
             // responder used. Cleared when the peer ACKs the accept (ConfirmDelivered).
             //
             // THE SERVICE BYTE ALONE IS NOT ENOUGH TO IDENTIFY THE ACCEPT. This used to read
@@ -1017,6 +1120,19 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
                 ushort allocated = link.NextFlags1;
                 link.NextFlags1 = (ushort)(allocated + 1);
 
+                // PERSIST ON SEND, which is what the machine does. The kernel carve settles it:
+                // the send path at ram:b3d6 reads XNSEQ, stamps it, increments and stores it back,
+                // with no acknowledgement involved anywhere - XNSEQ has exactly one writer in
+                // 23552 words. Our store used to advance only when the peer's ACK reached us, so
+                // any run that lost acknowledgements left it BELOW what the peer had counted, and
+                // being below is dropped in silence. Measured 2026-08-11: a run ended with the
+                // store at 0x0007, the next opened at 0x0007, and D100 acknowledged nothing.
+                //
+                // The file write is throttled and biased ahead - see
+                // FileResponderSequenceStore.LookaheadFrames - so this costs no disk write per
+                // frame.
+                _store.SaveNextFlags1(link.RemoteNode, link.NextFlags1);
+
                 // Instrumented deliberately. Two attempted fixes to this area were guesses at
                 // which of two explanations was right - "our number is behind the peer's
                 // expectation" against "the peer dropped the frame for another reason" - and the
@@ -1061,7 +1177,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
         }
 
         /// <summary>
-        /// Assembles a datagram at an EXPLICIT Flags 1 (no sequence advance) — the shared body of
+        /// Assembles a datagram at an EXPLICIT Flags 1 (no sequence advance) - the shared body of
         /// <see cref="BuildDatagram"/> and <see cref="ResyncAcceptDown"/>.
         /// </summary>
         /// <param name="link">
@@ -1161,11 +1277,11 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
         /// <summary>
         /// Ensures a link exists for the incoming frame's source node, learning the seed and loading the
         /// outgoing sequence from the store on first contact. The seed is learned ONCE and never
-        /// overwritten: it is a per-link CONSTANT (VERIFIED — 0x14 for 100 to/from 102 across every session,
+        /// overwritten: it is a per-link CONSTANT (VERIFIED - 0x14 for 100 to/from 102 across every session,
         /// reconnect and reboot in the corpus). The earlier per-frame refresh let a single out-of-model
         /// received frame poison the seed for the NEXT frame we originate (measured live 2026-07-07: a
         /// burst chunk went out with Counter for seed 0x16 instead of 0x14, violating the envelope
-        /// invariant — the same bug class as the historical per-connect ACK re-seed 24B crash). A
+        /// invariant - the same bug class as the historical per-connect ACK re-seed 24B crash). A
         /// mismatch now only logs the offending frame, which is exactly the diagnostic needed to find
         /// out-of-model traffic.
         /// </summary>
@@ -1190,12 +1306,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
 
             if (_links.TryGetValue(node, out XmsgLink? link))
             {
-                // NEVER adopt a differing seed — report it instead. The frame that disagrees with the
+                // NEVER adopt a differing seed - report it instead. The frame that disagrees with the
                 // established link seed is out-of-model (or corrupt) and is the thing to investigate.
                 if (link.Seed != seed)
                 {
                     Log?.Invoke(
-                        $"[host] WARNING: node {node} frame F1=0x{incoming.Header.Flags1:X4} ctr=0x{incoming.Header.Counter:X2} F2=0x{incoming.Header.Flags2:X4} implies seed 0x{seed:X2} but link seed is 0x{link.Seed:X2} — keeping 0x{link.Seed:X2} (out-of-model frame)");
+                        $"[host] WARNING: node {node} frame F1=0x{incoming.Header.Flags1:X4} ctr=0x{incoming.Header.Counter:X2} F2=0x{incoming.Header.Flags2:X4} implies seed 0x{seed:X2} but link seed is 0x{link.Seed:X2} - keeping 0x{link.Seed:X2} (out-of-model frame)");
                 }
 
                 return;
@@ -1211,6 +1327,11 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
                 + $"(the frame that created it carried 0x{incoming.Header.Flags1:X4})");
 
             _links[node] = new XmsgLink(node, seed, startingFlags1);
+
+            // Remember it. The seed is a per-link constant that survives the peer rebooting, so
+            // storing it lets a later run address this machine without waiting to be spoken to -
+            // see ILinkSeedStore for why that is sound and what it deliberately does not claim.
+            SeedStore?.SaveSeed(node, seed);
         }
 
         /// <summary>

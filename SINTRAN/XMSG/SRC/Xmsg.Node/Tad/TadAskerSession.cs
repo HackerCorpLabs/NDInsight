@@ -9,8 +9,8 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
 {
     /// <summary>
     /// The reactive connect-to CLIENT (asker) driver: sends the connect letter, then reacts to each
-    /// host frame per the ND TAD wire spec (TAD-Message-Formats.md section 22.13) — acking every host
-    /// data frame and driving the handshake (session-setup → terminal-setup → RECO → banner → login).
+    /// host frame per the ND TAD wire spec (TAD-Message-Formats.md section 22.13) - acking every host
+    /// data frame and driving the handshake (session-setup -> terminal-setup -> RECO -> banner -> login).
     /// Renders the host's BDAT terminal text; the caller supplies typed lines.
     /// </summary>
     /// <remarks>
@@ -50,7 +50,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// The client's session-source port.
         /// </param>
         /// <param name="seed">
-        /// The shared link seed (100↔102 = 0x14, 100↔103 = 0x13).
+        /// The shared link seed (100-102 = 0x14, 100-103 = 0x13).
         /// </param>
         /// <param name="targetName">
         /// The remote name to connect to (for example "D100").
@@ -161,7 +161,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         }
 
         /// <summary>
-        /// Drives the terminal phase: RESE→RECO, the priming DUMM→terminal-setup, and CERS after a
+        /// Drives the terminal phase: RESE->RECO, the priming DUMM->terminal-setup, and CERS after a
         /// host burst that grants input (ends with RFI).
         /// </summary>
         /// <param name="frame">

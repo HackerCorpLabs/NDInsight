@@ -4,7 +4,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
 {
     /// <summary>
     /// Send-side builder for a TAD message chain: the encode inverse of
-    /// <see cref="SubProtocol.TadChain"/>. Emits <c>[opcode][count][data…]</c> messages
+    /// <see cref="SubProtocol.TadChain"/>. Emits <c>[opcode][count][data...]</c> messages
     /// back to back.
     /// </summary>
     /// <remarks>

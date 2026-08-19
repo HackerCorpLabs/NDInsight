@@ -62,7 +62,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         }
 
         /// <summary>
-        /// Appends an RFI (ready-for-input) flow-control credit — the message that lets the peer send
+        /// Appends an RFI (ready-for-input) flow-control credit - the message that lets the peer send
         /// the next input line. Every host frame that expects input MUST end with one.
         /// </summary>
         /// <returns>
@@ -290,6 +290,95 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         }
 
         /// <summary>
+        /// Appends a REJE (reject) message carrying the type byte of the message being rejected.
+        /// </summary>
+        /// <remarks>
+        /// Three bytes exactly - <c>FE 01 type</c> - matching <c>REJECT</c> in
+        /// <c>SINTRAN/NPL-SOURCE-2/NPL-CLEAN/20-COS-TAD-POF-CODE.NPL</c>, which stores <c>7REJE</c>,
+        /// then a count of 1, then <c>CURMES AND 0xFF</c>. When the rejected message was terminal data
+        /// the ND driver appends an <see cref="Rfi"/> as well (its <c>SNDREJ</c> entry), so the caller
+        /// decides whether to chain one.
+        /// </remarks>
+        /// <param name="rejectedOpcode">
+        /// The opcode byte of the message being rejected.
+        /// </param>
+        /// <returns>
+        /// This builder, for chaining.
+        /// </returns>
+        public TadMessageBuilder Reje(byte rejectedOpcode)
+        {
+            Span<byte> data = stackalloc byte[1];
+            data[0] = rejectedOpcode;
+            return Append(TadOp.Reje, data);
+        }
+
+        /// <summary>
+        /// Appends an ISRQ (remote ISIZE request) message. Empty I-field.
+        /// </summary>
+        /// <remarks>
+        /// <c>BISIZ</c>/<c>OISIZ</c> in <c>06-COS-TAD-RES-CODE.NPL</c> build it with a requested
+        /// I-field size of zero, so the whole message on the wire is <c>22 00</c>.
+        /// </remarks>
+        /// <returns>
+        /// This builder, for chaining.
+        /// </returns>
+        public TadMessageBuilder Isrq()
+        {
+            return Append(TadOp.Isrq, ReadOnlySpan<byte>.Empty);
+        }
+
+        /// <summary>
+        /// Appends an ISRS (remote ISIZE response) message carrying a 16-bit character count
+        /// (big-endian).
+        /// </summary>
+        /// <remarks>
+        /// The ND driver reads the count as <c>byte6 * 256 + byte7</c> of the message head, so the two
+        /// data bytes are high byte first.
+        /// </remarks>
+        /// <param name="characterCount">
+        /// The number of characters waiting in the input buffer.
+        /// </param>
+        /// <returns>
+        /// This builder, for chaining.
+        /// </returns>
+        public TadMessageBuilder Isrs(ushort characterCount)
+        {
+            Span<byte> data = stackalloc byte[2];
+            data[0] = (byte)(characterCount >> 8);
+            data[1] = (byte)characterCount;
+            return Append(TadOp.Isrs, data);
+        }
+
+        /// <summary>
+        /// Appends an ESRS (escape response) message - the answer to an <see cref="TadOp.Esca"/> when the
+        /// escape function is ENABLED.
+        /// </summary>
+        /// <returns>
+        /// This builder, for chaining.
+        /// </returns>
+        public TadMessageBuilder Esrs()
+        {
+            return Append(TadOp.Esrs, ReadOnlySpan<byte>.Empty);
+        }
+
+        /// <summary>
+        /// Appends an EDRS (escape response, escape disabled) message - the answer to an
+        /// <see cref="TadOp.Esca"/> or <see cref="TadOp.Rloc"/> when the escape function is DISABLED.
+        /// </summary>
+        /// <remarks>
+        /// <c>ESCDIS</c> in <c>20-COS-TAD-POF-CODE.NPL</c> answers with the prebuilt <c>EDRSP</c> head
+        /// instead of <c>ERESP</c> whenever the datafield's 5IESC (inhibit-escape) flag is set, and
+        /// runs no escape handling at all in that case.
+        /// </remarks>
+        /// <returns>
+        /// This builder, for chaining.
+        /// </returns>
+        public TadMessageBuilder Edrs()
+        {
+            return Append(TadOp.Edrs, ReadOnlySpan<byte>.Empty);
+        }
+
+        /// <summary>
         /// Appends a message with an arbitrary opcode and data (escape hatch for opcodes without a
         /// dedicated typed method yet).
         /// </summary>
@@ -348,10 +437,28 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
                 _buffer.Add(0x00);
             }
 
-            // Intrinsic 0x00 prefix (spec 2.1 / 22.3): ECKM (0x03), BMMX (0x04) and the capture-only
-            // port-assign opcodes 0x07 / 0x0B are ALWAYS preceded by an extra 0x00 on the wire (a
-            // 16-bit opcode or a flag byte — UNKNOWN which). Modelling it as an intrinsic prefix, plus
-            // the even-offset alignment above, reproduces the captured MOTD byte-for-byte.
+            // ODD-START ALIGNMENT PAD - the mechanism behind what we used to call the "intrinsic 0x00
+            // prefix".
+            //
+            // The bytes below are unchanged; what changed on 2026-08-18 is that we now know WHY they
+            // are there, from the version J NPL source. The old comment said the extra 0x00 was
+            // "a 16-bit opcode or a flag byte - UNKNOWN which". It is NEITHER.
+            //
+            // The ND builder has three header routines (SINTRAN/NPL-SOURCE-2/NPL-CLEAN/
+            // 20-COS-TAD-POF-CODE.NPL): CREMES and CRHEEV lay the 2-byte header down on an EVEN byte,
+            // CRHEOD lays it down on an ODD byte, and CRHEOD does that by writing one 0x00 filler first
+            // when it finds itself on an even boundary - its own comment reads
+            // "EVEN START, CREATE PAD BYTE".
+            //
+            // Only messages whose payload is written with WHOLE-WORD stores use CRHEOD: BDECHO (ECKM,
+            // the 8-word echo table) and BDBREA (BMMX, the BRKMAX word and the 8-word break table).
+            // Pushing the header one byte off makes the word-sized payload that follows it land on a
+            // word boundary. The port-assign opcodes 0x07 / 0x0B carry the same extra 0x00 and their
+            // payloads are words too (system number, port number) - same shape, but their builder lives
+            // in TADADM, which is NOT in this source, so that one stays STRONG rather than PROVEN.
+            //
+            // Byte-stream messages (BDAT and friends) use CREMES and get no such pad. Together with the
+            // even-offset alignment above this reproduces the captured MOTD byte-for-byte.
             if (opcode == TadOp.Eckm || opcode == TadOp.Bmmx || opcode == (TadOp)0x07 || opcode == (TadOp)0x0B)
             {
                 _buffer.Add(0x00);

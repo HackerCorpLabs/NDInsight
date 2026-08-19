@@ -4,7 +4,7 @@ namespace NDInsight.Sintran.Xmsg.Packet
 {
     /// <summary>
     /// Read-only decoded view of an incoming XMSG packet: the SINTRAN header fields, the optional
-    /// XMSG sub-header fields, and the trailing payload span — plus the derived envelope values the
+    /// XMSG sub-header fields, and the trailing payload span - plus the derived envelope values the
     /// universal model (XMSG-PROTOCOL.md section 18.5) is built on.
     /// </summary>
     /// <remarks>
@@ -69,7 +69,7 @@ namespace NDInsight.Sintran.Xmsg.Packet
             {
                 byte subtype = (byte)_frame.Header.Subtype;
                 // Only the five modelled subtypes classify; anything else stays Unknown so the
-                // layer can log-and-ignore rather than mis-dispatch. (No LINQ — explicit switch.)
+                // layer can log-and-ignore rather than mis-dispatch. (No LINQ - explicit switch.)
                 switch (subtype)
                 {
                     case (byte)XmsgPacketType.Ack:
@@ -140,7 +140,7 @@ namespace NDInsight.Sintran.Xmsg.Packet
 
         /// <summary>
         /// Gets the XMSG sub-header, or <c>null</c> for a short frame. Prefer the typed accessors
-        /// (<see cref="Counter"/>, <see cref="ControlService"/>, …) which are null-safe.
+        /// (<see cref="Counter"/>, <see cref="ControlService"/>, ...) which are null-safe.
         /// </summary>
         public XmsgSubHeader? SubHeader
         {
@@ -282,7 +282,7 @@ namespace NDInsight.Sintran.Xmsg.Packet
         }
 
         /// <summary>
-        /// Gets the derived envelope base <c>Flags1 + Counter</c> — the first half of the universal
+        /// Gets the derived envelope base <c>Flags1 + Counter</c> - the first half of the universal
         /// envelope identity. For a short frame (no sub-header) this equals Flags1.
         /// </summary>
         public ushort Base

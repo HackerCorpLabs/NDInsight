@@ -3,8 +3,8 @@ using System;
 namespace NDInsight.Sintran.Xmsg.Packet
 {
     /// <summary>
-    /// The complete XMSG envelope arithmetic. Per link (node pair) there is one constant byte — the
-    /// <b>seed</b> — and per direction one variable — <b>Flags 1</b> (the datagram sequence, +1 per
+    /// The complete XMSG envelope arithmetic. Per link (node pair) there is one constant byte - the
+    /// <b>seed</b> - and per direction one variable - <b>Flags 1</b> (the datagram sequence, +1 per
     /// data frame, starting at 0x0000). Everything else (the sub-header Counter and the sub-protocol
     /// Channel / Protocol ID) is derived arithmetically.
     /// </summary>
@@ -31,7 +31,7 @@ namespace NDInsight.Sintran.Xmsg.Packet
     /// traffic they were fitted to and NOT in general. Prefer the checksum for anything new.
     /// </para>
     /// <para><b>HISTORICAL, from here down.</b></para>
-    /// <para><b>The rule (VERIFIED against all 601 captured Data frames + 602 ACKs, zero exceptions —
+    /// <para><b>The rule (VERIFIED against all 601 captured Data frames + 602 ACKs, zero exceptions -
     /// see <c>SINTRAN/XMSG/DOC/XMSG-CHANNEL-SEQUENCE-ANALYSIS-2026-07-03.md</c>):</b></para>
     /// <code>
     /// baseLow = (seed - (Flags2 AND 0xFF)) AND 0xFF        // Flags2 == XMCSM >> 16, always
@@ -62,7 +62,7 @@ namespace NDInsight.Sintran.Xmsg.Packet
     /// or capture enough of it to derive the rule properly. See
     /// <c>ChannelOffsetDiagnosticTests</c> and <c>EnvelopeConformanceTests</c>.</para>
     /// <para><b>Seed:</b> learn it from any received Data frame via <see cref="LearnSeed"/> rather than
-    /// hardcoding. Observed seeds: 100↔102 = 0x14, 100↔103 = 0x13, 102↔103 = 0x11 (direct) / 0x12
+    /// hardcoding. Observed seeds: 100-102 = 0x14, 100-103 = 0x13, 102-103 = 0x11 (direct) / 0x12
     /// (relayed). What the seed byte encodes is UNKNOWN; learn-from-peer sidesteps it.</para>
     /// </remarks>
     public static class XmsgEnvelope
@@ -360,7 +360,7 @@ namespace NDInsight.Sintran.Xmsg.Packet
 
         /// <summary>
         /// Computes the epoch (cumulative counter-wrap count) for a frame:
-        /// <c>(Flags1 - baseLow + 0xFF) >> 8</c>. Zero while Flags1 ≤ baseLow (a fresh direction).
+        /// <c>(Flags1 - baseLow + 0xFF) >> 8</c>. Zero while Flags1 is at or below baseLow (a fresh direction).
         /// </summary>
         /// <param name="seed">
         /// The link seed.
@@ -372,7 +372,7 @@ namespace NDInsight.Sintran.Xmsg.Packet
         /// The frame's Flags 2.
         /// </param>
         /// <returns>
-        /// The epoch (0, 1, 2, …).
+        /// The epoch (0, 1, 2, ...).
         /// </returns>
         public static int ComputeEpoch(byte seed, ushort flags1, ushort flags2)
         {
@@ -408,7 +408,7 @@ namespace NDInsight.Sintran.Xmsg.Packet
         }
 
         /// <summary>
-        /// Computes the envelope base <c>Flags1 + Counter</c> (16-bit, wrapping) — the legacy view,
+        /// Computes the envelope base <c>Flags1 + Counter</c> (16-bit, wrapping) - the legacy view,
         /// equal to <c>baseLow + 0x100*epoch</c>.
         /// </summary>
         /// <param name="flags1">

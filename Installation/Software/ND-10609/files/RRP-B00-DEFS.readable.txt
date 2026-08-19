@@ -1,0 +1,261 @@
+%=============================================================================%
+%                                                                             %
+%                                R R                                          %
+%                                                                             %
+%                  L I B R A R Y     P A R A M E T E R S,                     %
+%                                                                             %
+%   T Y P E    D E F I N I T I O N S    F O R    R R     A N D   U S E R,     %
+%                                                                             %
+%                    E V E N T    C O D E S    A N D                          %
+%                                                                             %
+%             R E T U R N E D    S T A T U S    V A L U E S                   %
+%                                                                             %
+%                                                                             %
+%                                                                             %
+%   INITIAL VERSION:  03.04.83    RGJ                                         %
+%                                                                             %
+%=============================================================================%
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%                   USER-DEFINED  RR parameters                               %
+%                                                                             %
+%      NOTE: these two parameters determine the size of the DYNAMIC           %
+%            storage which must be provided to the RR  library                %
+%            (SEE BELOW)                                                      %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+
+CONSTANT RRMXclientConnections =  5    % ARBITRARY = maximum client connections
+CONSTANT RRMXserverConnections =  5    % ARBITRARY = maximum server connections
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%        CONSTANTs used in provision of working storage for  RR-LIB           %
+%                                                                             %
+%        The user must provide a fixed-size work area for RR-LIB              %
+%        (via RRPBinit) in the form                                           %
+%              INTEGER ARRAY: STATICWORKSPACE(0:RRSZstatic-1)                 %
+%        where                                                                %
+%              RRSZstatic is given below                                      %
+%                                                                             %
+%        IN ADDITION, the user must provide a work area whose size            %
+%        depends on the maximum number of simutaneous connections             %
+%        (via RRPBinit) in the form                                           %
+%              INTEGER ARRAY: DYNAMICWORKSPACE(0:RRSZdynamic-1)               %
+%        where                                                                %
+%              RRSZdynamic is calculated below based on the                   %
+%                             user-defined RR parameters (see above)          %
+%                                                                             %
+%      NOTE: it is the user's responsibility to ensure that the array         %
+%            sizes correspond to the declared parameters                      %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+
+CONSTANT RRSZstatic = 14               % REQUIRED SIZE of STATIC AREA
+                                       % must match RR internal type definition
+
+                                       % RR type sizes in WORDs
+CONSTANT RRSZanRRCB = 33               % must match RR internal type definition
+
+                                       % PLANC storage manager overhead is:
+CONSTANT RRSZfixedSM   = 20            % fixed overhead (words)
+CONSTANT RRSZperItemSM =  2            % per item overhead (words)
+
+                                       % REQUIRED SIZE of DYNAMIC AREA
+CONSTANT RRSZdynamic = RRSZfixedSM &
+                       + RRMXclientConnections*(RRSZanRRCB+RRSZperItemSM) &
+                       + RRMXserverConnections*(RRSZanRRCB+RRSZperItemSM)
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%                  FIXED user interface constants                             %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+
+CONSTANT RRMXnameLength = 16           % SET BY XMSG
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%                specification of MODE OF USE of RR-LIB                       %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+
+% the user can be a client, a server or a client AND server
+
+TYPE RRMD = ENUMERATION (RRMDasClient,RRMDasServer,RRMDasBoth)
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%                specification of SERVER PARAMETERS                           %
+%                  eg. maximum XMSG task space                                %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+
+%
+%  if the server wishes to increase the maximum XMSG task space for itself
+%  then it sets <RRSPisDefault> = FALSE and sets up the remaining parameters
+%  in RRSP when it calls RRSPinit
+%  NOTE: changing the allocation requires the current XMSG password (XPASW)
+%        and that the server is a foreground program on ring 2,3 or background
+%        program logged in as user system (see XMSG documentation)
+%
+TYPE RRSP = RECORD
+    BOOLEAN: RRSPisDefault          % TRUE => default parameters are used
+                                    % FALSE => must fill in remainder of record
+    INTEGER: RRSPallocation         % requested value of XMSG task space
+    INTEGER: RRSPpassword           % current XMSG password
+ENDRECORD
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%                             EVENTS                                          %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+
+%
+% definitions to allow references to a specific remote client or server
+%
+$IF SIZE INTEGER POINTER = 4 THEN
+TYPE RRID = INTEGER4
+$ELSE
+TYPE RRID = INTEGER
+$ENDIF
+
+% WILD CARD for specification of any remote client or server
+% is value RRanyRemote
+% WILD CARD for desired EVENT specification 
+% is RRanyEvent
+CONSTANT RRanyRemote =  0
+CONSTANT RRanyEvent  = -1
+%
+% EVENT CODES used to form BIT MASK
+%
+CONSTANT RREVtime =    1               % timeout
+CONSTANT RREVcnin =    2               % connection request has arrived
+CONSTANT RREVcncf =    4               % connection accepted
+CONSTANT RREVrqin =    8               % request arrived
+CONSTANT RREVrsin =   16               % response has arrived
+CONSTANT RREVdcin =   32               % disconnected from remote
+CONSTANT RREVdccf =   64               % user-initiated disconnect is complete
+CONSTANT RREVunkn =  128               % XMSG arrived on port not known to
+                                       % RR-LIB
+CONSTANT RREVothr =  256               % exit caused by other than timeout,
+                                       % an RR-LIB event or unknown port
+                                       % eg. by terminal input
+%
+% STRUCTURE OF AN EVENT
+%
+CONSTANT RRMXevData = 2
+TYPE RREV = RECORD
+       RRID:          RREVremote                 % ID for remote client/server
+       INTEGER:       RREVevent                  % BIT MASK from event codes
+                                                 % meaning of associated data
+       INTEGER ARRAY: RREVdata(0:RRMXevData-1)   % depends on RREVevent
+ENDRECORD
+
+%
+% structure for specification of TIME-OUTs on WAIT
+% 
+TYPE RRTM = RECORD
+       INTEGER:  RRTMlength            % values are SINTRAN values as used
+       INTEGER:  RRTMunits             % in HOLD and TMOUT
+ENDRECORD
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%             RR STATUS VALUES returned to user from calls                    %
+%                                                                             %
+%   conform to STANDARD VALUES                                                %
+%   RR SSI NUMBERS ARE 416B AND 417B                                          %
+%   416B  =  17280   currently used for errors related to RR                  %
+%                    (AND FOR DISCONNECT CODES - see below)                   %
+%   417B  =  17344   currently used for errors related to underlying          %
+%                    communication system                                     %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+
+CONSTANT OK        = 0       % standard value
+
+                             % NOTE: codes 17281-17295 reserved for
+                             %       DISCONNECT codes (see below)
+
+                             % CODES SPECIFIC to RRPCslct/RRPCcall/RRPCdisc:
+CONSTANT RRERnttm  = 17296   % not terminated (ie. timeout)
+CONSTANT RRERdscn  = 17297   % disconnected (by server or RR-Lib)
+CONSTANT RRERunev  = 17298   % unexpected event while waiting for reply
+                             % (ie. RREVunkn or RREVothr)
+
+                             % CODES IN GENERAL USE:
+CONSTANT RRERntcl  = 17304   % not initialized as client
+CONSTANT RRERntsr  = 17305   % not initialized as server
+CONSTANT RRERntei  = 17306   % not initialized as client or server
+CONSTANT RRERbdid  = 17307   % invalid remote identifier   
+CONSTANT RRERbdst  = 17308   % call not valid in current state
+CONSTANT RRERxsin  = 17309   % excess information in request or response
+CONSTANT RRERbdln  = 17310   % parameter had invalid length
+CONSTANT RRERbdnm  = 17311   % invalid name specified
+CONSTANT RRERbdbf  = 17312   % bad buffer specification
+CONSTANT RRERbdpm  = 17313   % other parameter error
+CONSTANT RRERxscn  = 17314   % limit on connections reached
+CONSTANT RRERtslm  = 17315   % task buffer space limit has been reached
+CONSTANT RRERmsfl  = 17316   % communication subsystem has no more buffer space
+CONSTANT RRERprrf  = 17317   % request for privilege refused
+CONSTANT RRERntpr  = 17318   % function requires privilege
+CONSTANT RRERdcpn  = 17319   % disconnect pending           
+CONSTANT RRERincp  = 17320   % incomplete received data
+
+CONSTANT RRERfatal = 17343   % standard FATAL ERROR value - BUG!!
+                             % - contact ND
+%
+% subsystem errors
+% NB! if RRERxnru or RRERxcra error codes are received, then the current
+% RR context has been lost: all connections should be considered closed
+% and the user is in possession of any outstanding user buffers
+% (with indeterminate contents).
+% The only permissible call after these errors is RRPINIT, which will
+% return the same code until XMSG is running again, at which point
+% new connections may be opened etc.
+%
+
+CONSTANT RRERxnru  = 17344   % (=XENRU) XMSG not running
+CONSTANT RRERxcra  = 17345   % (=XECRA) XMSG crash
+CONSTANT RRERxnxt  = 17346   % (=XENOT) XMSG out of XT-blocks
+CONSTANT RRERxnpt  = 17347   % (=XENOP) XMSG out of ports
+CONSTANT RRERxnsp  = 17348   % (=XRNSP) XMSG has no space for name
+                             
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%                   connection DISCONNECT codes                               %
+%                                                                             %
+%   NOTE: these are taken from the standard error space to facilitate         %
+%         fetching the corresponding text                                     %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+
+
+CONSTANT RRDCuser  = 17281   % normal disconnect by user
+
+CONSTANT RRDCrmcg  = 17282   % remote congestion
+                             % all connections at the server are busy
+                             % (= XRBUS = all conns at this port busy)
+CONSTANT RRDCunsr  = 17283   % unknown server
+                             % (= XRUNN = no open port with name)
+CONSTANT RRDCunsy  = 17284   % unknown system
+                             % (= XRUKS = unknown system)
+CONSTANT RRDCngfl  = 17285   % connection negotiation failed
+                             % (incompatible RRs)
+CONSTANT RRDCcref  = 17286   % connection request refused on this
+                             % network connection
+                             % (= XRNSE = not a connect port)
+CONSTANT RRDCnoac =  17287   % no access to remote system
+                             % ( = XRNRO OR XRNCO)
+CONSTANT RRDCrmdd =  17288   % remote end has terminated
+                             % ( = XEIMA)
+CONSTANT RRDCxsin  = 17289   % remote end's buffer was too small for the data 
+                             % sent
+CONSTANT RRDCprer  = 17290   % protocol error
+
+$EOF
+%=============================================================================%
+

@@ -48,6 +48,19 @@ namespace NDInsight.Sintran.Xmsg.Sync
             /// When size and last-write were last seen to CHANGE.
             /// </summary>
             public long LastChangedAtTicks;
+
+            /// <summary>
+            /// True once this file has been reported settled and has not changed since.
+            /// </summary>
+            /// <remarks>
+            /// Entries used to be REMOVED when they settled, which read well until a scanning
+            /// caller observed the same untouched file a moment later: it came back as a brand new
+            /// entry with a fresh clock, so it looked like a file being written all over again.
+            /// MEASURED 2026-08-11 - the sync daemon reported "1 file(s) still being written" every
+            /// few seconds, for ever, about a file that had long since settled and been carried.
+            /// Keeping the entry and marking it is what makes "settled" stick.
+            /// </remarks>
+            public bool Settled;
         }
 
         private readonly long _quietPeriodTicks;
@@ -76,11 +89,29 @@ namespace NDInsight.Sintran.Xmsg.Sync
         }
 
         /// <summary>
-        /// Gets how many files are currently waiting to settle.
+        /// Gets how many files are currently waiting to settle - being written, and not yet quiet.
         /// </summary>
+        /// <remarks>
+        /// Counts only the UNSETTLED ones. A settled entry is kept rather than removed, so that
+        /// observing the same untouched file again does not present it as freshly written, but
+        /// keeping it must not make this number lie: "pending" means still moving.
+        /// </remarks>
         public int PendingCount
         {
-            get { return _pending.Count; }
+            get
+            {
+                int waiting = 0;
+                Dictionary<string, Pending>.ValueCollection.Enumerator e = _pending.Values.GetEnumerator();
+                while (e.MoveNext())
+                {
+                    if (!e.Current.Settled)
+                    {
+                        waiting++;
+                    }
+                }
+
+                return waiting;
+            }
         }
 
         /// <summary>
@@ -127,11 +158,39 @@ namespace NDInsight.Sintran.Xmsg.Sync
 
             if (entry.Size != size || entry.LastWriteTicks != lastWriteTicks)
             {
-                // Still being written - the quiet period starts again from here.
+                // Really changed: the quiet period starts again from here, and a file that had
+                // settled is in play once more.
                 entry.Size = size;
                 entry.LastWriteTicks = lastWriteTicks;
                 entry.LastChangedAtTicks = nowTicks;
+                entry.Settled = false;
             }
+        }
+
+        /// <summary>
+        /// Whether a file is still being written - seen changing, and not yet settled.
+        /// </summary>
+        /// <param name="path">
+        /// The file to ask about.
+        /// </param>
+        /// <returns>
+        /// <see langword="true"/> only while the file is genuinely unsettled. A file never seen,
+        /// or one that has already settled, both answer <see langword="false"/>.
+        /// </returns>
+        /// <remarks>
+        /// The distinction a caller needs and could not previously make. "Not in the list this
+        /// pass returned" covers both "still being written" and "settled a while ago", and treating
+        /// the second as the first is what produced a permanent, false "still being written".
+        /// </remarks>
+        public bool IsStillBeingWritten(string path)
+        {
+            if (path == null)
+            {
+                throw new ArgumentNullException(nameof(path));
+            }
+
+            Pending? entry;
+            return _pending.TryGetValue(path, out entry) && !entry.Settled;
         }
 
         /// <summary>
@@ -144,8 +203,10 @@ namespace NDInsight.Sintran.Xmsg.Sync
         /// The settled paths. Empty when nothing is ready. Never null.
         /// </returns>
         /// <remarks>
-        /// Settled files are REMOVED, so each one is returned once per burst of writing. A file
-        /// edited again afterwards is observed afresh and settles again.
+        /// Each file is returned ONCE per burst of writing: a settled entry is kept and marked
+        /// rather than removed, so observing the same untouched file again does not present it as
+        /// freshly written. A file that really is edited afterwards clears the mark and settles
+        /// again.
         /// </remarks>
         public IReadOnlyList<string> TakeSettled(long nowTicks)
         {
@@ -155,7 +216,7 @@ namespace NDInsight.Sintran.Xmsg.Sync
             // enumerated.
             foreach (KeyValuePair<string, Pending> pair in _pending)
             {
-                if (nowTicks - pair.Value.LastChangedAtTicks >= _quietPeriodTicks)
+                if (!pair.Value.Settled && nowTicks - pair.Value.LastChangedAtTicks >= _quietPeriodTicks)
                 {
                     if (settled == null)
                     {
@@ -173,7 +234,7 @@ namespace NDInsight.Sintran.Xmsg.Sync
 
             for (int i = 0; i < settled.Count; i++)
             {
-                _pending.Remove(settled[i]);
+                _pending[settled[i]].Settled = true;
             }
 
             return settled;

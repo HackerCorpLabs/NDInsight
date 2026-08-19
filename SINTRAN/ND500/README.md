@@ -111,6 +111,9 @@ dives. Their embedded early IOX table has been superseded by the master referenc
 
 ## Related documentation
 
+- [NLL-LINKAGE-LOADER-OVERVIEW.md](NLL-LINKAGE-LOADER-OVERVIEW.md) - what the ND-500
+  Linkage-Loader (NLL) is, what its files are, why every ND-500 build and product install
+  needs it, and where its binaries and carve results live in this repo.
 - `../OS/` - OS-level companions: [IOX-REGISTER-COMPLETE-REFERENCE.md](../OS/IOX-REGISTER-COMPLETE-REFERENCE.md),
   [MPM5-KEY-FINDINGS.md](../OS/MPM5-KEY-FINDINGS.md),
   [06-MULTIPORT-MEMORY-AND-ND500-COMMUNICATION.md](../OS/06-MULTIPORT-MEMORY-AND-ND500-COMMUNICATION.md),

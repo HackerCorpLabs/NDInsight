@@ -1,0 +1,1261 @@
+" @DEV 1
+ @DEV (S-S-J)SINB-X
+ %
+
+ %==============================================================================
+ %      S I N B - X
+ %=============================================================================
+
+ %==============================================================================
+ % 12.1         E R R M O N
+
+ %MONITOR CALL FOR USER ERRORS, APPL. LEVEL
+ %A=ERROR NO.,#DD, T=ADDRESS
+ SUBR ERRMON
+ INTEGER MERRNO=?
+ ERRMON: CALL GET0
+        IF ZAREG><#35 AND ><#90 AND ><#91 AND <#50 OR >#69 THEN #41 FI
+        A=:MERRNO; ZTREG; CALL 9ERRA
+ INTEGER MERRNO
+        GO RET
+ RBUS
+
+
+ %==============================================================================
+ % 4.12       G T R T
+
+ % MONITOR CALL: IRT=GETRT(0)
+ SUBR GTRT
+ GTRT:  CALL GET0; CURPROG=:ZAREG; GO RET
+ RBUS
+
+
+ %==============================================================================
+ % 4.13       R T O N   R T O F F
+
+ % MONITOR CALLS TO ALLOW OR INHIBIT RT-ROGRAMS
+ % CALL RTON(PROG)
+ % CALL RTOFF(PROG)
+ SUBR RTON,RTOFF
+ RTON:  CALL GET1; CALL RTCHECK; X.ACTPRI BZERO 5RTOFF; GO RTO
+ RTOFF: CALL GET1; CALL RTCHECK; X.ACTPRI BONE 5RTOFF
+ RTO:   A=:X.ACTPRI; GO RET
+ RBUS
+
+ %==============================================================================
+ % 4.14       S L R M O
+
+ % MONITOR CALL TO SET REMOTE OR LOCAL MODE ON FILE ACCESS OPERATIONS
+ % PARAMETER: AREG: =0 : LOCAL MODE
+ %                 ><0 : REMOTE MODE
+ SUBR SLRMO
+ SLRMO: CALL GET0; % SET FLAG IF SYSTEM IS CONFIGURED WITH REMOTE FILE ACCESS
+        IF "5FDSZ"><0 THEN ZAREG=:FACFLAG; FI; GO RET  % FACFLAG ON SYS SEGM OR "RT" SEG
+ RBUS
+
+
+ @LIB CXCPU-,
+ SUBR CHDFPAGE
+ CHDFPAGE: EXIT
+ RBUS
+ @ELIB
+ @LIB CXCPU
+
+
+ %==============================================================================
+ %            P I O F L B Y T   -   P I O F S B Y T
+ %
+ SUBR PIOFSBYT,PIOFLBYT
+ PIOFLBYT: *PIOF; LBYT; PION; EXIT
+ PIOFSBYT: *PIOF; SBYT; PION; EXIT
+ RBUS
+
+
+ %==============================================================================
+ % 11.21        G E T B I T
+
+ %SUBROUTINE TO GET BIT FROM BITMAP, ADDRESS IN X, CHAR IN A
+ %RESULT IN A BIT 17
+
+ SUBR GETBIT,SSCGETBIT,VSXGETBIT
+ INTEGER SHAINSTR(0); *SHA
+ @LIB CXCPU
+ @LIB CXCPU-,
+ SSCGETBIT:
+ VSXGETBIT:
+ @ELIB
+ GETBIT: A BZERO 7; AD SHZ -4; X+A; SHAINSTR; D SHZ -14+A
+        X.S0; *EXR SD
+        EXIT
+ RBUS
+
+
+
+
+ @LIB CXCPU
+
+
+
+ %==============================================================================
+ % 16.12      E D I N B T
+
+ % INBT FROM LOG.NO. 0 - EDITED TERMINAL INPUT
+ SUBR EDINBT
+ EDINBT: X:="BFIELD":=:B=:EDSVB:=L=:"EDSVL"; "COMSTRING"=:CSTRING
+        IF RTREF.ACTSEG><OPSEG THEN
+           IF CPNT=0 OR NCOMPL><0 THEN
+              IF X.RSEGM=5RTSG OR A=FRSG1 OR A=FRSG2 THEN 0=:X.RSEGM ELSE A:=0 FI
+              A=:EDIRSEGM; T:=OPSEG; CALL MMEXY; T=:EDOSG
+              A:=NCOMPL; CALL MONEDIT; GO NORM; GO ERETU
+ NORM:        0=:CPNT
+              IF EDIRSEGM><0 THEN A=:RTREF.RSEGM FI; T:=EDOSG; CALL MMEXY
+           FI
+        ELSE
+           IF CPNT=0 THEN CALL EDIT; 0=:CPNT FI
+        FI
+        CALL XCREAD; IF =15 THEN 0=:CPNT FI; CALL SETPARITY
+        MIN "EDSVL"
+ RETU:  X:="EDSVL"=:L:=EDSVB=:B; A=:ZAREG; TAD:=ZTADREG; X:=ZXREG; EXIT
+
+ % ERROR RETURN FROM MODEDIT ERROR CODE IN D-REG.
+ % IF NOWAIT RETURN, CALL ADRESS OF UNSUCCSESSFUL ETCI IN A-REG.
+ % ALL OTHER ERRORS 0 IN A-REG
+ ERETU: A=:NCOMPL
+        IF EDIRSEGM><0 THEN A=:RTREF.RSEGM FI
+        T:=EDOSG; CALL MMEXY; A:=D; GO RETU
+
+ % GET ONE CHAR. FROM COMAND BUFFER
+ XCREAD: X=:D:=CPNT; MIN CPNT; T:=CSTRING; *LBYT
+        D=:X; EXIT
+ RBUS
+
+
+
+ %=============================================================================
+ %      B A C G R O U N D   A L L O C A T I O N   S Y S T E M
+ %
+ INTEGER NONTTMCOUNT:=10      % ALLOWED TIME INACTIVE WHEN NOT LOGGED IN (2 MINUTES)
+ INTEGER TTMWARNING:=144      % TIME INACTIVE BEFORE WARNING IS GIVEN (25 MINUTES)
+ INTEGER ONTTMCOUNT:=170      % ALLOWED TIME INACTIVE BEFORE LOGGED OUT (30 MINUTES)
+ INTEGER MBSPRTAB,ASBPRTAB    % PHYSICAL ADDRESS OF SPRTAB
+ INTEGER AEBPRTAB             % PHYSICAL ADDR OF END OF SBPRTAB
+ INTEGER AEPRVTTABL           % PHYSICAL ADDR OF END OF PRVTTABLE
+ INTEGER MBPRVTTABLE=MBSPRTAB,APRVTTABLE  % PHYSICAL ADDRESS OF PRVTTABLE
+
+ %=============================================================================
+ %      T I M E S L I C E   D E F I N I T I O N S
+ %
+ %INTEGER TSLIDLES:=0
+ INTEGER TSLTUNIT:=14         % BASIC TIME UNITS PER SCHEDULER TIME UNIT
+ INTEGER TSLSYSPRI:=67        % PRIORITY TO OWNER OF SYSTEM RESOURCE WHICH IS WAITED FOR
+ INTEGER TSLLOWLG:=40         % LOWEST LEGAL PRIORITY FOR INCREASING PRIORITY WHEN BREAK
+ INTEGER TSLHTIME:=22         % TIME COUNTER LIMIT FOR HASHING
+ INTEGER TSLHASHM:=17         % MAX HASH DISPLACEMENT MASK
+ INTEGER FPTSLICE:=BAK01      % FIRST PROCESS TO TIMESLICE
+ INTEGER LPTSLICE:=THISS      % LAST PROCESS TO TIMESLICE
+        DOUBLE DFPTSLICE=FPTSLICE
+
+ INTEGER ARRAY TSLBRKELEM:=( 1,10,12,15,21, 1, 1, 1)   % START ELEMENT NUMBER WHEN BREAK
+ INTEGER ARRAY TSLESCELEM:=( 0, 7,12,15,21, 0, 0, 0)   % START ELEMENT NUMBER WHEN ESCAPE
+ INTEGER ARRAY TSLLPRITAB:=(24,20,24,24,24,24,24,24)   % HIGHEST PRIORITY ON "ND-500 LOWER TIMESLICE CLASS" PRIORITY
+
+ @ICR;
+ % CHAIN ELEMENT NUMBER    0  1  2  3  4  5  6    7  10 11   12 13 14   15 16 17
+ %
+ INTEGER ARRAY TSLPRITAB:=(60,55,44,40,30,24,20,  45,20,16,  46,41,21,  44,34,24,
+                           17,50,42,35,00,00,00,00,  00,00,00,00,00,00,00,00);
+ INTEGER ARRAY TSLTIMTAB:=( 1, 3, 6,14,30,50, 4,   4,22,22,   2,22,40,   2,10,40,
+                           10, 3, 6,14,00,00,00,00,  00,00,00,00,00,00,00,00);
+ INTEGER ARRAY TSLNEXTAB:=( 1, 2, 3, 4, 5, 6, 5,  10,11,10,  13,14,13,  16,17,20,
+                           17,22,23, 4,00,00,00,00,  00,00,00,00,00,00,00,00);
+ @CR;
+ INTEGER ARRAY TSLCOUNTA=?
+ INTEGER ARRAY TSLNTIME=?
+
+ %==============================================================================
+ %            T I M E  S L I C E R
+ %
+ % 14.0       S T S L I C E   S T B A C K   A N T I J A M M E R
+ %
+
+ @ICR;
+ SUBR STSLICE,STBACK,ANTIJAMMER,ANTI2JAMMER,TSTBACK,
+ S5ESCF,RESAJ,XS5ESC,XSTBACK,GTSLPINDEX;
+ @CR;
+
+
+ %==============================================================================
+ %            X S T B A C K
+ %
+ % SUBROUTINE TO SET BREAK PRIORITY ON TIMESLICED PROCESS
+ %
+ % ENTRY:     X=INPUT DATAFIELD ("TERMINAL")
+ %
+ XSTBACK:
+ @LIB CXCPU
+        GO L1
+
+ %==============================================================================
+ %            T S T B A C K   -   S T B A C K
+ %
+ % SUBROUTINE TO SET HIGH PRIORITY ON BREAK CHARACTERS
+ % ENTRY:     B=DATAFIELD
+ % TSTBACK IS CALLED FROM TERMINAL INPUT/OUTPUT DRIVER
+ TSTBACK:
+ @LIB CXCPU
+ STBACK: X:=B
+ L1:    IF X.ISTAT><0 THEN                        % PROCESS MUST WAIT FOR I/O ON "TERMINAL"
+           AD:=DFPTSLICE
+           IF T:=X.RTRES>>=A AND T<<D THEN
+              T-A=:D; A:=0; T:=5RTSIZE; *RDIV ST
+              TSLSTATUS(A) BONE 5BRKF=:TSLSTATUS(X)
+           FI;
+        FI; EXIT
+ %=============================================================================
+ %            X S 5 E S C F
+ %
+ % CALLED FROM ESCAPE TO SET HIGH PRIORITY WHEN ESCAPE IS TYPED
+ % WHILE PROCESS IS IN COMMAND MODE AND ESCAPE IS OFF
+ %
+ % ENTRY:     T=BIT TO SET IN FLAGB
+ %            B=DATAFIELD
+ %            A=FLAGB
+ %
+ % EXIT:      RETURNS TO ROUTINE CALLING ESCAPE
+ %
+ XS5ESCF: A\/T=:FLAGB
+ @LIB CXCPU
+ @LIB CXCPU-,
+        X:=B
+ @ELIB
+        X:=X.RTRES; GO S5ESCF
+
+ %=============================================================================
+ %            S 5 E S C F
+ %
+ % SUBROUTINE TO SET ESCAPE PRIORITY ON TIMESLICED PROCESSES
+ %
+ % ENTRY:     X=RT-PROGRAM
+
+ S5ESCF: AD:=DFPTSLICE
+        IF X>>=A AND X<<D THEN
+           X-A=:D; A:=0; T:=5RTSIZE; *RDIV ST
+           TSLSTATUS(A) BONE 5ESCF=:TSLSTATUS(X)
+        FI; EXIT
+ *)FILL
+
+ %==============================================================================
+ %            A N T I J A M M E R   -   A N T I 2 J A M M E R
+ %
+ % SUBROUTINES TO SET HIGH PRIORITY ON THE OWNER OF A SYSTEM RESOURCE
+ % WHICH IS WAITED FOR BY OTHER PROCESSES.
+ %
+ % ENTRY WHEN ANTIJAMMER:     B=DATAFIELD
+ % ENTRY WHEN ANTI2JAMMER:    X=RT-PROGRAM
+ %
+ % EXIT:                      NONE
+ %
+ % REGISTERS DESTROYED:       T,A,D,L
+ %
+
+ INTEGER CPROG                % CURRENT PROGRAM ADDRESS
+ INTEGER B2RG
+ INTEGER 2XRG
+ INTEGER C2INDX=?
+ INTEGER POINTER 2LRG
+ INTEGER CTYP=B2RG
+
+ ANTIJAMMER:
+        IF TYPRING NBIT RING2 THEN EXIT FI        % RETURN WHEN NOT SYSTEM RESOURCE (ON RING 1)
+        X=:2XRG:=RTRES; GO FELLS
+ ANTI2JAMMER: X=:2XRG
+ FELLS: X=:CPROG; A:=L=:"2LRG"
+        IF X.STATUS/\377<TSLSYSPRI THEN           % SYSTEM PRIORITY ?
+           CALL GTSLPINDEX; GO FIN; X=:C2INDX     % FIND TIMESLICE-PROCESS INDEX
+           IF TSLSTATUS(X) BIT 5NOSLICE THEN
+              T:=CPROG.STATUS; X:=77; T/\X; A/\177700\/T   % SAVE ORIGINAL PRIORITY
+           FI; A BONE 5SPRF=:TSLSTATUS(C2INDX)       % MARK PROCESS IN SYSPRI
+           CPROG.STATUS/\177400+TSLSYSPRI=:X.STATUS  % SET SYSTEM PRIORITY
+           CALL FRWQU
+           IF A><0 THEN A:=:B=:B2RG; CALL TOWQU; B2RG=:B FI % REORGANIZE QUEUE ACCORDING TO PRIORITY
+ FIN:   FI; X:=2XRG; GO 2LRG; *)FILL
+
+ %==============================================================================
+ %            R E S A J
+ %
+ % SUBROUTINE CALLED FROM BRELEASE TO INSERT THE PREVIOUS PRIORITY
+ % ON THE PROCESS WHICH HAD A SYSTEM RESOURCE THET WAS WAITED FOR.
+ % (RESAJ MUST BE CALLED BEFORE THE RESOURCE IS RELEASED)
+ %
+ % CALLED FROM MONITOR LEVEL OR WITH MONITOR LEVEL DISABLED OR IN IOF
+ %
+ % ENTRY:     B=DATAFIELD
+ % EXIT:      NONE
+ %
+ % REGISTERS DESTROYED:       T,A,D,L
+ %
+
+ INTEGER BREG                 % DATAFIELD ADDRESS
+ INTEGER SNUMPR               % NUMBER OF PROCESSES WAITING FOR THIS DATAFIELD
+ INTEGER C2INDX               % CURRENT TIMESLICE-PROCESS INDEX
+ INTEGER POINTER L2RG         % RETURN ADDRESS
+ INTEGER XREG                 % SAVED X-REG
+ INTEGER POINTER L3RG
+
+ RESAJ:
+        IF TYPRING BIT RING2 THEN                 % SYSTEM RESOURCE (ON RING 2)
+           X=:XREG:=L=:"L3RG"
+           X:=RTRES; CALL GTSLPINDEX; GO RETU; X=:C2INDX      % FIND PROCESS INDEX
+           IF TSLSTATUS(X) BIT 5SPRF THEN         % PROCESS HAS ANTIJAM PRIORITY
+              T:=0; X:=B+5BWLINK-5WLINK
+              DO WHILE X:=X.WLINK><B; T+1; OD     % FIND NUMBER OF PROCESSES WAITING
+              T=:SNUMPR
+              D:=0; X:=RTRES+5BRESLINK; T:=RTRES
+              DO WHILE X:=X.RESLINK><T            % FIND NUMBER OF SYSTEM RESOURCES RESERVED
+                 IF X.TYPRING BIT RING2 AND X.BWLINK><X THEN D+1 FI
+              OD
+              A:=RTRES:=:B=:BREG
+              IF 1>=D THEN                        % ONLY 1 SYS.RESOURCE, RESET PRIORITY
+                 TSLSTATUS(C2INDX) BZERO 5SPRF=:TSLSTATUS(X)
+                 IF A NBIT 5NOSLICE THEN
+                    X:=37; X/\A; T:=TSLPRITAB(X)  % FIND OLD PRIORITY
+                 ELSE
+                    T:=77; T/\A
+                 FI; STATUS/\177400\/T=:STATUS    % RESET PRIORITY
+                 X:=B; CALL FRWQU
+                 IF A><0 THEN B:=A; CALL TOWQU FI % UPDATE QUEUE ACCORDING TO PRIORITY
+              FI
+              IF SNUMPR>1 THEN                       % MORE THAN 1 PROCESS WAITING?
+                 X:=BREG.BWLINK; CALL ANTI2JAMMER    % SET ATIJAM PRIOR ON RESERVING PROCESS
+              FI; BREG=:B
+ RETU:     FI; X:=XREG; GO L3RG
+        FI
+        EXIT
+ *)FILL
+
+ %==============================================================================
+ %            G T S L P I N D E X
+ %
+ % GET TIMELSICE-PROCESS INDEX
+ %
+ % ENTRY:          X=RTDESCRIPTION
+ %
+ % RETURN:         NOT TIMESLICED PROCESS
+ % SKIP RETURN:    X=TIMESLICE PROCESS INDEX
+ %
+ GTSLPINDEX: AD:=DFPTSLICE
+        IF X>>=A AND X<<D THEN
+           X-A=:D; A:=0; T:=5RTSIZE; *RDIV ST
+           X:=A; EXITA
+        FI; EXIT
+
+ RBUS
+
+
+ %==============================================================================
+ %
+ %                M I S C .  R O U T I N E S
+ %
+ % 15.0       G B R K D
+
+ %MONITOR CALL TO GET BREAKPOINT FOR MACD
+ % APPL. LEVEL
+ INTEGER MDSEG:=5ERRSEG\5MACDSEG
+ INTEGER ARRAY REFBP(10)
+ SUBR GBRKD
+ GBRKD: CALL GET0
+        T:= RTREF.ACTSEG; MDSEG=:X.ACTSEG; "STUPR"; *IRW MLEVB DP
+        MLEV; *MST PID; MST PIE
+        CALL XGBRKD             % ON SYSTEM SEGMENT
+ RBUS
+
+ %==============================================================================
+ % 15.1       C H L I M
+
+ %SUBROUTINE TO CHECK LIMITS FOR MONITOR CALLS
+ % A=ADDRESS, T=NO. OF WORDS, D=CALLING RT-PROGRAM
+ % SKIP RETURN IF OK
+
+ SUBR CHLIM
+ INTEGER TREG,AREG,DREG,XREG,XFPAGE,XLPAGE
+ INTEGER POINTER LREG
+ REAL TADREG=TREG
+        % LOCAL SUBROUTINE TO CHECK IF AREA IS WITHIN SEGMENT(IN A)
+        % RETURN WITH A<0 IF NOT.
+        XHLIM: X=:D; IF A=0 GO ERRL
+              A*5SEGSIZW+SEGSTART; A.LOGADR/\77;  IF >XFPAGE GO ERRL
+              T:=X.LOGADR SHZ -10-1+A; IF XLPAGE>T GO ERRL
+              "0"
+ OUT:         D=:X; EXIT
+ ERRL:        -1; GO OUT
+
+ CHLIM: *IOF
+        TAD=:TADREG; X=:XREG:=L=:"LREG"
+        IF X:=BACKGROUND=0 THEN                   % NO TEST FOR BACKGROUND
+           T+A-1 SHZ-12=:XLPAGE; A SHZ-12=:XFPAGE
+           IF D.STATUS BIT 11 GO OK               % RING 2 OR 3
+           IF BIT 10 THEN                         %RING 1; TEST CORE COMMON
+              IF XFPAGE>=CCFPAGE AND XLPAGE<=CCLPAGE GO OK
+           FI; X.ACTSEG SHZ -10; CALL XHLIM; IF >=0 GO OK
+           X.ACTSEG/\377; CALL XHLIM; IF>=0 GO OK
+           X.RSEGM; CALL XHLIM; IF >=0 GO OK
+           GO ERR
+        FI
+ OK:    MIN "LREG"
+ ERR:   X:=XREG; "LREG"=:L
+ SKIPRET: TADREG; *ION; EXIT
+ RBUS
+
+ %==============================================================================
+ % 15.2       M M E X Y
+
+ %SUBROUTINE TO CHANGE SEGMENTS WITHOUT USING MONITOR CALL
+ %T=SEGMENT NUMBERS; RETURN WITH T=OLD SEGMENT NUMBERS
+ SUBR MMEXY
+ INTEGER XREG; INTEGER TREG; DOUBLE ADREG; REAL TADREG=TREG
+ MMEXY: *IOF
+        TAD=:TADREG; X=:XREG:=RTREF
+        IF T SHZ -10=A:=377 THEN T:=X.ACTSEG SHZ -10 FI
+        T SH 10=:D; IF A/\TREG=377 THEN A/\X.ACTSEG FI
+        T:=X.ACTSEG; A\/D=:X.ACTSEG; "STUPR"; *IRW MLEVB DP
+        MLEV; *MST PID
+        X:=XREG; ADREG; *ION; EXIT
+ RBUS
+
+ %==============================================================================
+ % 15.3       E N T R C O R E
+
+ % SUBROUTINE TO ENTER RT AS USER; CALLED FROM ENTRT
+ % A=PASSWORD
+ SUBR ENTRCORE
+ INTEGER POINTER OFLD:=OFLCK  % OPEN FILE TABLE LOCK FOR RT
+ INTEGER RTUS:='RT',XREG,RTENFL:=0
+ INTEGER POINTER LREG
+ ENTRCORE: X=:XREG:=L=:"LREG"; IF X:=RTENFL><0 THEN MIN "LREG";GO LREG FI
+        T:="5ERRSEG\377"; CALL MMEXY
+        OFLD; CALL XLOCK
+        X:="RTUS"; CALL FILSYS(ENSYS); GO NSKIP; MIN "LREG";MIN RTENFL
+ NSKIP: OFLD; CALL XUNLOCK
+        CALL MMEXY; X:=XREG; GO LREG
+ RBUS
+
+ %==============================================================================
+ % 15.4       B L E V S E T
+
+ % SUBROUTINE TO SAVE INBT/OUTBT LEVEL REGISTERS IN DATAFIELD
+ % CALLED FROM PAGEFAULT - MONITOR LEVEL
+ SUBR BLEVSET
+ INTEGER POINTER LREG; INTEGER AREG
+ BLEVSET: A:=L=:"LREG"; CALL GETDATAFIELD
+ @LIB CXCPU
+        X+"5BREGBLOCK"; *SRB BLEVB
+        X-"5BREGBLOCK"; *IRR ALEVB DP
+        A=:X.DBPREG; X=:D; T:=RTREF.ACTPRI
+        "100002+ALEVB"=:X.ACTPRI/\3773; *TRR PCR
+        T=:D.DBACTPRI; "BLEVREACTIVATE"; *IRW ALEVB DP; POF
+        GO LREG
+ %SUBROUTINE TO REACTIVATE INBT/OUTBT WHEN PROG. IS RESTARTED
+ % RT LEVEL
+        *IOF
+ BLEVREACTIVATE: *IOF
+        A=:AREG; "MBL"; *IRW MLEVB DP
+        MLEV; *MST PID
+        AREG; *ION
+ % MONITOR LEVEL:
+ MBL:   CALL GETDATAFIELD
+ @LIB CXCPU
+        X+"5BREGBLOCK"; *LRB BLEVB
+        X-5BREGBLOCK; X.DBPREG; *IRW ALEVB DP
+        X.DBACTPRI=:RTREF.ACTPRI/\3773; *TRR PCR
+        BLEV; *MST PID
+        GO MONEN
+ RBUS
+
+ %==============================================================================
+ % 15.5       G E T D A T A F I E L D
+
+ % SUBROUTINE TO GET ADDRESS TO TERMINAL DATAFIELD
+ % RETURNED IN X-REG.
+ SUBR GETDATAFIELD
+
+ GETDATAFIELD:
+        RTREF-"BAK01"
+        IF A<0 THEN
+           IF LGCOLDSTART><0 THEN L=:X; CALL LOGPH; X=:L:=A; EXIT FI
+           A:=0
+        FI; A=:D:=0; T:=5RTSIZE; *RDIV ST
+        IF D><0 THEN CALL ERRFATAL FI
+ *"-8BACS
+"        X:=BACKTAB(A); EXIT
+ *"8BACS
+" RBUS
+
+
+
+ %==============================================================================
+ % 15.7       R T L R F I L E   R T L W F I L E   R T L 2 W F I L E
+ %            T R T L D S E G   R T L R E T
+ %            L O N A L T       L O F F A L T
+ %            R T L M C A L L
+ %
+ % SUBROUTINES USED BY THE RT-LOADER
+
+ SUBR RTLRFILE,RTLWFILE,RTL2WFILE,TRTLDSEG,RTLRET,LONALT,LOFFALT,RTLMCAL
+
+ TRIPLE SVTAD=?
+ INTEGER XXRG=?,LLRG=?,DDRG=?,AARG=?
+ LOFFALT: *BSET ZRO
+        TAD=:SVTAD; A:=200; T:=5RT2SG; GO CFELL
+ LONALT: *BSET ZRO
+        TAD=:SVTAD; A:=400; T:=5RTFIL
+ CFELL: A=:D:=L=:LLRG; X=:XXRG
+        IF RTREF.ACTSEG/\377><T THEN A:=177400; T\/A; CALL MMEXY FI
+        GO FAR OUT
+
+ RTLMCALL: TAD=:SVTAD; X=:XXRG; *BSET ZRO
+           L.S0+153000=:DDRG; X+1=:LLRG
+           0=:RTREF.RSEGM; T:=-1; CALL MMEXY; TAD:=SVTAD; K:="0"; *EXR SD
+           K:=1; A=:AARG; IF K NBIT THEN MIN LLRG FI
+           5RTSG; CALL MMREENT; GO FAR OUT1
+
+ TRTLDSEG: TAD=:SVTAD; X=:XXRG; *PIOF
+           RTREF.ACTSEG/\377; T:=5RTFIL SH 10; A\/T=:X.ACTSEG
+           X.ACTPRI/\174177\/1400=:X.ACTPRI/\3773; *TRR PCR
+           "3MRTL"; *IRW MLEVB DP
+           MLEV; *MST PID
+           TAD:=SVTAD; X:=XXRG; *ION; JMP *
+
+ 3MRTL:    *PON; IRR ALEVB DT
+ *"-CXCPU
+"           A+1
+ *"
+"           *IRW ALEVB DP
+           GO STUPR
+
+ RTLRET:   RTREF.ACTSEG/\377=:T:=X.SEGM/\177400\/T=:X.ACTSEG; *PIOF
+           X.ACTPRI/\174177\/200=:X.ACTPRI/\3773; *TRR PCR
+           *IRR ALEVB DL; IRW ALEVB DP; PION
+           GO STUPR
+
+ INTEGER CFILNO,CBLCKNO,CNWRD
+ INTEGER ARRAY CRWPAR:=(CFILNO,"0");INTEGER CMAD
+ INTEGER ARRAY 2CRWPAR:=(CBLCKNO,CNWRD)
+ *MRTRG=*;MRXRE=*+1;MELRT=*+2;MRCPL=*+3
+ INTEGER TTRG,AARG,DDRG,XXRG,LLRG,RSWITCH
+ TRIPLE SVTAD=TTRG
+ *)FILL
+
+ RTL2WFILE: X=:XXRG:=0; GO FELL1
+ RTLWFILE:  X=:XXRG:=1; GO FELL1
+ RTLRFILE:  X=:XXRG:=2
+ FELL1:     X=:RSWITCH:=L=:LLRG; TAD=:SVTAD; T=:CFILNO
+            A.S2=:CMAD; X=:T; X.S3.S0=:CBLCKNO; T.S4.S0=:CNWRD
+            IF RSWITCH=0 THEN
+              *BSET ZRO
+              RTREF.ACTSEG/\177400; T:=5RTFIL\/A; CALL MMEXY
+              400=:D; CALL DALTON
+            FI; *BSET ZRO
+            IF RSWITCH<2 THEN 153120 ELSE 153117 FI; A=:D
+            T:=CFILNO; "CRWPAR"; *EXR SD
+            A=:AARG
+            IF RSWITCH=0 THEN
+              RTREF.ACTSEG/\177400; T:=5RT2SG\/A; CALL MMEXY
+ OUT1:      FI; 200=:D
+ OUT:       CALL DALTON; TAD:=SVTAD; X:=LLRG=:L:=XXRG; EXIT
+
+ RBUS
+
+
+ %==============================================================================
+ % 15.9       E R I O T R A N S
+
+ % SUBROUTINE TO READ FROM ERROR DEVICE
+ % CALLED FROM SIMINBT, OP.SEG.
+ SUBR ERIOTRANS
+ ERIOTRANS: L+1=:X; *POF
+        CALL IOTRANS; X-1; *PON
+        X=:P
+ RBUS
+
+
+ %==============================================================================
+ % 15.10      S E T 5 N O N
+
+ % SUBROUTINE TO SET SEGM. 5 NONDEMAND
+ % CALLED FROM START PROGRAM
+ SUBR SET5NON
+ SET5NON: L=:D; T:=1; CALL MMEXY
+        "SG5".FLAG/\177774=:X.FLAG; CALL MMEXY; D=:P
+ RBUS
+
+
+ *"8CLI1+8CLI2+8CLI3+8CLI4+8CLI5+8CLI6+8CLI7+8CLI8+8CLI9
+"
+ %==============================================================================
+ % 15.12      S T O B Y T   L O B Y T
+
+ % STORE AND LOAD BYTE IN POF
+ SUBR STOBYT,LOBYT
+ STOBYT: *PIOF; SBYT; PION; EXIT
+ LOBYT: *PIOF; LBYT; PION; EXIT
+ RBUS
+
+ %==============================================================================
+ % 15.13    S T A 6 X   L D T 6 X   S T A 0 X   S T A 3 X   S T A 4 X   S T A 5 X
+ %          L D A 1 X   L D A 2 X   L D A 3 X   S T Z 0 X   S T Z 3 X   L D X 0 X
+
+ SUBR STA6X,LDT6X,STA0X,STA3X,STA4X,STA5X,LDA1X,LDA2X,LDA3X,STZ0X,STZ3X,LDX0X
+ STA6X: *PIOF; STA 6,X; PION; EXIT
+ LDT6X: *PIOF; LDT 6,X; PION; EXIT
+ STA0X: *PIOF; STA 0,X; PION; EXIT
+ STA3X: *PIOF; STA 3,X; PION; EXIT
+ STA4X: *PIOF; STA 4,X; PION; EXIT
+ STA5X: *PIOF; STA 5,X; PION; EXIT
+ LDA1X: *PIOF; LDA 1,X; PION; EXIT
+ LDA2X: *PIOF; LDA 2,X; PION; EXIT
+ LDA3X: *PIOF; LDA 3,X; PION; EXIT
+ STZ0X: *PIOF; STZ 0,X; PION; EXIT
+ STZ3X: *PIOF; STZ 3,X; PION; EXIT
+ LDX0X: *PIOF; LDX 0,X; PION; EXIT
+ RBUS
+
+ % ===========================================================================
+
+ % TERMINATE PROGRAM CALLING MON 65 (QERMSG)
+ SUBR MMLE
+ MMLE:  *MON 0
+ RBUS
+
+ *"8RFAC
+" %========================================================================
+ %      T O F E N T R Y
+ %
+ % SUBROUTINE TO SET PIT 0 BEFORE CALLING THE FILE-USER SEGMENT
+ % AND TO RESET TO PIT 3 BEFORE RETURNING TO PT3FUSER
+ %
+ SUBR TOFENTRY
+
+ TOFENTRY: A:=L=:FENTLREG
+           CALL SPT0PIT; *JPL I (110000           % 110000 IS START OF FILE-USER SEG.
+           GO NSKIP; MIN FENTLREG
+ NSKIP:    A=:AASTCK; CALL SPT3PIT; A:=FENTLREG=:L:=AASTCK
+           EXIT
+ RBUS
+
+
+ %==========================================================================
+ %            F I L U S
+ %
+ SUBR FILUS
+
+ FILUS: A=:AASTCK:=L=:FILULREG; CALL SPT3PIT
+        A:=AASTCK; CALL PT3FUSER; GO NSKIP; MIN FILULREG
+ NSKIP: A=:AASTCK; CALL SPT0PIT
+        A:=FILULREG=:L:=AASTCK
+        EXIT
+ RBUS
+
+
+ %===========================================================================
+ %            S V R B L K
+ %
+ % SUBROUTINE TO SAVE THE REGISTER BLOCK
+ %
+ % ENTRY:     X=ADDRESS WHERE THE REGISTER BLOCK WILL BE SAVED
+ %
+ SUBR SVRBLK
+ SVRBLK: *PIOF; SRB 10; PION
+         EXIT
+ RBUS
+
+ *"-8RFAC
+"
+ %=============================================================================
+ %      R T C G P L O C
+ %
+ % READ/WRITE ONE LOCATION IN RT-COMMON
+ % (THE REST OF THIS ROUTINE IS PLACED IN PAGING-OFF AREA)
+ %
+ % ENTRY:     T=0: READ; T=1: WRITE
+ %            A=VALUE WHEN WRITE
+ %            X=LOGICAL ADDRESS IN RT-COMMON
+ %
+ % EXIT:      ERROR, RT-COMMON ADDRESS NOT FOUND
+ %
+ % EXIT+1:    A=VALUE WHEN READ
+ %
+ SUBR RTCGPLOC
+
+ INTEGER LRG
+ RTCGPLOC: *PIOF
+        A:=:L=:LRG:=L
+        CALL PRTCGPLOC; GO ERR; MIN LRG
+ ERR:   A=:L:=LRG; A:=:L; *PION; EXIT
+ RBUS
+
+ *"8LAMU
+" %=============================================================================%
+ %
+ %      M L A M U
+ %      LAMU MONITOR CALL.   DEMFIELD IS RESERVED ON ENTRY
+ %      THE FUNCTION ARE:
+ %         FUNC = 1     CREATE LAMU
+ %         FUNC = 2     DELETE LAMU
+ %         FUNC = 3     CONNECT LAMU
+ %         FUNC = 4     DISCONNECT LAMU
+ %         FUNC = 5     MOVE PAGES FROM LAMU AREA TO NOTHING.
+ %                      USED FOR AREAS IN SHARED MEMORY THAT ARE USED
+ %                      FOR SWAPPING BY OTHER CPUS
+ %         FUNC = 6     MOVE PAGES FROM LAMU AREA TO SWAPPING
+ %         FUNC = 7     CHANGE LAMU PROTECTION
+ %         FUNC =10     GET LAMU INFORMATION
+ SUBR MLAMU
+ %            LAMU DESCRIPTOR ELEMENT
+ % DISP 0
+ %      INTEGER LAMPP         % FIRST PHYSICAL PAGE IN LAMU
+ %      INTEGER LAMNP         % NUMBER OF PAGES IN LAMU
+ %      INTEGER LAMPR         % LAMU PROTECTION
+ % PSID
+
+ %            DEMFIELD DATA
+ DISP 5REG+11
+        INTEGER LFUNC, LAMID, LAMSZ, LAMLOG   % PARAMETERS
+        INTEGER LAMRT=LAMSZ,LAMPT=LAMSZ, LAMPH=LAMLOG
+        INTEGER PFLFP=LAMID   % PAGES FROM LAMU FIRST PAGE
+        INTEGER LADPH         % ADDRESS IN USER SEG OF PH. PAGE NO
+        INTEGER LADID         % ADDRESS IN USER SEG OF LAMID
+        INTEGER LAIAR         % ADDRESS IN USER SEG OF ARRAY TO RETURN LAMU-INFORMATION
+        INTEGER LACTMAX       % ADDRESS OF LAST ELEMENT IN ACTIV LAMU TABLE
+        INTEGER LATFLAG       % =0 TO ASSURE THAT GAPIT WILL WORK
+        INTEGER CACLE         % ADDRESS OF CURRENT ACTIV LAMU TABLE ELEMENT
+        INTEGER LC            % LOOP CONTROL
+        INTEGER LC1           % LOOP CONTROL
+        INTEGER CLLP          % CURRENT LAST LOGICAL PAGE
+        INTEGER LEFREE        % INDEX OF FREE ELEMENT IN CURRENT ACT LAMU T.E.
+                              % LAMSZ DUMMY IN CONLA
+        INTEGER LALPP         % LAST PHYS PAGE IN LAMU AREA
+        INTEGER LA1PH=LACTMAX % 1.PHYS PAGE IN LAMU
+        INTEGER LALPH=CACLE   % LAST PHYS PAGE IN LAMU
+        DOUBLE  LNPRO=LC      % NO OF PAGES AND PROTECTION
+
+ PSID
+ SYMBOL MLAMF=10              % HIHEST LAMU FUNCTION
+
+ %      LAMU ERROR MESSAGES
+ SYMBOL ILLRA=ER170           % ILLEGAL RANGE ON LAMID
+ SYMBOL LINUSE=ER171          % LAMU IN USE
+ SYMBOL LAMTF=ER172           % LAMU TABLE FULL
+ SYMBOL LILRT=ER173           % ILLEGAL LAMRT
+ SYMBOL MLRT=ER174            % MAX NO OF LAMUS PR RT PROG REACHED
+ SYMBOL LNCN=ER175            % LAMU NOT CONNECTED
+ SYMBOL ILLPH=ER176           % NO LAMU AREA BIG ENOUGH
+ SYMBOL LNDEF=ER177           % LAMU NOT DEFINED
+ SYMBOL LILLO=ER178           % ILLEGAL LOGICAL PAGE NUMBER
+ SYMBOL LOGOV=ER179           % LOGICAL LAMU OVERLAP
+ SYMBOL XNFLAD=174            % NO FREE LAMU AREA DESCRICTOR
+
+ INTEGER POINTER PPASS:=PASSTYPE
+
+ MLAMU: S3; *BSET ZRO; STA ,X LADPH; BSET ONE
+        S2; *BSET ZRO; STA ,X LAIAR; BSET ONE
+        S1; *BSET ZRO; STA ,X LADID; BSET ONE
+        CALL GET4; IF LFUNC >> MLAMF OR A = 0 THEN 174; GO FAR ERET FI
+
+        IF LFUNC ><3 AND >< 4 AND >< 10 THEN
+          IF BACKGROUND >< 0 THEN                  % SYSTEM OR RT PROG RING 2
+             IF  PPASS >< 2 THEN 25; GO FAR ERET FI
+          ELSE
+             IF OLDPAG NBIT 1 THEN 25; GO FAR ERET FI
+          FI
+        FI
+ @ICR
+        LFUNC GOSW FAR ERET, CRELA, FAR DELLA, FAR CONLA,
+        FAR DISLA, FAR LPTNO, FAR LPTSW, FAR PROLA, FAR INFLA
+ @CR
+ %                       CREATE LAMU
+ CRELA: IF LAMID = 0 THEN
+              1=:LAMID
+              FOR LAMID TO GNLAMU-1 DO          % SELECT 1. FREE LAMU ID
+                 CALL GLAPP
+                 IF A = 0 GO LAFND
+              OD
+              LAMTF; GO FAR ERET
+        FI
+ LAFND: CALL CHLID; CALL GLAPP; IF A >< 0 THEN LINUSE; GO FAR ERET FI
+        CALL CHAREA                             % IS LAMPH INSIDE LAMU AREAS ?
+ AROK:  CALL GLAPP; LAMPH; *STATX LMPP          % 1. PHYS.PAGE
+        LAMSZ;  *STATX LMNP                     % NO OF PAGES
+        140000; *STATX LMPR                     % DEFAULT PROTECTION R W  RING 0
+        GO FAR MLRET
+ *)FILL
+
+ %                          DELETE LAMU
+ DELLA: CALL CHLID
+        A:=SEGSTART-RTSTART=:D:=0; T:=5RTSIZE; *RDIV ST
+        A*GNLPRT-1*ALMSZ+LAMACT=:LACTMAX
+        FOR X:=LAMACT STEP ALMSZ TO LACTMAX DO     % SEARCH TO FIND IF ANY PROGRAM HAS LAMID CONNECTED
+              T:=LAMBANK; *LDATX LMCN
+              IF A = LAMID THEN LINUSE; GO FAR ERET FI
+        OD
+        CALL GLAPP; IF A = 0 THEN LNDEF; GO FAR ERET FI
+        A:=0; *STATX LMPP               % OK.  DELETE THE LAMU
+        GO FAR MLRET
+ *)FILL
+
+ %                          CONNECT TO LAMU
+ CONLA: CALL CHLID; CALL GLAPP; IF A = 0 THEN LNDEF; GO FAR ERET FI
+        *LDATX LMNP
+        IF A+LAMLOG-1=:CLLP >>= 300 OR LAMLOG << 100 THEN LILLO; GO FAR ERET FI
+        CALL SACLE; 0=:LC; -1=:LEFREE
+        FOR LC TO GNLPRT-1 DO
+              CALL GLCAC; *LDDTX LMCN   % A=CONNECTED LAMU, D=LOGICAL PAGE NO
+              IF A = LAMID GO ECLA                % LAMU IS ALREADY CONNECTED
+              IF A = 0 THEN
+                 IF LEFREE = -1 THEN LC=:LEFREE FI
+              ELSE
+                 CALL GAPP; *LDATX LMNP    % CHECK FOR LOGICAL OVERLAP
+                 T:=D+A-1; IF LAMLOG <<= T AND CLLP >>= D THEN LOGOV; GO FAR ERET FI
+              FI
+        OD
+        IF LEFREE >< -1 THEN
+              CALL GAAC; LAMID; *STATX            % OK.  LAMU IS CONNECTED
+              LAMLOG; *STATX LMLP
+        ELSE
+              MLRT; GO FAR ERET
+        FI
+ ECLA:  GO FAR MLRET
+ *)FILL
+
+ %                         DISCONNECT FROM LAMU
+ DISLA: CALL SACLE; 0=:LC
+        IF LAMRT = 0 OR A = SEGPROG THEN; *PIOF
+              CALL CLAMU; *PION
+        FI
+        IF LAMID = -1 THEN
+              FOR LC TO GNLPRT-1 DO
+                 CALL GLCAC; A:=0; *STATX
+              OD
+        ELSE
+              CALL CHLID
+              FOR LC TO GNLPRT-1 DO
+                 CALL GLCAC
+                 IF A-LAMID = 0 THEN
+                    *STATX
+                    GO DISOK
+                 FI
+              OD
+              LNCN; GO FAR ERET
+        FI
+ DISOK: GO FAR MLRET
+ *)FILL
+
+ %      PAGES TO NOTHING & PAGES TO SWAPPING
+ LPTSW:
+ LPTNO: IF PFLFP=:LAMPH = 0 THEN 174; GO FAR ERET FI
+        A+LAMSZ-1=:CLLP; CALL CHAREA; L:=X
+        IF PFLFP >< T THEN
+              IF A+LAMSZ-1 >< D THEN
+                 0=:LC                % FIND A FREE LAMU AREA DESCRIPTOR
+                 FOR LC TO "NINSZ-1" DO A SH 1+"LAMAR"=:X; T:=0; *LDATX
+                     IF A = 0 GO NEWAR
+                 OD; XNFLAD; GO FAR ERET % NO FREE AREA DESCRIPTOR
+ NEWAR:          LC SH 1+"LAMAR"=:X; A:=PFLFP+LAMSZ; T:=0; *STDTX
+              FI
+              PFLFP-1; X:=L; T:=0; *STATX 10
+        ELSE
+              IF A+LAMSZ-1 >< D THEN
+                 A+1; T:=0; *STATX
+              ELSE
+                 A:=0=:D=:T; *STDTX
+              FI
+        FI
+        IF LFUNC = 6 THEN
+              PFLFP=:LC
+              FOR LC TO CLLP DO
+                 A SH 2+CORMSTART=:D; SEGSTART+5SEGSIZE=:X; T:=CORMBANK
+                 MLEV; *MCL PIE
+                 X.BPAGLINK; X:=:D; *STATX DPAGL
+                 A:=1; *STATX DPGPR
+                 A:=X=:D.BPAGLINK
+                 IF X.SEGLINK = 0 THEN
+                    A:="BSEGLINK"
+                    DO WHILE A.SEGLINK >< -1 OD
+                    A:=D=:X.SEGLINK; -1=:D.SEGLINK
+                 FI; MLEV; *MST PIE
+              OD
+        FI
+        GO MLRET
+ *)FILL
+ %                      CHANGE LAMU PROTECTION
+ PROLA: CALL CHLID; CALL GLAPP; IF A=0 THEN LNDEF;GO FAR ERET FI
+        LAMPT /\ 163000; * STATX  LMPR
+        GO MLRET
+ *)FILL
+ %                      LAMU INFORMATION
+ INFLA: CALL CHLID; CALL GLAPP; IF A=0 THEN LNDEF;GO FAR ERET FI
+        A =:LA1PH; *LDDTX LMNP
+        AD=:LNPRO; GO MLRET
+ *)FILL
+
+ MLRET: ZPREG+1=:ZPREG; A:=0
+ ERET:  A=:ZAREG; 0=:LATFLAG; X:=B; CALL GAPIT; CALL DALTON; *BSET ZRO
+        IF LFUNC = 1 THEN
+              A:=LAMID; X:=LADID; *BSET ONE; STA ,X 0; BSET ZRO
+              A:=LAMPH; X:=LADPH; *BSET ONE; STA ,X 0; BSET ZRO
+        ELSE IF A= 10 THEN
+              A:=LA1PH; X:=LAIAR; *BSET ONE; STA ,X 0; BSET ZRO
+              AD:=LNPRO;          *BSET ONE; STD ,X 1; BSET ZRO
+        FI;FI
+        GO RETSTUPER
+ *)FILL
+
+
+ %      SERVICE FUNCTIONS
+
+
+ %      CHECK FOR LEGAL LAMU AREA
+ %      ON EXIT WITH LAMPH >< 0    T = FIRST, AND D = LAST PAGE OF OLD AREA
+ CHAREA: 0=:LC
+        FOR LC TO "NINSZ-1" DO                         % LAMID OK. THEN CHECK IF PHYSICAL AREA IS OK
+              A SH 1 + "LAMAR"=:X; T:=0; *LDDTX
+              IF A=:T >< 0 THEN                        % AREA IN USE
+                 IF LAMPH = 0 THEN                     % SELECT PHYS. PAGES NOT IN USE
+                    A:=D=:LALPP                        % LAST PHYS. PAGE IN LAMU AREA
+ L1:                IF LAMSZ+T-1=:LALPH <<= X:=LALPP THEN % LAMU AREA BIG ENOUGH
+                       T=:LA1PH; 1=:LC1;
+                       FOR LC1 TO "GNLAMU-1" DO        % CHECK THAT NO LAUMU OCCUPIE SELECTED AREA
+                          L=:D;CALL GAPP;D=:L
+                          IF A >< 0 THEN
+                             *LDDTX LMPP
+                             IF D+A-1 >>=LA1PH AND A <<= LALPH THEN T+1;GO L1 FI
+                          FI
+                       OD
+                       LA1PH=:LAMPH; EXIT               % OK, FREE AREA FOUND
+                    FI
+                 ELSE
+                    IF A >>= T AND A <<= D THEN
+                       IF A+LAMSZ-1 <<= D THEN EXIT ELSE GO ARNOK FI
+                    FI
+                 FI
+              FI
+        OD
+ ARNOK: ILLPH; GO FAR ERET
+ *)FILL
+
+ GLCAC:       % GET LC ELEMENT OF CURRENT ACT LAMU TABLE RECORD.
+        A:=LC
+ GAAC:  A*ALMSZ+CACLE=:X; T:=LAMBANK; * LDATX
+        EXIT
+ GLAPP:       % GET PHYSICAL PAGE OF LAMID. T & X HOLDS THE ADDRESS
+        A:=LAMID
+ GAPP:  A*LDTSZ+LAMDT=:X; T:=LAMBANK; *LDATX LMPP
+        EXIT
+ CHLID:       % CHECK IF LAMID IS WITHIN LEGAL RANGE
+        IF LAMID >>= GNLAMU OR A = 0 THEN ILLRA; GO FAR ERET FI; EXIT
+ SACLE:       % SET CURRENT ACTIVE LAMU TABLE ELEMENT CACLE
+        IF LAMRT = 0 THEN
+              A:=RTREF
+        ELSE
+              IF A >>= SEGSTART OR A <<= RTSTART THEN
+ L3:              LILRT; GO FAR ERET
+              FI
+        FI
+        A-RTSTART=:D:=0; T:=5RTSIZE; *RDIV ST
+        A*GNLPRT*ALMSZ+LAMACT=:CACLE; IF D >< 0 GO L3; EXIT
+
+
+ RBUS
+ *"
+"
+ %===========================================================================
+ %            C H L A M
+ %      CHECK IF A LOGICAL PAGE INTERVAL IS WITHIN A LAMU
+ %      RETURNS WITH INTERRUPT ON
+ %      ENTRY:    T = FIRST LOGICAL PAGE
+ %                D = LAST LOGICAL PAGE
+ %                A = RT DESCR
+ %      EXIT:     NOT WITHIN A CONNECTED LAMU
+ %      EXIT+1:   OK.   A = PHYSICAL START PAGE OF BUFFER WITHIN LAMU
+
+ SUBR CHLAM
+
+ *"8LAMU
+" INTEGER FPAGE, LPAGE         % FIRST & LAST LOGICAL INTERVAL
+ INTEGER CACLE                % CURRENT ACTIVE LAMU ELEMENT
+ INTEGER SAVX
+ INTEGER LC                   % LOOP COUNTER
+ *"
+"
+ CHLAM:
+ *"8LAMU
+"        *IOF
+        X=:SAVX; T=:FPAGE:=D=:LPAGE:=5RTSIZE; A-RTSTART=:D:=0; *RDIV ST
+        A*GNLPRT*ALMSZ+LAMACT=:CACLE; 0=:LC
+        FOR LC TO GNLPRT-1 DO
+              A*ALMSZ+CACLE=:X; T:=LAMBANK; *LDATX
+              IF A >< 0 THEN
+                 A=:D; *LDATX LMLP
+                 A:=:D; A*LDTSZ+LAMDT=:X; *LDATX LMNP
+                 A+D-1
+                 IF T:=LPAGE <<= A AND FPAGE >>= D THEN
+                    A-D=:D; T:=LAMBANK; *LDATX LMPP
+                    A+D; L+1; GO CHLRE
+                 FI
+              FI
+        OD
+ CHLRE: X:=LPAGE=:D:=SAVX; *ION
+ *"
+"        EXIT
+ RBUS
+
+ %==============================================================================
+ %            C O L A M       C L L A M
+ %      COPY AND CLEAR LAMU
+ %      ENTRY COLAM:    A = SOURCE RT PROG
+ %                      X = DESTINATION RT PROG
+ %      CLLAM:          A = RT PROGRAM
+
+ SUBR COLAM, CLLAM
+ INTEGER LREG
+ COLAM:
+ *"8LAMU
+"        A-RTSTART=:D:=0; T:=5RTSIZE; *RDIV ST
+        A*GNLPRT*ALMSZ+LAMACT; A:=:X; A-RTSTART=:D:=0; *RDIV ST
+        A*GNLPRT*ALMSZ+LAMACT=:T; A:=GNLPRT:=:L=:LREG; L+L
+ @LIB CXCPU
+ @LIB CXCPU-,
+        T=:D:=LAMBANK
+        DO WHILE L><0
+           *LDATX
+           X+1:=:D; *STATX
+           X+1:=:D; L-1
+        OD
+ @ELIB
+        LREG=:L
+ *"
+"        EXIT
+ CLLAM:
+ *"8LAMU
+"        A-RTSTART=:D:=0; T:=5RTSIZE; *RDIV ST
+        A*GNLPRT*ALMSZ+LAMACT=:X; GNLPRT*ALMSZ+X-1=:D:=0; T:=LAMBANK
+        FOR X TO D DO
+              *STATX
+        OD
+ *"
+"        EXIT
+ RBUS
+ SUBR LAMDISCONNECT
+ *"8LAMU
+" %=================================================================
+ % DISCONNECT ALL LAMUS FROM TH CALLING PROGRAM
+ % CALLED FROM ESCAPE HANDLING ,MON 0  AND BATCH I/O
+ %
+ INTEGER ARRAY LPAA:=("4","-1","0","0")
+ *"
+" LAMDISCONNECT:
+ *"8LAMU
+"        A:="LPAA"; *MON 2LAMU; MON 2ERMS
+ *"
+" EXIT
+ RBUS
+
+ % MAKE GLOBAL ENTRIES
+
+ SUBR ELO3F,EUSE3,DUSE3,ELON3,ELOF3,DLOF3,T207RET,IBR3S,T206RET
+ RBUS
+
+
+ *"8ESCX
+" %==============================================================================
+ %      E L O N   E L O F F   E L O F U   D L O F U   E U S E L   D U S E L
+
+ % RESIDENT PART OF THE EXTENDED ESCAPE-HANDLING MONITOR CALLS
+ % THE MONITOR CALLS IS EXECUTED ON PIT3-SEGMENT.
+ SUBR ELON,ELOFF,ELOFU,DLOFU,EUSEL,DUSEL,T2P07
+ ELON:  CALL GET0; CALL SPT3PIT; GO ELON3         % (MON 302)
+ ELOFF: CALL GET0; CALL SPT3PIT; GO ELOF3         % (MON 303)
+ ELOFU: CALL GET0; CALL SPT3PIT; GO ELO3F         % (MON 276)
+ DLOFU: CALL GET0; CALL SPT3PIT; GO DLOF3         % (MON 277)
+ EUSEL: CALL GET0; CALL SPT3PIT; GO EUSE3         % (MON 300)
+ DUSEL: CALL GET0; CALL SPT3PIT; GO DUSE3         % (MON 301)
+ T2P07: CALL CBERSP; 0/\0; GO T207RET             % ESCAPE RESPONSE IN ELON
+ RBUS
+
+ *"8IBRS
+" %=======================================================================
+ %            I B R S I Z
+ %
+ % RESIDENT PART OF IBRSIZ MONITOR CALL. CODE ON PIT3-SEGMENT
+ @LIB CXCPU
+ @LIB CXCPU-,
+ SUBR IBRSIZ,T2C06,T2P06,IBLBYT
+ @ELIB
+ IBRSIZ: CALL GET0; CALL SPT3PIT; GO IBR3S        % (MON 313)
+ T2C06: *POF
+ T2P06: GO BISIZ; 0/\0; *PON                      % CALL TO BISIZ FOR TAD
+        GO T206RET
+ @LIB CXCPU-,
+ IBLBYT: *POF; LBYT; PON; EXIT                    % LOAD A BYTE FROM BUFFER IN POF
+ @ELIB
+ RBUS
+ *"
+"
+ %=============================================================================
+ %            C L R B M A P   B M F R T D   B M T R T D
+ %            B M O R
+ %
+ % ROUTINES TO MANIPULATE WITH THE RT-DESCRIPTION'S REENTRANT BITMAP
+ %
+ SUBR CLRBMAP,BMFRTD,BMTRTD,BMOR
+
+ % CLRBMAP:   CLEAR THE REENTRANT BITMAP
+ %      ENTRY:  X=RTDESCRIPTION; INTERRUPT MUST BE OFF OR MLEV DISABLED
+ %      EXIT:   PAGING IS ON
+ %
+ CLRBMAP: *POF
+        X:=X.RTDLGADDR
+        0=:X.BITMAP=:X.BITM1=:X.BITM2=:X.BITM3=:X.BITM4=:X.BITM5=:X.BITM6=:X.BITM7
+        *PON; EXIT
+
+ % BMFRTD:    COPY BITMAP FROM RT-DESCRIPTION TO ARRAY POINTED AT BY B-REG
+ %      ENTRY:  X=RTDESCRIPTION; B=ARRAY ADDR
+ %      EXIT:   T,A,D,X ARE DESTROYED
+ %
+ BMFRTD:
+ *"CXCPU
+"        X:=X.RTDLGADDR+5BITMAP; B+BXBITMAP; T:=0
+        *LDDTX 00; STD 0,B; LDDTX 20; STD 2,B
+        *LDDTX 40; STD 4,B; LDDTX 60; STD 6,B
+        B-BXBITMAP; EXIT
+ *"
+"
+ % BMTRTD:    COPY BITMAP FROM ARRAY POINTED AT BY B-REG TO RT-DESCRIPTION
+ %      ENTRY:  X=RTDESCRIPTION; B=ARRAY ADDR
+ %      EXIT:   T,A,D,X ARE DESTROYED
+ %
+ BMTRTD:
+ *"CXCPU
+"        X:=X.RTDLGADDR+5BITMAP; B+BXBITMAP; T:=0
+        *LDD 0,B; STDTX 00; LDD 2,B; STDTX 20
+        *LDD 4,B; STDTX 40; LDD 6,B; STDTX 60
+        B-BXBITMAP; EXIT
+ *"
+"
+ % BMOR:      RT-DESCRIPTION.BITMAP OR SAVED-BITMAP =: RTDESCRIPTION.BITMAP
+ %      ENTRY: X=RTDESCRIPTION ADDR; B=ARRAY ADDR
+ %             MUST BE CALLED IN IOF AND ARRAY POINTED TO BY B-REG MUST
+ %             BE IN MEMORY WHEN BMOR IS CALLED
+ %      EXIT:  T,A,D,X ARE DESTROYED
+ %
+ BMOR:  X:=X.RTDLGADDR+5BITMAP; T:=0
+        *LDATX 00; ORA XUBIM,B; STATX 00
+        *LDATX 10; ORA XUBI1,B; STATX 10
+        *LDATX 20; ORA XUBI2,B; STATX 20
+        *LDATX 30; ORA XUBI3,B; STATX 30
+        *LDATX 40; ORA XUBI4,B; STATX 40
+        *LDATX 50; ORA XUBI5,B; STATX 50
+        *LDATX 60; ORA XUBI6,B; STATX 60
+        *LDATX 70; ORA XUBI7,B; STATX 70
+        EXIT
+ RBUS
+
+
+ %==========================================================================
+ %            C S T S E G
+ %
+ % ROUTINE TO CALL STSEG IN "POF-AREA", CALLED FROM MMREENT
+ %
+ SUBR CSTSEG
+ CSTSEG: MLEV; *MCL PIE; POF; ION
+        X=:A:=L; CALL STSEG; A:=RTREF:=:X; CALL CLRBMAP     % CLRBMAP SETS PAGING ON
+        A=:L; MLEV; *MST PIE
+        EXIT
+ RBUS
+
+ %=============================================================================
+ %            R E E I N   R E E U T
+ %
+ % COPY THE REENTRANT BITMAP BETWEEN TWO RT-PROGRAMS
+ %
+ % REEIN: COPY BITMAP FROM SSREF TO RTREF
+ % RREUT: RTREF.BITMAP\/SSREF.BITMAP=:SSREF.BITMAP
+ %
+ SUBR REEIN,REEUT
+
+ INTEGER LREG,BREG,XREG
+
+ REEIN: K:=1; GO FELLS
+ REEUT: K:="0"
+ FELLS: *PIOF
+        X=:XREG:=L=:LREG:=SSREF:=:B=:BREG:=RTREF
+        IF K THEN
+           RSEGM=:X.RSEGM
+           RTDLGADDR+"5BITMAP-BXBITMAP"=:B; CALL BMTRTD
+        ELSE
+           0=:X.RSEGM; X:=X.RTDLGADDR+"5BITMAP-BXBITMAP":=:B; CALL BMOR
+        FI; X:=BREG=:B:=LREG=:L:=XREG; *PION
+        EXIT
+ RBUS
+
+ *"8MOLI
+" %==============================================================================
+ %
+ % MON LOGIN
+ %            <LOG.DEV>       : LOGICAL DEVICE NUMBER OF THE TERMINAL
+ %            <USER NAME>
+ %            <PASSWORD>
+ %            <PROJECT PASSWORD>
+ %            <SUBSYSTEM NAME>
+ %            <PASET PARAMETERS>
+ %            <RETURNED STATUS>
+ %
+ SUBR MLOGIN,MLGTMOUT,3MLOGIN
+
+ MLOGIN: CALL GET1; CALL S3NOALPIT; GO 3MLOGIN
+
+ % TIMEOUT SUBROUTINE FOR MON LOGIN
+ MLGTMOUT: -1=:MLIMSTATUS; 0=:TMR
+           RTRES.STATUS BZERO 5WAIT=:X.STATUS
+           EXIT
+ RBUS
+
+
+ %===========================================================================
+ %      M L I D F I E L D
+ %
+ % MONITOR CALL WORKING FIELD FOR MON LOGIN
+ %
+ * MLGTM;0;-100;0;0;0
+ INTEGER ARRAY MLIDFIELD(0)
+ * 0;0;*-2;0
+ * *+140/
+ *"
+"
+ %============================================================================
+ %      S P T 3 P I T   -   S P T 0 P I T   -   S 3 N O A L P I T
+ %
+ % SET PAGE INDEX TABLE 0 OR 3 FOR CALLING PROGRAM
+ %
+ % SPT3PIT:   NORM PIT=3; ALT PIT=0
+ % SPT0PIT:   NORM PIT=ALT PIT=0
+ % S3NOALPIT: NORM PIT=ALT PIT=3
+ %
+ SUBR SPT3PIT,SPT0PIT,S3NOALPIT
+ INTEGER SVX,SVL,CPITS
+ S3NOALPIT: A:=3600; GO FELLS
+ SPT0PIT: A:=0; GO FELLS
+ SPT3PIT: A:=3000
+ FELLS:   *PIOF
+          A=:CPITS
+          A:=L=:SVL; X=:SVX:=RTREF
+          A:=X.ACTPRI/\174177\/CPITS
+          A=:X.ACTPRI/\3773; *TRR PCR; BSET ONE
+          X:=SVX; A:=SVL; *PION
+          A=:P
+ RBUS
+
+
+ *"8GPI0+8GPI1+8GPI2+8GPI3+8GPI4+8GPI5+8GPI6+8GPI7
+" *9ENTO=ENTOP
+ *MBABP=TEXIT
+ *"

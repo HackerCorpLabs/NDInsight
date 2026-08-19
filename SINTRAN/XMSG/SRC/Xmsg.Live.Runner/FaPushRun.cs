@@ -37,6 +37,19 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
         private readonly int _contentLength;
 
         private readonly ushort _serverNode;
+        /// <summary>
+        /// Gets the node this transfer talks to.
+        /// </summary>
+        /// <remarks>
+        /// Exposed so the runner can open the XMSG link from the REMEMBERED seed before pumping.
+        /// Without that, a transfer can only start against a peer that has spoken to us first,
+        /// which is useless for a daemon and makes a transfer against an idle peer unobservable.
+        /// </remarks>
+        public ushort RemoteNode
+        {
+            get { return _serverNode; }
+        }
+
 
         private bool _started;
         private bool _reported;
@@ -45,6 +58,57 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
         /// Set when the push threw, so it stops instead of throwing again every tick.
         /// </summary>
         private bool _crashed;
+
+        // THE CONNECT-LETTER RETRY. The letter is sent once, as soon as CanReach is true - and
+        // CanReach is only "is there a link", which becomes true on ANY inbound frame, including
+        // the InitializationNak the peer sends in answer to our announce. So the letter routinely
+        // goes out before the peer is ready to answer it, the peer ignores it, and nothing is ever
+        // sent again: a dead transfer with a healthy-looking log. MEASURED 2026-08-17, and it is
+        // the single thing every client-side failure that day had in common.
+        //
+        // Only the CONNECT letter is retried. Once the peer has answered anything, the ladder is
+        // live and a lost frame there is a different problem with different evidence.
+        private byte[][]? _connectFrames;
+        private DateTime _connectSentUtc;
+        private int _connectAttempts;
+        private bool _peerAnswered;
+        private long _pumpTicks;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the XMSG link may be opened from the REMEMBERED
+        /// seed instead of waiting for the peer to address us first.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The same defect that was found and fixed in the one-shot PULL, still present here.
+        /// <c>CanReach</c> alone means "the peer has addressed us", which never becomes true on a
+        /// seam where we are the side that speaks first. So <c>--originate-from-seed</c> was
+        /// accepted on the command line, wired into the pull and into the sync daemon, and
+        /// SILENTLY IGNORED by the one-shot push.
+        /// </para>
+        /// <para>
+        /// MEASURED 2026-08-18 against a live D100: LAPB reached Connected, our announce went out,
+        /// the peer answered, and XROUT letters arrived from node 100 for six minutes - while this
+        /// gate never opened and not one FA frame was built. The log showed a healthy link and a
+        /// transfer that had never begun, which is the worst shape a failure can take.
+        /// </para>
+        /// </remarks>
+        public bool OriginateFromSeed { get; set; }
+
+        /// <summary>
+        /// How long to wait for the peer to answer the connect letter before sending it again.
+        /// </summary>
+        private static readonly TimeSpan ConnectRetryAfter = TimeSpan.FromSeconds(5);
+
+        /// <summary>
+        /// How many connect letters to send in total before giving up.
+        /// </summary>
+        /// <remarks>
+        /// Bounded, and it says so when it stops. An unbounded retry against a peer that is
+        /// refusing for some OTHER reason turns one diagnosable stall into a flood that buries the
+        /// evidence - measured elsewhere in this code as 127 rejects in sixteen seconds.
+        /// </remarks>
+        private const int MaxConnectAttempts = 4;
 
         /// <summary>
         /// Creates a push.
@@ -79,7 +143,57 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
         /// </summary>
         public bool Finished
         {
-            get { return _crashed || _driver.Done || _driver.Failure.Length > 0; }
+            get
+            {
+                // NOT finished while a goodbye is still owed. A refusal sets Failure at once, and
+                // stopping there would cut the conversation off before its Release reached the
+                // wire - leaving the server holding the connection seat, which is exactly what
+                // sending one is for.
+                if (_driver.ReleasePending) { return false; }
+
+                return _crashed || _driver.Done || _driver.Failure.Length > 0;
+            }
+        }
+
+        /// <summary>
+        /// Gets whether the transfer finished BADLY, as opposed to merely finishing.
+        /// </summary>
+        /// <remarks>
+        /// <c>Finished</c> is true either way - it answers "is it over", not "did it work" - and
+        /// reading it as success is how a refused transfer came to exit 0. MEASURED 2026-08-18: a
+        /// push the machine refused with SINTRAN error 39 printed a byte count and returned success.
+        /// </remarks>
+        public bool Failed
+        {
+            get { return _crashed || _driver.Failure.Length > 0; }
+        }
+
+        /// <summary>
+        /// Gets why the transfer failed, or an empty string when it did not.
+        /// </summary>
+        /// <remarks>
+        /// Carries the SERVER's own words where there are any - a refusal decodes to a SINTRAN
+        /// error number and its meaning. Worth passing on rather than replacing with a summary:
+        /// "No such user name in main directory" tells the operator what to fix, "the push failed"
+        /// does not.
+        /// </remarks>
+        public string Failure
+        {
+            get { return _driver.Failure; }
+        }
+
+        /// <summary>
+        /// Gets the SINTRAN error number behind the failure, or zero when there is none.
+        /// </summary>
+        /// <remarks>
+        /// Taken from the driver rather than scraped back out of <see cref="Failure"/>. The text is
+        /// for a person; a caller that has to make a DECISION on the number needs the number, and
+        /// one caller does - the sync daemon treats 62, "File already exists", as an answer rather
+        /// than a fault.
+        /// </remarks>
+        public int SintranError
+        {
+            get { return _driver.SintranError; }
         }
 
         /// <summary>
@@ -100,6 +214,74 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
         public void OnFrame(XmsgFrame frame)
         {
             if (frame == null) { throw new ArgumentNullException(nameof(frame)); }
+
+            // Only a frame addressed to OUR port, after our connect letter, means it landed.
+            //
+            // This hook sees EVERY frame on the link, including the peer's own requests to our
+            // file server, and an earlier cut set the flag on any of them. That silently disabled
+            // the retry: the peer's unrelated traffic arrived first, the flag went up, and the
+            // connect letter was then never re-sent - the exact failure this retry exists to fix,
+            // reintroduced one layer up. Guarding on the letter having been sent is what makes the
+            // flag mean "answered US" rather than "the link is busy".
+            //
+            // Guarding on the letter alone was still not enough: the peer's own requests to our
+            // file server arrive on the SAME link a moment later and set the flag again. The port
+            // check is what ties an answer to THIS conversation.
+            if (_connectFrames != null
+                && frame.SubHeader != null
+                && frame.SubHeader.DestinationPort == _driver.OurPort)
+            {
+                _peerAnswered = true;
+            }
+
+            // A REFUSAL IS NOT SILENCE. SHOW IT, AND SHOW IT BEFORE ANY PORT TEST.
+            //
+            // The peer refuses a letter with a CONTROL datagram: XDTYP bit 0 (XD5CO) says control,
+            // bit 2 (XD5BA) says BAD STATUS, and the reason rides in word 5 as a NEGATED XroutError.
+            // Such a datagram is seven header words and NOTHING else - no sub-header, no port - so
+            // every display below, gated on SubHeader and on our port, skipped it in silence.
+            //
+            // That is how "no answer to the connect letter" got printed three times in one log while
+            // the machine was answering XRMFL, "Remote system message table space full". 39 of these
+            // went past unread in a single session. The lesson one block down - that a driver which
+            // discards replies cannot be debugged from its own log - was right and did not go far
+            // enough: it was applied only to frames that HAVE a sub-header.
+            if (frame.Header != null)
+            {
+                ushort datagramType = (ushort)((frame.Header.PacketType << 8) | (byte)frame.Header.Subtype);
+                if (SintranControlStatus.TryGetRefusal(datagramType, frame.Header.Flags2, out XroutError refusal))
+                {
+                    Console.WriteLine(
+                        "[push] <- node " + frame.Header.SourceNode + " REFUSED us: " + refusal
+                        + " (" + (int)refusal + ")"
+                        + " - XDTYP=0x" + datagramType.ToString("X4")
+                        + " XDSCR=0x" + frame.Header.Flags2.ToString("X4"));
+                }
+            }
+
+            // SHOW EVERY FRAME THE PEER SENDS TO OUR PORT, matched or not.
+            //
+            // The peer has been ANSWERING our connect letter all along - with XRUNN, "unknown name
+            // of server or system" - and this driver dropped the answer because it decodes only the
+            // replies it expects. The ladder then stalled with a healthy-looking log, and a great
+            // deal of time went into explaining a silence that was never silent.
+            //
+            // A driver that discards replies cannot be debugged from its own log. This costs one
+            // line per frame and would have ended that hunt in minutes.
+            if (frame.SubHeader != null
+                && frame.SubHeader.DestinationPort == _driver.OurPort
+                && frame.Header != null
+                && frame.Header.Subtype == SintranPacketSubtype.Data)
+            {
+                byte[] body = frame.GetBodyBytes();
+                int show = body.Length < 16 ? body.Length : 16;
+                Console.WriteLine(
+                    "[push] <- from node " + frame.Header.SourceNode
+                    + " on our port 0x" + _driver.OurPort.ToString("X4")
+                    + ", " + body.Length + " byte(s): "
+                    + Convert.ToHexString(body, 0, show)
+                    + (body.Length > show ? "..." : string.Empty));
+            }
 
             if (Finished)
             {
@@ -143,7 +325,15 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
             // first datagram is DISPATCHED, which is a tick after the link learned the peer's id,
             // and a frame built in that gap cannot be addressed at all. Measured the hard way: the
             // push fired in the gap and the exception took the whole runner down.
-            if (!host.ServerHost.CanReach(_serverNode))
+            // CanReach alone means "the peer has addressed us", which never happens on a seam where
+            // we speak first - so with it as the only gate a push waits for ever and says nothing
+            // while it waits. OriginateFromSeed opens the link from the REMEMBERED seed instead,
+            // which is the same choice the pull and the sync daemon already had.
+            bool reachable = OriginateFromSeed
+                ? host.ServerHost.OpenLinkFromRememberedSeed(_serverNode)
+                : host.ServerHost.CanReach(_serverNode);
+
+            if (!reachable)
             {
                 return;
             }
@@ -161,6 +351,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
             FaClientAction action = _driver.NextAction();
             if (action == FaClientAction.Wait)
             {
+                RetryConnectLetterIfSilent(host);
                 return;
             }
 
@@ -180,10 +371,22 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
                     return;
                 }
 
+                byte[][] sent = new byte[frames.Count][];
                 for (int i = 0; i < frames.Count; i++)
                 {
                     byte[] bytes = frames[i].ToArray();
+                    sent[i] = bytes;
                     host.Transport.Send(new ReadOnlySpan<byte>(bytes));
+                }
+
+                // Keep the CONNECT letter so it can be sent again if the peer never answers. The
+                // exact bytes are kept, not rebuilt: a retransmit carries the SAME sequence, and
+                // rebuilding would advance the ladder instead of repeating the step.
+                if (!_peerAnswered && _connectFrames == null)
+                {
+                    _connectFrames = sent;
+                    _connectSentUtc = DateTime.UtcNow;
+                    _connectAttempts = 1;
                 }
 
                 Console.WriteLine(
@@ -211,6 +414,62 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
         /// <returns>
         /// <see langword="true"/> when the push is finished.
         /// </returns>
+        /// <summary>
+        /// Sends the connect letter again when the peer has answered nothing at all.
+        /// </summary>
+        /// <param name="host">
+        /// The node whose transport carries the frames.
+        /// </param>
+        /// <remarks>
+        /// Does nothing once the peer has answered, once the attempts are spent, or before the
+        /// wait has elapsed. It gives up out loud rather than retrying forever: a stall that says
+        /// why is diagnosable, a flood is not.
+        /// </remarks>
+        private void RetryConnectLetterIfSilent(XmsgNodeHost host)
+        {
+            if (_peerAnswered || _connectFrames == null)
+            {
+                return;
+            }
+
+            if (DateTime.UtcNow - _connectSentUtc < ConnectRetryAfter)
+            {
+                return;
+            }
+
+            if (_connectAttempts >= MaxConnectAttempts)
+            {
+                Console.WriteLine(
+                    $"[push] GIVING UP: node {_serverNode} answered none of {MaxConnectAttempts}"
+                    + " connect letters. The link is up and the frame is well formed, so this is"
+                    + " not a lost frame - stopping rather than flooding the machine.");
+                _connectFrames = null;
+
+                // SAY SO TO THE DRIVER, not just to the screen.
+                //
+                // Printing "GIVING UP" and returning left the transfer reporting itself unfinished,
+                // so nothing above could tell a decided failure from one still in progress.
+                // MEASURED 2026-08-18: a push to a user that does not exist gave up at 25 seconds
+                // and the process then sat there until the wall-clock timeout at 45 - it had known
+                // the answer for twenty seconds and had no way to say it.
+                _driver.Abandon(
+                    $"node {_serverNode} answered none of {MaxConnectAttempts} connect letters.");
+                return;
+            }
+
+            _connectAttempts++;
+            _connectSentUtc = DateTime.UtcNow;
+
+            for (int i = 0; i < _connectFrames.Length; i++)
+            {
+                host.Transport.Send(new ReadOnlySpan<byte>(_connectFrames[i]));
+            }
+
+            Console.WriteLine(
+                "[push] no answer to the connect letter - sending it again"
+                + $" (attempt {_connectAttempts} of {MaxConnectAttempts})");
+        }
+
         private bool ReportIfFinished()
         {
             if (!Finished)
@@ -221,6 +480,31 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
             if (_reported)
             {
                 return true;
+            }
+
+            if (_driver.Failure.Length > 0)
+            {
+                // A FAILED PUSH MUST STILL PUT THE FILE DOWN. From the moment OpenFile is
+                // answered the peer holds the file open, and walking away leaves it open for
+                // good: it cannot be rewritten, and it cannot even be deleted - SINTRAN answers
+                // FILE ALREADY OPEN. It does not show in LIST-OPEN-FILES either, because the file
+                // server's RT program owns it rather than any terminal, so the only way out is a
+                // file-server restart. Measured on D100 2026-08-17 after a stalled push of
+                // CHAT:PLNC.
+                //
+                // So the content is abandoned but the epilogue is not: SetEndOfFile, CloseFile,
+                // ReleaseFileEntry go out exactly as a finished write sends them. The file ends
+                // up short rather than absent, which the machine can recover from on its own.
+                if (_driver.FileOpenOnPeer && _driver.AbandonButCloseFile())
+                {
+                    Console.WriteLine(
+                        $"[push] *** FAILED *** {_driver.Failure}");
+                    Console.WriteLine(
+                        "[push] the file is open on the peer - sending the close anyway, "
+                        + "because an abandoned write leaves it stuck until the file server "
+                        + "is restarted.");
+                    return false;
+                }
             }
 
             _reported = true;

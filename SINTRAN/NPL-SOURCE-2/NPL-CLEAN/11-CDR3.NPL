@@ -1,0 +1,1034 @@
+ @DEV 1
+ @DEV (S-S-J)CDR3
+
+
+ %==============================================================================
+ %      C D R 3
+ %=============================================================================
+
+
+ *"8ACC                                 % CPU-TIME USED FOR USER RT-PROGRAMS
+" %============================================================================
+ % 34.50      N A C C O U N T
+
+ SUBR NACCOUNT
+ %% RT-ACCOUNTING                                 % USER RT-PROGRAM
+ NACCOUNT:  IF A:=CURPROG>"RTBES" GO NN2
+        IF    A="RWRT1" THEN A:="DF1".SSREF;GO NN1;FI
+        IF    A="RWRT2" THEN A:="DF2".SSREF;FI
+ NN1:   IF    A<"RTBES" THEN EXIT;FI              % NOT USER RT-PROGRAM
+ NN2:         A-"RTBES"=:D:=0;T:=5RTSIZE;*RDIV ST % COMPUTE RT-DES INDEX
+        A=:D SHZ  1 +D+ "ACTAB"=:X                % ACCOUNT ENTRY
+        IF X.S0 >< 0 THEN
+          MIN X.S2;GO SUITE;MIN X.S1;0/\0
+        FI
+ SUITE: EXIT
+ *)FILL
+ *"-8ACC
+" RBUS
+
+ INTEGER BPAG1=?                        %% POINTER TO 1. ELEM. IN SEG.TABLE
+ INTEGER CCSTART=?                      %% RTCOMMON START IN PHYSICAL MEMORY
+ *"8RSEG+8N500
+" %==============================================================================
+ % 35.0       M R S E G M
+ %
+ %      MONITOR CALL TO READ SEGMENT TABLE ENTRY
+ %
+ %      ENTRY:  D0 = SEGMENT NUMBER
+ %              D1 = USER ARRAY ADDRESS WHERE CONTENT SHOULD BE STORED
+ %
+ %      EXIT :  OK = SKIPRETURN
+ %              ERROR:  A=ERRCODE
+
+ SUBR MRSEGM
+
+ INTEGER ARRAY SCCOM(5)                           % SIM. SEGMENT TABLE ENTRY FOR RT-COMMON
+ DISP 0; REAL FS0=S0; DOUBLE DIS3=S3; PSID
+
+ MRSEGM: T:="P1"; CALL GET1; T=:D1
+        IF D0<0 OR A>SGMAX GO ILLPA
+        A*5SEGSIZE+SEGSTART=:D2
+        RTREF=:D; D1; T:=5; CALL CHLIM; GO ILLAD
+        IF DEMAND><0 THEN MLEV; *MST PIE
+        FI
+        IF D0=0 THEN          % RT-COMMON
+              100-CCFPAGE SH 10+CCFPAGE=:SCCOM(2)
+              CCSTART=:SCCOM(3)
+              161000=:SCCOM(4); "SCCOM"=:D2
+        FI
+        D2.FS0; X:=D1; CALL ALTON; TAD=:X.FS0; CALL ALTOF
+        D2.DIS3; X:=D1; CALL ALTON; AD=:X.DIS3; CALL ALTOF
+        MIN ZPREG; 0/\0; A:=0
+ OUT:   A=:ZAREG; GO RET
+ ILLPA: 174; GO OUT           % ILLEGAL PARAMETER
+ ILLAD: 153; GO OUT           % ILLEGAL ADDRESS REF. IN MON CALL
+ RBUS
+ *"-8RSEG -8N500
+"
+ %==============================================================================
+ % 35.2       R T D I R
+ %
+ %SUBROUTINE TO START AN RT PROGRAM FROM A DIRECT TASK
+ %A=POINTER TO AN ARRAY OF 5 LOCATIONS, THE FIRST=RT PROGRAM
+ SUBR RTDIR
+ DISP 7; INTEGER AREG,LREG; PSID
+ RTDIR: B:=:A-4; A=:AREG:=L=:LREG
+        "RTDMON"=:MFUNC; CALL RTACT
+        LREG=:L; AREG:=:B+4; EXIT
+ %MONITOR LEVEL:
+ RTDMON: X.ISTATE; IF =0 THEN CALL 9ERR(#01) FI; CALL XRTCHECK
+        CALL RTENTRY; GO STUPR
+ RBUS
+
+
+
+ %===========================================================================
+ %
+ % 35.3       P R T D R
+ %
+
+ SUBR PRTDR
+ PRTDR: IF X:="RTDTTABLE"=0 GO OUT
+        DO WHILE X.S1><0
+              IF "ERTDTABLE"=X GO OUT
+              X+5
+        OD; T=:X.S0; X=:A;  CALL RTDIR
+ OUT:   GO RET14
+ RBUS
+
+ *"
+"
+
+
+
+ *"8DIR
+"
+ SUBR P3OSTERM
+ RBUS
+
+ %==============================================================================
+ % 35.9       3 I N S T R   3 O U T S T
+ %
+ % STRING MONITOR CALLS
+ % I=INSTR(LOG.NO,COREADDR,MAXNO,TERMINATOR)
+ % I=OUTST(LOG.NO,COREADDR,NUMBER)
+ SUBR 3INSTR,3OUTST,PT3OSTERM,COPTDFIELD
+
+ DISP 24
+        INTEGER CCOUNT,VAL,DYTYFIELD
+        INTEGER POINTER LREG
+ PSID
+
+ @LIB CXCPU
+
+ INTEGER BREG
+
+ % MONITOR CALL INSTR:
+ 3INSTR: T:="P1"; CALL GET4; CALL C3OUTX
+        A=:X; CALL CHERR
+        OLDPAGE=:D; CALL DALTON; *BSET ZRO
+        DO
+              MIN CCOUNT; GO BYP1; GO OUT1
+ BYP1:        CALL IOTR; GO WEX1; IF =D3 GO TERM1; A SH 10=:VAL
+              MIN CCOUNT; GO BYP2; GO OUT2
+ BYP2:        CALL IOTR; GO WEX2; IF =D3 GO TERM2
+              A+VAL; *BSET ONE
+              A=:X.S0; *BSET ZRO
+              X+1
+        OD
+ %EXITS FROM LOOP:
+ OUT2:  *BSET ONE
+        A=:X.S0; *BSET ZRO
+ OUT1:  D2=:ZAREG; GO ACTRET
+ % BUFFER EMPTY(RT ONLY):
+ WEX2:  VAL; *BSET ONE
+        A=:X.S0; *BSET ZRO
+        GO WEXX
+ WEX1:  IF D2+CCOUNT-1=0 GO WTIO
+ WEXX:  D2+CCOUNT BONE 17=:ZAREG; GO ACTRET
+ TERM2: A+VAL; GO TERMX
+ TERM1: A SH 10
+ TERMX: *BSET ONE;
+        A=:X.S0; *BSET ZRO
+        D2+CCOUNT+1 BONE 16=:ZAREG; GO ACTRET
+ % EXIT WITH ACTIVATION OF DEVICE:
+ ACTRET: X:=DYTYFIELD:=:B; *IOF
+ @LIB CXCPU
+ @LIB CXCPU-,
+        CALL STDEV; X:=:B; *ION
+ @ELIB
+ RETU:  IF BACKGROUND><0 THEN CALL XBMRET FI; GO RET
+ WTIO:  *IOF
+        X:=DYTYFIELD:=:B=:BREG:=RTREF; CALL WDATA
+ @LIB CXCPU
+ @LIB CXCPU-,
+        CALL STDEV; BREG=:B
+ @ELIB
+        ZPREG-1=:ZPREG; GO RETSTUPR
+ @LIB CXCPU-,
+ ERR2:  2; GO ERRF
+ @ELIB
+ *)FILL
+
+
+
+ % MONITOR CALL OUTST:
+ 3OUTST: T:="P1"; CALL GET3; CALL C3OUTX
+        IF D=0 GO ERR2
+ @LIB CXCPU
+ @LIB CXCPU-,
+        IF A><0 AND A.TYPRING BIT 5TERM GO FAR OSTERM
+        IF D.TYPRING BIT 5COM GO FAR SIMMAG
+        IF A BIT 5BAD GO FAR OSTAD
+ @ELIB
+        IF BACKGROUND=0 THEN
+           IF D2>>X.MAX GO OUTFULL
+           IF A>>X.CFREE GO WTIO
+        FI; CALL CHERR; OLDPAGE=:D; CALL DALTON; *BSET ZRO
+        DO
+              MIN CCOUNT; GO OBYP1; GO OOUT
+ OBYP1:       *BSET ONE
+              X.S0; *BSET ZRO
+              X+1; A=:VAL SHZ -10
+              CALL IOTR; GO OUTFULL; MIN CCOUNT; GO OBYP2; GO OOUT
+ OBYP2:       VAL/\377; CALL IOTR; GO OUTFULL
+        OD
+ % EXITS FROM LOOP:
+ OOUT:  0=:ZAREG; GO ACTRET
+ OUTFULL: 100000=:ZAREG; GO RET                   % RT ONLY
+
+ % LOCAL SUBROUTINE TO CHECK FOR ERRORS; X=DATAFIELD
+ %RETURN: X=CORE ADDR
+ CHERR: A:=L=:"LREG"; X=:DYTYFIELD
+        IF X=0 OR X.TYPRING NBIT 5IOBT GO ERR2
+        IF X.RTRES><RTREF THEN 5; GO ERRF FI; T=:D
+        IF D2<0 GO ERR; T:=A+1 SHZ -1; A-,=:CCOUNT
+        D1; CALL CHLIM; GO ERR; *IOF
+        IF X.TYPRING BIT 5TERM THEN
+           T:="FLAGB"; CALL XGTDFADDR
+           IF A BIT 5LSTA THEN TER02; GO ERRF FI  % TERMINAL NOT CONNECTED
+        FI
+ @LIB CXCPU
+ @LIB CXCPU-,
+        IF X.DERROR><0 THEN 0=:X.DERROR; *ION
+ ERRF:        A\/140000=:ZAREG; GO RETU
+ @ELIB
+        FI; X:=D1; MLEV; *MST PIE; ION
+        GO LREG
+ @LIB CXCPU
+ @LIB CXCPU-,
+ ERR:   -1=:ZAREG; GO FAR RETU
+ @ELIB
+ *)FILL
+
+ C3OUTX: T=:D1:=L=:"LREG"
+         CALL 3OUTX; A=:D; IF A/\177700=100 GO FAR ERR2; A:=D
+         CALL LOGPH; GO LREG
+
+ % SUBROUTINE TO EXECUTE "IOTRANS"
+ % RETURN: FULL/EMPTY (RT ONLY)
+ % SKIPRETURN: OK
+ IOTR:  A=:D; DYTYFIELD; *IOF; IRW BLEVB DB
+        "BIOTR"; *IRW BLEVB DP
+        BLEV; *MST PID; COPY SD DA
+        IF T:=BACKGROUND><0 THEN L-1 FI
+        *ION; EXIT
+ % INBT-OUTBT LEVEL:
+ BIOTR: *PIOF
+ @LIB CXCPU
+        *IRR ALEVB DA
+        CALL IOTRANS; GO WWT; *IRW ALEVB DA
+        *IRR ALEVB DL; AAA 1
+        IF T:=BACKGROUND><0 THEN A+1 FI
+        *IRW ALEVB DL
+ WBIO:  CALL STDEV
+ @LIB CXCPU
+        *PION; WAIT
+        CALL ERRFATAL
+ WWT:   IF BACKGROUND><0 THEN
+ @LIB CXCPU
+ @LIB CXCPU-,
+           X:=RTREF; CALL WDATA; "STUPR";*IRW MLEVB DP
+ @ELIB
+           MLEV; *MST PID
+        FI
+        GO WBIO
+ *)FILL
+
+ %      O S T E R M
+
+ DISP 0; DOUBLE CDBUADR=CBUADR, DD1=D1; PSID
+ DISP 5REG; REAL ZF1RG,ZF4RG,ZF7RG; PSID
+ INTEGER XREG,SAVB
+
+ OSTERM: IF D.RTRES><RTREF THEN 5; GO FAR ERRF FI          % DEVICE NOT RESERVED
+ @LIB CXCPU
+
+ @LIB CXCPU-,
+        AD:=DD1=:X.CDBUADR; X=:XREG
+        TAD:=ZF1RG=:X.ZOPRG:=ZF4RG=:X.ZOARG:=ZF7RG=:X.ZOSRG
+        IF B="DEMFIELD" THEN X:=RTRES; CALL BRELEASE FI
+        OLDPAGE=:D; XREG=:B; MLEV; *MST PIE
+        MAX SHZ -1+BUFST=:T; NOCHAR SHZ -1; A-=:CNOCHAR
+        CALL DALTON; *PIOF
+        FYLLE SHZ -1+BUFST=:D; MINBHOLD BONE 5BLOC=:MINBHOLD
+ LOOP:  *PIOF
+        X:=CBUADR; BHOLD=:SBHOLD; 0=:BHOLD; CFREE SHZ -1=:L
+        CNOCHAR-=:XNOCHAR; IF A=0 GO MBFERDIG
+        IF FYLLE BIT 0 GO FAR NOTEVEN
+        FOR CNOCHAR DO
+              IF L=0 GO NOSPACE; *PION
+              X.S0; *PIOF
+              X+1:=:D; A=:X.S0
+              L-1; IF X+1=T THEN X:=BUFST FI; X:=:D
+        OD; GO FERDIG; *)FILL
+
+ FERDIG: CNOCHAR+XNOCHAR SH 1+SBHOLD=:SBHOLD
+        IF NOCHAR BIT 0 THEN
+              IF L=0 AND CFREE NBIT 0 THEN
+                 A:=D-BUFST SH 1=:FYLLE
+                 SBHOLD=:BHOLD; GO GGSTUPR
+              FI
+              A:=D-BUFST SH 1=:D
+              *PION
+              X.S0 SHZ -10; *PIOF
+              T:=BUFST; X:=:D; *SBYT
+              IF X+1=MAX THEN X:=0 FI; X=:FYLLE; MIN SBHOLD
+        ELSE
+              A:=D-BUFST SH 1=:FYLLE
+        FI
+ GORET: SBHOLD=:BHOLD; MAX-BHOLD=:CFREE
+        MINBHOLD BZERO 5BLOC=:MINBHOLD
+ @ELIB
+
+ TGORET: CALL ALTOFF; *IOF
+        CALL STDEV
+        A:=B+"ZOPRG"-5REG=:B; 0=:ZAREG
+        *PION
+        GO FAR RETU
+
+ @LIB CXCPU-,
+ MBFERDIG: IF FYLLE BIT 0 THEN A=:D; GO XFERDIG FI
+        GO FERDIG
+
+ *)FILL
+
+ NOSPACE: A:=D-BUFST SH 1=:FYLLE
+ GOSTUPR: CNOCHAR+XNOCHAR SH 1+SBHOLD=:BHOLD
+ GGSTUPER: MAX-BHOLD=:CFREE; X=:CBUADR; A:=D=:SBHOLD
+        X:=RTRES; CALL WDATA; CALL STDEV
+        SBHOLD=:D
+        "STUPR"; *IRW MLEVB DP
+        MLEV; *MST PID; PION
+        GO FAR LOOP
+
+ NOTEVEN: FYLLE=:D
+        FOR CNOCHAR DO
+              IF L=0 GO XNOSPACE; *PION
+              X.S0 SHR 10; X+1:=:D; *PIOF
+              T:=BUFST; *SBYT
+              IF X+1=MAX THEN X:=0 FI
+              T:=BUFST; A SHR 10; *SBYT
+              IF X+1=MAX THEN X:=0 FI
+              L-1; X:=:D
+        OD
+
+ XFERDIG: CNOCHAR+XNOCHAR SH 1+SBHOLD=:SBHOLD
+        IF NOCHAR BIT 0 THEN
+              IF L=0 AND CFREE NBIT 0 THEN
+                 A:=D=:FYLLE; SBHOLD=:BHOLD; GO GGSTUPR
+              FI
+              *PION
+              X.S0 SHR 10; *PIOF
+              X:=D; T:=BUFST; *SBYT
+              IF X+1=MAX THEN X:=0 FI
+              MIN SBHOLD
+        ELSE
+              X:=D
+        FI; X=:FYLLE
+        GO GORET
+
+ XNOSPACE: A:=D=:FYLLE
+        GO GOSTUPR
+ *)FILL
+ @ELIB
+
+ INTEGER POINTER PTTNO:=TTNO,PBCHFLAG:=BCHFLAG, PTTIFIELD:=TTIFIELD
+ 3OUTX: IF BACKGROUND><0 THEN
+              X:=B+7; *LRB BLEVB
+              X:="ESCBLOCK"; *SRB BLEVB
+              A:=B=:CMDFFIELD
+              IF D0=1 THEN
+                 IF PBCHFLAG=0 THEN
+                    A:=PTTNO
+                 ELSE
+                    A:=PTTIFIELD.DFOPP.ROFIL
+              FI;FI
+        ELSE
+              D0
+        FI; EXIT
+
+
+ % SIMULATE MAGTP CALL FOR COMM. CHANNEL
+ SIMMAG: D2 SHZ -1=:IMAXW; D1=:ICORAD; IF M THEN MIN IMAXW; 3 ELSE 1 FI A=:IFUNC
+        1=:WFLAG; 0=:MTFLG; -1=:IBLOADR; GO FAR XMRW                  % CONT. IN MAGTP ROUTINE
+ *)FILL
+
+ %      O S T A D
+
+ INTEGER TADDF
+ OSTAD:
+
+ *"8STRN+8N500 -BADAD
+"
+        IF D.RTRES><RTREF THEN 5; GO FAR ERRF FI          % DEVICE NOT RESERVED
+        X=:TADDF; D1=:X.USDADR; D2-=:X.OBCOU
+        TAD:=ZF1RG=:X.ZOPRG:=ZF4RG=:X.ZOARG:=ZF7RG=:X.ZOSRG
+        IF B="DEMFIELD" THEN X:=RTRES; CALL BRELEASE FI
+        OLDPAGE=:D; TADDF=:B; MLEV; *MST PIE
+        0=:XRSA; CALL DALTON
+ TLOOP: *PIOF
+        X:=XRSA; IF OBCOU=0 GO FAR TGORET
+        FOR OBCOU DO
+              T:=USDADR
+              *PION; BSET ONE; LBYT; BSET ZRO; PIOF
+              CALL IOTRANS; GO TBUFWT; X+1
+        OD; GO FAR TGORET; *)FILL
+
+ TBUFWT: IF DERROR=0 THEN                         % WAIT FOR BUFFER
+           X:=RTRES; CALL WDATA
+           "STUPR"; *IRW MLEVB DP
+           MLEV; *MST PID; PION
+           GO TLOOP
+        FI; *PION
+        0=:DERROR; GO FAR ERRF                    % ERROR FROM IOTRANS
+ *"8STRN+8N500
+" RBUS
+
+ @LIB CXCPU
+ *"-8STRN -8N500
+" *CBLOC=TEXIT; CB2LO=TEXIT; CBUNL=TEXIT
+
+ *"8DMAS
+" *"8MEAS
+" %==============================================================================
+ % 35.12      X P P R U T
+ %
+ SUBR XPPRUT
+ DISP 7; INTEGER P7; PSID
+ XPPRUT: *IOF
+        X:=X.P7=:B; CALL STDEV; *ION
+        GO STUPR
+ RBUS
+
+
+ *"7NDDI
+" *
+
+ *"8QBPO
+"
+
+ %=====================================================================
+ %=====================================================================
+ %                                                                                        %
+ %                                                                                        %
+ %            B U F F E R   P O O L     M O N I T O R   C A L L S     %
+ %                                                                                        %
+ %                                                                                        %
+ %=====================================================================
+ %=====================================================================
+
+
+
+
+
+
+ SYMBOL SBMAX=100             % MAX NUMBER OF BUFFERS IN PACKET
+ %
+ %============================================================================
+ %         DATA FIELD DESCRIPTORS
+ %
+ %============================================================================
+ % 35.21      P O O L   H E A D
+
+ DISP -1
+ INTEGER WPVER                % VERIFICATION VALUE OF POOL HEAD
+ SYMBOL SPCOR=125252          % CORRECT VALUE OF WPVER
+ INTEGER WFREE                % ADDRESS OF FIRST FREE BUFFER, =0 IF EMPTY
+ INTEGER WNFRE                % NUMBER OF FREE BUFFERS IN POOL
+ INTEGER WLLIM                % LOWER ADDRESS OF BUFFER POOL
+ INTEGER WHLIM                % HIGHER ADDRESS OF BUFFER POOL
+ INTEGER WBFSZ                % BUFFER SIZE , NO. OF WORDS
+ PSID
+
+
+ %============================================================================
+ % 35.22      Q U E U E   H E A D
+
+ DISP 0
+ INTEGER WLPAK                % ADDRESS OF LAST PACKET IN QUEUE
+                              % EQUAL TO QUEUE HEAD IF QUEUE EMPTY
+ INTEGER WFPAK                % ADDRESS TO FIRST BUFFER IN QUEUE
+                              % EQUAL TO QUEUE HEAD IF EMPTY
+ INTEGER WPNUM                % NUMBER OF PACKETS IN QUEUE
+ INTEGER WPROC                % ADDRESS OF OWNER OF QUEUE
+ PSID
+
+
+ %============================================================================
+ % 35.23      P A C K E T   H E A D
+
+ %      2.3.1 GENERAL OFFSETS, PACKET HEAD AND WXX
+ %            TO BE USED WITHIN GLOB-DEF, ONLY !!!
+
+ SYMBOL SLHW=400              % MULTIPLIER FOR LEFT HALFWORD
+ SYMBOL S1QW=10000            % MULTIPLIER FOR 1 QUARTERWORD
+ SYMBOL S3QW=20               % MULTIPLIER FOR 3 QUARTERWORD
+ SYMBOL S1OCT=40000           % MULTIPLIER FOR 1 OCTET
+ SYMBOL S3OCT=2000            % MULTIPLIER FOR 3 OCTET
+ SYMBOL S5OCT=100             % MULTIPLIER FOR 5 OCTET
+ SYMBOL S7OCT=4               % MULTIPLIER FOR 7 OCTET
+ SYMBOL SRHW=1                % MULTIPLIER FOR RIGHT HALFWORD
+
+ %============================================================================
+ % 35.24      GENERAL FIELDS, PACKET HEAD AND WDW'S
+ %            TO BE USED WITHIN GLOB-DEF ONLY !!!
+ %
+ SYMBOL SRHWMASK=377          % RIGHT HALFWORD MASK
+ SYMBOL SLHWMASK=-SRHWMASK-1  % LEFT HALFWORD MASK
+ SYMBOL S1QWMASK=17*S1QW      % 1. QUARTER WORD MASK
+ SYMBOL S2QWMASK=17*SLHW      % 2. QUARTER WORD MASK
+ SYMBOL S3QWMASK=17*S3QW      % 3. QUARTER WORD MASK
+ SYMBOL S4QWMASK=17*SRHW      % 4. QUARTER WORD MASK
+ SYMBOL C1QWMASK=-S1QWMASK-1
+ SYMBOL C2QWMASK=-S2QWMASK-1
+ SYMBOL C3QWMASK=-S3QWMASK-1
+ SYMBOL C4QWMASK=-S4QWMASK-1
+ %
+
+ %============================================================================
+ % 35.25      ACTUAL PACKET HEAD LAY-OUT
+ %
+ DISP SPDISP=0
+ INTEGER WNBUF                % ADDRESS OF NEXT BUFFER IN PACKET
+ INTEGER WNPAK                % ADDRESS OF NEXT PACKET IN QUEUE
+ INTEGER WPOSS                % ADDRESS OF OWNER OF PACKET
+ INTEGER WDUM                 % DUMMY
+ INTEGER WTYP,WSCOM=WTYP                          % WORD FOR MESSAGE TYPE &  FORMAT
+ INTEGER WBC,WSEQ=WBC                             % WORD FOR BYTE COUNT & SEQUENCE CONTROL
+ INTEGER WDEA,WPRI=WDEA                           % DESTINATION ADDRESS AND PRIORITY
+        SYMBOL SPRIMASK=3*S1OCT                   % MSG PRIORITY
+        SYMBOL CPRIMASK=-SPRIMASK-1
+        SYMBOL SPRISHIFT=-16
+        SYMBOL CPRISHIFT=-SPRISHIFT
+ DOUBLE  WDADR=WDEA                               % BOTH ADDRESSES
+ INTEGER WSCA                                     % SOURCE ADDRESS
+ PSID
+ *)KILL SLHW S1QW S3QW S1OCT S3OCT S5OCT S7OCT SRHW
+ *)KILL SRHWM SLHWM S1QWM S2QWM S3QWM S4QWM
+ *)KILL C1QWM C2QWM C3QWM C4QWM
+
+
+
+
+ % TIME USED BY SINTRAN ROUTINES:
+ %      GET0 - 52MICS (10-54)   25MICS (10-S-02)
+ %      ALTON- 68MICS (10-54)   33MICS (10-S-02)
+ %      ALTOF- 56MICS (10-54)   26MICS (10-S-02)
+
+
+
+
+ %=======     G E T F         170
+ %
+ % GET A NUMBER OF BUFFERS FROM FREE POOL
+ % SET RT-PROG ADDRESS IN WPOSS-WORD OF EACH BUFFER
+ %
+ % GETF:      GET PARAMETERS(POOLHEAD,NO-OF-BUFFERS-REQUIRED)
+ %            IF FALSE POOLHEAD OR ILLEGAL NO-OF-BUFFERS-REQUIRED THEN
+ %                            NON-SKIP-RETURN(-1)
+ %            ENDIF
+ %            IF POOLHEAD.WNFRE<NO-OF-BUFFERS-REQUIRED THEN
+ %                NON-SKIP-RETURN(0)
+ %            ENDIF
+ %            POOLHEAD WFREE=:FIRST-BUFFER=:BUFFER
+ %            FOR COUNT:=2 TO NO-OF-BUFFERS-REQUIRED DO
+ %                RTREF=:BUFFER.WPOSS; 0=:BUFFER.WNPAK
+ %                BUFFER.WNBUF=:BUFFER
+ %            ENDDO
+ %            BUFFER.WNBUF=:POOLHEAD.WFREE
+ %            0=:BUFFER.WNBUF
+ %            POOLHEAD.WNFRE - NO-OF-BUFFERS-REQUIRED=:POOLHEAD.WNFRE
+ %            SKIP-RETURN(FIRST-BUFFER)
+ % ENTRY:     X - ADDRESS OF POOL HEAD
+ %            A - NUMBER OF BUFFERS WANTED
+ % EXIT:
+ %      NON-SKIP              A=-4                POOL DESTROYED
+ %                            A=-1                ILLEGAL PARAMETER VALUE
+ %                            A=0                 NOT ENOUGH FREE BUFFERS
+ %      SKIP                  A = ADDRESS OF FIRST BUFFER IN CHAIN
+ % TIME USED: 326 MICS + 41.5 MICS*N (10-54)      N=NO. OF BUFFERS
+ %            159 MICS + 20 MICS * N (10-S-02)
+ %
+
+ %============================================================================
+ % 35.30      U S O X
+ %
+ SUBR US0X
+ INTEGER NUM                  % NUMBER OF BUFFERS REQUIRED
+ INTEGER LVAR                 % LOCAL VARIABLE
+ INTEGER ICURT                % ADDRESS OF CURRENT RT-PROG DESCRIPTION
+ INTEGER NPOLH                % ADDRESS OF POOL HEAD
+ INTEGER LLIM                 % LOWER LIMIT OF BUFFER POOL
+ INTEGER HLIM                 % HIGHER LIMIT OF BUFFER POOL
+ US0X:  CALL GET0; ZAREG=:NUM; ZXREG=:NPOLH
+        RTREF=:ICURT
+        CALL ALTON            % ACCESS ALTERNATIVE PAGE TABLE
+        NPOLH.WHLIM=:HLIM; X.WLLIM=:LLIM          % SAVE BUFFER POOL LIMITS
+        IF NPOLH.WPVER><SPCOR OR NUM<=0 OR A>SBMAX THEN A:=-1; GO NSKIP FI
+        IF X.WNFRE-NUM<0 THEN A:=0; GO NONSK FI   % TOO FEW BUFFERS LEFT
+        A=:X.WNFRE                                % UPDATE NUMBER OF FREE BUFFERS LEFT
+        1=:D
+        A:=X.WFREE=:LVAR                             % FIRST FREE BUFFER
+        FOR D TO NUM DO
+          IF A=:X-LLIM<<0 OR HLIM-,+X>>=0 THEN A:=-4; GO NONSK FI
+          IF X.WNPAK><X THEN A:=-4; GO NONSK ELSE 0=:X.WNPAK FI
+          ICURT=:X.WPOSS; A:=X.WNBUF
+        OD
+        0=:X.WNBUF
+        A=:NPOLH.WFREE
+        CALL ALTOFF; LVAR=:ZAREG; MIN ZPREG; 0/\0; GO RET
+ NONSK:
+ NSKIP: A=:LVAR
+        CALL ALTOFF; LVAR=:ZAREG; GO RET; *US0=US0X
+ RBUS
+
+
+
+
+
+
+
+ %========    P U T F         171
+ %
+ % RETURN A CHAIN OF BUFFERS TO FREE POOL. ALL BUFFERS MUST CONTAIN
+ % ADDRESS OF CURRENT RT-PROGRAM IN WPOSS-WORD, AND ZERO IN
+ % WNPAK-WORD. LAST BUFFER MUST HAVE ZERO IN WNBUF-WORD.
+ % IT IS CHECKED THAT NUMBER OF BUFFERS DOES NOT EXCEED MAX ALLOWED
+ % NUMBER. THIS PREVENTS INFINITE LOOP.
+ %
+ % PUTF:      GET PARAMETERS(POOLHEAD,PACKET)
+ %            IF FALSE POOLHEAD OR ILLEGAL PACKET THEN NON-SKIP-RETURN(-1) ENDIF
+ %            IF ANY-BUF-OF-PACKET.WPOSS><CURR-RT-PROG OR PACKET.WNPAK><0 THEN
+ %                NON-SKIP-RETURN(0)
+ %            ENDIF
+ %            POOLHEAD.WFREE=:LAST-BUFFER-OF-PACKET.WNBUF
+ %            PACKET=:POLLHEAD.WFREE
+ %            0=:ALL-PACKET-BUFFERS.WPOSS
+ %            POOLHEAD.WNFRE+NO-OF-NUFFERS-IN-PACKET=:POOLHEAD.WNFRE
+ %            SKIP-RETURN
+ %
+ %
+ % ENTRY:     X - ADDRESS OF POOL HEAD
+ %            A - ADDRESS OF FIRST BUFFER IN CHAIN
+ % EXIT:
+ %                            A=-3                TOO LONG CHAIN, DISORDER ?
+ %      NON-SKIP              A=-2                PACKET NOT WPOSSESSED BY PROGRAM
+ %                                                OR PACKET BELONGS TO QUEUE
+ %                            A=-1                ILLEGAL PARAMETER VALUE
+ %      SKIP                  BUFFER CHAIN PUT IN POOL OK
+ % TIME USED: 320 MICS + 52 MICS * N (10-54)      N=NO OF BUFFERS IN PACKET
+ %            154 MICS + 24 MICS * N (10-S-02)
+
+ %============================================================================
+ % 35.31      U S 1 X
+ %
+ SUBR US1X
+ INTEGER IPACK                % ADDRESS OF PACKET TO RELEASE
+ INTEGER LVAR                 % LOCAL VARIABLE
+ INTEGER ICURT                % ADDRESS OF CURRENT RT-PROG DESCRIPTION
+ INTEGER NPOLH                % ADDRESS OF POOL HEAD
+ INTEGER LLIM                 % LOWER LIMIT OF BUUFER POOL
+ INTEGER HLIM                 % HIGHER LIMIT OF BUFFER POOL
+ US1X:  CALL GET0; ZAREG=:IPACK; ZXREG=:NPOLH
+        RTREF=:ICURT
+        CALL ALTON            % ACCESS ALTERNATIVE PAGE TABLE
+        NPOLH.WLLIM=:LLIM; X.WHLIM=:HLIM
+        IF NPOLH.WPVER><SPCOR THEN A:=-1; GO NSKIP FI
+        IF IPACK.WNPAK><0 THEN A:=-2; GO NSKIP FI
+        1=:D; IPACK=:LVAR     % CHECK BUFFER CHAIN
+        FOR D TO SBMAX DO
+          LVAR=:LVAR.WNPAK
+          IF A=:T-LLIM<<0 OR HLIM-,+T>>=0 THEN A:=-1; GO NSKIP FI
+          IF LVAR.WPOSS-ICURT><0 THEN A:=-2; GO NSKIP
+          ELSE 0=:X.WPOSS; FI
+          IF LVAR.WNBUF=:LVAR=0 GO PEND
+        OD
+        A:=-3; GO NSKIP
+ PEND:  X=:T
+        NPOLH.WFREE=:T.WNBUF
+        IPACK=:NPOLH.WFREE
+        NPOLH.WNFRE+D=:X.WNFRE
+        CALL ALTOFF; MIN ZPREG; 0/\0; GO RET
+ NSKIP: A=:LVAR
+        CALL ALTOFF; LVAR=:ZAREG; GO RET; *US1=US1X
+ RBUS
+
+
+
+
+
+ %========   G E T Q          172
+ %
+ % GET A PACKET FROM START OF QUEUE
+ % SET RT-PROG ADDRESS IN WPOSS-WORD OF EACH BUFFER
+ %
+ % GETQ:      GET PARAMETER(QUEUEHEAD)
+ %            IF ILLEGAL QUEUE HEAD THEN NON-SKIP-RETURN(-1) ENDIF
+ %            IF QUEUE EMPTY THEN NON-SKIP-RETURN(0) ENDIF
+ %            QUEUEHEAD.WFPAK=:PACKET
+ %            PACKET.WNPAK=:QUEUEHEAD.WFPAK
+ %            QUEUEHEAD.WPNUM - 1
+ %            0=:PACKET.WNPAK
+ %            QUEUEHEAD.WPROC=:ALL-BUFFERS-OF-PACKET.WPOSS
+ %            SKIP-RETURN(PACKET)
+ %
+ % ENTRY:     X - ADDRESS OF QUEUE HEAD
+ % EXIT:
+ %      NON-SKIP              A=-1                ILLEGAL PARAMETER VALUE
+ %                            A=0                 QUEUE EMPTY
+ %      SKIP                  A = ADDRESS OF PACKET
+ % TIME USED: 281 MICS (10-54)                    134 MICS (10-S-02)
+
+ %============================================================================
+ % 35.32      U S X 2
+ %
+ SUBR US2X
+ INTEGER IPACK                % ADDRESS OF FETCHED PACKET
+ INTEGER ICURT                % ADDRESS OF CURRENT RT-PROG DESCRIPTION
+ INTEGER IQH                  % ADDRESS OF QUEUE HEAD
+ US2X:  CALL GET0; ZXREG=:IQH; RTREF=:ICURT
+        CALL ALTON            % ACCESS ALTERNATIVE PAGE TABLE
+ GQCOM: IF IQH.WPROC><ICURT THEN A:=-1; GO NSKIP FI
+        IF X.WPNUM=0 THEN GO NSKIP FI
+        A:=X.WFPAK=:IPACK
+        IF A.WNPAK=IQH THEN IQH=:IQH.WLPAK FI
+        A=:IQH.WFPAK; X.WPNUM-1=:X.WPNUM
+        A:=IQH.WPROC; X:=IPACK
+        DO WHILE X><0
+          A=:X.WPOSS; 0=:X.WNPAK; X:=X.WNBUF
+        OD
+        CALL ALTOFF; IPACK=:ZAREG; MIN ZPREG; 0/\0; GO RET
+ NSKIP: A=:IPACK
+        CALL ALTOFF; IPACK=:ZAREG; GO RET; *US2=US2X
+ RBUS
+
+
+
+
+
+
+
+
+ %========    P U T Q         173
+ %
+ % PUT A PACKET AT END OF QUEUE. WPOSS-WORD MUST CONTAIN ADDRESS
+ % OF CALLING RT-PROGRAM. WNPAK-WORD MUST BE ZERO.
+ %
+ % PUTQ:      GET PARAMETER(QUEUEHEAD,PACKET)
+ %            IF PACKET.WPOSS><CURR-RT-PROG THEN NON-SKIP-RETURN(-2) ENDIF
+ %            IF PACKET.WNPAK><0 THEN NON-SKIP-RETURN(0) ENDIF
+ %            QUEUEHEAD.WLPAK=:PACKET.WNPAK
+ %            PACKET=:QUEUEHEAD.WLPAK
+ %            DO WHILE PACKET><0
+ %                0=:PACKET.WPOSS; PACKET.WNPAK=:PACKET
+ %            ENDDO
+ %            QUEUEHEAD.WPNUM + 1
+ %            SKIP-RETURN
+ %
+ % ENTRY:     X - ADDRESS OF QUEUE HEAD
+ %            A - ADDRESS OF PACKET
+ % EXIT:
+ %      NON-SKIP              A=-2                PACKET NOT WPOSSESSED BY PROGRAM OR
+ %                                                PACKET BELONGS TO QUEUE
+ %      SKIP                  PACKET PUT IN QUEUE
+ % TIME USED:
+ %      PUTQ: 320 MICS (NORD-10)                  165 MICS (10-S)
+
+ %============================================================================
+ % 35.33      U S X 3
+ %
+ SUBR US3X
+ INTEGER IPACK                % ADDRESS OF PACKET TO PUT IN QUEUE
+ INTEGER ICURT                % ADDRESS OF CURRENT RT-PROG DESCRIPTION
+ INTEGER IQH                  % ADDRESS OF QUEUE HEAD
+ US3X:  CALL GET0; ZAREG=:IPACK; ZXREG=:IQH
+        RTREF=:ICURT
+        CALL ALTON            % ACCESS ALTERNATIVE PAGE TABLE
+        IF IPACK.WPOSS><ICURT OR X.WNPAK><0  THEN A:=-2; GO NSKIP FI
+        T:=IQH.WLPAK; IPACK=:X.WLPAK; MIN X.WPNUM; A=:T.WNPAK
+        IQH=:IPACK.WNPAK
+        X:=IPACK
+        DO WHILE X><0
+          0=:X.WPOSS; X:=X.WNBUF
+        OD
+        CALL ALTOFF; MIN ZPREG; 0/\0; GO RET
+ NSKIP: A=:IPACK
+        CALL ALTOFF; IPACK=:ZAREG; GO RET; *US3=US3X
+ RBUS
+
+
+
+
+
+
+ %========    P R I Q         174
+ %
+ % PUT A PACKET IN QUEUE ACCORDING TO PRIORITY, I.E. PACKET IS INSERTED
+ % AFTER LAST PACKET IN QUEUE WITH EQUAL OR HIGHER PRIORITY.
+ % PRIORITY VALUE IS FOUND IN PACKET HEAD, WORD AND BITS DEFINED AT SYSTEM
+ % GENERATION.
+ % WPOSS-WORD MUST CONTAIN ADDRESS OF CALLING RT-PROGRAM. WNPAK-WORD
+ % MUST BE ZERO.
+ %
+ % PRIQ:      GET PARAMETER(QUEUEHEAD,PACKET)
+ %            IF ANY-BUF-OF-PACKET.WPOSS><CURR-RT-PROG OR PACKET.WNPAK><0 THEN
+ %                NON-SKIP-RETURN(-2)
+ %            ENDIF
+ %            IF PACKET.PRIOR=0 THEN
+ %                QUEUEHEAD.WLPAK=:LASTPACKET; QUEUEHEAD=:QPACK
+ %                GO INSERT
+ %            ENDIF
+ %            QUEUEHEAD.WFPAK=:QPACK
+ %            DO WHILE QPACK><QUEUEHEAD AND QPACK.PRIOR>=PACKET.PRIOR
+ %                QPACK=:LASTPACKET; QPACK.WNPAK=:QPACK
+ %            ENDDO
+ % INSERT:    QPACK=:PACKET.WNPAK; PACKET=:LASTPACKET.WNPAK
+ %            QUEUEHEAD.WPNUM + 1
+ %            DO WHILE PACKET><0
+ %                0=:PACKET.WPOSS; PACKET.WNPAK=:PACKET
+ %            ENDDO
+ %            SKIP-RETURN
+ %
+ % ENTRY:     X - ADDRESS OF QUEUE HEAD
+ %            A - ADDRESS OF PACKET
+ % EXIT:
+ %      NON-SKIP              A=-2                PACKET NOT WPOSSESSED BY PROGRAM OR
+ %                                                PACKET BELONGS TO QUEUE
+ %      SKIP                  PACKET INSERTED IN QUEUE
+ % TIME USED:
+ %      PRIQ: PRIOR 0         330 MICS (NORD-10)  170 MICS (10-S)
+ %                  ><0       320+33*N (NORD-10)  165+15*N (10-S)
+ %                  ><0       130+33*N (NORD-10)   65+15*N (10-S)
+ %                            N=NO OF PACKETS AHEAD IN QUEUE+1
+
+ %============================================================================
+ % 35.34      U S X 4
+ %
+ SUBR US4X
+ INTEGER IPACK                % ADDRESS OF PACKET TO SEND
+ INTEGER ICURT                % ADDRESS OF CURRENT RT-PROG DESCRIPTION
+ INTEGER IQH                  % ADDRESS OF QUEUE HEAD
+ INTEGER IPRI                 % PRIORITY OF PACKET
+ US4X:  CALL GET0; ZAREG=:IPACK; ZXREG=:IQH
+        RTREF=:ICURT
+        CALL ALTON            % ACCESS ALTERNATIVE PAGE TABLE
+        IF IPACK.WPOSS><ICURT OR X.WNPAK><0 THEN A:=-2; GO NSKIP FI
+        X.WPRI/\SPRIMASK=:IPRI
+        X:=IQH=:D
+        IF IPRI=0 THEN X.WLPAK=:D; GO DIPUT FI
+        DO WHILE X.WNPAK><IQH AND A.WPRI/\SPRIMASK-IPRI>>=0
+          X:=D.WNPAK=:D
+        OD
+ DIPUT: T:=D.WNPAK; IPACK=:X.WNPAK; T=:A.WNPAK
+        IF A:=T=IQH THEN IPACK=:IQH.WLPAK FI
+        MIN IQH.WPNUM
+        X:=IPACK
+        DO WHILE X><0
+          0=:X.WPOSS; X:=X.WNBUF
+        OD
+        CALL ALTOFF; MIN ZPREG; 0/\0; GO RET
+ NSKIP: A=:IPACK
+        CALL ALTOFF; IPACK=:ZAREG; GO RET; *US4=US4X
+ RBUS
+
+ *
+
+
+
+
+
+
+
+
+
+
+
+ *"8F16+8DM01+8DM02+8DM03+8DM04+8DM05+8DM06+8DM07+8DM08+8DM09+8DM10
+"
+
+ %==============================================================================
+ % 35.36      B I O A C C O U N T
+ %
+ %% BLOCK I/O ACCOUNTING ROUTINE
+ %% ROUTINE CALLED FROM PAGE-TRANSFER ROUTINE IN FILE-SYSTEM-RESIDENT PART
+ INTEGER RWRT1=?,RWRT2=?
+ INTEGER DF1=?,DF2=?
+ SUBR BIOACCOUNT
+
+ BIOACCOUNT:
+ *"-8IOAC
+"        IF BACKGROUND >< 0 AND ACCFLAG ><0 THEN   % BACKGROUND-ACCOUNTING ON
+                 A:=CURPROG; GO SUITE
+              FI
+              IF RTACCFLAG = 0 THEN EXIT; FI      % RT-ACCOUNTING OFF
+              IF CURPROG = "RWRT1" THEN A:="DF1".SSREF; GO SUITE; FI
+              IF         = "RWRT2" THEN A:="DF2".SSREF; GO SUITE; FI
+              EXIT
+ SUITE:       A-RTSTART=:D:=0;T:=5RTSIZE;*RDIV ST
+              A SHZ 1 + "IOACTAB"=:X
+              *PIOF
+              MIN X.S1;GO RETU; MIN X.S0; 0/\0
+ RETU:        *PION
+              EXIT
+ *"
+" RBUS
+
+
+ *"8XMSG
+"
+
+ %**********************************************************************
+ %
+ %      X M S G  -  R E S I D E N T    P A R T
+ %
+ %      MARTIN STANDLEY. 12/12/79. INSTALLED: 16/9/80 IN SIII E!
+ %                       18/04-83 for S III I (XMSG/PIT3)
+ %
+ %      THIS PART CONTAINS ALL THEN ROUTINES THAT MUST LIE IN THE
+ %      0-30K PART IF SINTRAN (I.E. BOTH IN POF AND ON PIT0.)
+ %
+ %      LINKAGE BETWEEN THE RESIDENT AND KERNEL(PIT3) CODE
+ %      IS VIA SYMBOL-2-LIST.
+ %
+ %*************************************************************************
+
+ *XXRPT=177777 % Set flag indicating that XMSG has been generated (8XMSG)
+
+ %============================================================================
+ % 35.37      X 1 I O N   X 1 R E T   X W T 0 5   X G W R D
+ %
+ SUBR XWT05
+
+ % LEVEL 5 WAIT STATE. NOTE THAT THE PID BIT MUST BE RESET BEFORE CALLING WITH
+ % INTERRUPTS OFF.
+ INTEGER POINTER X5HOM
+
+ XWT05: A:=L=:"X5HOM"; *PION; TRA STS; PON        % WAIT; GET STATUS; PAGING ON
+        IF A NBIT 16 THEN                         % CHECK IF PAGING OFF
+              *TRA PID; COPY SA DD; TRA PIE       % INTERRUPT SYSTEM STATUS
+              A/\D; CALL TWT04                    % LET TNY HANDLE IT
+        FI; *IOF
+        GO X5HOM
+ RBUS
+
+
+ %============================================================================
+ % 35.38      X R T E N
+ %
+ %      X R T E N    -   R E S T A R T    R T     F R O M    R T  W A I T
+ %
+ %============================================================================
+ SUBR XRTEN,XRTDS
+ % THIS ROUTINE IS CALLED ON LEVEL 5 TO DO AN RTENTRY ON RT-PROG IN A-REG
+ INTEGER ARRAY XDFLD:=(0,0,XDFLD,0,0,0,XXENT)     % DATAFIELD!
+ XRTDS: INTEGER ARRAY POINTER RTDS; INTEGER POINTER HOME;
+
+ XRTEN: T:=L=:"HOME"; X:=0; *POF                  % A=RT-DESC ADDRESS
+        DO WHILE 0><RTDS(X); IF A=T GO OUT; X+1; OD % FIND END; CHECK NOT THERE
+        A=:RTDS(X); X+1; 0=:RTDS(X)               % INSERT IN TABLE
+        IF X=1 THEN X:="XDFLD":=:B; CALL RTACT; X:=:B; FI % PUT IN MONITOR QUEUE
+ OUT:   *PON
+        GO HOME
+
+ % MFUNC ROUTINE EXECUTED ON LEVEL 3
+ XXENT: X:=0; T:=0; *PIOF                         % LOCK OUT LEVEL 5
+        DO WHILE RTDS(X)><0; X+1; A=:T; OD        % FIND LAST ELEMENT
+        IF T><0                                   % WAS THERE ANY
+        THEN X-1; 0=:RTDS(X); *PION               % CLEAR HIS ENTRY
+             X:=T; CALL RTENTRY; GO XXENT         % START HIM, AND TRY NEXT ONE
+        FI; *PION
+        GO STUPR
+ RBUS
+ *"8XMSG+8CXHD+8C1X2+8C2X2+8C3X2+8C4X2
+"
+
+ %
+ %==============================================================================
+ %
+ % 35.39   D A T A    C O P Y I N G:   X M S G / P I T 3,  H D L C,  X 2 1
+ %
+ %==============================================================================
+ %
+ SUBR Z2PHY,Z0PHY,Z2USR,Z0USR
+
+ % Routines to transfer data between a user V.S. and physical memory. They
+ % assume that everything has been set up so that only the 0 bit in the status
+ % register needs to be turned on to allow access via the APT to the user data
+ % area.
+
+ % On entry: D contains the byte count and B points to the parameter block:
+ DISP 0
+       INTEGER ZXUBF          % Buffer address in user's logical space
+       INTEGER ZXSBK,ZXSBF    % Physical buffer address (Bank, Displacement)
+       DOUBLE ZXSAD=ZXSBK
+       INTEGER POINTER ZXHOM  % Scratch location used to save L-register
+ PSID
+ *APTON=BSET ONE; APTOF=BSET ZRO  % Enable/disable alternative page table
+
+ Z0PHY: K:="0"; * APTOF; PON            % Entry from POF? Set PON and flag
+        GO ZPHY
+ Z2PHY: K:="1"                          % Entry from PON
+ ZPHY:  D SHZ -1                                  % Convert to word count
+        IF M                                      % Odd byte count?
+        THEN X:=ZXUBF+D; *APTON; LDA 0,X; APTOF   % Get via APT
+             A/\177400                            % Maskout r.h. byte
+        FI; T:=ZXSBK; X:=ZXSBF; A:=:L=:"ZXHOM"    % Get physical addr
+        IF M                            % Odd count?
+        THEN X+D; *LDATX 0                        % Get last word
+             A/\377\/L; *STATX 0                  % Mask in lh byte and store
+             X-D
+        FI; ZXUBF:=:D; *APTON                     % TX=Destn addr; D=Useraddr
+ @LIB CXCPU
+ @LIB CXCPU-,
+        D:=:B; A=:L                               % TX=Physical, L=count, B=user
+        DO WHILE L><0                             % Simple loop one word at a time
+              *LDA 0,B; STATX 0                   % From APT to physical
+              L-1; B+1; X+1; * RADD DT ADC        % Watch carry bit
+        OD; B:=D
+ @ELIB
+        GO OUT
+
+ Z0USR: K:="0"; * APTOF; PON            % Entry from POF. Set PON & flag
+        GO ZUSR
+ Z2USR: K:="1"                          % Entry with PON
+ ZUSR:  D SHZ -1;                                 % Convert byte count to words
+        IF M                                      % Odd byte count?
+        THEN X:=ZXSBF+D; T:=ZXSBK; *LDATX 0       % Get last word in physbuff
+             A SHZ -10; D SHZ 1=:X; T:=ZXUBF;     % Mask & get user buffer addr
+             *APTON; SBYT; APTOF                  % Enable APT & store
+             GO ZUSR                              % Try again (even byte count)
+        FI;
+        D=:X; T:=L=:"ZXHOM":=ZXUBF; ZXSAD; *APTON % AD=Physical, X=count, T=user
+ @LIB CXCPU
+ @LIB CXCPU-,
+        X=:L:=D; B=:D:=T; T:=A                    % TX=Physical, L=count, B=user
+        DO WHILE L><0                             % Simple loop one word at a time
+              *LDATX 0; STA 0,B;                  % From physical to APT
+              L-1; B+1; X+1; * RADD DT ADC        % Watch carry bit
+        OD; B:=D
+ @ELIB
+ OUT:   * APTOF; BSKP SSK ONE; POF                % Switch off access to APT
+        GO ZXHOM
+ *)KILL APTON APTOF

@@ -23,6 +23,89 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
         private FaServerConversation? _conversation;
 
         /// <summary>
+        /// The session-header counter of the request the last reply answered, and the reply itself,
+        /// so a REPEAT of that request is answered with the very same bytes.
+        /// </summary>
+        /// <remarks>
+        /// <para><b>Why a repeat must be REPLAYED, not answered afresh - MEASURED 2026-08-11</b></para>
+        /// <para>
+        /// A real D100 asked for directory entry 0 NINE times, every request byte for byte
+        /// identical (<c>07F0 0082 8100 D761 ...</c>) at the same datagram Flags 1 <c>0x0008</c> -
+        /// one datagram being retransmitted, not nine requests. We answered each one from the
+        /// conversation's own counter, so the replies went out as <c>8200, 8300, 8400, 8500,
+        /// 8600</c> and not one of them carried the <c>8100</c> the client was waiting on. It never
+        /// advanced to entry 1 and the listing died.
+        /// </para>
+        /// <para>
+        /// The real server's listing shows the answer plainly: request <c>07F0 0008 8100 D761</c> is
+        /// answered by <c>07F0 0002 8100 90BB</c> - same word 3. That does NOT make the counter an
+        /// echo (see <c>FaServerConversation.BuildReply</c>: on a READ the reply is 8A where the
+        /// request was 86, because the content messages take the numbers between). It makes a
+        /// retransmission a retransmission: the answer already sent is the answer, and sending a
+        /// differently numbered one is a new message the peer never asked for.
+        /// </para>
+        /// <para>
+        /// This is the fifth defect from treating a repeat as a new event. See the memory
+        /// <c>fa-retransmitted-confirm-rewinds-session</c> and "A REPEAT is not a new event" in the
+        /// xmsg-decode skill.
+        /// </para>
+        /// </remarks>
+        private ushort _lastAnsweredFlags1;
+
+        /// <summary>
+        /// Whether <see cref="_lastAnsweredFlags1"/> and <see cref="_lastReply"/> hold anything.
+        /// </summary>
+        private bool _haveLastReply;
+
+        /// <summary>
+        /// The exact bytes of the last reply built, kept for replay.
+        /// </summary>
+        private byte[]? _lastReply;
+
+        /// <summary>
+        /// Remembers the reply just built, so a repeat of the same request can be answered with it.
+        /// </summary>
+        /// <param name="requestFlags1">
+        /// The DATAGRAM sequence the request arrived on.
+        /// </param>
+        /// <param name="reply">
+        /// The reply body that answered it.
+        /// </param>
+        /// <remarks>
+        /// Keyed on the datagram's Flags 1, not on anything inside the file-access message. Flags 1
+        /// is the sender's own per-peer sequence and it identifies the DATAGRAM: a retransmission
+        /// carries the number it first went out with, and a genuinely new request always carries a
+        /// new one. Keying on the file-access session counter instead was tried first and is wrong -
+        /// our own test client reuses that byte across different requests, so a new request was
+        /// answered with the previous reply.
+        /// </remarks>
+        public void RememberReply(ushort requestFlags1, byte[] reply)
+        {
+            _lastAnsweredFlags1 = requestFlags1;
+            _lastReply = reply;
+            _haveLastReply = true;
+        }
+
+        /// <summary>
+        /// Returns the stored reply when this request is a repeat of the one it answered.
+        /// </summary>
+        /// <param name="requestFlags1">
+        /// The datagram sequence of the request that has just arrived.
+        /// </param>
+        /// <returns>
+        /// The bytes to send again, or <see langword="null"/> when this is a new request.
+        /// </returns>
+        public byte[]? ReplayFor(ushort requestFlags1)
+        {
+            if (!_haveLastReply || _lastAnsweredFlags1 != requestFlags1)
+            {
+                return null;
+            }
+
+            return _lastReply;
+        }
+
+        /// <summary>
         /// Initialises the conversation.
         /// </summary>
         /// <param name="remoteNode">

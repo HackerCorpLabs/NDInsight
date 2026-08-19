@@ -213,7 +213,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
             int perMessage = FaWriteLadder.FirstFragmentBodyLength
                 + FaWriteLadder.SecondFragmentBodyLength;
             Assert.Equal(1032, perMessage);
-            Assert.Equal(perMessage, FaWriteLadder.CapturedContentMessageLength);
+            Assert.Equal(FaWriteLadder.CapturedContentMessageLength, perMessage);
             Assert.Equal(FaFileDataCodec.DataMessageLength, FaWriteLadder.CapturedContentMessageLength);
 
             // Strip the FA envelope and one message carries a whole 1024-byte block of content.

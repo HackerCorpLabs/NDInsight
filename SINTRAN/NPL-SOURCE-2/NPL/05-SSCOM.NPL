@@ -1,0 +1,46 @@
+055616  
+055616         )MCDEF SDATA
+       A=6; ]
+055616  
+055616         )MCDEF DATA $PAR 
+       )KILL A; A=$PAR +1; ]
+055616  
+055616         )MCDEF FENTR
+       STD I (ASTCK; COPY SL DA; COPY SB DD; SAB A; JPL I (SPUSH; ]
+055616  
+055616         )MCDEF FLEAV
+       SAA -A; JMP I (SPOP; )KILL A; ]
+055616  
+055616         )MCDEF ISTCK
+       STA I (ASTCK; LDA (STACK; STA I (CSTCK
+       SAA 1; STA I (TDVN; LDA I (ASTCK; ]
+055616  
+055616         )MCDEF MINBT
+       JPL I (SINBT; ]
+055616  
+055616         )MCDEF MOUTB
+       JPL I (SOUTB; ]
+055616  )LINE
+055616   %
+
+055616   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  S S C O M  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+055616   
+055616   
+055616   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+055616   %      N O R D - N E T     R E S I D E N T   R O U T I N E S                  %
+055616   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+055616   
+055616   *COSTA=*
+055616   *"CASY1+CASY2+CASY3+CASY4+CASY5+CASY6+CASY7+CASY8+CASY9
+"055616   @LIB 8S3C-,
+055616   *8CUX=*
+055616   *150000/
+150000   *SNETS=*
+150000   * SNETS;0;0                  % SEGMENT LIMITS
+150003   @ELIB
+150003   *"8CLI1+8CLI2+8CLI3+8CLI4+8CLI5+8CLI6+8CLI7+8CLI8+8CLI9
+"150003   *ENETS=*
+150003   *"8CLI1+8CLI2+8CLI3+8CLI4+8CLI5+8CLI6+8CLI7+8CLI8+8CLI9
+"150003   @LIB 8S3C-,
+150003   *8CUX/)KILL 8CUX
+055616   @ELIB

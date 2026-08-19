@@ -54,7 +54,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
     /// <para>
     /// A datagram is never sent back out of the link it came from (that would be a routing loop),
     /// and a datagram addressed to a node this relay has no route for is dropped and reported
-    /// rather than flooded — with no reachability protocol established, flooding would be a guess.
+    /// rather than flooded - with no reachability protocol established, flooding would be a guess.
     /// </para>
     /// </remarks>
     public sealed class DatagramRelay
@@ -217,7 +217,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
         /// True when the datagram was forwarded.
         /// </returns>
         /// <remarks>
-        /// Exposed rather than kept private so a caller can feed a datagram in directly — and so a
+        /// Exposed rather than kept private so a caller can feed a datagram in directly - and so a
         /// test can drive the routing decision without a live link.
         /// </remarks>
         public bool Route(ILink fromLink, byte[] datagram, int length)

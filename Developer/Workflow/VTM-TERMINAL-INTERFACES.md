@@ -166,6 +166,18 @@ not a documented call convention, but a binary-level integration performed once 
 
 ## 5. Related products
 
+- **[PLANC-SCREEN-H](../../Installation/Software/ND-PLANC-SCREEN-H/README.md)** — a real,
+  decoded PLANC screen-handling library built directly on top of VTM ("Vtm... must be loaded
+  together with this program", per its own demo program's header comment). Ten real callable
+  routines (`bytdis`/`bytacc`, `intdis`/`intacc`, `realdis`/`realacc` for field display/edit,
+  `frame`/`fullbar`/`sparsebar` for boxes and bars, `blankscreen`/`blankarea`/`resetscreen`), plus
+  a real `.PICT` screen-picture file format (`%HEADING`/`%CONTROL`/`%DEFINITIONS`/`%ATTRIBUTES`
+  sections, `@position`/`@size`/`@field-defaults` directives) — a fourth documented UI-definition
+  syntax in this catalog, alongside VTM's raw API, NSHS's "pictures", and UNIQUE's `start-form`.
+- [`ND-10013`](../../Installation/Software/ND-10013/README.md) NSHS (NORD Screen Handling
+  System) — real BRF runtime files decoded (1-bank/2-bank/reentrant); its own "picture" file
+  format looks conceptually close to PLANC-SCREEN-H's `.PICT` format above, but no NSHS manual has
+  been found to confirm whether they're the same format or two independent ones.
 - [`ND-211464`](../../Installation/Software/ND-211464/README.md) — VTM terminal tables for DEC
   VT200 (Type 128/129), fully documented from a real PD sheet, see §3 above.
 - [`ND-210455`](../../Installation/Software/ND-210455/README.md) "VTM terminal tables

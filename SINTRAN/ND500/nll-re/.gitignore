@@ -1,0 +1,5 @@
+# Not committed on purpose - see README.md.
+# The DSEG is a 2.1 MB plain extraction; the .dis regenerates exactly from the
+# PSEG and its header line would carry an absolute local path.
+*.DSEG
+*.dis

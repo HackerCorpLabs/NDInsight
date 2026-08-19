@@ -13,10 +13,10 @@ namespace NDInsight.Sintran.Xmsg.Live
     /// milliseconds (so the defaults below read as 3000 ms and 30000 ms).
     /// <para><b>Defaults</b></para>
     /// The spec defaults are:
-    ///  - <c>T1 = 3000</c> — retransmission / poll timer.
-    ///  - <c>T3 = 30000</c> — idle keepalive timer.
-    ///  - <c>N2 = 10</c> — maximum retransmissions before declaring link failure.
-    ///  - <c>k = 7</c> — transmit window (unacknowledged I-frames outstanding, MUST be 1..7).
+    ///  - <c>T1 = 3000</c> - retransmission / poll timer.
+    ///  - <c>T3 = 30000</c> - idle keepalive timer.
+    ///  - <c>N2 = 10</c> - maximum retransmissions before declaring link failure.
+    ///  - <c>k = 7</c> - transmit window (unacknowledged I-frames outstanding, MUST be 1..7).
     /// </remarks>
     public sealed class LapbOptions
     {

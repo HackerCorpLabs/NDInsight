@@ -138,7 +138,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             // FaServerWirePort, which is what the server did and what D100's file-access layer
             // refused. In DOC/captures/FA-READ-WRITE-2026-08-04/capture-read.txt the letter is
             // addressed to port 0x0000 and D102 answers from 0x06B6, and every later FA message in
-            // that conversation runs 102:0x06B6 <-> 100:0x0812.
+            // that conversation runs 102:0x06B6 - 100:0x0812.
             Assert.Equal(ClientNode, confirm.Header!.DestinationNode);
             Assert.Equal(ClientPort, confirm.SubHeader!.DestinationPort);
             Assert.NotEqual(FaServer.FaServerWirePort, confirm.SubHeader.SourcePort);
@@ -459,6 +459,54 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             Assert.Equal(0, body.Length % 2);
             // QFORM content, plus the one pad byte that makes it word aligned.
             Assert.Equal(FaExchangeCodec.QformOffset + 6 + 3 + 1, body.Length);
+        }
+
+        /// <summary>
+        /// A second conversation is answered from the SAME port as the first, even after the first
+        /// has been closed.
+        /// </summary>
+        /// <remarks>
+        /// <para><b>This one is a live failure, not a theory</b></para>
+        /// <para>
+        /// On 2026-08-10 D100 ran a listing against us, closed it cleanly, opened a second
+        /// conversation, and then ignored our confirmation eleven times before giving up with
+        /// "NO ANSWER FROM REMOTE SYSTEM; FILE-ACCESS CONNECTION ABORTED" and dropping the link.
+        /// The only thing that differed between the confirmation it took and the ones it refused
+        /// was the port we sent from: we allocated a fresh one per conversation and released it on
+        /// close.
+        /// </para>
+        /// <para>
+        /// A real server does not move. D100 answers from <c>0x05B9</c> in all three captures we
+        /// hold, including <c>nd-to-nd-write.pcapng</c> where one client releases a conversation
+        /// and opens another - same port both times.
+        /// </para>
+        /// <para>
+        /// The close is what makes this test bite. Without it the second letter would find the
+        /// session still keyed on the same client endpoint and reuse it, and the test would pass
+        /// against the broken code.
+        /// </para>
+        /// </remarks>
+        [Fact]
+        public void ASecondConversationIsAnsweredFromTheSamePort()
+        {
+            XmsgServerHost host = BuildHost(out FaServer server);
+
+            IReadOnlyList<XmsgFrame> first = host.Route(BuildConnectLetter());
+            ushort firstPort = first[0].SubHeader!.SourcePort;
+
+            // End the conversation the way a real client does - the 0x078x "I am finished" family,
+            // which is what makes the server forget the session.
+            byte[] finished = new byte[] { 0x07, 0x82, 0x00, 0x00, 0x00, 0x02, 0x80, 0x00, 0x00, 0x00 };
+            host.Route(BuildSessionFrame(finished, 0x0002));
+
+            IReadOnlyList<XmsgFrame> second = host.Route(BuildConnectLetter());
+            ushort secondPort = second[0].SubHeader!.SourcePort;
+
+            Assert.Equal(firstPort, secondPort);
+
+            // And the server must still take traffic on it, or the next request has nowhere to land.
+            Assert.True(server.OwnsPort(firstPort),
+                "the server must keep answering on its reply port after a conversation closes");
         }
 
         /// <summary>
@@ -839,6 +887,62 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         private static XmsgFrame BuildSessionFrame(byte[] body, ushort flags1)
         {
             return FaTestClient.BuildSessionFrame(body, flags1);
+        }
+
+        /// <summary>
+        /// A request the client sends TWICE gets the same reply back, byte for byte, and the
+        /// directory cursor does not move.
+        /// </summary>
+        /// <remarks>
+        /// <para><b>The live failure this pins, 2026-08-11</b></para>
+        /// <para>
+        /// A real D100 asked for directory entry 0 NINE times - the same datagram retransmitted,
+        /// every request identical down to its session counter <c>0x81</c> - and each time we built
+        /// a fresh reply from the conversation's own counter. The answers went out as
+        /// <c>8200, 8300, 8400, 8500, 8600</c> and none of them carried the <c>8100</c> the client
+        /// was waiting on, so it never advanced to entry 1 and the listing died with no error.
+        /// </para>
+        /// <para>
+        /// Two things have to hold for a repeat: the SAME bytes go back, and the walk does not step
+        /// - answering a question twice must not consume the next entry.
+        /// </para>
+        /// </remarks>
+        [Fact]
+        public void ARepeatedRequestGetsTheSameReplyAndDoesNotMoveTheCursor()
+        {
+            File.WriteAllText(Path.Combine(_folder, "ONE.TXT"), "first");
+            File.WriteAllText(Path.Combine(_folder, "TWO.TXT"), "second");
+
+            XmsgServerHost host = BuildHost(out FaServer server);
+            host.Route(BuildConnectLetter());
+
+            byte[] request = BuildListingRequest(sequence: 1, cursor: FaListFilesCodec.FirstEntryCursor);
+
+            // The SAME frame twice - one datagram retransmitted, which is what a real machine does.
+            IReadOnlyList<XmsgFrame> first = host.Route(BuildSessionFrame(request, flags1: 0x0002));
+            IReadOnlyList<XmsgFrame> again = host.Route(BuildSessionFrame(request, flags1: 0x0002));
+
+            // Our OWN outgoing number advances two per exchange even when the reply is a replay -
+            // it is our counter, and we really did send two more frames.
+            byte[] firstBody = BodyOf(AssertAckThenReply(first, 0x0001));
+            byte[] againBody = BodyOf(AssertAckThenReply(again, 0x0003));
+
+            // Byte for byte, session counter included - that counter is the whole point, because it
+            // is what the client matches its outstanding request against.
+            Assert.Equal(firstBody, againBody);
+            Assert.Equal(
+                firstBody[FaExchangeCodec.SessionHeaderOffset],
+                againBody[FaExchangeCodec.SessionHeaderOffset]);
+
+            // And the walk has not moved on: a THIRD, genuinely new request (a different session
+            // counter) still gets entry 0's neighbour rather than having skipped one.
+            byte[] third = BuildListingRequest(sequence: 2, cursor: FaListFilesCodec.FirstEntryCursor);
+            IReadOnlyList<XmsgFrame> next = host.Route(BuildSessionFrame(third, flags1: 0x0003));
+            byte[] nextBody = BodyOf(AssertAckThenReply(next, 0x0005));
+
+            Assert.NotEqual(
+                firstBody[FaExchangeCodec.SessionHeaderOffset],
+                nextBody[FaExchangeCodec.SessionHeaderOffset]);
         }
 
         /// <summary>

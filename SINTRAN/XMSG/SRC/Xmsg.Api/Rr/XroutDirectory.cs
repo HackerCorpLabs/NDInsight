@@ -93,6 +93,41 @@ namespace NDInsight.Sintran.Xmsg.Api
         }
 
         /// <summary>
+        /// Copies out every registered name with how many free connections it still has.
+        /// </summary>
+        /// <returns>
+        /// One entry per name, in no particular order. A fresh array each time.
+        /// </returns>
+        /// <remarks>
+        /// <para><b>This is a convenience of the STAND-IN, not a captured wire service</b></para>
+        /// <para>
+        /// A real XROUT can be asked things over the wire, and this class stands in for it in
+        /// process. Enumerating the table is what lets a client on THIS node offer a list of chat
+        /// rooms without having to be told their names in advance.
+        /// </para>
+        /// <para>
+        /// It is NOT a claim that a remote machine can ask for this list. No capture in the corpus
+        /// shows a name-listing exchange, so how one would look on the wire is UNKNOWN and is not
+        /// invented here. A SINTRAN user discovering our rooms is a separate, unmeasured problem.
+        /// </para>
+        /// </remarks>
+        public XroutNameEntry[] CopyNames()
+        {
+            XroutNameEntry[] entries = new XroutNameEntry[_names.Count];
+
+            int at = 0;
+            Dictionary<string, Entry>.Enumerator e = _names.GetEnumerator();
+            while (e.MoveNext())
+            {
+                KeyValuePair<string, Entry> pair = e.Current;
+                entries[at] = new XroutNameEntry(pair.Key, pair.Value.FreeConnections);
+                at++;
+            }
+
+            return entries;
+        }
+
+        /// <summary>
         /// Adjusts a connection port's free-connection count, as the XSNSP service does.
         /// </summary>
         /// <param name="name">

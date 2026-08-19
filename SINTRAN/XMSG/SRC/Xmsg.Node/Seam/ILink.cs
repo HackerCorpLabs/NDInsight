@@ -47,7 +47,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
 
     /// <summary>
     /// Handler for a link operational status transition. Both the previous and the new status are
-    /// carried (plus a short human-readable reason) so no information is lost — consumers that only
+    /// carried (plus a short human-readable reason) so no information is lost - consumers that only
     /// care about the new value ignore the rest.
     /// </summary>
     /// <param name="link">
@@ -73,7 +73,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
     /// <remarks>
     /// These type names are deliberately identical to the consuming emulator's link interface so the
     /// port is a using-directive swap; code above the seam must depend only on the members declared
-    /// here. Protocol classification (X.25 vs XMSG) is NOT the link's job — it lives above the link in
+    /// here. Protocol classification (X.25 vs XMSG) is NOT the link's job - it lives above the link in
     /// the composition root (see <see cref="IProtocolDetector"/>).
     /// </remarks>
     public interface ILink : IDisposable

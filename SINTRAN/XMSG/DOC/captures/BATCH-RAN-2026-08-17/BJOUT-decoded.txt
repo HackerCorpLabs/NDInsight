@@ -1,0 +1,21 @@
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
+
+ SINTRAN III - VSX/500 K 
+--- RETROCORE EMULATED K ---
+
+ --- SINTRAN III BATCH PROCESSOR ---
+
+ USER SYSTEM ENTERED AT 10.45.01     17 AUGUST   1998
+
+
+MAXIMUM TIME IS     10 MINUTES
+
+@LIST-FILES SEQOK,,
+FILE 99 : (PACK-ONE:SYSTEM)SEQOK:TXT;1
+@LIST-FILES PROOF,,
+FILE 102 : (PACK-ONE:SYSTEM)PROOF:TXT;1
+
+ BATCH USER LOGGED OUT AT 10.45.02     17 AUGUST   1998
+
+ ND-100 CPU TIME USED IS    0 SECS
+ TIME LOGGED ON IS    0 SECS

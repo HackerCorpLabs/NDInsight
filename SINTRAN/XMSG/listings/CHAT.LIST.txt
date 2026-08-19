@@ -1,0 +1,2303 @@
+     1          % ---------------------------------------------------------------------------
+     2          % CHAT - the chat client, an ordinary SINTRAN PROG.
+     3          %
+     4          % COMPILED AND RUN ON D100, 2026-08-18. Two terminals, one room, both
+     5          % directions:
+     6          %
+     7          %     @CHAT
+     8          %     CHAT: joining, type and press return
+     9          %     RONNY: HELLO FROM A REAL ND
+    10          %
+    11          % This header said "NOT COMPILED, NOT RUN" for as long as that was true and for
+    12          % a while after it stopped being true, which is its own small lesson - see the
+    13          % note at the end of the file about what else went stale with it.
+    14          %
+    15          % Run it with @CHAT. It joins CHAT-LOBBY on the local system, then sits in a
+    16          % loop watching two things at once: the keyboard and the port. Type a line and
+    17          % it is said to the room; anything the room says appears on the screen.
+    18          %
+    19          % THE TWO-THINGS-AT-ONCE PROBLEM, which looked like the hard part, is solved by
+    20          % two facts from the manuals rather than by any trickery:
+    21          %
+    22          %   XMPFRCV WITHOUT XFWTF returns AT ONCE rather than waiting, so the port can
+    23          %   be polled. A message arrived exactly when the status is POSITIVE: the
+    24          %   constants file says the message TYPE is the successful status from XFRCV,
+    25          %   and the types run XMTNO=1 to XMTPS=6 while every user error is negative.
+    26          %
+    27          %   TerminalNoWait (MON 307B) switches the terminal to no-wait, after which
+    28          %   InByte (MON 1B) returns at once too. Device 1 is your own terminal.
+    29          %
+    30          % So no second RT program, no shared buffer and no timeouts: an ordinary loop.
+    31          %
+    32          % AND WHAT DOES InByte GIVE BACK WHEN NOTHING WAS TYPED? Not a character:
+    33          % "In No Wait, the program does not wait for input or output to complete.
+    34          % Monitor calls like InByte return ERROR CODE 3 instead." - the NoWaitSwitch
+    35          % entry in the Monitor Calls manual. In PLANC a monitor-call error arrives as a
+    36          % ROUTINEERROR, handled with ON ROUTINEERROR DO ... ENDON and read from ErrCode,
+    37          % which is the form that manual's own PLANC example for InByte uses.
+    38          %
+    39          % An earlier version of this loop assumed InByte returned some value that would
+    40          % mask to 31 or below and could be ignored. That was a guess and it was wrong.
+    41          %
+    42          % THE PARITY TRAP, and the Monitor Calls manual warns about it in so many
+    43          % words: terminal input sets bit 7 as an even-parity bit, so carriage return
+    44          % arrives as 141, NOT 13. Compare against 13 and the client never sees the user
+    45          % press return, and looks hung rather than wrong. Everything read is masked
+    46          % with 127 before it is looked at.
+    47          %
+    48          % Sending the join is the letter sequence from the COSMOS Programmer Guide's
+    49          % own worked example (page 99): XMPBLET builds an XSLET letter header in a
+    50          % local buffer, XMPFGET reserves an XMSG buffer, XMPFWRI writes the header into
+    51          % it and then writes OUR data after it, and XMPROUT sends the whole thing via
+    52          % XROUT. The room's name is looked up by XROUT; we never need its address.
+    53          % That trailing-data arrangement is exactly how the join carries a nickname.
+    54          %
+    55          % THREE CORRECTIONS FROM APPENDIX G, the guide's own sample CLIENT and SERVER:
+    56          %
+    57          %   flags are 2**BIT      XFWTF is a BIT POSITION (15), not a flags word. The
+    58          %                         samples both write "2**XFWTF =: FLAGS". Passing 15
+    59          %                         would set bits 0,1,2,3 - four unrelated options - and
+    60          %                         the wait would simply not happen.
+    61          %   XMMSGIDENTIFIER       the message-identifier type, with two M's. Written
+    62          %                         "XMMSGIDENTIFIER: MSGIDENT" in the sample.
+    63          %   XMUSERADDRESS         and the address idiom is
+    64          %                         ADDR(BUF(0)) FORCE XMUSERADDRESS.
+    65          %
+    66          %                         ROUND brackets. The guide's sample prints this with
+    67          %                         square ones and it does not compile: PLANC F answers
+    68          %                         EXPECTS ")" ILLEGAL SYNTAX "[" and then INVALID
+    69          %                         PARAMETER LIST for the call around it. Array indexing
+    70          %                         in this language uses parentheses like everything
+    71          %                         else. Trust the compiler over the typesetting.
+    72          %
+    73          % ---------------------------------------------------------------------------
+    74          
+    75          % THE INCLUDE NAMES ON THIS MACHINE, and they are NOT the manual's.
+    76          % The COSMOS guide says XMP:DEFS and XMP:IMPT. Neither exists on D100:
+    77          % the constants ship as (UTILITY)XMSG-PL-VALUES-L:INCL, and there is no
+    78          % :IMPT file at all - the whole UTILITY user was listed to be sure. So the
+    79          % routine and type declarations are ours, built from the guide's reference
+    80          % tables and the PLANC manual's declaration syntax.
+    81          %
+    82          % Our own include is called XMPIMP:INCL on the machine, short, because our
+    83          % file transfer cannot carry a filespec longer than 13 characters. The repo
+    84          % keeps it under the readable name XMSG-PL-IMPORT.INCL and the build renames
+    85          % it on the way over; do not "fix" this to the long name or the transfer
+    86          % silently has nothing to send.
+    87          MODULE chat
+    88          
+    89          % THE INCLUDES GO INSIDE THE MODULE, and this is not a style choice. Placed
+    90          % above MODULE they are compiled into the outer scope, the module body cannot
+    91          % see them, and every call fails with NOT PREVIOUSLY DECLARED "XMPFOPN" while
+    92          % the include's own lines draw no diagnostic at all - so the declarations look
+    93          % accepted and are simply not there. Measured on D100: 33 diagnostics, none of
+    94          % them on the include. The COSMOS guide's appendix G sample has them after
+    95          % MODULE for exactly this reason.
+    96          % THE REAL COSMOS BINDING, installed from ND-10609 on 1998-08-17 (2026-08-17
+    97          % our time) by the product's own COS-LIB-IN-B02:PROG. These are the genuine ND
+    98          % files, not our transcription:
+    99          %
+   100          %   XMP-B02:DEFS   the constants, including the ones that exist nowhere else -
+   101          %                  XMOK=0, and the XMX... standard status values. Its own
+   102          %                  comment records that the library REMAPS the kernel's status:
+   103          %                  "NOTE change from XMSG OK=1".
+   104          %   XMP-B02:IMPT   the types and the IMPORT declarations for 54 routines.
+   105          %   XMP-100-1-B02:BRF  the code behind those names, linked in by CHATCC:MODE.
+   106          %
+   107          % DO NOT ALSO INCLUDE XMSG-PL-VALUES-L:INCL. The two files share 184 constant
+   108          % names, so including both is 184 redefinitions. VALUES-L is the authority for
+   109          % the RAW MON 200B interface and is newer than B02; DEFS is the authority for
+   110          % this library layer. One file per layer - they do not compete.
+   111          $INCLUDE XMP-B02:DEFS
+   112     (1)  %=============================================================================%
+   113     (2)  %                                                                             %
+   114     (3)  %                             X M S G                                         %
+   115     (4)  %                                                                             %
+   116     (5)  %                      D E F I N I T I O N S                                  %
+   117     (6)  %                                                                             %
+   118     (7)  %                              F O R                                          %
+   119     (8)  %                                                                             %
+   120     (9)  %                   P L A N C    I N T E R F A C E                            %
+   121    (10)  %                                                                             %
+   122    (11)  %                                                                             %
+   123    (12)  %          NOTE: the PLANC XMSG library returns STANDARD errors               %
+   124    (13)  %                the STANDARD value symbols are the normal XMSG               %
+   125    (14)  %                symbols prefixed by XM-                                      %
+   126    (15)  %                                                                             %
+   127    (16)  %                this file also provides some further definitions for         %
+   128    (17)  %                PLANC users                                                  %
+   129    (18)  %                                                                             %
+   130    (19)  %  VERSION/REVISION:  -B02  02.06.86   THNH                                   %
+   131    (20)  %                                                                             %
+   132    (21)  %                                                                             %
+   133    (22)  %=============================================================================%
+   134    (23)  
+   135    (24)  %-----------------------------------------------------------------------------%
+   136    (25)  %                                                                             %
+   137    (26)  %                         XMSG FUNCTION VALUES                                %
+   138    (27)  %                                                                             %
+   139    (28)  %-----------------------------------------------------------------------------%
+   140    (29)  
+   141    (30)  CONSTANT XFDUM=0             % Dummy function
+   142    (31)  CONSTANT XFDCT=1             % Disconnect from message system
+   143    (32)  CONSTANT XFGET=2             % Get message space
+   144    (33)  CONSTANT XFREL=3             % Release message space
+   145    (34)  CONSTANT XFRHD=4             % Read header from a message (6 bytes)
+   146    (35)  CONSTANT XFWHD=5             % Write header to a message (6 bytes)
+   147    (36)  CONSTANT XFREA=6             % Read from message to user buffer
+   148    (37)  CONSTANT XFWRI=7             % Write from user to message
+   149    (38)  CONSTANT XFSCM=8             % Set current message
+   150    (39)  CONSTANT XFMST=9             % Get message status
+   151    (40)  CONSTANT XFOPN=10            % Open port
+   152    (41)  CONSTANT XFCLS=11            % Close port
+   153    (42)  CONSTANT XFSND=12            % Send message to a remote port
+   154    (43)  CONSTANT XFRCV=13            % Receive a message on a given port
+   155    (44)  CONSTANT XFPST=14            % Get local port status
+   156    (45)  CONSTANT XFGST=15            % General status or wait
+   157    (46)  CONSTANT XFSIN=16            % Service initialisation function
+   158    (47)  %        XFSRL=17            % Service release function (obsolete)
+   159    (48)  CONSTANT XFABR=18            % Absolute read block from POF area
+   160    (49)  %        XFABW=19            % Absolute write block to POF area (obsolete)
+   161    (50)  %        XFMLK=20            % Lock message system (obsolete)
+   162    (51)  %        XFMUL=21            % Unlock message system (obsolete)
+   163    (52)  CONSTANT XFM2P=22            % Magic number to port id.
+   164    (53)  CONSTANT XFP2M=23            % Port to magic number
+   165    (54)  %        XFRIN=24            % Routing initialise (obsolete)
+   166    (55)  CONSTANT XFCRD=25            % Create driver with context
+   167    (56)  CONSTANT XFSTD=26            % Start driver
+   168    (57)  %        XFDIB=27            % Define indirect buffer (obsolete)
+   169    (58)  %        XFRIB=28            % Read from indirect buffer (obsolete)
+   170    (59)  %        XFWIB=29            % Write to indirect buffer (obsolete)
+   171    (60)  CONSTANT XFPRV=30            % Request privilege
+   172    (61)  CONSTANT XFRTN=31            % Write word 0 and return message
+   173    (62)  CONSTANT XFRRH=32            % Receive message and read word 0
+   174    (63)  CONSTANT XFDUB=33            % Define user buffer area for current message
+   175    (64)  CONSTANT XFWDF=34            % Define wake-up context (drivers only!)
+   176    (65)  CONSTANT XFDBK=35            % Define bank no (drivers only)
+   177    (66)  CONSTANT XFSMC=36            % start multi-function call
+   178    (67)  CONSTANT XFDMM=37            % define max memory for a task
+   179    (68)  CONSTANT XFALM=38            % allocate messages to a task
+   180    (69)  CONSTANT XFFRM=39            % free allocated messages
+   181    (70)  CONSTANT XFLMP=40            % list messages and ports
+   182    (71)  CONSTANT XFRRE=41            % receive and read message 
+   183    (72)  CONSTANT XFCPV=42            % check system and/or user privileges
+   184    (73)  CONSTANT X5FUN=43            % == END MARKER == LEAVE ME HERE PLEASE
+   185    (74)  
+   186    (75)  
+   187    (76)  %-----------------------------------------------------------------------------%
+   188    (77)  %                                                                             %
+   189    (78)  %                         XMSG OPTION BITS (FLAGS)                            %
+   190    (79)  %                                                                             %
+   191    (80)  %-----------------------------------------------------------------------------%
+   192    (81)  
+   193    (82)  CONSTANT XFWTF=15  % If set then wait if operation not terminated.
+   194    (83)  CONSTANT XFWAK=14  % Wake up task on status change.
+   195    (84)  %        XFPRM=13  % (Obsolete).
+   196    (85)  CONSTANT XFPON=13  % Driver to run with paging on.
+   197    (86)  %        XFWOK=13  % (Obsolete).
+   198    (87)  CONSTANT XFUSG=13  % (Not yet implemented).
+   199    (88)  CONSTANT XFHIP=13  % High-priority message.
+   200    (89)  CONSTANT XFRRO=13  % If XFROU then non-local XROUT.
+   201    (90)  CONSTANT XFEXC=13  % Allocate/reserve/release exclusive message buffer(s).
+   202    (91)  CONSTANT XFOPS=12  % (Not yet implemented).
+   203    (92)  CONSTANT XFRES=12  % Reset message length to zero.
+   204    (93)  CONSTANT XFBNC=12  % Bounce message.
+   205    (94)  CONSTANT XFFWD=11  % Forward message.
+   206    (95)  CONSTANT XFROU=10  % Message to be sent to XROUT (see XFRRO).
+   207    (96)  CONSTANT XFSEC=9   % Secure message (Return if not delivered).
+   208    (97)  CONSTANT XFSYS=7   % Bit set to indicate system mode call (system domain).
+   209    (98)  
+   210    (99)  
+   211   (100)  %----------------------------------------------------------------------------%
+   212   (101)  %                                                                            %
+   213   (102)  %        MESSAGE TYPES: RETURNED AS SUCCESSFULL STATUS FROM A                %
+   214   (103)  %                       RECEIVE MESSAGE CALL                                 %
+   215   (104)  %                                                                            %
+   216   (105)  %----------------------------------------------------------------------------%
+   217   (106)  
+   218   (107)  CONSTANT XMTNO=1             % Normal message
+   219   (108)  CONSTANT XMROU=2             % Routed message (Via XROUT)
+   220   (109)  CONSTANT XMTHI=3             % High priority message
+   221   (110)  CONSTANT XMTRE=4             % Return message (Abnormal condition)
+   222   (111)  CONSTANT XMKIK=5             % XROUT has been kicked (no message)
+   223   (112)  CONSTANT XMTPS=6             % Pseudo message (not used)
+   224   (113)  
+   225   (114)  
+   226   (115)  %-----------------------------------------------------------------------------%
+   227   (116)  %                                                                             %
+   228   (117)  %              U S E R    E R R O R    S Y M B O L S                          %
+   229   (118)  %                                                                             %
+   230   (119)  %                                                                             %
+   231   (120)  %               Base value = XKXXX = 16896 = 41000B                           %
+   232   (121)  %                                                                             %
+   233   (122)  %                                                                             %
+   234   (123)  %        Error values returned in the T-register                              %
+   235   (124)  %        NOTE that the PLANC XMSG library returns the STANDARD                %
+   236   (125)  %        values (see later)                                                   %
+   237   (126)  %                                                                             %
+   238   (127)  %-----------------------------------------------------------------------------%
+   239   (128)  
+   240   (129)  CONSTANT XKXXX=16896   % BASE for STANDARD ERROR system (41000B)
+   241   (130)  CONSTANT XENOT= -1     % No more XT-blocks free
+   242   (131)  CONSTANT XEIRM= -2     % Non-local remote port illegal here
+   243   (132)  CONSTANT XETMM= -4     % Task is not allowed any more memory
+   244   (133)  CONSTANT XENIM= -5     % Facility not yet implemented
+   245   (134)  CONSTANT XEIBP= -6     % Illegal message buffer pointer
+   246   (135)  CONSTANT XEBNY= -7     % Message buffer not yours
+   247   (136)  CONSTANT XEIRT= -8     % Illegal function for RT-programs (only drivers)
+   248   (137)  CONSTANT XENOP= -9     % No more ports available
+   249   (138)  CONSTANT XEIDR= -10    % Function not available to drivers
+   250   (139)  CONSTANT XENDM= -11    % No default message
+   251   (140)  CONSTANT XEMCH= -12    % Message is already chained
+   252   (141)  CONSTANT XEBFC= -13    % Message is in a queue
+   253   (142)  CONSTANT XEAIN= -14    % XMSG Kernel already initialised
+   254   (143)  CONSTANT XEBNC= -15    % Return of a bounce message
+   255   (144)  CONSTANT XEWNA= -16    % Write Not Allowed (Indirect buffer)
+   256   (145)  CONSTANT XENVI= -17    % No Valid Indirect buffer defined
+   257   (146)  CONSTANT XEILF= -18    % Illegal function code in monitor call
+   258   (147)  CONSTANT XEIMA= -19    % Invalid magic number
+   259   (148)  CONSTANT XEMFL= -20    % Message space full
+   260   (149)  CONSTANT XEILM= -21    % Illegal message size or not enough space left
+   261   (150)  CONSTANT XEIPN= -22    % Illegal port number
+   262   (151)  CONSTANT XEPRV= -23    % Privileged function called without privilege
+   263   (152)  CONSTANT XEPVR= -24    % Privilege request refused
+   264   (153)  CONSTANT XERNA= -25    % Remote system not available
+   265   (154)  CONSTANT XEROV= -26    % Remote task space overflow
+   266   (155)  CONSTANT XEXBF= -27    % Message already has XMSG buffer (XFDUB)
+   267   (156)  CONSTANT XEDRI= -28    % Driver called XMSG before return from previous
+   268   (157)  CONSTANT XENDP= -29    % No port open (so 'default port' param invalid)
+   269   (158)  CONSTANT XEITL= -30    % Illegal transfer length for read/write
+   270   (159)  CONSTANT XEIDP= -31    % Illegal displacement in read/write
+   271   (160)  CONSTANT XEILR= -32    % Illegal use of reentrant segment in XFDIB
+   272   (161)  CONSTANT XENOS= -33    % Indirect Buffer not on valid segment
+   273   (162)  CONSTANT XENSE= -34    % Network sequencing error
+   274   (163)  CONSTANT XERND= -35    % Remote system not defined
+   275   (164)  CONSTANT XEPCL= -36    % Remote port closed while message queued
+   276   (165)  CONSTANT XENRU= -37    % XMSG not running 
+   277   (166)  CONSTANT XENTO= -38    % Timeout detected by network layer
+   278   (167)  CONSTANT XENUS= -39    % No user segment info defined (XFUSG option)
+   279   (168)  CONSTANT XEREJ= -40    % Network remote reject (request retransmit)
+   280   (169)  CONSTANT XEIXT= -41    % Driver called XMSG with illegal XT-block
+   281   (170)  CONSTANT XETMU= -42    % Too many multi calls
+   282   (171)  CONSTANT XECRA= -63    % XMSG crash (Info in Basefield)
+   283   (172)  
+   284   (173)  
+   285   (174)  %-----------------------------------------------------------------------------%
+   286   (175)  %                                                                             %
+   287   (176)  %              U S E R    E R R O R    S Y M B O L S                          %
+   288   (177)  %                                                                             %
+   289   (178)  %                              A S                                            %
+   290   (179)  %                                                                             %
+   291   (180)  %                  S T A N D A R D    V A L U E S                             %
+   292   (181)  %                                                                             %
+   293   (182)  %                 base value = XKXXX = 16896 = 41000B                         %
+   294   (183)  %                                                                             %
+   295   (184)  %                                                                             %
+   296   (185)  %     NB!! note in particular that the STANDARD value for                     %
+   297   (186)  %          "not terminated" is NOT zero                                       %
+   298   (187)  %          and the standard OK is now zero                                    %
+   299   (188)  %                                                                             %
+   300   (189)  %-----------------------------------------------------------------------------%
+   301   (190)  
+   302   (191)  
+   303   (192)  CONSTANT XMOK   = 0          % NOTE change from XMSG OK=1
+   304   (193)  
+   305   (194)  CONSTANT XMXKXXX= 16896      % BASE for STANDARD ERROR system
+   306   (195)  
+   307   (196)  CONSTANT XMXENTM= XMXKXXX    % NOT an error - simply "not terminated"
+   308   (197)                               % ie same as  XMSG status=0
+   309   (198)  
+   310   (199)  CONSTANT XMXENOT= 16897      % No more XT-blocks free
+   311   (200)  CONSTANT XMXEIRM= 16898      % Non-local remote port illegal here
+   312   (201)  
+   313   (202)  CONSTANT XMXETMM= 16900      % Task is not allowed any more memory
+   314   (203)  CONSTANT XMXENIM= 16901      % Facility not yet implemented
+   315   (204)  CONSTANT XMXEIBP= 16902      % Illegal message buffer address
+   316   (205)  CONSTANT XMXEBNY= 16903      % Message buffer not yours
+   317   (206)  CONSTANT XMXEIRT= 16904      % Illegal function for RT-programs (only drivers)
+   318   (207)  CONSTANT XMXENOP= 16905      % No more ports available
+   319   (208)  CONSTANT XMXEIDR= 16906      % Function not available to drivers
+   320   (209)  CONSTANT XMXENDM= 16907      % No default message
+   321   (210)  CONSTANT XMXEMCH= 16908      % Message is already chained
+   322   (211)  CONSTANT XMXEBFC= 16909      % Message is in a queue
+   323   (212)  CONSTANT XMXEAIN= 16910      % XMSG Kernel already initialised
+   324   (213)  CONSTANT XMXEBNC= 16911      % Return of a bounce message
+   325   (214)  CONSTANT XMXEWNA= 16912      % Write Not Allowed into Indirect buffer
+   326   (215)  CONSTANT XMXENVI= 16913      % No Valid Indirect buffer defined
+   327   (216)  CONSTANT XMXEILF= 16914      % Illegal function code in monitor call
+   328   (217)  CONSTANT XMXEIMA= 16915      % Invalid magic number
+   329   (218)  CONSTANT XMXEMFL= 16916      % Message space full
+   330   (219)  CONSTANT XMXEILM= 16917      % Illegal message size or not enough space left
+   331   (220)  CONSTANT XMXEIPN= 16918      % Illegal port number
+   332   (221)  CONSTANT XMXEPRV= 16919      % Privileged function called without privilege
+   333   (222)  CONSTANT XMXEPVR= 16920      % Privilege request refused
+   334   (223)  CONSTANT XMXERNA= 16921      % Remote system not available
+   335   (224)  CONSTANT XMXEROV= 16922      % Remote task space overflow
+   336   (225)  CONSTANT XMXEXBF= 16923      % Message already has XMSG buffer (XFDUB)
+   337   (226)  CONSTANT XMXEDRI= 16924      % Driver called XMSG before return from previous
+   338   (227)  CONSTANT XMXENDP= 16925      % No port open (so 'default port' param invalid)
+   339   (228)  CONSTANT XMXEITL= 16926      % Illegal transfer length for read/write
+   340   (229)  CONSTANT XMXEIDP= 16927      % Illegal displacement in read/write
+   341   (230)  CONSTANT XMXEILR= 16928      % Illegal use of reentrant segment in XFDIB
+   342   (231)  CONSTANT XMXENOS= 16929      % Indirect Buffer not on valid segment
+   343   (232)  CONSTANT XMXENSE= 16930      % Network sequencing error
+   344   (233)  CONSTANT XMXERND= 16931      % Remote system not defined
+   345   (234)  CONSTANT XMXEPCL= 16932      % Remote port closed while message queued
+   346   (235)  CONSTANT XMXENRU= 16933      % XMSG not running 
+   347   (236)  CONSTANT XMXENTO= 16934      % Timeout detected by network layer
+   348   (237)  CONSTANT XMXENUS= 16935      % No user segment info defined (XFUSG option)
+   349   (238)  CONSTANT XMXEREJ= 16936      % Network remote reject (request retransmit)
+   350   (239)  CONSTANT XMXEIXT= 16937      % driver called XMSG with illegal XT-block  
+   351   (240)  CONSTANT XMXETMU= 16938      % too many calls in multi-call              
+   352   (241)  
+   353   (242)  CONSTANT XMXECRA= 16959      % XMSG crash (Info in Basefield)
+   354   (243)  
+   355   (244)  %-----------------------------------------------------------------------------%
+   356   (245)  %                                                                             %
+   357   (246)  %           X R O U T   -   S E R V I C E    V A L U E S                      %
+   358   (247)  %                                                                             %
+   359   (248)  %                   Values in byte 1 of message                               %
+   360   (249)  %                                                                             %
+   361   (250)  %-----------------------------------------------------------------------------%
+   362   (251)  
+   363   (252)  CONSTANT XSNUL=64      % Null command returns 0 status to sender
+   364   (253)  CONSTANT XSLET=65      % Send a letter
+   365   (254)  CONSTANT XSNAM=66      % Give name to this port
+   366   (255)  CONSTANT XSCNM=67      % Clear name of this port
+   367   (256)  CONSTANT XSGNM=68      % Get name of port (param: MAGNO)
+   368   (257)  CONSTANT XSGNI=69      % Get name (param: MC/PORTNO)
+   369   (258)  CONSTANT XSGMG=71      % Get magic number from name (PRIV)
+   370   (259)  CONSTANT XSDRN=73      % Define remote name
+   371   (260)  CONSTANT XSDSY=74      % Define routing for system N (PRIV)
+   372   (261)  CONSTANT XSDMC=XSDSY   % Define routing for system N (PRIV) - old
+   373   (262)  CONSTANT XSGSY=75      % Get routing info for system N
+   374   (263)  CONSTANT XSGMC=XSGSY   % Get routing info for system N - old symbol
+   375   (264)  CONSTANT XSLKI=76      % Start up specified link
+   376   (265)  CONSTANT XSTIN=77      % Initialise tracing (open file, ..)
+   377   (266)  CONSTANT XSTCL=78      % Close tracing
+   378   (267)  CONSTANT XSTDC=79      % Define tracing conditions
+   379   (268)  CONSTANT XSCRS=80      % Create service (name, init no of SP's)
+   380   (269)  CONSTANT XSNSP=81      % New service point(s) (increment/decrement in SP's)
+   381   (270)  CONSTANT XSGIN=82      % Get information about name
+   382   (271)  CONSTANT XSDLO=83      % Define local system
+   383   (272)  CONSTANT XSLEK=84      % Send letter and kick if unavailable
+   384   (273)  CONSTANT XSNET=85      % Start/stop gateway (network server) (PRIV)
+   385   (274)  CONSTANT XSSCI=86      % Set crash information
+   386   (275)  CONSTANT XSGAT=87      % Get/check attribute
+   387   (276)  CONSTANT XSDAT=88      % Define/remove attribute (privileged)
+   388   (277)  CONSTANT XSNSI=89      % Get network server information
+   389   (278)  CONSTANT XSMAX=XSNSI   % Maximum legal service value
+   390   (279)                                                                                
+   391   (280)  %-----------------------------------------------------------------------------%
+   392   (281)  %                                                                             %
+   393   (282)  %           X R O U T   -   S U B - S E R V I C E  V A L U E S                %
+   394   (283)  %                                                                             %
+   395   (284)  %                  Values in parameter 1 of message                           %
+   396   (285)  %                                                                             %
+   397   (286)  %-----------------------------------------------------------------------------%
+   398   (287)  
+   399   (288)  % Sub-service definitions for XSSCI
+   400   (289)  
+   401   (290)  CONSTANT XSDAR=1       % Enable/disable auto-restart of XMSG
+   402   (291)  CONSTANT XSDRF=2       % Define/remove restart-files
+   403   (292)  CONSTANT XSDDF=3       % Define/remove dump-files
+   404   (293)  CONSTANT XSGDF=4       % Get defined dump-files
+   405   (294)  CONSTANT XSDUX=5       % Dump XMSG onto files
+   406   (295)  CONSTANT XSGRF=6       % Get defined restart-files
+   407   (296)  CONSTANT XSGAR=7       % Get auto-restart definition
+   408   (297)  
+   409   (298)  % Sub-service definitions for XSGAT
+   410   (299)  
+   411   (300)  CONSTANT XSGXV=1       % Get XMSG version and revision
+   412   (301)  CONSTANT XSCMG=2       % Check magic number
+   413   (302)  CONSTANT XSGCN=3       % Get complete system or port name (deabbreviate name)
+   414   (303)  CONSTANT XSGFR=4       % Get friend information (privileged!)
+   415   (304)  
+   416   (305)  % Sub-service definitions for XSDAT (privileged)
+   417   (306)  
+   418   (307)  CONSTANT XSDFR=1       % Define friend system
+   419   (308)  CONSTANT XSRFR=2       % Remove friend system
+   420   (309)  
+   421   (310)  %-----------------------------------------------------------------------------%
+   422   (311)  %                                                                             %
+   423   (312)  %          X R O U T  /  F I L E   S E R V E R   -    E R R O R S             %
+   424   (313)  %                                                                             %
+   425   (314)  %             Error values returned in byte 1 of return message               %
+   426   (315)  %                                                                             %
+   427   (316)  %                                                                             %
+   428   (317)  %      These are the values in the message header itself which the            %
+   429   (318)  %      user sees when the XROUT header is manipulated directly by the         %
+   430   (319)  %      user.                                                                  %
+   431   (320)  %      The PLANC XMSG library returns the STANDARD values (see later)         %
+   432   (321)  %                                                                             %
+   433   (322)  %-----------------------------------------------------------------------------%
+   434   (323)  
+   435   (324)  CONSTANT XRXXX=16960   % Base for XROUT errors: 41100B
+   436   (325)  CONSTANT XRSOK=0       % OK - not an error!
+   437   (326)  CONSTANT XRISN=1       % Illegal service number
+   438   (327)  CONSTANT XRUNN=2       % Unknown name (of server or system)
+   439   (328)  CONSTANT XRDDF=3       % Another port already has this name
+   440   (329)  CONSTANT XRNSP=4       % No space left for names
+   441   (330)  CONSTANT XRIPT=5       % Illegal parameter type
+   442   (331)  CONSTANT XRMMP=6       % Missing mandatory parameter
+   443   (332)  CONSTANT XRUNM=7       % Unknown magic number
+   444   (333)  CONSTANT XRMTL=8       % Too short message (or message buffer)
+   445   (334)  CONSTANT XRSMF=9       % Standard message format not handled
+   446   (335)  CONSTANT XRPRV=10      % Caller was not privileged
+   447   (336)  CONSTANT XRISY=11      % Illegal system number parameter
+   448   (337)  CONSTANT XRNRO=12      % No access to remote system
+   449   (338)  CONSTANT XRIIV=13      % Illegal integer value
+   450   (339)  CONSTANT XRNEI=14      % Cannot define route to a neighbour
+   451   (340)  CONSTANT XRNXM=15      % Invalid service request - no intersystem XMSG
+   452   (341)  CONSTANT XRILN=16      % Illegal/Reserved Log. unit no. for link
+   453   (342)  CONSTANT XRNXL=17      % No more XL-Blocks (Link Descriptors)
+   454   (343)  CONSTANT XRNXD=18      % Not enough XD-Blocks for LKINI
+   455   (344)  CONSTANT XRNTR=19      % No trace generated
+   456   (345)  CONSTANT XRTRA=20      % Trace already active
+   457   (346)  CONSTANT XRTRP=21      % Trace passive
+   458   (347)  CONSTANT XRTFE=22      % Trace/dump file open error (see param 1)
+   459   (348)  CONSTANT XRTRT=23      % Trace RT-prog (XTRACE) not found
+   460   (349)  CONSTANT XRTIS=24      % Illegal trace system number
+   461   (350)  CONSTANT XRBLK=25      % Bad link - open unsuccessful
+   462   (351)  CONSTANT XRSYD=26      % Local system number already defined
+   463   (352)  CONSTANT XRNLS=27      % No local system number defined yet
+   464   (353)  CONSTANT XRTRE=28      % Too many remote names to this system
+   465   (354)  CONSTANT XRRNA=29      % Old service calls (<64) cannot go remote
+   466   (355)  CONSTANT XRBUS=30      % Service busy - try later!
+   467   (356)  CONSTANT XRNSE=31      % This is not a service port
+   468   (357)  CONSTANT XRRPN=32      % Remote port statically declared
+   469   (358)  CONSTANT XRUKS=33      % Unknown remote system name
+   470   (359)  CONSTANT XRMFL=34      % Not enough message table space in remote system
+   471   (360)  CONSTANT XRROV=35      % Remote task space overflow when forwarding
+   472   (361)  CONSTANT XRRFU=36      % Routing table space full (too many systems def.)
+   473   (362)  CONSTANT XRNRB=37      % No remote batch service available here
+   474   (363)  CONSTANT XRURT=38      % Unknown RT program name
+   475   (364)  CONSTANT XRSNR=39      % This server is not running
+   476   (365)  CONSTANT XRRND=40      % Netserver: remote system is not defined
+   477   (366)  CONSTANT XRNNA=41      % Netserver: network not available
+   478   (367)  CONSTANT XRISE=42      % Netserver: internal server error
+   479   (368)  CONSTANT XRIRQ=43      % Netserver: invalid request
+   480   (369)  CONSTANT XRNGA=44      % XMSG not congfigurated with gateway code
+   481   (370)  CONSTANT XRRNL=45      % Remote system not on same LAN
+   482   (371)  CONSTANT XRNCO=46      % No connection to this system (unknown status)
+   483   (372)  CONSTANT XRAMB=47      % Ambiguous name
+   484   (373)  CONSTANT XRFFU=48      % Friend system table full (too many friends)
+   485   (374)  
+   486   (375)  %-----------------------------------------------------------------------------%
+   487   (376)  %                                                                             %
+   488   (377)  %         X R O U T  /  F I L E   S E R V E R   -    E R R O R S              %
+   489   (378)  %                                                                             %
+   490   (379)  %                             A S                                             %
+   491   (380)  %                                                                             %
+   492   (381)  %                  S T A N D A R D   V A L U E S                              %
+   493   (382)  %                                                                             %
+   494   (383)  %             These are returned by the PLANC XMSG library                    %
+   495   (384)  %             when the routine involves an XROUT service.                     %
+   496   (385)  %                                                                             %
+   497   (386)  %                 base value = XRXXX = 16960 = 41100B                         %
+   498   (387)  %                                                                             %
+   499   (388)  %-----------------------------------------------------------------------------%
+   500   (389)  
+   501   (390)  CONSTANT XMXRXXX= 16960      % BASE for STANDARD ERROR system
+   502   (391)  
+   503   (392)  CONSTANT XMXRISN= 16961      % Illegal service number
+   504   (393)  CONSTANT XMXRUNN= 16962      % Unknown name (of server or system)
+   505   (394)  CONSTANT XMXRDDF= 16963      % Another port already has this name
+   506   (395)  CONSTANT XMXRNSP= 16964      % No space left for names
+   507   (396)  CONSTANT XMXRIPT= 16965      % Illegal parameter type
+   508   (397)  CONSTANT XMXRMMP= 16966      % Missing mandatory parameter
+   509   (398)  CONSTANT XMXRUNM= 16967      % Unknown magic number
+   510   (399)  CONSTANT XMXRMTL= 16968      % Too short message (or message buffer)
+   511   (400)  CONSTANT XMXRSMF= 16969      % Standard message format not handled
+   512   (401)  CONSTANT XMXRPRV= 16970      % Caller was not privileged
+   513   (402)  CONSTANT XMXRISY= 16971      % Illegal system number parameter
+   514   (403)  CONSTANT XMXRNRO= 16972      % No access to remote system
+   515   (404)  CONSTANT XMXRIIV= 16973      % Illegal integer value
+   516   (405)  CONSTANT XMXRNEI= 16974      % Cannot define route to a neighbour
+   517   (406)  CONSTANT XMXRNXM= 16975      % Invalid service request - no intersystem XMSG
+   518   (407)  CONSTANT XMXRILN= 16976      % Illegal/Reserved Log. unit no. for link
+   519   (408)  CONSTANT XMXRNXL= 16977      % No more XL-Blocks (Link Descriptors)
+   520   (409)  CONSTANT XMXRNXD= 16978      % Not enough XD-Blocks for LKINI
+   521   (410)  CONSTANT XMXRNTR= 16979      % No trace generated
+   522   (411)  CONSTANT XMXRTRA= 16980      % Trace already active
+   523   (412)  CONSTANT XMXRTRP= 16981      % Trace passive
+   524   (413)  CONSTANT XMXRTFE= 16982      % Trace/dump file open error (see param 1)
+   525   (414)  CONSTANT XMXRTRT= 16983      % Trace RT-prog (XTRACE) not found
+   526   (415)  CONSTANT XMXRTIS= 16984      % Illegal trace system number
+   527   (416)  CONSTANT XMXRBLK= 16985      % Bad link - open unsuccessful
+   528   (417)  CONSTANT XMXRSYD= 16986      % Local system number already defined
+   529   (418)  CONSTANT XMXRNLS= 16987      % No local system number defined yet
+   530   (419)  CONSTANT XMXRTRE= 16988      % Too many remote names to this system
+   531   (420)  CONSTANT XMXRRNA= 16989      % Old service calls (<64) cannot go remote
+   532   (421)  CONSTANT XMXRBUS= 16990      % Service busy - try later!
+   533   (422)  CONSTANT XMXRNSE= 16991      % This is not a service port
+   534   (423)  CONSTANT XMXRRPN= 16992      % Remote port statically declared
+   535   (424)  CONSTANT XMXRUKS= 16993      % Unknown remote system name
+   536   (425)  CONSTANT XMXRMFL= 16994      % Not enough message table space in remote system
+   537   (426)  CONSTANT XMXRROV= 16995      % Remote task space overflow when forwarding
+   538   (427)  CONSTANT XMXRRFU= 16996      % Routing table space full (too many systems def.)
+   539   (428)  CONSTANT XMXRNRB= 16997      % No remote batch service available here
+   540   (429)  CONSTANT XMXRURT= 16998      % Unknown RT-program name
+   541   (430)  CONSTANT XMXRSNR= 16999      % this server is not running
+   542   (431)  CONSTANT XMXRRND= 17000      % Netserver: remote system is not defined
+   543   (432)  CONSTANT XMXRNNA= 17001      % Netserver: network not available
+   544   (433)  CONSTANT XMXRISE= 17002      % Netserver: internal server error
+   545   (434)  CONSTANT XMXRIRQ= 17003      % Netserver: invalid request
+   546   (435)  CONSTANT XMXRNGA= 17004      % XMSG not configured with gateway code
+   547   (436)  CONSTANT XMXRRNL= 17005      % remote system not on same LAN
+   548   (437)  CONSTANT XMXRNCO= 17006      % no connection to this system(unknown status)
+   549   (438)  CONSTANT XMXRAMB= 17007      % ambiguous name
+   550   (439)  CONSTANT XMXRFFU= 17008      % friend system table full (too many friends)
+   551   (440)  
+   552   (441)  %-----------------------------------------------------------------------------%
+   553   (442)  %                                                                             %
+   554   (443)  %                    format of XROUT messages                                 %
+   555   (444)  %                                                                             %
+   556   (445)  %-----------------------------------------------------------------------------%
+   557   (446)  
+   558   (447)  %
+   559   (448)  % maximum XMSG name length
+   560   (449)  %
+   561   (450)  CONSTANT XMMAXNameLength = 32          % actually installation-dependent!
+   562   (451)  
+   563   (452)  
+   564   (453)                                         % XROUT header format
+   565   (454)  TYPE XROUTHDR = RECORD PACK            % base record for variants
+   566   (455)         BYTE: XRSerialNumber            % serial number for user's use
+   567   (456)         BYTE: XRServiceNumber           % code for required service which is
+   568   (457)         BYTE: XRStatus = XRServiceNumber% replaced with XROUT status code
+   569   (458)         INTEGER2: XRBufferLength = XRServiceNumber % overlay for append routines
+   570   (459)         INTEGER2: XRLengthMsg           % total length of following parameters
+   571   (460)  ENDRECORD
+   572   (461)                                         % parameter formats
+   573   (462)  TYPE XROUTPARAMHDR = RECORD PACK       % base record for parameter variants
+   574   (463)         BYTE: XRPCode                   % parameter code
+   575   (464)         BYTE: XRPLength                 % parameter length
+   576   (465)  ENDRECORD
+   577   (466)  TYPE XROUTSTRING = XROUTPARAMHDR RECORD PACKED % string parameter format
+   578   (467)         BYTES: XRPString(0:XMMAXNameLength-1)   % MAXIMUM length shown
+   579   (468)  ENDRECORD
+   580   (469)  TYPE XROUTINTEGER = XROUTPARAMHDR RECORD PACKED % integer parameter format
+   581   (470)         INTEGER2: XRPInteger
+   582   (471)  ENDRECORD
+   583   (472)  TYPE XROUTDOUBLE = XROUTPARAMHDR RECORD PACKED % integer4 parameter format
+   584   (473)         INTEGER4: XRPDouble
+   585   (474)  ENDRECORD
+   586   (475)  
+   587   (476)  %-----------------------------------------------------------------------------%
+   588   (477)  $EOF
+   589   (112)  $INCLUDE XMP-B02:IMPT
+   590     (1)  %=============================================================================%
+   591     (2)  %                                                                             %
+   592     (3)  %                           I M P O R T                                       %
+   593     (4)  %                                                                             %
+   594     (5)  %                 D E C L A R A T I O N S     F O R                           %
+   595     (6)  %                                                                             %
+   596     (7)  %                             X M S G                                         %
+   597     (8)  %                                                                             %
+   598     (9)  %                          L I B R A R Y                                      %
+   599    (10)  %                                                                             %
+   600    (11)  %                          F O R    T H E                                     %
+   601    (12)  %                                                                             %
+   602    (13)  %            N D 1 0 0   /   N D 5 0 0   /  M C 6 8 0 0 0                     %
+   603    (14)  %                                                                             %
+   604    (15)  %                                                                             %
+   605    (16)  %  VERSION/REVISION:  -B02  02.06.86   THNH                                   %
+   606    (17)  %                                                                             %
+   607    (18)  %                                                                             %
+   608    (19)  %=============================================================================%
+   609    (20)  
+   610    (21)  
+   611    (22)  %-----------------------------------------------------------------------------%
+   612    (23)  %                                                                             %
+   613    (24)  %  Special defines due to possibly different INTEGER sizes                    %
+   614    (25)  %                                                                             %
+   615    (26)  %  NOTE: if using old MC68000 compiler (default INTEGER = INTEGER2) then      %
+   616    (27)  %        modify XMUSERADDRESS = INTEGER4                                      %
+   617    (28)  %                                                                             %
+   618    (29)  %-----------------------------------------------------------------------------%
+   619    (30)  
+   620    (31)  TYPE XMMSGIDENTIFIER = INTEGER
+   621    (32)  TYPE XMUSERADDRESS = INTEGER  % NB: NEW MC68000 compiler!!
+   622    (33)  
+   623    (34)  %-----------------------------------------------------------------------------%
+   624    (35)  %                                                                             %
+   625    (36)  %                     the routine IMPORT statements                           %
+   626    (37)  %                                                                             %
+   627    (38)  %-----------------------------------------------------------------------------%
+   628    (39)  
+   629    (40)  IMPORT (ROUTINE VOID,INTEGER(INTEGER,BYTES,INTEGER WRITE):&
+   630    (41)          xmpopnm),&
+   631    (42)         (ROUTINE VOID,INTEGER(INTEGER,BYTES,INTEGER):&
+   632    (43)          xmpclnm),&
+   633    (44)         (ROUTINE VOID,INTEGER(INTEGER,BYTES,BOOLEAN,INTEGER,INTEGER WRITE):&
+   634    (45)          xmpopcn),&
+   635    (46)         (ROUTINE VOID,INTEGER(INTEGER,INTEGER,INTEGER,INTEGER):&
+   636    (47)          xmpinfc),&
+   637    (48)         (ROUTINE VOID,INTEGER(INTEGER,XMMSGIDENTIFIER,INTEGER,&
+   638    (49)                               XMUSERADDRESS,INTEGER,INTEGER,INTEGER WRITE):&
+   639    (50)          xmpread),&
+   640    (51)         (ROUTINE VOID,INTEGER(INTEGER,XMMSGIDENTIFIER,INTEGER,&
+   641    (52)                               XMUSERADDRESS,INTEGER,INTEGER,INTEGER WRITE):&
+   642    (53)          xmpwrte),&
+   643    (54)         (ROUTINE VOID,INTEGER(INTEGER,XMMSGIDENTIFIER,&
+   644    (55)                               INTEGER2,INTEGER2,INTEGER2):&
+   645    (56)          xmpwrhd),&
+   646    (57)         (ROUTINE VOID,INTEGER(INTEGER,XMMSGIDENTIFIER,INTEGER):&
+   647    (58)          xmprout),&
+   648    (59)         (ROUTINE VOID,INTEGER(INTEGER,XMMSGIDENTIFIER,INTEGER,INTEGER4):&
+   649    (60)          xmpsend),&
+   650    (61)         (ROUTINE VOID,INTEGER(INTEGER,INTEGER WRITE,INTEGER WRITE,&
+   651    (62)                               INTEGER WRITE):&
+   652    (63)          xmpconf)
+   653    (64)  
+   654    (65)  
+   655    (66)  
+   656    (67)  IMPORT (ROUTINE VOID,INTEGER(INTEGER,INTEGER WRITE):&
+   657    (68)          xmpfopn),&
+   658    (69)         (ROUTINE VOID,INTEGER(INTEGER,INTEGER):&
+   659    (70)          xmpfcls),&
+   660    (71)         (ROUTINE VOID,INTEGER(INTEGER,INTEGER,XMMSGIDENTIFIER WRITE):&
+   661    (72)          xmpfget),&
+   662    (73)         (ROUTINE VOID,INTEGER(INTEGER,XMMSGIDENTIFIER):&
+   663    (74)          xmpfrel),&
+   664    (75)         (ROUTINE VOID,INTEGER(INTEGER,INTEGER,INTEGER WRITE):&
+   665    (76)          xmpfgst),&
+   666    (77)         (ROUTINE VOID,INTEGER(INTEGER,INTEGER,XMUSERADDRESS,&
+   667    (78)                               INTEGER,INTEGER,INTEGER WRITE):&
+   668    (79)          xmpfrea),&
+   669    (80)         (ROUTINE VOID,INTEGER(INTEGER,INTEGER,XMUSERADDRESS,&
+   670    (81)                               INTEGER,INTEGER,INTEGER WRITE):&
+   671    (82)          xmpfwri),&
+   672    (83)         (ROUTINE VOID,INTEGER(INTEGER,XMMSGIDENTIFIER,&
+   673    (84)                               INTEGER2 WRITE,INTEGER2 WRITE,INTEGER2 WRITE):&
+   674    (85)          xmpfrhd),&
+   675    (86)         (ROUTINE VOID,INTEGER(INTEGER,&
+   676    (87)                               INTEGER2,INTEGER2,INTEGER2):&
+   677    (88)          xmpfwhd),&
+   678    (89)         (ROUTINE VOID,INTEGER(INTEGER,INTEGER,INTEGER4):&
+   679    (90)          xmpfsnd),&
+   680    (91)         (ROUTINE VOID,INTEGER(INTEGER,XMMSGIDENTIFIER,&
+   681    (92)                               INTEGER,INTEGER2):&
+   682    (93)          xmpfrtn),&
+   683    (94)         (ROUTINE VOID,INTEGER(INTEGER,INTEGER,INTEGER WRITE,&
+   684    (95)                               INTEGER WRITE,XMMSGIDENTIFIER WRITE,&
+   685    (96)                               INTEGER WRITE):&
+   686    (97)          xmpfrcv),&
+   687    (98)         (ROUTINE VOID,INTEGER(INTEGER,INTEGER,XMUSERADDRESS,INTEGER,INTEGER,&
+   688    (99)                               INTEGER WRITE,INTEGER WRITE,&
+   689   (100)                               XMMSGIDENTIFIER WRITE,INTEGER WRITE):&
+   690   (101)          xmpfrre),&
+   691   (102)         (ROUTINE VOID,INTEGER(INTEGER,INTEGER,INTEGER WRITE,&
+   692   (103)                               INTEGER WRITE,XMMSGIDENTIFIER WRITE,&
+   693   (104)                               INTEGER2 WRITE):&
+   694   (105)          xmpfrrh),&
+   695   (106)         (ROUTINE VOID,INTEGER(INTEGER,INTEGER,INTEGER WRITE,&
+   696   (107)                               INTEGER WRITE,XMMSGIDENTIFIER WRITE,&
+   697   (108)                               INTEGER WRITE):&
+   698   (109)          xmpfpst),&
+   699   (110)         (ROUTINE VOID,INTEGER(INTEGER,XMMSGIDENTIFIER,INTEGER WRITE,&
+   700   (111)                               INTEGER4 WRITE,INTEGER WRITE):&
+   701   (112)          xmpfmst),&
+   702   (113)         (ROUTINE VOID,INTEGER(INTEGER,INTEGER,XMMSGIDENTIFIER):&
+   703   (114)          xmpfscm),&
+   704   (115)         (ROUTINE VOID,INTEGER(INTEGER,INTEGER):&
+   705   (116)          xmpfprv),&
+   706   (117)         (ROUTINE VOID,INTEGER(INTEGER,INTEGER,INTEGER4 WRITE):&
+   707   (118)          xmpfp2m),&
+   708   (119)         (ROUTINE VOID,INTEGER(INTEGER,INTEGER):&
+   709   (120)          xmpfdmm),&
+   710   (121)         (ROUTINE VOID,INTEGER(INTEGER,INTEGER,INTEGER):&
+   711   (122)          xmpfalm),&
+   712   (123)         (ROUTINE VOID,INTEGER(INTEGER):&
+   713   (124)          xmpfdum),&
+   714   (125)         (ROUTINE VOID,INTEGER(INTEGER):&
+   715   (126)          xmpfdct),&
+   716   (127)         (ROUTINE VOID,INTEGER(INTEGER,XMMSGIDENTIFIER,INTEGER,&
+   717   (128)                               XMMSGIDENTIFIER WRITE,INTEGER WRITE,&
+   718   (129)                               INTEGER WRITE):&
+   719   (130)          xmpflmp),&
+   720   (131)         (ROUTINE VOID,INTEGER(INTEGER,INTEGER4,INTEGER):&
+   721   (132)          xmpfdub),&
+   722   (133)         (ROUTINE VOID,INTEGER(INTEGER,INTEGER,INTEGER WRITE):&
+   723   (134)          xmpffrm),&
+   724   (135)         (ROUTINE VOID,INTEGER(INTEGER,INTEGER):&
+   725   (136)          xmpfdbk),&
+   726   (137)         (ROUTINE VOID,INTEGER(INTEGER,INTEGER,INTEGER):&
+   727   (138)          xmpfwdf),&
+   728   (139)         (ROUTINE VOID,INTEGER(INTEGER,INTEGER4,INTEGER WRITE,INTEGER WRITE,&
+   729   (140)                               INTEGER WRITE,INTEGER WRITE):&
+   730   (141)          xmpfm2p),&
+   731   (142)         (ROUTINE VOID,INTEGER(INTEGER,XMMSGIDENTIFIER,INTEGER WRITE,&
+   732   (143)                               INTEGER WRITE):&
+   733   (144)          xmpfcpv),&
+   734   (145)         (ROUTINE VOID,INTEGER(INTEGER,INTEGER WRITE):&
+   735   (146)          xmpfsin),&
+   736   (147)         (ROUTINE VOID,INTEGER(INTEGER,XMUSERADDRESS,INTEGER,INTEGER,&
+   737   (148)                               INTEGER,INTEGER):&
+   738   (149)          xmpfabr),&
+   739   (150)         (ROUTINE VOID,INTEGER(INTEGER,INTEGER,XMUSERADDRESS,INTEGER WRITE):&
+   740   (151)          xmpfcrd),&
+   741   (152)         (ROUTINE VOID,INTEGER(INTEGER,INTEGER):&
+   742   (153)          xmpfstd),&
+   743   (154)         (ROUTINE VOID,INTEGER(INTEGER,INTEGER,XMUSERADDRESS,INTEGER,INTEGER WRITE,&
+   744   (155)                               INTEGER WRITE,INTEGER WRITE,INTEGER WRITE):&
+   745   (156)          xmpfsmc)
+   746   (157)  
+   747   (158)  
+   748   (159)  IMPORT (ROUTINE VOID,INTEGER(BYTES,INTEGER,INTEGER READ WRITE,INTEGER,&
+   749   (160)                               BYTES,BYTES):&
+   750   (161)          xmpblet),&
+   751   (162)         (ROUTINE VOID,INTEGER(BYTES,INTEGER,INTEGER WRITE,&
+   752   (163)                               BYTES WRITE,INTEGER WRITE):&
+   753   (164)          xmpbloc)
+   754   (165)  
+   755   (166)  IMPORT (ROUTINE VOID,INTEGER(BYTES,INTEGER,INTEGER READ WRITE):&
+   756   (167)          xmpbini),&
+   757   (168)         (ROUTINE VOID,INTEGER(BYTES,INTEGER,INTEGER):&
+   758   (169)          xmpbrdy),&
+   759   (170)         (ROUTINE VOID,INTEGER(BYTES,INTEGER READ WRITE,INTEGER2,INTEGER):&
+   760   (171)          xmpbain),&
+   761   (172)         (ROUTINE VOID,INTEGER(BYTES,INTEGER READ WRITE,INTEGER4,INTEGER):&
+   762   (173)          xmpbadb),&
+   763   (174)         (ROUTINE VOID,INTEGER(BYTES,INTEGER READ WRITE,BYTES,INTEGER):&
+   764   (175)          xmpbast)
+   765   (176)  
+   766   (177)  IMPORT (ROUTINE INTEGER,VOID(INTEGER WRITE):&
+   767   (178)          xmpxets),&
+   768   (179)         (ROUTINE INTEGER,VOID(INTEGER WRITE):&
+   769   (180)          xmpxrts)
+   770   (181)  
+   771   (182)  %-----------------------------------------------------------------------------%
+   772   (183)  $EOF
+   773   (113)  
+   774   (114)      % MON1 IS INBIT - read one byte from a device. This is how PLANC reaches a
+   775   (115)      % monitor call: the runtime provides them as ordinary routines named MONn,
+   776   (116)      % declared exactly like this, and the COSMOS guide's own sample does the
+   777   (117)      % same thing one call along with IMPORT (ROUTINE VOID,VOID: MONO) for MON0.
+   778   (118)      % The signature is copied from ND-60.117.5 appendix 0.2:
+   779   (119)      %
+   780   (120)      %     ROUTINE VOID, BYTE ( INTEGER ) : MON1 (dev)
+   781   (121)      %
+   782   (122)      % NOT MONITOR_CALL. That wants either a MON-CALL-NAMES file this machine
+   783   (123)      % does not have, or generates 5MON_P which neither PLANC runtime defines.
+   784   (124)      IMPORT ( ROUTINE VOID, BYTE (INTEGER) : MON1 )
+   785   (125)  
+   786   (126)      % ----- THE THREE MORE THAT CHAT:CNFG NEEDS ------------------------------
+   787   (127)      % All copied from ND-60.117.5 EN PLANC Reference Manual, the MONn appendix,
+   788   (128)      % which is the ONLY place these signatures are written down correctly:
+   789   (129)      %
+   790   (130)      %     ROUTINE VOID, INTEGER ( BYTES, BYTES, INTEGER ) : MON50 (file, default, code)
+   791   (131)      %     ROUTINE BYTE, VOID ( INTEGER )                  : MON2  (dev)
+   792   (132)      %     ROUTINE VOID, VOID ( INTEGER )                  : MON43 (dev)
+   793   (133)      %
+   794   (134)      % MON50 RETURNS THE DEVICE NUMBER and raises a ROUTINEERROR on failure - it
+   795   (135)      % has no status out-parameter, so a missing file can only be learned by
+   796   (136)      % catching the raise. MON2 takes the byte as its IN-VALUE, which is why it
+   797   (137)      % is called "b MON2(dev)" and not "MON2(dev, b)".
+   798   (138)      %
+   799   (139)      % MON43 IS CLOSE, AND IT IS NOT 54. A note in this file used to list the
+   800   (140)      % available calls as "50/54/1/2", which reads as though 54 were the close.
+   801   (141)      % The manual's own table says otherwise: 43B is CloseFile and 54B is
+   802   (142)      % DeleteFile. Getting that wrong would not have failed to compile - it
+   803   (143)      % would have deleted the user's config file every time they set a nickname.
+   804   (144)      IMPORT ( ROUTINE VOID, INTEGER (BYTES, BYTES, INTEGER) : MON50 )
+   805   (145)      IMPORT ( ROUTINE BYTE, VOID (INTEGER) : MON2 )
+   806   (146)      IMPORT ( ROUTINE VOID, VOID (INTEGER) : MON43 )
+   807   (147)  
+   808   (148)      % MON70 IS CALLCOMMAND - hand SINTRAN a line as if it had been typed.
+   809   (149)      %
+   810   (150)      %     ROUTINE VOID, VOID ( BYTES ) : MON70 (command)
+   811   (151)      %
+   812   (152)      % Needed because CREATING a file is its own monitor call, CreateFile /
+   813   (153)      % CRALF 221B, and 221 is NOT among the MONn routines the PLANC runtime
+   814   (154)      % provides - the appendix stops at MON263 and has no 221. MON50 opens what
+   815   (155)      % exists; it has no size parameter and cannot make a file. See writeCnfg.
+   816   (156)      IMPORT ( ROUTINE VOID, VOID (BYTES) : MON70 )
+   817   (157)  
+   818   (158)      % ----- message kinds, mirroring ChatMessageKind.cs ----------------------
+   819   (159)      INTEGER : kJoin    := 1
+   820   (160)      INTEGER : kWelcome := 2
+   821   (161)      INTEGER : kReject  := 3
+   822   (162)      INTEGER : kSay     := 4
+   823   (163)      INTEGER : kSaid    := 5
+   824   (164)      INTEGER : kLeave   := 6
+   825   (165)      INTEGER : kJoined  := 7
+   826   (166)      INTEGER : kLeft    := 8
+   827   (167)      INTEGER : kRename  := 9
+   828   (168)      INTEGER : kRenamed := 10
+   829   (169)  
+   830   (170)      % There is no eleventh kind. A kHello lived here for one day as half of an
+   831   (171)      % invented handshake; see the note in showArrived for why it was wrong and
+   832   (172)      % what removed the need for it. CHATSV.PLNC carries the matching note.
+   833   (173)  
+   834   (174)      INTEGER : ownTerminal := 1        % device number of your own terminal
+   835   (175)      INTEGER : inputFlag   := 0        % IOFlag 0 = input, 1 = output
+   836   (176)      INTEGER : noWaitOn    := 1        % any non-zero switches no-wait ON
+   837   (177)      INTEGER : parityMask  := 127      % strip the even-parity bit, see above
+   838   (178)      INTEGER : carriageRet := 13
+   839   (179)      INTEGER : emptyInput  := 3        % InByte in no-wait: nothing was typed
+   840   (180)      % How many messages one drain pass will take before going back to the
+   841   (181)      % keyboard. See drainPort: the unbounded version hung on the first run.
+   842   (182)      INTEGER : maxDrain    := 32
+   843   (183)  
+   844   (184)      INTEGER ARRAY : stack(0:1000)
+   845   (185)  
+   846   (186)      BYTES : letterBuf(0:63)           % the XSLET header XMPBLET builds
+   847   (187)      BYTES : outBuf(0:255)             % our own message, sent after the header
+   848   (188)      % SIZE OF inBuf, named because the read below must clamp against it. XMSG
+   849   (189)      % reports the sender's message size; nothing stops that being larger than
+   850   (190)      % this array, and PLANC checks no bound.
+   851   (191)      INTEGER : inBufSize := 256
+   852   (192)      BYTES : inBuf(0:255)              % what arrives, inBufSize bytes
+   853   (193)      % THE LINE BEING TYPED, and its size is a named constant because the loop
+   854   (194)      % below has to test against it. PLANC does not check array bounds: without
+   855   (195)      % the test, an 81st character is written past the end of this array and into
+   856   (196)      % whatever the compiler laid out next - which here is roomName, typedLen,
+   857   (197)      % serverMagic and joined. A user holding a key down would quietly corrupt
+   858   (198)      % the program's own state.
+   859   (199)      % THE LONGEST ROOM OR NICK NAME a command may carry. This was USED by
+   860   (200)      % handleCommand and never DECLARED - the compiler answered ILLEGAL SYNTAX
+   861   (201)      % "MAXNAMELEN" twice, the loader pass built CHAT:PROG regardless, and every
+   862   (202)      % /join and /nick then answered "too long" for any argument at all. A build
+   863   (203)      % with errors still produces a program; only the LISTING says otherwise.
+   864   (204)      INTEGER : maxNameLen := 16
+   865   (205)      INTEGER : maxTyped := 80
+   866   (206)      BYTES : typed(0:79)               % 0:maxTyped-1
+   867   (207)  
+   868   (208)      % One character wide, so a BYTE can be printed as a CHARACTER: 'ALn' formats
+   869   (209)      % a STRING, and handing it a byte prints the byte's NUMBER instead. See
+   870   (210)      % showArrived, where that turned RONNY into 8279787889 on screen.
+   871   (211)      BYTES : oneChar(0:0)
+   872   (212)  
+   873   (213)      BYTES : roomName   := 'CHAT-LOBBY'
+   874   (214)      INTEGER : lenRoomName := 10
+   875   (215)      BYTES : hereSystem := ''          % length 0 means the LOCAL system
+   876   (216)      INTEGER : lenHereSystem := 0
+   877   (217)  
+   878   (218)      % SIXTEEN BYTES OF STORAGE, NOT A LITERAL, and the change is not cosmetic.
+   879   (219)      %
+   880   (220)      % This was BYTES : myName := 'RONNY', which reserves five bytes and exactly
+   881   (221)      % five. Asking for a longer name would have written past the end of it into
+   882   (222)      % whatever the loader happened to put next, with nothing to stop it - PLANC
+   883   (223)      % checks no array bound. The same defect, in the other direction, is what
+   884   (224)      % the guard in CHATSV.handleMessage exists for.
+   885   (225)      %
+   886   (226)      % Sixteen is the ROOM's number: ChatRoom.MaxNicknameLength says sixteen and
+   887   (227)      % CHATSV drops anything longer, so a name this side cannot send is one the
+   888   (228)      % other side would refuse anyway.
+   889   (229)      BYTES : myName(0:15)
+   890   (230)      INTEGER : lenMyName := 5
+   891   (231)  
+   892   (232)      % The name used when nobody types one AND nothing was remembered. Kept as a
+   893   (233)      % separate literal because myName is now a buffer and has to be filled at
+   894   (234)      % start-up rather than declared full - see setupName.
+   895   (235)      BYTES : defaultName := 'RONNY'
+   896   (236)      INTEGER : lenDefault := 5
+   897   (237)  
+   898   (238)      % ----- CHAT:CNFG, the remembered nickname -------------------------------
+   899   (239)      % IN THE USER'S OWN FILE AREA, which is the whole point: OLAV and ANNA log
+   900   (240)      % in as themselves and each gets their own. Nothing here names a user -
+   901   (241)      % SINTRAN resolves an unqualified name against whoever is logged in, so the
+   902   (242)      % separation is free and cannot be got wrong.
+   903   (243)      %
+   904   (244)      % MEASURED 2026-08-18 on D100: user OLAV, "@CREATE-FILE CHAT:CNFG,1"
+   905   (245)      % succeeded and "@CHAT" ran from that user's terminal, so both halves - a
+   906   (246)      % writable file of one's own, and permission to run the client - are real
+   907   (247)      % rather than assumed.
+   908   (248)      %
+   909   (249)      % THE FILE IS ONE LINE: the nickname, ended by a carriage return.
+   910   (250)      % Deliberately not a key=value format. There is one setting, a reader that
+   911   (251)      % has to parse nothing cannot misparse anything, and a person can fix it
+   912   (252)      % with any editor on the machine.
+   913   (253)      BYTES : cnfgName   := 'CHAT'
+   914   (254)      BYTES : cnfgType   := 'CNFG'
+   915   (255)  
+   916   (256)      % MAKING THE FILE IS A COMMAND, NOT AN OPEN, and that cost a build cycle.
+   917   (257)      %
+   918   (258)      % The first version passed the name QUOTED to MON50 - '"CHAT"' - on the
+   919   (259)      % rule that quoting is what asks SINTRAN to create. MEASURED 2026-08-18 as
+   920   (260)      % user ANNA, who had no config file: the open did not fail loudly, but
+   921   (261)      % every MON2 after it raised, and afterwards LIST-FILES showed ANNA still
+   922   (262)      % owned no files at all. Nothing was created.
+   923   (263)      %
+   924   (264)      % The reason is in the manual rather than in the quoting: creating a file
+   925   (265)      % is its OWN monitor call, CreateFile / CRALF 221B, and 221 is not among
+   926   (266)      % the MONn routines the PLANC runtime provides. MON50 opens; it has no size
+   927   (267)      % parameter and cannot make a file that is not there.
+   928   (268)      %
+   929   (269)      % So the file is made the way a person would make it, by handing SINTRAN
+   930   (270)      % the command - MON70, CallCommand. One page, which is what
+   931   (271)      % "@CREATE-FILE CHAT:CNFG,1" gives and far more than one line needs.
+   932   (272)      BYTES : cnfgMake := 'CREATE-FILE "CHAT:CNFG",1'
+   933   (273)  
+   934   (274)      % Access codes for MON50, from the Monitor Calls manual's own table:
+   935   (275)      %   0  sequential write
+   936   (276)      %   1  sequential read
+   937   (277)      INTEGER : openRead  := 1
+   938   (278)      INTEGER : openWrite := 0
+   939   (279)  
+   940   (280)      % A "nameRemembered" BOOLEAN stood here, to word the prompt differently for
+   941   (281)      % a remembered name than for the built-in one. It was set and never read.
+   942   (282)      % The prompt shows the actual name either way, which answers the same
+   943   (283)      % question better than a different wording would have.
+   944   (284)  
+   945   (285)      INTEGER : myPort
+   946   (286)      INTEGER : returnStatus
+   947   (287)      INTEGER : offSet, uLength, wLength
+   948   (288)      INTEGER : msgType, remotePortHash, nBytes, readLength, readAmount
+   949   (289)      INTEGER : typedLen := 0
+   950   (290)      INTEGER : ch
+   951   (291)      % MON1's out-value is a BYTE, so it lands here first and is widened into ch
+   952   (292)      % before the parity bit is masked off.
+   953   (293)      BYTE : rawCh
+   954   (294)      INTEGER4 : senderMagic
+   955   (295)      % ZERO until the welcome arrives and reveals the real address. It is set
+   956   (296)      % explicitly rather than left to whatever the loader put there, because the
+   957   (297)      % joined test below is what keeps it from ever being used - and a guard is
+   958   (298)      % worth more when the thing it guards is a known value.
+   959   (299)      INTEGER4 : serverMagic := 0
+   960   (300)      % An INTEGER4 myMagic lived here to hold our own port's magic number, read
+   961   (301)      % with XMPFP2M purely so a diagnostic could print it. Both are gone - see
+   962   (302)      % the note in chatClient for what they settled (the reply address was
+   963   (303)      % correct all along) and why that ended the need for them.
+   964   (304)      BOOLEAN : joined := FALSE
+   965   (305)      % TRUE once RETURN has been seen, so a line half typed when the port
+   966   (306)      % needs draining survives the trip round the outer loop.
+   967   (307)      BOOLEAN : lineReady := FALSE
+   968   (308)      BOOLEAN : running := TRUE
+   969   (309)  
+   970   (310)      % -----------------------------------------------------------------------
+   971   (311)      % Build one of our messages into outBuf. Returns its total length.
+   972   (312)      %
+   973   (313)      % Same layout as ChatMessage.cs, which is the only specification it has:
+   974   (314)      % kind, name length, name, two length bytes, text.
+   975   (315)      %
+   976   (316)      % THE EXACT BYTES ARE PINNED in
+   977   (317)      % SRC/Xmsg.Chat.Tests/ChatMessageGoldenBytesTests.cs - a Said, a Renamed, a
+   978   (318)      % Join and a 300-character line that proves the text length is big-endian.
+   979   (319)      % There is no shared code between that and this, only those goldens, so if
+   980   (320)      % the layout ever changes both sides change in the SAME commit or they
+   981   (321)      % disagree in silence.
+   982   (322)      % -----------------------------------------------------------------------
+   983   (323)      ROUTINE VOID, INTEGER (INTEGER, INTEGER) : buildOwn(kind, textLength)
+   984   (324)          INTEGER : i, at
+   985   (325)          kind =: outBuf(0)
+   986   (326)          lenMyName =: outBuf(1)
+   987   (327)          2 =: at
+   988   (328)          % SUBSCRIPT FROM ZERO. myName is a BYTES declared from a literal, so its
+   989   (329)          % first character is at index 0. This said myName(i) and that is why the
+   990   (330)          % server saw the nickname as ONNY, not RONNY: the R was skipped and one
+   991   (331)          % byte was read past the end of the string. MEASURED 2026-08-18 in a raw
+   992   (332)          % dump of the arriving letter - the length byte said 5 and the five bytes
+   993   (333)          % were 'O','N','N','Y',0. Nothing reports this; PLANC checks no bound,
+   994   (334)          % and a wrong name is not an error to anyone. Compare cmdIs below, which
+   995   (335)          % has always had it right with word(i - 1).
+   996   (336)          FOR i IN 1:lenMyName DO
+   997   (337)              myName(i - 1) =: outBuf(at)
+   998   (338)              at + 1 =: at
+   999   (339)          ENDFOR
+  1000   (340)          0 =: outBuf(at)
+  1001   (341)          textLength =: outBuf(at + 1)
+  1002   (342)          at + 2 =: at
+  1003   (343)          FOR i IN 1:textLength DO
+  1004   (344)              typed(i - 1) =: outBuf(at)
+  1005   (345)              at + 1 =: at
+  1006   (346)          ENDFOR
+  1007   (347)          % The out-value goes BEFORE the keyword. ND-60.117.5 prints it as
+  1008   (348)          % "result RETURN" in the complex-addition example; writing "RETURN at"
+  1009   (349)          % makes the compiler read RETURN as a type and answer
+  1010   (350)          % ILLEGAL DATA TYPE "RETURN".
+  1011   (351)          at RETURN
+  1012   (352)      ENDROUTINE
+  1013   (353)  
+  1014   (354)      % -----------------------------------------------------------------------
+  1015   (355)      % Build a RENAME, which does NOT have the same shape as every other
+  1016   (356)      % message and is the one place buildOwn cannot be used.
+  1017   (357)      %
+  1018   (358)      % THE NEW NAME GOES IN THE NAME FIELD, and the text is empty. This client
+  1019   (359)      % had it the other way round - new name in the TEXT, current name in the
+  1020   (360)      % NAME field - and the rename was thrown away in silence every time.
+  1021   (361)      %
+  1022   (362)      % MEASURED 2026-08-18 on D100: "/nick OLAV" was accepted by the client,
+  1023   (363)      % sent, and changed nothing; the room went on saying RONNY. Nothing was
+  1024   (364)      % printed by either side, because the path it took is a deliberate
+  1025   (365)      % do-nothing:
+  1026   (366)      %
+  1027   (367)      %   the server reads the new name from the NAME field;
+  1028   (368)      %   the client had put the CURRENT name there;
+  1029   (369)      %   so sameName(slot, ...) matched, and the server took its
+  1030   (370)      %   "already your name: not news" RETURN, which prints nothing.
+  1031   (371)      %
+  1032   (372)      % TWO WRONG THINGS AGREEING TO DO NOTHING. Each side was self-consistent
+  1033   (373)      % and the pair was broken, which is why it survived a working build.
+  1034   (374)      %
+  1035   (375)      % THE C# PAIR IS THE ARBITER and it is unambiguous - ChatClient.Rename
+  1036   (376)      % sends "new ChatMessage(ChatMessageKind.Rename, nickname, string.Empty)",
+  1037   (377)      % the NEW nickname in the name field and an EMPTY text, and
+  1038   (378)      % ChatServer.HandleRename reads it back with _room.TryRename(id,
+  1039   (379)      % message.Nickname, ...). The PLANC SERVER already matched that. Only this
+  1040   (380)      % side did not.
+  1041   (381)      %
+  1042   (382)      % The sender is identified by its MAGIC NUMBER, not by the name it sends -
+  1043   (383)      % findByMagic(senderMagic) is what picks the seat - so the name field is
+  1044   (384)      % free to carry the new name and nothing is lost by not sending the old one.
+  1045   (385)      %
+  1046   (386)      % myName is deliberately NOT changed here. Our own name changes when the
+  1047   (387)      % room says so with kRenamed, so a refused rename leaves us as we were.
+  1048   (388)      % -----------------------------------------------------------------------
+  1049   (389)      ROUTINE VOID, INTEGER (INTEGER, INTEGER) : buildRename(nameFrom, newLength)
+  1050   (390)          INTEGER : i, at
+  1051   (391)          kRename =: outBuf(0)
+  1052   (392)          newLength =: outBuf(1)
+  1053   (393)          2 =: at
+  1054   (394)          FOR i IN 1:newLength DO
+  1055   (395)              typed(nameFrom + i - 1) =: outBuf(at)
+  1056   (396)              at + 1 =: at
+  1057   (397)          ENDFOR
+  1058   (398)          % An empty text, spelled out as its two length bytes.
+  1059   (399)          0 =: outBuf(at)
+  1060   (400)          0 =: outBuf(at + 1)
+  1061   (401)          at + 2 =: at
+  1062   (402)          at RETURN
+  1063   (403)      ENDROUTINE
+  1064   (404)  
+  1065   (405)      % -----------------------------------------------------------------------
+  1066   (406)      % Say what "no access" actually means, because the number alone sends
+  1067   (407)      % people to the wire.
+  1068   (408)      %
+  1069   (409)      % XRUNN and XRNRO are the same fault seen from two sides, and BOTH mean the
+  1070   (410)      % peer has not been told to trust this system. XRUNN reads "unknown name of
+  1071   (411)      % server or system" and it is the SYSTEM half of that phrase - not the
+  1072   (412)      % server half - which is what sent two earlier investigations chasing
+  1073   (413)      % *CHATSV when the room was fine.
+  1074   (414)      %
+  1075   (415)      % Everything else looks healthy while this is wrong: the peer lists the
+  1076   (416)      % system, LIST-SYSTEMS says ON NET, LIST-LINKS says State Run with
+  1077   (417)      % thousands of frames received. Nothing comes back because the rejection
+  1078   (418)      % happens before XROUT is asked, so there is no error to send.
+  1079   (419)      % -----------------------------------------------------------------------
+  1080   (420)      ROUTINE VOID, VOID : showFriendAdvice
+  1081   (421)          OUTPUT(1, 'AL54', 'CHAT: the PEER has not defined us as a FRIEND system.$')
+  1082   (422)          OUTPUT(1, 'AL32', 'CHAT: on that machine:  @X-COMM$')
+  1083   (423)          OUTPUT(1, 'AL53', 'CHAT:   X-C: DEFINE-FRIEND-SYSTEM   System? <our no>$')
+  1084   (424)          OUTPUT(1, 'AL50', 'CHAT: check it with LIST-ROUTING-INFO - it prints$')
+  1085   (425)          OUTPUT(1, 'AL46', 'CHAT:   "T: *, but no access to system NNNNN"$')
+  1086   (426)          OUTPUT(1, 'AL51', 'CHAT: NOTE: DEF-REMOTE CLEARS the friend entry, so$')
+  1087   (427)          OUTPUT(1, 'AL52', 'CHAT: the name comes first and the friend AFTER it.$')
+  1088   (428)      ENDROUTINE
+  1089   (429)  
+  1090   (430)      ROUTINE VOID, VOID (BYTES, INTEGER) : showStatus(where, code)
+  1091   (431)          % NOT "offset" - the module already has a global offSet for the letter, and
+  1092   (432)          % PLANC ignores case, so that spelling collided with it and the compiler
+  1093   (433)          % said IDENTIFIER ALREADY SPECIFIED/DECLARED.
+  1094   (434)          %
+  1095   (435)          % AND IT IS A RANGE, NOT A PLAIN INTEGER, because this is what CASE
+  1096   (436)          % selects on. ND-60.117.5 section 6.3: the CASE expression "may have a
+  1097   (437)          % maximum of 256 different values, and must be either an enumeration
+  1098   (438)          % with a maximum of 256 different values, or integers ranging between 0
+  1099   (439)          % and 255", with the note that an INTEGER RANGE used this way must have
+  1100   (440)          % a lower bound of 0. A plain INTEGER spans -32768..32767, so the
+  1101   (441)          % compiler answered OUT OF RANGE on both CASE statements - a WARNING,
+  1102   (442)          % which is exactly the kind that gets skimmed past.
+  1103   (443)          INTEGER RANGE (0:255) : xmxOffset
+  1104   (444)  
+  1105   (445)          OUTPUT(1, 'AL6', 'CHAT: ')
+  1106   (446)          OUTPUT(1, 'AL24', where)
+  1107   (447)          OUTPUT(1, 'AL8', ' status ')
+  1108   (448)          OUTPUT(1, 'I6', code)
+  1109   (449)          OUTPUT(1, 'AL1', ' ')
+  1110   (450)  
+  1111   (451)          IF code = XMOK THEN
+  1112   (452)              OUTPUT(1, 'AL12', 'XMOK - done$')
+  1113   (453)              RETURN
+  1114   (454)          ENDIF
+  1115   (455)  
+  1116   (456)          IF code < 0 THEN
+  1117   (457)              OUTPUT(1, 'AL36', 'raw kernel error, not a library one$')
+  1118   (458)              RETURN
+  1119   (459)          ENDIF
+  1120   (460)  
+  1121   (461)          IF code < XMXKXXX THEN
+  1122   (462)              OUTPUT(1, 'AL27', 'message type, not an error$')
+  1123   (463)              RETURN
+  1124   (464)          ENDIF
+  1125   (465)  
+  1126   (466)          % XROUT ERRORS SIT ABOVE THE KERNEL ONES, at their own base
+  1127   (467)          % XRXXX = 16960 = 41100B, so this test has to come FIRST - the XMX
+  1128   (468)          % block below would otherwise decode 16972 as XMX offset 76 and say
+  1129   (469)          % nothing useful. Two of these are the same fault wearing two names,
+  1130   (470)          % and it is the one that costs a whole evening every time, so it gets
+  1131   (471)          % told in full rather than named.
+  1132   (472)          IF code >= XRXXX THEN
+  1133   (473)              code - XRXXX =: xmxOffset
+  1134   (474)              CASE xmxOffset
+  1135   (475)                  INCASE 2
+  1136   (476)                      OUTPUT(1, 'AL39', 'XRUNN unknown name of server OR SYSTEM$')
+  1137   (477)                      showFriendAdvice
+  1138   (478)                  INCASE 12
+  1139   (479)                      OUTPUT(1, 'AL33', 'XRNRO no access to remote system$')
+  1140   (480)                      showFriendAdvice
+  1141   (481)                  INCASE 0
+  1142   (482)                      OUTPUT(1, 'AL24', 'XRSOK ok - not an error$')
+  1143   (483)                  INCASE 1
+  1144   (484)                      OUTPUT(1, 'AL29', 'XRISN illegal service number$')
+  1145   (485)                  INCASE 3
+  1146   (486)                      OUTPUT(1, 'AL41', 'XRDDF another port already has this name$')
+  1147   (487)                  INCASE 4
+  1148   (488)                      OUTPUT(1, 'AL30', 'XRNSP no space left for names$')
+  1149   (489)                  INCASE 7
+  1150   (490)                      OUTPUT(1, 'AL27', 'XRUNM unknown magic number$')
+  1151   (491)                  INCASE 10
+  1152   (492)                      OUTPUT(1, 'AL32', 'XRPRV caller was not privileged$')
+  1153   (493)                  INCASE 11
+  1154   (494)                      OUTPUT(1, 'AL38', 'XRISY illegal system number parameter$')
+  1155   (495)                  ELSE
+  1156   (496)                      OUTPUT(1, 'AL23', 'XROUT error, XR offset ')
+  1157   (497)                      OUTPUT(1, 'I6', xmxOffset)
+  1158   (498)                      OUTPUT(1, 'AL1', '$')
+  1159   (499)              ENDCASE
+  1160   (500)              RETURN
+  1161   (501)          ENDIF
+  1162   (502)  
+  1163   (503)          code - XMXKXXX =: xmxOffset
+  1164   (504)          CASE xmxOffset
+  1165   (505)              INCASE 0
+  1166   (506)                  OUTPUT(1, 'AL39', 'XMXENTM not terminated - nothing there$')
+  1167   (507)              INCASE 1
+  1168   (508)                  OUTPUT(1, 'AL31', 'XMXENOT no more XT-blocks free$')
+  1169   (509)              INCASE 2
+  1170   (510)                  OUTPUT(1, 'AL38', 'XMXEIRM non-local remote port illegal$')
+  1171   (511)              INCASE 4
+  1172   (512)                  OUTPUT(1, 'AL36', 'XMXETMM task allowed no more memory$')
+  1173   (513)              INCASE 5
+  1174   (514)                  OUTPUT(1, 'AL33', 'XMXENIM facility not implemented$')
+  1175   (515)              INCASE 6
+  1176   (516)                  OUTPUT(1, 'AL39', 'XMXEIBP illegal message buffer pointer$')
+  1177   (517)              INCASE 7
+  1178   (518)                  OUTPUT(1, 'AL33', 'XMXEBNY message buffer not yours$')
+  1179   (519)              INCASE 8
+  1180   (520)                  OUTPUT(1, 'AL41', 'XMXEIRT illegal function for RT programs$')
+  1181   (521)              INCASE 9
+  1182   (522)                  OUTPUT(1, 'AL32', 'XMXENOP no more ports available$')
+  1183   (523)              INCASE 10
+  1184   (524)                  OUTPUT(1, 'AL42', 'XMXEIDR function not available to drivers$')
+  1185   (525)              INCASE 11
+  1186   (526)                  OUTPUT(1, 'AL27', 'XMXENDM no default message$')
+  1187   (527)              INCASE 12
+  1188   (528)                  OUTPUT(1, 'AL35', 'XMXEMCH message is already chained$')
+  1189   (529)              INCASE 13
+  1190   (530)                  OUTPUT(1, 'AL30', 'XMXEBFC message is in a queue$')
+  1191   (531)              INCASE 14
+  1192   (532)                  OUTPUT(1, 'AL35', 'XMXEAIN kernel already initialised$')
+  1193   (533)              INCASE 15
+  1194   (534)                  OUTPUT(1, 'AL35', 'XMXEBNC return of a bounce message$')
+  1195   (535)              INCASE 16
+  1196   (536)                  OUTPUT(1, 'AL26', 'XMXEWNA write not allowed$')
+  1197   (537)              INCASE 17
+  1198   (538)                  OUTPUT(1, 'AL33', 'XMXENVI no valid indirect buffer$')
+  1199   (539)              INCASE 18
+  1200   (540)                  OUTPUT(1, 'AL30', 'XMXEILF illegal function code$')
+  1201   (541)              INCASE 19
+  1202   (542)                  OUTPUT(1, 'AL29', 'XMXEIMA invalid magic number$')
+  1203   (543)              INCASE 20
+  1204   (544)                  OUTPUT(1, 'AL27', 'XMXEMFL message space full$')
+  1205   (545)              INCASE 21
+  1206   (546)                  OUTPUT(1, 'AL29', 'XMXEILM illegal message size$')
+  1207   (547)              INCASE 22
+  1208   (548)                  OUTPUT(1, 'AL28', 'XMXEIPN illegal port number$')
+  1209   (549)              INCASE 23
+  1210   (550)                  OUTPUT(1, 'AL42', 'XMXEPRV privileged function, no privilege$')
+  1211   (551)              INCASE 24
+  1212   (552)                  OUTPUT(1, 'AL34', 'XMXEPVR privilege request refused$')
+  1213   (553)              INCASE 25
+  1214   (554)                  OUTPUT(1, 'AL36', 'XMXERNA remote system not available$')
+  1215   (555)              ELSE
+  1216   (556)                  OUTPUT(1, 'AL26', 'library error, XMX offset ')
+  1217   (557)                  OUTPUT(1, 'I6', xmxOffset)
+  1218   (558)                  OUTPUT(1, 'AL1', '$')
+  1219   (559)          ENDCASE
+  1220   (560)      ENDROUTINE
+  1221   (561)  
+  1222   (562)      % -----------------------------------------------------------------------
+  1223   (563)      % Read the remembered nickname out of CHAT:CNFG into myName.
+  1224   (564)      %
+  1225   (565)      % A MISSING FILE IS NOT AN ERROR and must not look like one. The first time
+  1226   (566)      % anybody runs this there is no file, and that is the ordinary case rather
+  1227   (567)      % than a fault - so a failed open leaves myName alone and says nothing. The
+  1228   (568)      % caller has already put RONNY there.
+  1229   (569)      %
+  1230   (570)      % ROUTINEERROR IS THE ONLY WAY TO LEARN THE OPEN FAILED. MON50 does not
+  1231   (571)      % return a status; it returns a device number and raises on failure, the
+  1232   (572)      % same as MON1 does at end of file. Without the handler a first run - which
+  1233   (573)      % is every user's first run - would unwind the program before it joined.
+  1234   (574)      % -----------------------------------------------------------------------
+  1235   (575)      ROUTINE VOID, VOID : readCnfg
+  1236   (576)          INTEGER : dev, n
+  1237   (577)          INTEGER : c
+  1238   (578)  
+  1239   (579)          0 =: dev
+  1240   (580)          ON ROUTINEERROR DO
+  1241   (581)              % No file, no name, nothing to say. Leaving dev at zero is what
+  1242   (582)              % tells the rest of this routine there is nothing open.
+  1243   (583)              0 =: dev
+  1244   (584)          ENDON
+  1245   (585)          MON50(cnfgName, cnfgType, openRead) =: dev
+  1246   (586)  
+  1247   (587)          IF dev = 0 THEN
+  1248   (588)              RETURN
+  1249   (589)          ENDIF
+  1250   (590)  
+  1251   (591)          0 =: n
+  1252   (592)          ON ROUTINEERROR DO
+  1253   (593)              % End of file arrives this way, and on a one-line file it is the
+  1254   (594)              % NORMAL ending rather than a fault: a name with no carriage
+  1255   (595)              % return after it is still a name. Zero stops the loop below.
+  1256   (596)              0 =: c
+  1257   (597)          ENDON
+  1258   (598)          DO
+  1259   (599)              0 =: c
+  1260   (600)              MON1(dev) =: c
+  1261   (601)              c AND parityMask =: c
+  1262   (602)  
+  1263   (603)              % Stop at the end of the line. Everything after it is somebody
+  1264   (604)              % else's business - a second line, or a comment they added.
+  1265   (605)              IF c < 32 THEN
+  1266   (606)                  0 =: c
+  1267   (607)              ENDIF
+  1268   (608)  
+  1269   (609)              IF c >< 0 THEN
+  1270   (610)                  IF n < maxNameLen THEN
+  1271   (611)                      c =: myName(n)
+  1272   (612)                      n + 1 =: n
+  1273   (613)                  ENDIF
+  1274   (614)              ENDIF
+  1275   (615)              WHILE c >< 0
+  1276   (616)          ENDDO
+  1277   (617)  
+  1278   (618)          MON43(dev)
+  1279   (619)  
+  1280   (620)          % A FILE THAT EXISTS BUT IS EMPTY KEEPS THE DEFAULT. It is the state a
+  1281   (621)          % bare CREATE-FILE leaves behind, so it is a state real users will have.
+  1282   (622)          IF n > 0 THEN
+  1283   (623)              n =: lenMyName
+  1284   (624)          ENDIF
+  1285   (625)      ENDROUTINE
+  1286   (626)  
+  1287   (627)      % -----------------------------------------------------------------------
+  1288   (628)      % Write myName back to CHAT:CNFG, so the next run offers it.
+  1289   (629)      %
+  1290   (630)      % PLAIN OPEN FIRST, CREATE ONLY IF THAT FAILS, and the order is the point.
+  1291   (631)      % A quoted name asks SINTRAN to CREATE, and a create at a name that already
+  1292   (632)      % exists is refused - measured on the FA wire as SINTRAN error 62, "File
+  1293   (633)      % already exists". Trying the create first would therefore fail on every
+  1294   (634)      % run after the first. Trying the plain open first fails only on the very
+  1295   (635)      % first, which is exactly when a create is what we want.
+  1296   (636)      %
+  1297   (637)      % NOTHING HERE IS FATAL. A user with no space, or a read-only area, still
+  1298   (638)      % gets a working chat - they just get asked their name every time. Saying
+  1299   (639)      % so once is better than either failing or pretending it worked.
+  1300   (640)      % -----------------------------------------------------------------------
+  1301   (641)      ROUTINE VOID, VOID : writeCnfg
+  1302   (642)          INTEGER : dev, i
+  1303   (643)          BYTE : b
+  1304   (644)          BOOLEAN : saveFailed
+  1305   (645)  
+  1306   (646)          0 =: dev
+  1307   (647)          ON ROUTINEERROR DO
+  1308   (648)              0 =: dev
+  1309   (649)          ENDON
+  1310   (650)          MON50(cnfgName, cnfgType, openWrite) =: dev
+  1311   (651)  
+  1312   (652)          IF dev = 0 THEN
+  1313   (653)              % Not there yet. Ask SINTRAN to make it, then open it for real.
+  1314   (654)              % MON70 hands the command processor a line exactly as if it had
+  1315   (655)              % been typed, so this is the same CREATE-FILE anybody would use.
+  1316   (656)              ON ROUTINEERROR DO
+  1317   (657)                  % A create that fails is not worth its own message - the open
+  1318   (658)                  % below will fail too, and that one already has one.
+  1319   (659)              ENDON
+  1320   (660)              MON70(cnfgMake)
+  1321   (661)  
+  1322   (662)              ON ROUTINEERROR DO
+  1323   (663)                  0 =: dev
+  1324   (664)              ENDON
+  1325   (665)              MON50(cnfgName, cnfgType, openWrite) =: dev
+  1326   (666)          ENDIF
+  1327   (667)  
+  1328   (668)          IF dev = 0 THEN
+  1329   (669)              OUTPUT(1, 'AL31', 'CHAT: cannot save the nickname$')
+  1330   (670)              RETURN
+  1331   (671)          ENDIF
+  1332   (672)  
+  1333   (673)          % ONE MESSAGE, NOT ONE PER BYTE. The first version put this handler
+  1334   (674)          % around the write loop and printed inside it, so a failed save said
+  1335   (675)          % "nickname not fully saved" five times - once per character of ANNA
+  1336   (676)          % plus the carriage return. A handler that fires per byte must not
+  1337   (677)          % print per byte; it sets a flag and the caller speaks once.
+  1338   (678)          FALSE =: saveFailed
+  1339   (679)          ON ROUTINEERROR DO
+  1340   (680)              TRUE =: saveFailed
+  1341   (681)          ENDON
+  1342   (682)  
+  1343   (683)          FOR i IN 1:lenMyName DO
+  1344   (684)              myName(i - 1) =: b
+  1345   (685)              b MON2(dev)
+  1346   (686)          ENDFOR
+  1347   (687)  
+  1348   (688)          % THE CARRIAGE RETURN MATTERS. readCnfg stops at the first byte below
+  1349   (689)          % 32, and a SINTRAN text file is expected to have one - without it the
+  1350   (690)          % last line runs into whatever follows.
+  1351   (691)          carriageRet =: b
+  1352   (692)          b MON2(dev)
+  1353   (693)  
+  1354   (694)          % CLOSE, ALWAYS - including after a failed write. A file opened for
+  1355   (695)          % sequential write is truncated at CLOSE, not at OPEN, so a program
+  1356   (696)          % that opens and never closes leaves the OLD contents in place and the
+  1357   (697)          % save silently does nothing.
+  1358   (698)          MON43(dev)
+  1359   (699)  
+  1360   (700)          IF saveFailed THEN
+  1361   (701)              OUTPUT(1, 'AL31', 'CHAT: nickname not fully saved$')
+  1362   (702)          ENDIF
+  1363   (703)      ENDROUTINE
+  1364   (704)  
+  1365   (705)      % -----------------------------------------------------------------------
+  1366   (706)      % Settle who we are, before the join goes out. NOTHING IS ASKED.
+  1367   (707)      %
+  1368   (708)      % THE PROMPT THAT USED TO BE HERE IS GONE, and the reason is worth keeping
+  1369   (709)      % because it was a real design mistake rather than a bug. It asked
+  1370   (710)      % "nickname?" on every single run, which is the wrong shape for a chat
+  1371   (711)      % client on a machine where you have already told SINTRAN who you are by
+  1372   (712)      % logging in. Being asked your name again, every time, by a program running
+  1373   (713)      % in your own file area, is nagging.
+  1374   (714)      %
+  1375   (715)      % The order of preference is now:
+  1376   (716)      %
+  1377   (717)      %   1. CHAT:CNFG in your own file area - what /nick last settled on;
+  1378   (718)      %   2. the built-in fallback, for a user who has never renamed.
+  1379   (719)      %
+  1380   (720)      % THE FALLBACK SHOULD BE THE SINTRAN USER NAME and is not yet. That needs
+  1381   (721)      % GetUserName (GUSNA 214B), and 214 is NOT among the MONn routines the
+  1382   (722)      % PLANC runtime provides - the appendix stops at MON263 and has no 214, the
+  1383   (723)      % same gap that CreateFile 221B falls into. The manual gives the way round
+  1384   (724)      % it: "Any monitor calls not listed here, may be called from a PLANC
+  1385   (725)      % routine if a suitable interface routine is constructed by the user. If
+  1386   (726)      % this is done, the user must load the interface routine BEFORE the PLANC
+  1387   (727)      % runtime library." MAC is installed on this machine, so that door is open
+  1388   (728)      % - it is the next piece of work, not a closed one.
+  1389   (729)      %
+  1390   (730)      % Changing the name is /nick, and the room has to agree to it: the save
+  1391   (731)      % happens when the SERVER confirms with kRenamed, never when the request is
+  1392   (732)      % sent. See showArrived.
+  1393   (733)      % -----------------------------------------------------------------------
+  1394   (734)      ROUTINE VOID, VOID : setupName
+  1395   (735)          INTEGER : i
+  1396   (736)  
+  1397   (737)          % The fallback first, then whatever CHAT:CNFG remembers on top of it.
+  1398   (738)          % That way readCnfg can fail, or find an empty file, and simply leave a
+  1399   (739)          % good name in place - it never has to know what to fall back to, and
+  1400   (740)          % no path reaches the join with an empty name.
+  1401   (741)          FOR i IN 1:lenDefault DO
+  1402   (742)              defaultName(i - 1) =: myName(i - 1)
+  1403   (743)          ENDFOR
+  1404   (744)          lenDefault =: lenMyName
+  1405   (745)  
+  1406   (746)          readCnfg
+  1407   (747)  
+  1408   (748)          % SAY WHO YOU ARE, ONCE. Not a question - a statement, so somebody who
+  1409   (749)          % expected a different name knows immediately that /nick is what fixes
+  1410   (750)          % it, rather than discovering it when the room greets a stranger.
+  1411   (751)          OUTPUT(1, 'AL14', 'CHAT: you are ')
+  1412   (752)          FOR i IN 1:lenMyName DO
+  1413   (753)              myName(i - 1) =: oneChar(0)
+  1414   (754)              OUTPUT(1, 'AL1', oneChar)
+  1415   (755)          ENDFOR
+  1416   (756)          OUTPUT(1, 'AL20', '  (/nick to change)$')
+  1417   (757)      ENDROUTINE
+  1418   (758)  
+  1419   (759)      % -----------------------------------------------------------------------
+  1420   (760)      % Send the join, as a LETTER through XROUT.
+  1421   (761)      %
+  1422   (762)      % The room is reached by NAME - XROUT looks it up and forwards, and this is
+  1423   (763)      % also where the seat is taken, before the server ever sees us. Everything
+  1424   (764)      % after the join goes port to port with no name lookup at all, which is why
+  1425   (765)      % the server's magic number is kept from its first reply.
+  1426   (766)      % -----------------------------------------------------------------------
+  1427   (767)      ROUTINE VOID, VOID : sendJoin
+  1428   (768)          XMMSGIDENTIFIER : msgIdent
+  1429   (769)          INTEGER : length
+  1430   (770)  
+  1431   (771)          % The XSLET header, built in a local buffer. 123 is our reference
+  1432   (772)          % number, echoed back so a task with several requests outstanding can
+  1433   (773)          % tell the answers apart.
+  1434   (774)          xmpblet(letterBuf, 64, offSet, 123, hereSystem, roomName) =: returnStatus
+  1435   (775)          IF returnStatus >< XMOK THEN
+  1436   (776)              showStatus('xmpblet', returnStatus)
+  1437   (777)              RETURN
+  1438   (778)          ENDIF
+  1439   (779)  
+  1440   (780)          xmpfget(0, 200, msgIdent) =: returnStatus
+  1441   (781)          IF returnStatus >< XMOK THEN
+  1442   (782)              showStatus('xmpfget', returnStatus)
+  1443   (783)              RETURN
+  1444   (784)          ENDIF
+  1445   (785)  
+  1446   (786)          % The header first...
+  1447   (787)          offSet =: uLength
+  1448   (788)          xmpfwri(0, 0, &
+  1449   (789)              ADDR(letterBuf(0)) FORCE XMUSERADDRESS, &
+  1450   (790)              0, uLength, wLength) =: returnStatus
+  1451   (791)  
+  1452   (792)          % ...then OUR data after it. XROUT reads only the header and forwards
+  1453   (793)          % the rest untouched, so this is where the nickname rides.
+  1454   (794)          buildOwn(kJoin, 0) =: length
+  1455   (795)          xmpfwri(0, wLength, &
+  1456   (796)              ADDR(outBuf(0)) FORCE XMUSERADDRESS, &
+  1457   (797)              0, length, offSet) =: returnStatus
+  1458   (798)  
+  1459   (799)          xmprout(0, msgIdent, myPort) =: returnStatus
+  1460   (800)          IF returnStatus >< XMOK THEN
+  1461   (801)              showStatus('xmprout (the join)', returnStatus)
+  1462   (802)          ENDIF
+  1463   (803)      ENDROUTINE
+  1464   (804)  
+  1465   (805)      % -----------------------------------------------------------------------
+  1466   (806)      % Send one of our messages straight to the server, no XROUT involved.
+  1467   (807)      % -----------------------------------------------------------------------
+  1468   (808)      ROUTINE VOID, VOID (INTEGER) : sendToServer(length)
+  1469   (809)          XMMSGIDENTIFIER : ident
+  1470   (810)          xmpfget(0, length, ident) =: returnStatus
+  1471   (811)          IF returnStatus >< XMOK THEN
+  1472   (812)              RETURN
+  1473   (813)          ENDIF
+  1474   (814)          xmpfwri(0, 0, &
+  1475   (815)              ADDR(outBuf(0)) FORCE XMUSERADDRESS, &
+  1476   (816)              0, length, wLength) =: returnStatus
+  1477   (817)          xmpfsnd(0, myPort, serverMagic) =: returnStatus
+  1478   (818)      ENDROUTINE
+  1479   (819)  
+  1480   (820)      % -----------------------------------------------------------------------
+  1481   (821)      % Show what arrived. The room speaks in the same message format we send.
+  1482   (822)      % -----------------------------------------------------------------------
+  1483   (823)      ROUTINE VOID, VOID : showArrived
+  1484   (824)          INTEGER : kind, nameLength, textLength, textAt, i
+  1485   (825)          % Only used by the kRenamed branch: is this rename about US?
+  1486   (826)          BOOLEAN : sameAsOurs
+  1487   (827)          INTEGER : newLen
+  1488   (828)  
+  1489   (829)          inBuf(0) =: kind
+  1490   (830)          inBuf(1) =: nameLength
+  1491   (831)  
+  1492   (832)          % THE JOIN IS ONE STEP, and a two-step handshake used to live here.
+  1493   (833)          %
+  1494   (834)          % It was added on the reading that "sending the join through XROUT does
+  1495   (835)          % not put the nickname in front of the server" - that the server's
+  1496   (836)          % connection port is handed a bare 4-byte connect, so a kHello reply was
+  1497   (837)          % needed before the nickname could be sent. That reading was WRONG, and
+  1498   (838)          % it was wrong because the SERVER was reading the wrong bytes: a letter
+  1499   (839)          % arrives with its XSLET header still attached, and the server was
+  1500   (840)          % parsing the header's serial number as a message kind.
+  1501   (841)          %
+  1502   (842)          % The nickname was in the first letter the whole time. sendJoin writes it
+  1503   (843)          % after the header and the Programmer Guide is explicit that XROUT
+  1504   (844)          % forwards it untouched. The server's WELCOME is the answer that hands
+  1505   (845)          % over the magic number, which is all this side ever needed. See the
+  1506   (846)          % header skip in CHATSV.PLNC for the layout and the manual reference.
+  1507   (847)          %
+  1508   (848)          % Nothing replaces this block: the welcome below already sets
+  1509   (849)          % serverMagic, and always did.
+  1510   (850)  
+  1511   (851)          % ---- TRUST NOTHING THAT ARRIVED, ON THIS SIDE TOO ------------------
+  1512   (852)          % The server checks exactly these three things before it reads a name or
+  1513   (853)          % a text; this side did not, and the reasoning is identical. inBuf holds
+  1514   (854)          % 256 bytes and PLANC checks no array bound:
+  1515   (855)          %
+  1516   (856)          %   nameLength is ONE BYTE, so it can say 255. The name loop would then
+  1517   (857)          %   read inBuf(2)..inBuf(256) - past the end - and textAt would already
+  1518   (858)          %   be 257 before any text was touched.
+  1519   (859)          %
+  1520   (860)          %   textLength is TWO BYTES, so it can say 65535, and the text loop
+  1521   (861)          %   would walk tens of thousands of bytes off the end of the array.
+  1522   (862)          %
+  1523   (863)          %   A SHORT message is the quieter half: without testing against
+  1524   (864)          %   readLength the loops print whatever the previous, longer message
+  1525   (865)          %   left behind in inBuf.
+  1526   (866)          %
+  1527   (867)          % "The server would never send that" is not a reason. A truncated
+  1528   (868)          % message does it by accident, and a client that only survives a
+  1529   (869)          % well-behaved peer is not one worth writing.
+  1530   (870)          % Both tests are against readLength, which the read below clamps to the
+  1531   (871)          % size of inBuf - so a field that fits the MESSAGE also fits the ARRAY.
+  1532   (872)          IF 2 + nameLength + 1 > readLength THEN
+  1533   (873)              RETURN
+  1534   (874)          ENDIF
+  1535   (875)  
+  1536   (876)          2 + nameLength =: textAt
+  1537   (877)          inBuf(textAt) * 256 + inBuf(textAt + 1) =: textLength
+  1538   (878)          textAt + 2 =: textAt
+  1539   (879)  
+  1540   (880)          IF textAt + textLength > readLength THEN
+  1541   (881)              RETURN
+  1542   (882)          ENDIF
+  1543   (883)  
+  1544   (884)          % The WELCOME is what reveals the server's address: everything after it
+  1545   (885)          % goes straight there.
+  1546   (886)          IF kind = kWelcome THEN
+  1547   (887)              senderMagic =: serverMagic
+  1548   (888)              TRUE =: joined
+  1549   (889)          ENDIF
+  1550   (890)  
+  1551   (891)          % ---- OUR OWN NAME CHANGES ONLY WHEN THE ROOM SAYS SO ---------------
+  1552   (892)          % A comment in handleCommand has promised this for as long as /nick has
+  1553   (893)          % existed - "our own name changes only when the room says so, with
+  1554   (894)          % kRenamed" - and nothing implemented it. The name in myName therefore
+  1555   (895)          % stayed at the old one after a successful rename, so the next thing
+  1556   (896)          % this client SENT went out under a name the room no longer knew.
+  1557   (897)          %
+  1558   (898)          % A Renamed carries the NEW name in the name field and the OLD one as
+  1559   (899)          % its text, which is exactly what is needed to tell whether it is about
+  1560   (900)          % us: compare the OLD name with what we currently believe we are called.
+  1561   (901)          % Everybody in the room gets every Renamed, so without that test this
+  1562   (902)          % client would take somebody else's new name for itself.
+  1563   (903)          %
+  1564   (904)          % This is also the ONLY place CHAT:CNFG is written. Saving when /nick is
+  1565   (905)          % SENT would remember a name the server may be about to refuse - it
+  1566   (906)          % refuses an empty one, and one already taken - so the save waits for
+  1567   (907)          % the room's confirmation. A refused rename changes nothing, on screen
+  1568   (908)          % or on disk.
+  1569   (909)          IF kind = kRenamed THEN
+  1570   (910)              IF textLength = lenMyName THEN
+  1571   (911)                  TRUE =: sameAsOurs
+  1572   (912)                  FOR i IN 1:textLength DO
+  1573   (913)                      IF inBuf(textAt + i - 1) >< myName(i - 1) THEN
+  1574   (914)                          FALSE =: sameAsOurs
+  1575   (915)                      ENDIF
+  1576   (916)                  ENDFOR
+  1577   (917)  
+  1578   (918)                  IF sameAsOurs THEN
+  1579   (919)                      % Bounded by the buffer, not by what arrived. A server that
+  1580   (920)                      % sent a longer name than we can hold would otherwise write
+  1581   (921)                      % past the end of myName - and the room's own limit and
+  1582   (922)                      % this buffer are both sixteen, so a name that does not fit
+  1583   (923)                      % here is one the room should never have accepted.
+  1584   (924)                      nameLength =: newLen
+  1585   (925)                      IF newLen > maxNameLen THEN
+  1586   (926)                          maxNameLen =: newLen
+  1587   (927)                      ENDIF
+  1588   (928)                      FOR i IN 1:newLen DO
+  1589   (929)                          inBuf(2 + i - 1) =: myName(i - 1)
+  1590   (930)                      ENDFOR
+  1591   (931)                      newLen =: lenMyName
+  1592   (932)  
+  1593   (933)                      writeCnfg
+  1594   (934)                  ENDIF
+  1595   (935)              ENDIF
+  1596   (936)          ENDIF
+  1597   (937)  
+  1598   (938)          % A BYTE HANDED TO 'AL1' PRINTS AS A NUMBER, NOT A CHARACTER.
+  1599   (939)          %
+  1600   (940)          % MEASURED on D100 2026-08-18, the first run in which the join actually
+  1601   (941)          % completed: the welcome arrived, was received and released correctly,
+  1602   (942)          % and printed as
+  1603   (943)          %
+  1604   (944)          %     8279787889: 7269767679
+  1605   (945)          %
+  1606   (946)          % which is 82 79 78 78 89 = RONNY and 72 69 76 76 79 = HELLO, each byte
+  1607   (947)          % rendered as its decimal value. The message was perfect; only the
+  1608   (948)          % printing was wrong, and it looked alarming enough to be mistaken for
+  1609   (949)          % a decode fault.
+  1610   (950)          %
+  1611   (951)          % 'ALn' formats a STRING. inBuf(x) is a BYTE, so it takes the integer
+  1612   (952)          % path. Copying the byte into a one-character BYTES first gives 'AL1'
+  1613   (953)          % the string it is asking for. This uses nothing new - BYTES arrays,
+  1614   (954)          % assignment and OUTPUT with ALn on a BYTES all appear above and all
+  1615   (955)          % compile.
+  1616   (956)          OUTPUT(1, 'AL1', '$')
+  1617   (957)          FOR i IN 1:nameLength DO
+  1618   (958)              inBuf(2 + i - 1) =: oneChar(0)
+  1619   (959)              OUTPUT(1, 'AL1', oneChar)
+  1620   (960)          ENDFOR
+  1621   (961)          OUTPUT(1, 'AL2', ': ')
+  1622   (962)          FOR i IN 1:textLength DO
+  1623   (963)              inBuf(textAt + i - 1) =: oneChar(0)
+  1624   (964)              OUTPUT(1, 'AL1', oneChar)
+  1625   (965)          ENDFOR
+  1626   (966)          OUTPUT(1, 'AL1', '$')
+  1627   (967)      ENDROUTINE
+  1628   (968)  
+  1629   (969)      % -----------------------------------------------------------------------
+  1630   (970)      % Take everything the port is holding and print it, WITHOUT WAITING.
+  1631   (971)      %
+  1632   (972)      % flags ZERO means no XFWTF, and that is XMSG's own no-wait: the call
+  1633   (973)      % returns at once whether or not a message was there. Nothing about the
+  1634   (974)      % terminal is involved, which is why this works on a machine where the
+  1635   (975)      % no-wait TERMINAL switch (TNOWAIT 307B) cannot be reached from PLANC.
+  1636   (976)      %
+  1637   (977)      % A SUCCESSFUL RECEIVE DOES RETURN ZERO ON THIS MACHINE, and the opposite
+  1638   (978)      % claim used to stand here. It read: "A SUCCESSFUL RECEIVE DOES NOT RETURN
+  1639   (979)      % ZERO ... a message arrived exactly when the status is POSITIVE", citing
+  1640   (980)      % the constants file's "Message types: Returned as successfull status from
+  1641   (981)      % XFRCV", XMTNO=1 through XMTPS=6.
+  1642   (982)      %
+  1643   (983)      % MEASURED 2026-08-18: the server, doing the same call, prints st= 0 with
+  1644   (984)      % the type in the msgType out-parameter. The constants file is describing
+  1645   (985)      % the RAW MON 200B interface underneath; through the XMP library the status
+  1646   (986)      % is XMOK and the type comes back separately. Appendix G's sample agrees -
+  1647   (987)      % it tests "IF RETURNSTATUS >< XMOK" and only then reads MSGTYPE.
+  1648   (988)      %
+  1649   (989)      % Excluding zero cost the whole join: XMPFRCV took the welcome off the
+  1650   (990)      % queue, returned XMOK, and the test below dropped straight out of the loop
+  1651   (991)      % without printing, reading or releasing it. See the note on the test.
+  1652   (992)      % -----------------------------------------------------------------------
+  1653   (993)      % PLANC HAS NO "WHILE cond DO ... ENDWHILE". WHILE is a CONTINUE-TEST
+  1654   (994)      % written INSIDE a DO ... ENDDO body: reaching it with a false condition
+  1655   (995)      % leaves the loop. ND-60.117.5 shows it that way ("continue the loop only
+  1656   (996)      % for negative array elements ... WHILE a(i)<0"), and writing the header
+  1657   (997)      % form gets WHILE NOT INSIDE LOOP followed by ILLEGAL SYNTAX "ENDWHILE".
+  1658   (998)      % -----------------------------------------------------------------------
+  1659   (999)      % Print an XMSG status with its name and meaning, then say where it came
+  1660  (1000)      % from. Called on every path that gives up, so a failure never leaves just
+  1661  (1001)      % a number - or worse, nothing at all.
+  1662  (1002)      %
+  1663  (1003)      % THE LIBRARY'S STATUS MODEL IS NOT THE KERNEL'S, and that difference cost
+  1664  (1004)      % a whole evening. Through the XMP routines:
+  1665  (1005)      %
+  1666  (1006)      %   0                  XMOK - done. The kernel's own OK is 1; XMP-B02:DEFS
+  1667  (1007)      %                      remaps it and says so: "NOTE change from XMSG OK=1".
+  1668  (1008)      %   16896              XMXENTM - NOT TERMINATED. This is what an EMPTY port
+  1669  (1009)      %                      answers, and it is NOT an error.
+  1670  (1010)      %   16896 + n          an error, where n is the absolute value of the raw
+  1671  (1011)      %                      kernel code. So the raw XEIBP = -6 appears here as
+  1672  (1012)      %                      XMXEIBP = 16902.
+  1673  (1013)      %   1 .. 6             a MESSAGE TYPE. Documented as a status from XFRCV,
+  1674  (1014)      %                      but MEASURED 2026-08-18 the library answers XMOK and
+  1675  (1015)      %                      puts the type in the msgType out-parameter instead.
+  1676  (1016)      %                      Both forms are accepted on a receive for that reason.
+  1677  (1017)      %
+  1678  (1018)      % Which is why testing a receive with "> 0" is wrong: 16896 and every error
+  1679  (1019)      % are positive too. Measured live: type=0 rel=16902, an empty port being
+  1680  (1020)      % read as a message and then released, for ever.
+  1681  (1021)      %
+  1682  (1022)      % AND WHY TESTING IT WITH "1..6 ONLY" IS EQUALLY WRONG, which took longer to
+  1683  (1023)      % find because it fails SILENTLY: XMPFRCV dequeues the message and returns
+  1684  (1024)      % XMOK, the test rejects it, and the loop exits having printed nothing. A
+  1685  (1025)      % receive must accept XMOK **or** 1..6 - see drainPort.
+  1686  (1026)      %
+  1687  (1027)      % The numbers are from XMP-B02:DEFS as extracted from the ND-10609 media;
+  1688  (1028)      % the texts are the matching XE... comments in XMSG-PL-VALUES-L:INCL.
+  1689  (1029)      % -----------------------------------------------------------------------
+  1690  (1030)  
+  1691  (1031)      ROUTINE VOID, VOID : drainPort
+  1692  (1032)          XMMSGIDENTIFIER : msgIdent
+  1693  (1033)          INTEGER : taken
+  1694  (1034)  
+  1695  (1035)          % THIS LOOP IS BOUNDED, and that is not caution for its own sake - the
+  1696  (1036)          % unbounded version hung the client on the first live run. It kept being
+  1697  (1037)          % handed a message, printed it, and asked again for ever; the terminal
+  1698  (1038)          % filled with the same line until ESC broke it. Whether the message was
+  1699  (1039)          % never really released or the peer kept re-offering it is not settled,
+  1700  (1040)          % but either way a loop that only ends when the PEER says so is a loop
+  1701  (1041)          % the peer can hang. One pass takes at most this many and then returns
+  1702  (1042)          % to the keyboard; anything still waiting is taken on the next pass.
+  1703  (1043)          0 =: taken
+  1704  (1044)  
+  1705  (1045)          DO
+  1706  (1046)              xmpfrcv(0, myPort, msgType, remotePortHash, msgIdent, nBytes) &
+  1707  (1047)                  =: returnStatus
+  1708  (1048)  
+  1709  (1049)              % XMOK IS A SUCCESSFUL RECEIVE. THIS TEST MUST ACCEPT ZERO.
+  1710  (1050)              %
+  1711  (1051)              % It did not, and that single missing case is what silently ate the
+  1712  (1052)              % welcome. MEASURED on D100 2026-08-18, end to end:
+  1713  (1053)              %
+  1714  (1054)              %   the server prints  SV: rcv st=  0  t=  2  len= 25
+  1715  (1055)              %                                  ^ XMOK, with the type in msgType
+  1716  (1056)              %
+  1717  (1057)              %   the client's port  LIST-PORTS: port 13  Qhead 161641  Qlen 1
+  1718  (1058)              %   one keystroke later                     Qhead 0       Qlen 0
+  1719  (1059)              %   and the client printed NOTHING - not even the unconditional
+  1720  (1060)              %   "type= / rel=" line below, which every taken message reaches.
+  1721  (1061)              %
+  1722  (1062)              % That is the whole story: XMPFRCV succeeded, returned XMOK, and
+  1723  (1063)              % DEQUEUED the message - which is why Qlen fell to zero - and then
+  1724  (1064)              % this continue-test read 0 >= XMTNO as false and left the loop
+  1725  (1065)              % before a single byte was printed, before XMPFMST, before XMPFREA,
+  1726  (1066)              % and before XMPFREL. The message was received and abandoned. It was
+  1727  (1067)              % never returned to the sender either, which is why the server saw
+  1728  (1068)              % no bounce.
+  1729  (1069)              %
+  1730  (1070)              % THE OLD COMMENT HERE ARGUED THE OPPOSITE and was wrong. It claimed
+  1731  (1071)              % "a successful receive does not return zero", on the reasoning that
+  1732  (1072)              % 0 means OK, 16896 means an empty port, and a bare "> 0" test is
+  1733  (1073)              % true for both - all of which is correct ABOUT THE OTHER CALLS and
+  1734  (1074)              % does not follow for XMPFRCV. The vendor sample in Appendix G tests
+  1735  (1075)              % "IF RETURNSTATUS >< XMOK THEN bad status" and only then looks at
+  1736  (1076)              % MSGTYPE, so XMOK is the success case and the TYPE lives in the
+  1737  (1077)              % out-parameter, not in the status.
+  1738  (1078)              %
+  1739  (1079)              % The earlier "type=0 rel=16902" reading that seemed to prove the
+  1740  (1080)              % old rule was an EMPTY port being read and then released - a real
+  1741  (1081)              % fault, but a different one, and fixing it by excluding zero threw
+  1742  (1082)              % out every genuine message with it.
+  1743  (1083)              %
+  1744  (1084)              % CHATSV was widened for exactly this reason and this client never
+  1745  (1085)              % was. Both sides now spell the same rule, and the range is kept
+  1746  (1086)              % beside XMOK rather than replaced by it, because which form turns
+  1747  (1087)              % up is measured rather than assumed.
+  1748  (1088)              %
+  1749  (1089)              % 16896 (XMXENTM, "not terminated") is what an EMPTY port answers
+  1750  (1090)              % and is still correctly excluded - it is neither XMOK nor 1..6.
+  1751  (1091)              WHILE returnStatus = XMOK OR &
+  1752  (1092)                    (returnStatus >= XMTNO AND returnStatus <= XMTPS)
+  1753  (1093)  
+  1754  (1094)              taken + 1 =: taken
+  1755  (1095)              WHILE taken <= maxDrain
+  1756  (1096)  
+  1757  (1097)              xmpfmst(0, msgIdent, msgType, senderMagic, nBytes) =: returnStatus
+  1758  (1098)  
+  1759  (1099)              % CLAMP BEFORE READING. nBytes is the SENDER'S message size, handed
+  1760  (1100)              % back by XMSG - not a size this program chose. inBuf holds
+  1761  (1101)              % inBufSize bytes and PLANC checks no array bound, so passing nBytes
+  1762  (1102)              % straight in lets anyone who sends a longer message write straight
+  1763  (1103)              % past the end of it. That is a WRITE overflow and it happens before
+  1764  (1104)              % a single field is parsed, so none of the checks in showArrived
+  1765  (1105)              % could save it.
+  1766  (1106)              nBytes =: readAmount
+  1767  (1107)              IF readAmount > inBufSize THEN
+  1768  (1108)                  inBufSize =: readAmount
+  1769  (1109)              ENDIF
+  1770  (1110)  
+  1771  (1111)              xmpfrea(0, 0, &
+  1772  (1112)                  ADDR(inBuf(0)) FORCE XMUSERADDRESS, &
+  1773  (1113)                  0, readAmount, readLength) =: returnStatus
+  1774  (1114)              % A RETURN MESSAGE IS OUR OWN LETTER COMING BACK UNDELIVERED.
+  1775  (1115)              % XMTRE is the type XMSG uses for "abnormal condition", and the
+  1776  (1116)              % commonest reason a join bounces is that the peer does not have us
+  1777  (1117)              % as a friend - the same fault XRUNN and XRNRO report from the
+  1778  (1118)              % other direction. Saying so here means the user is told once,
+  1779  (1119)              % whichever way the machine chooses to complain.
+  1780  (1120)              IF msgType = XMTRE THEN
+  1781  (1121)                  OUTPUT(1, 'AL46', 'CHAT: that message came BACK - undeliverable.$')
+  1782  (1122)                  showFriendAdvice
+  1783  (1123)              ENDIF
+  1784  (1124)  
+  1785  (1125)              xmpfrel(0, msgIdent) =: returnStatus
+  1786  (1126)  
+  1787  (1127)              % A "type= rel=" line used to print here on every message taken.
+  1788  (1128)              % It was temporary, it said so, and it has done its job: the loop
+  1789  (1129)              % that printed the same message for ever is understood and fixed
+  1790  (1130)              % (see the ROUTINEERROR handler in the main loop), and the empty
+  1791  (1131)              % port being read and released - the "type=0 rel=16902" reading -
+  1792  (1132)              % is excluded by the continue-test above.
+  1793  (1133)              %
+  1794  (1134)              % What it proved is kept in the comments that surround it rather
+  1795  (1135)              % than on the user's screen. Put it back if this loop ever misbehaves
+  1796  (1136)              % again: msgType and returnStatus are the two numbers that say why.
+  1797  (1137)  
+  1798  (1138)              showArrived
+  1799  (1139)          ENDDO
+  1800  (1140)  
+  1801  (1141)          % ---- DID THE PORT GO AWAY WHILE WE WERE NOT LOOKING? ---------------
+  1802  (1142)          % The loop above ends on ANY status that is not a message, and until now
+  1803  (1143)          % it ended silently on all of them. That is right for XMXENTM, which
+  1804  (1144)          % just means the port is empty and is the normal way round; it is wrong
+  1805  (1145)          % for XMXENRU, "XMSG is not running", because the client then sits at
+  1806  (1146)          % its prompt looking perfectly connected to a room that no longer
+  1807  (1147)          % exists, and everything typed goes nowhere.
+  1808  (1148)          %
+  1809  (1149)          % MEASURED 2026-08-18: XMSG went down under a running server. The
+  1810  (1150)          % SERVER span at full speed on the same status (it waits with XFWTF, so
+  1811  (1151)          % a receive that cannot block returns instantly for ever); this client
+  1812  (1152)          % would not have spun, because its drain never waits - it would just
+  1813  (1153)          % have gone quiet and told nobody. Two different failures from one
+  1814  (1154)          % cause, which is why both programs needed their own answer.
+  1815  (1155)          %
+  1816  (1156)          % Stopping is the honest one here. There is no reconnect to attempt: a
+  1817  (1157)          % port belongs to an XMSG that is gone, and when it comes back this
+  1818  (1158)          % program has to open a new one and rejoin from the beginning - which
+  1819  (1159)          % is exactly what starting it again does.
+  1820  (1160)          IF returnStatus = XMXENRU THEN
+  1821  (1161)              OUTPUT(1, 'AL33', 'CHAT: XMSG has stopped - leaving$')
+  1822  (1162)              FALSE =: joined
+  1823  (1163)              0 =: serverMagic
+  1824  (1164)              FALSE =: running
+  1825  (1165)          ENDIF
+  1826  (1166)      ENDROUTINE
+  1827  (1167)  
+  1828  (1168)      % -----------------------------------------------------------------------
+  1829  (1169)      % Does the typed line begin with "/word"? Case is folded, so /WHO and /who
+  1830  (1170)      % are the same command.
+  1831  (1171)      %
+  1832  (1172)      % typed(0) is the slash, so the word starts at 1. A match also requires the
+  1833  (1173)      % character AFTER the word to be a space or the end of the line - without
+  1834  (1174)      % that test "/nickname" would match "/nick" and the rest be read as an
+  1835  (1175)      % argument.
+  1836  (1176)      % -----------------------------------------------------------------------
+  1837  (1177)      ROUTINE VOID, INTEGER (BYTES, INTEGER) : cmdIs(word, wordLen)
+  1838  (1178)          INTEGER : i, c, w
+  1839  (1179)  
+  1840  (1180)          IF typedLen < wordLen + 1 THEN
+  1841  (1181)              0 RETURN
+  1842  (1182)          ENDIF
+  1843  (1183)  
+  1844  (1184)          FOR i IN 1:wordLen DO
+  1845  (1185)              typed(i) =: c
+  1846  (1186)              % Fold lower case to upper: 'a' is 97, 'z' is 122.
+  1847  (1187)              IF c >= 97 AND c <= 122 THEN
+  1848  (1188)                  c - 32 =: c
+  1849  (1189)              ENDIF
+  1850  (1190)              word(i - 1) =: w
+  1851  (1191)              IF c >< w THEN
+  1852  (1192)                  0 RETURN
+  1853  (1193)              ENDIF
+  1854  (1194)          ENDFOR
+  1855  (1195)  
+  1856  (1196)          % The word must END here - the next character is a space or nothing.
+  1857  (1197)          IF typedLen = wordLen + 1 THEN
+  1858  (1198)              1 RETURN
+  1859  (1199)          ENDIF
+  1860  (1200)  
+  1861  (1201)          IF typed(wordLen + 1) = 32 THEN
+  1862  (1202)              1 RETURN
+  1863  (1203)          ENDIF
+  1864  (1204)  
+  1865  (1205)          0 RETURN
+  1866  (1206)      ENDROUTINE
+  1867  (1207)  
+  1868  (1208)      % -----------------------------------------------------------------------
+  1869  (1209)      % A line beginning with "/" is a command, not something to say.
+  1870  (1210)      %
+  1871  (1211)      % WHAT IS AND IS NOT IMPLEMENTED, and the difference matters. /nick, /leave
+  1872  (1212)      % and /quit map onto message kinds that ALREADY EXIST on the wire - kRename
+  1873  (1213)      % and kLeave - and /join re-sends the join CHAT already sends at startup, to
+  1874  (1214)      % a different room name. None of those invent anything.
+  1875  (1215)      %
+  1876  (1216)      % /who does NOT map onto anything. There is no query kind in the format, and
+  1877  (1217)      % the format is pinned byte-for-byte by ChatMessageGoldenBytesTests on the
+  1878  (1218)      % C# side, so adding one is a change to BOTH ends in the same commit - not
+  1879  (1219)      % something this file may do on its own. It says so rather than pretending.
+  1880  (1220)      % -----------------------------------------------------------------------
+  1881  (1221)      ROUTINE VOID, VOID : handleCommand
+  1882  (1222)          INTEGER : at, argLen, i, length
+  1883  (1223)  
+  1884  (1224)          IF cmdIs('HELP', 4) = 1 THEN
+  1885  (1225)              OUTPUT(1, 'AL15', 'CHAT commands:$')
+  1886  (1226)              OUTPUT(1, 'AL35', '  /join <room>   join another room$')
+  1887  (1227)              OUTPUT(1, 'AL38', '  /nick <name>   change your nickname$')
+  1888  (1228)              OUTPUT(1, 'AL32', '  /leave         leave the room$')
+  1889  (1229)              OUTPUT(1, 'AL32', '  /quit          leave and stop$')
+  1890  (1230)              OUTPUT(1, 'AL37', '  /who           NOT ON THE WIRE YET$')
+  1891  (1231)              OUTPUT(1, 'AL36', '  anything else is said to the room$')
+  1892  (1232)              RETURN
+  1893  (1233)          ENDIF
+  1894  (1234)  
+  1895  (1235)          IF cmdIs('WHO', 3) = 1 THEN
+  1896  (1236)              OUTPUT(1, 'AL50', 'CHAT: /who has no message kind in the format yet.$')
+  1897  (1237)              OUTPUT(1, 'AL49', 'CHAT: the layout is pinned by the C# goldens, so$')
+  1898  (1238)              OUTPUT(1, 'AL49', 'CHAT: adding a query changes BOTH ends together.$')
+  1899  (1239)              RETURN
+  1900  (1240)          ENDIF
+  1901  (1241)  
+  1902  (1242)          IF cmdIs('JOIN', 4) = 1 THEN
+  1903  (1243)              6 =: at
+  1904  (1244)              typedLen - at =: argLen
+  1905  (1245)              IF argLen < 1 THEN
+  1906  (1246)                  OUTPUT(1, 'AL30', 'CHAT: /join needs a room name$')
+  1907  (1247)                  RETURN
+  1908  (1248)              ENDIF
+  1909  (1249)              IF argLen > maxNameLen THEN
+  1910  (1250)                  OUTPUT(1, 'AL33', 'CHAT: that room name is too long$')
+  1911  (1251)                  RETURN
+  1912  (1252)              ENDIF
+  1913  (1253)  
+  1914  (1254)              % Re-point the room and send the join again. The name is what XROUT
+  1915  (1255)              % looks up, so this is the whole of "change room" from our side.
+  1916  (1256)              FOR i IN 1:argLen DO
+  1917  (1257)                  typed(at + i - 1) =: roomName(i - 1)
+  1918  (1258)              ENDFOR
+  1919  (1259)              argLen =: lenRoomName
+  1920  (1260)              FALSE =: joined
+  1921  (1261)              0 =: serverMagic
+  1922  (1262)              OUTPUT(1, 'AL17', 'CHAT: joining...$')
+  1923  (1263)              sendJoin
+  1924  (1264)              RETURN
+  1925  (1265)          ENDIF
+  1926  (1266)  
+  1927  (1267)          IF cmdIs('NICK', 4) = 1 THEN
+  1928  (1268)              6 =: at
+  1929  (1269)              typedLen - at =: argLen
+  1930  (1270)              IF argLen < 1 THEN
+  1931  (1271)                  OUTPUT(1, 'AL25', 'CHAT: /nick needs a name$')
+  1932  (1272)                  RETURN
+  1933  (1273)              ENDIF
+  1934  (1274)              IF argLen > maxNameLen THEN
+  1935  (1275)                  OUTPUT(1, 'AL28', 'CHAT: that name is too long$')
+  1936  (1276)                  RETURN
+  1937  (1277)              ENDIF
+  1938  (1278)              IF NOT joined THEN
+  1939  (1279)                  OUTPUT(1, 'AL26', 'CHAT: not in the room yet$')
+  1940  (1280)                  RETURN
+  1941  (1281)              ENDIF
+  1942  (1282)  
+  1943  (1283)              % THE NEW NAME GOES IN THE NAME FIELD - see buildRename, which is
+  1944  (1284)              % where the whole story of this being wrong the other way round is
+  1945  (1285)              % written down. It reads the name straight out of typed, so there is
+  1946  (1286)              % no shuffling to do here either.
+  1947  (1287)              buildRename(at, argLen) =: length
+  1948  (1288)              sendToServer(length)
+  1949  (1289)  
+  1950  (1290)              % Our own name changes only when the room says so, with kRenamed.
+  1951  (1291)              RETURN
+  1952  (1292)          ENDIF
+  1953  (1293)  
+  1954  (1294)          IF cmdIs('LEAVE', 5) = 1 THEN
+  1955  (1295)              IF NOT joined THEN
+  1956  (1296)                  OUTPUT(1, 'AL26', 'CHAT: not in the room yet$')
+  1957  (1297)                  RETURN
+  1958  (1298)              ENDIF
+  1959  (1299)              buildOwn(kLeave, 0) =: length
+  1960  (1300)              sendToServer(length)
+  1961  (1301)              FALSE =: joined
+  1962  (1302)              0 =: serverMagic
+  1963  (1303)              OUTPUT(1, 'AL20', 'CHAT: left the room$')
+  1964  (1304)              RETURN
+  1965  (1305)          ENDIF
+  1966  (1306)  
+  1967  (1307)          IF cmdIs('QUIT', 4) = 1 THEN
+  1968  (1308)              IF joined THEN
+  1969  (1309)                  buildOwn(kLeave, 0) =: length
+  1970  (1310)                  sendToServer(length)
+  1971  (1311)              ENDIF
+  1972  (1312)              FALSE =: running
+  1973  (1313)              OUTPUT(1, 'AL10', 'CHAT: bye$')
+  1974  (1314)              RETURN
+  1975  (1315)          ENDIF
+  1976  (1316)  
+  1977  (1317)          OUTPUT(1, 'AL34', 'CHAT: no such command - try /help$')
+  1978  (1318)      ENDROUTINE
+  1979  (1319)  
+  1980  (1320)      % -----------------------------------------------------------------------
+  1981  (1321)      % The program.
+  1982  (1322)      % -----------------------------------------------------------------------
+  1983  (1323)      PROGRAM : chatClient
+  1984  (1324)          XMMSGIDENTIFIER : msgIdent
+  1985  (1325)          INTEGER : length
+  1986  (1326)  
+  1987  (1327)          INISTACK stack
+  1988  (1328)  
+  1989  (1329)          xmpfopn(0, myPort) =: returnStatus
+  1990  (1330)          IF returnStatus >< XMOK THEN
+  1991  (1331)              showStatus('xmpfopn', returnStatus)
+  1992  (1332)              RETURN
+  1993  (1333)          ENDIF
+  1994  (1334)  
+  1995  (1335)          % A "port = N magic= M st= S" line used to print here, from a XMPFP2M
+  1996  (1336)          % call kept only to feed it. It was there to answer one question: the
+  1997  (1337)          % server was receiving the join, parsing it exactly right and answering
+  1998  (1338)          % with status 0, and nothing was arriving back - so was the reply going
+  1999  (1339)          % to the wrong address?
+  2000  (1340)          %
+  2001  (1341)          % IT WAS NOT. The reply address was never the bug. The two magic numbers
+  2002  (1342)          % matched, which is what sent the search to the receive test in drainPort
+  2003  (1343)          % where the real fault was: XMPFRCV returned XMOK, the test excluded
+  2004  (1344)          % zero, and the welcome was dequeued and dropped. That is the whole
+  2005  (1345)          % reason this diagnostic earned its keep, and the reason it can now go.
+  2006  (1346)          %
+  2007  (1347)          % XMPFP2M went with it. Nothing else read myMagic.
+  2008  (1348)  
+  2009  (1349)          % ===================================================================
+  2010  (1350)          % HOW THIS CLIENT WATCHES TWO THINGS WITHOUT A NO-WAIT TERMINAL.
+  2011  (1351)          %
+  2012  (1352)          % The obvious design polls both: switch the terminal to no-wait with
+  2013  (1353)          % TNOWAIT (307B) so INBT stops blocking, then spin on keyboard and port
+  2014  (1354)          % together. TNOWAIT CANNOT BE HAD HERE (see the note below), so this
+  2015  (1355)          % client is built the other way round and needs it not at all:
+  2016  (1356)          %
+  2017  (1357)          %   THE PORT IS DRAINED WITHOUT WAITING - xmpfrcv with flags ZERO.
+  2018  (1358)          %   That is XMSG'S OWN no-wait and has nothing to do with the terminal:
+  2019  (1359)          %   without XFWTF the call returns at once whether or not a message was
+  2020  (1360)          %   there. So everything waiting can be taken and printed in a tight
+  2021  (1361)          %   loop that never blocks.
+  2022  (1362)          %
+  2023  (1363)          %   THE KEYBOARD IS ALLOWED TO BLOCK - MON1, one character at a time,
+  2024  (1364)          %   until carriage return.
+  2025  (1365)          %
+  2026  (1366)          % The one thing it costs: arriving lines are shown when you finish
+  2027  (1367)          % yours, not the instant they land. Press RETURN on an empty line to
+  2028  (1368)          % look. That is the whole price, and it buys a client that needs no
+  2029  (1369)          % missing product, no assembler and no interface routine.
+  2030  (1370)          %
+  2031  (1371)          % Reading the keyboard needs INBT (1B). Getting a NO-WAIT terminal
+  2032  (1372)          % would additionally need TNOWAIT (307B), and that is the one that
+  2033  (1373)          % cannot be had:
+  2034  (1374)          %
+  2035  (1375)          % MONITOR_CALL IS THE WRONG TOOL, both ways round, and both were tried:
+  2036  (1376)          %
+  2037  (1377)          %   By NAME - Monitor_Call('InByte', ...), the form the Monitor Calls
+  2038  (1378)          %   manual prints for PLANC - needs the MON-CALL-NAMES file. The
+  2039  (1379)          %   compiler answers THE MON-CALL-NAMES FILE WAS NOT FOUND, and no such
+  2040  (1380)          %   file exists under any of the nine users on this machine.
+  2041  (1381)          %
+  2042  (1382)          %   By NUMBER - MONITOR_CALL(1B, ...) - compiles and then does not
+  2043  (1383)          %   link: it generates a call to 5MON_P, which is in neither
+  2044  (1384)          %   PLANC-1BANK-F00 nor PLANC-2BANK-F00 (LIST-ENTRIES-UNDEFINED after
+  2045  (1385)          %   loading both).
+  2046  (1386)          %
+  2047  (1387)          % WHAT THE PLANC MANUAL ACTUALLY SAYS (ND-60.117.5, appendix 0.2,
+  2048  (1388)          % "Monitor Calls Available on the ND-100 and the ND-500"): the runtime
+  2049  (1389)          % provides monitor calls as ORDINARY ROUTINES, one per call, named MONn
+  2050  (1390)          % and IMPORTed like anything else -
+  2051  (1391)          %
+  2052  (1392)          %     ROUTINE VOID, BYTE (INTEGER) : MON1 (dev)      % INBIT
+  2053  (1393)          %
+  2054  (1394)          % which is why the COSMOS guide's own sample opens with
+  2055  (1395)          % IMPORT (ROUTINE VOID, VOID: MONO) - that is MON0, LEAVE. These are
+  2056  (1396)          % the MN1, MN122, MN310 ... units sitting in PLANC-1BANK-F00. So INBT
+  2057  (1397)          % is reachable, correctly, as MON1(1) - no MONITOR_CALL, no names file,
+  2058  (1398)          % no 5MON_P.
+  2059  (1399)          %
+  2060  (1400)          % TNOWAIT IS NOT. The appendix lists MON 0,1,2,3,4,11,12,17,21,45,47,
+  2061  (1401)          % 50,54,62,63,64,65,104,113,114,117,120,144,161,162,167,263 - and 307
+  2062  (1402)          % is not among them. The manual says what to do about that in as many
+  2063  (1403)          % words: "Any monitor calls not listed here, may be called from a PLANC
+  2064  (1404)          % routine if a suitable interface routine is constructed by the user.
+  2065  (1405)          % If this is done, the user must load the interface routine BEFORE the
+  2066  (1406)          % PLANC runtime library."
+  2067  (1407)          %
+  2068  (1408)          % A hand-written interface routine for MON 307B, loaded ahead of
+  2069  (1409)          % PLANC-1BANK-F00, is what the manual says to do about that.
+  2070  (1410)          %
+  2071  (1411)          % THIS COMMENT USED TO SAY THAT WAS IMPOSSIBLE HERE. It claimed "D100 has
+  2072  (1412)          % neither MAC nor NPL installed (LIST-FILES found only MACM-AREA:DATA)".
+  2073  (1413)          % BOTH HALVES ARE WRONG, and the way they were wrong is worth keeping.
+  2074  (1414)          %
+  2075  (1415)          % LIST-FILES IS THE WRONG COMMAND FOR THIS QUESTION. Compilers and other
+  2076  (1416)          % subsystems are loaded into shared memory across users, not kept as :PROG
+  2077  (1417)          % files in anybody's area, so LIST-FILES was never going to find one and
+  2078  (1418)          % its silence proved nothing. The command that answers it is
+  2079  (1419)          % LIST-REENTRANT. On D100, 2026-08-18:
+  2080  (1420)          %
+  2081  (1421)          %   START RESTART SEGMENT   NAME
+  2082  (1422)          %  177777B 177776B    107B   MAC
+  2083  (1423)          %      0B      1B    110B   NPL
+  2084  (1424)          %    752B    752B    111B   PLANC-100
+  2085  (1425)          %     0B      0B    112B   PED
+  2086  (1426)          %    11B     11B    113B   FORTRAN-100
+  2087  (1427)          %
+  2088  (1428)          % MAC and NPL are BOTH there, alongside the PLANC that builds this program.
+  2089  (1429)          % @MAC answers "- MAC -".
+  2090  (1430)          %
+  2091  (1431)          % So the door the manual describes is open: any monitor call outside the
+  2092  (1432)          % runtime's ready-made MONn set can be reached with an interface routine
+  2093  (1433)          % assembled in MAC and loaded BEFORE the PLANC library. TNOWAIT (307B) is
+  2094  (1434)          % the one this program wanted, and with it the loop below could stop being
+  2095  (1435)          % a busy one - see "what is not finished" at the foot of the file.
+  2096  (1436)          %
+  2097  (1437)          % The design below still stands on its own: it needs no interface routine,
+  2098  (1438)          % and it works. But it is now a CHOICE rather than the only option, and
+  2099  (1439)          % nobody should read this comment and conclude the machine cannot do it.
+  2100  (1440)          % ===================================================================
+  2101  (1441)  
+  2102  (1442)          % SETTLE THE NAME BEFORE THE JOIN, because the join CARRIES it and
+  2103  (1443)          % there is no second chance to put one in. Nothing is asked of the
+  2104  (1444)          % user - see setupName.
+  2105  (1445)          setupName
+  2106  (1446)  
+  2107  (1447)          OUTPUT(1, 'AL37', 'CHAT: joining, type and press return$')
+  2108  (1448)          sendJoin
+  2109  (1449)  
+  2110  (1450)          DO
+  2111  (1451)              % ---- take everything the port is holding, without waiting -------
+  2112  (1452)              drainPort
+  2113  (1453)  
+  2114  (1454)              % ---- then take whatever HAS been typed, without waiting ---------
+  2115  (1455)              % MON1 CAN RAISE A ROUTINEERROR, AND IT MUST BE CAUGHT HERE.
+  2116  (1456)              %
+  2117  (1457)              % Measured on D100: without this handler the client printed the
+  2118  (1458)              % same arriving message for ever and ESC broke it out of a SPIN,
+  2119  (1459)              % not out of a wait - so MON1 was not blocking at all. The terminal
+  2120  (1460)              % is in no-wait, and the Monitor Calls manual says what that means:
+  2121  (1461)              % "In No Wait, the program does not wait for input or output to
+  2122  (1462)              % complete. Monitor calls like InByte return ERROR CODE 3 instead."
+  2123  (1463)              % In PLANC that arrives as a ROUTINEERROR, and an unhandled one
+  2124  (1464)              % unwinds the program - which re-entered, re-sent the join, and
+  2125  (1465)              % produced another undeliverable letter coming back. One missing
+  2126  (1466)              % handler, three symptoms.
+  2127  (1467)              %
+  2128  (1468)              % Caught, it is exactly the poll the design wanted: ErrCode 3 means
+  2129  (1469)              % nothing was typed, so leave ch at zero and let the loop go round
+  2130  (1470)              % to look at the port again. ErrCode is supplied by the runtime and
+  2131  (1471)              % must NOT be declared.
+  2132  (1472)              % lineReady stays FALSE until RETURN is seen. typedLen is NOT reset
+  2133  (1473)              % here: a line half typed when the port needs draining has to
+  2134  (1474)              % survive the trip round the outer loop, so it is only cleared once
+  2135  (1475)              % the line has been dealt with.
+  2136  (1476)              FALSE =: lineReady
+  2137  (1477)              DO
+  2138  (1478)                  0 =: ch
+  2139  (1479)                  ON ROUTINEERROR DO
+  2140  (1480)                      IF ErrCode >< emptyInput THEN
+  2141  (1481)                          OUTPUT(1, 'AL27', 'CHAT: terminal read failed$')
+  2142  (1482)                      ENDIF
+  2143  (1483)                      0 =: rawCh
+  2144  (1484)                  ENDON
+  2145  (1485)                  MON1(ownTerminal) =: rawCh
+  2146  (1486)                  % PARITY. Terminal input carries an even-parity bit in bit 7,
+  2147  (1487)                  % so carriage return arrives as 141, NOT 13. Compare without
+  2148  (1488)                  % masking and the client never sees the user press return and
+  2149  (1489)                  % looks hung rather than wrong.
+  2150  (1490)                  rawCh =: ch
+  2151  (1491)                  ch AND parityMask =: ch
+  2152  (1492)  
+  2153  (1493)                  IF ch = carriageRet THEN
+  2154  (1494)                      TRUE =: lineReady
+  2155  (1495)                  ENDIF
+  2156  (1496)  
+  2157  (1497)                  % Leave the moment the keyboard runs dry (ch = 0, nothing was
+  2158  (1498)                  % typed) or the line is finished. Going round again on an empty
+  2159  (1499)                  % buffer is what turns this into a spin instead of a poll.
+  2160  (1500)                  WHILE ch >< 0 AND NOT lineReady
+  2161  (1501)  
+  2162  (1502)                  IF ch > 31 THEN
+  2163  (1503)                      % The bound. A full line stops accepting characters rather
+  2164  (1504)                      % than writing past the end of typed - PLANC checks no array
+  2165  (1505)                      % bound, so this test is the only thing between a held-down
+  2166  (1506)                      % key and the variables laid out after it.
+  2167  (1507)                      IF typedLen < maxTyped THEN
+  2168  (1508)                          ch =: typed(typedLen)
+  2169  (1509)                          typedLen + 1 =: typedLen
+  2170  (1510)                      ENDIF
+  2171  (1511)                  ENDIF
+  2172  (1512)              ENDDO
+  2173  (1513)  
+  2174  (1514)              IF lineReady AND typedLen > 0 THEN
+  2175  (1515)                  % NOTHING IS SENT BEFORE THE WELCOME. serverMagic is not known
+  2176  (1516)                  % until then, so sending here would post the line to address
+  2177  (1517)                  % zero. ChatClient.Say refuses the same way; this is that test.
+  2178  (1518)                  % A LEADING SLASH MAKES IT A COMMAND, not something to say.
+  2179  (1519)                  IF typed(0) = 47 THEN
+  2180  (1520)                      handleCommand
+  2181  (1521)                  ELSE
+  2182  (1522)                      IF joined THEN
+  2183  (1523)                          buildOwn(kSay, typedLen) =: length
+  2184  (1524)                          sendToServer(length)
+  2185  (1525)                      ELSE
+  2186  (1526)                          OUTPUT(1, 'AL26', 'CHAT: not in the room yet$')
+  2187  (1527)                      ENDIF
+  2188  (1528)                  ENDIF
+  2189  (1529)              ENDIF
+  2190  (1530)  
+  2191  (1531)              % Cleared only once the finished line has been dealt with, so a
+  2192  (1532)              % line still being typed is not thrown away by a drain pass.
+  2193  (1533)              IF lineReady THEN
+  2194  (1534)                  0 =: typedLen
+  2195  (1535)              ENDIF
+  2196  (1536)  
+  2197  (1537)              % /quit clears this. The continue-test goes LAST so the leave
+  2198  (1538)              % message it sends is on its way before the loop ends.
+  2199  (1539)              WHILE running
+  2200  (1540)          ENDDO
+  2201  (1541)      ENDROUTINE
+  2202  (1542)  
+  2203  (1543)  ENDMODULE
+  2204  (1544)  
+  2205  (1545)  % NO $EOF HERE, deliberately, and it is not an oversight - an earlier version
+  2206  (1546)  % had one and it broke the build.
+  2207  (1547)  %
+  2208  (1548)  % $EOF belongs at the end of an INCLUDED source, where it stops the compiler
+  2209  (1549)  % reading past the file's end and calling that the end of the whole
+  2210  (1550)  % compilation. XMPIMP:INCL has one for exactly that reason, and so does the
+  2211  (1551)  % shipped (UTILITY)XMSG-PL-VALUES-L:INCL.
+  2212  (1552)  %
+  2213  (1553)  % In the MAIN source it does something else: it ends the compiler SESSION. The
+  2214  (1554)  % compiler links and returns to SINTRAN there and then, so every command after
+  2215  (1555)  % the COMPILE - the EXIT, and any LOAD - is handed to SINTRAN instead, which
+  2216  (1556)  % answers ILLEGAL COMMAND and aborts the batch job. Measured on D100: the LOAD
+  2217  (1557)  % line arrived at the shell as "L".
+  2218  (1558)  %
+  2219  (1559)  % The library is brought in afterwards by BRF-LINKER-C01. See CHATCC:MODE.
+  2220  (1560)  
+  2221  (1561)  % ---------------------------------------------------------------------------
+  2222  (1562)  % WHAT IS NOT FINISHED:
+  2223  (1563)  %
+  2224  (1564)  %  1. TWO ITEMS THAT USED TO BE ON THIS LIST WERE STALE, and they are recorded
+  2225  (1565)  %     here rather than quietly deleted, because a list of open problems that
+  2226  (1566)  %     keeps solved ones on it is worse than no list: it sends the next person
+  2227  (1567)  %     to work that is already done.
+  2228  (1568)  %
+  2229  (1569)  %       "Nothing has been compiled."   It compiles and it runs. See the header.
+  2230  (1570)  %
+  2231  (1571)  %       "No way to leave. kLeave is declared and never sent."   /leave and
+  2232  (1572)  %       /quit both send it - handleCommand, which was written after this line
+  2233  (1573)  %       and never came back to cross it off.
+  2234  (1574)  %
+  2235  (1575)  %     The remaining items below were re-read against the code on 2026-08-18 and
+  2236  (1576)  %     are still true.
+  2237  (1577)  %
+  2238  (1578)  %  2. THE LOOP IS A BUSY ONE. It reads the keyboard and the port as fast as the
+  2239  (1579)  %     machine will go, which on a shared SINTRAN is antisocial. The server does
+  2240  (1580)  %     not have this problem - it BLOCKS on XFWTF - but a client watching two
+  2241  (1581)  %     things cannot block on either one.
+  2242  (1582)  %
+  2243  (1583)  %     THE EXPERIMENT TO RUN, which is one specific thing rather than a research
+  2244  (1584)  %     project. Both halves have a documented wake:
+  2245  (1585)  %
+  2246  (1586)  %       the terminal   after a no-wait call, "SuspendProgram or WaitForRestart
+  2247  (1587)  %                      may passivate the program afterwards. The program
+  2248  (1588)  %                      restarts when input or output to the device is
+  2249  (1589)  %                      completed."          (Monitor Calls, NoWaitSwitch)
+  2250  (1590)  %
+  2251  (1591)  %       the port       XMPFRCV with XFWAK and WITHOUT XFWTF returns at once and
+  2252  (1592)  %                      ARMS a wake: "the next transmission to this port will
+  2253  (1593)  %                      lead to a wake up of the receiver task". Note that "when
+  2254  (1594)  %                      the wake up is done, the message is not received, and so
+  2255  (1595)  %                      the receiving must be repeated."   (COSMOS guide, XFWAK)
+  2256  (1596)  %
+  2257  (1597)  %     So the shape to try is: arm the port with XFWAK, then WaitForRestart, and
+  2258  (1598)  %     on waking re-issue the receive and re-read the keyboard, because either
+  2259  (1599)  %     could be what woke us.
+  2260  (1600)  %
+  2261  (1601)  %     AND THE OTHER ROUTE IS OPEN AFTER ALL: MAC and NPL are BOTH installed on
+  2262  (1602)  %     D100 (verified 2026-08-18 with LIST-REENTRANT, which is the command that
+  2263  (1603)  %     answers this - subsystems live in shared memory, not as :PROG files, so
+  2264  (1604)  %     LIST-FILES finding nothing proved nothing). So TNOWAIT (307B) can be reached
+  2265  (1605)  %     the way the PLANC manual says: an interface routine assembled in MAC and
+  2266  (1606)  %     loaded BEFORE PLANC-1BANK-F00. That is now a real option to weigh against the XFWAK
+  2267  (1607)  %     experiment below, not a closed door.
+  2268  (1608)  %
+  2269  (1609)  %     WHAT IS NOT ESTABLISHED is whether an XMSG wake-up actually restarts a
+  2270  (1610)  %     BACKGROUND PROGRAM passivated that way. The call that makes the wake-up
+  2271  (1611)  %     context explicit, XMPFWDF, is for DRIVERS - the guide says so, and adds
+  2272  (1612)  %     "not permitted for RT-programs". So this is one measurement, not a
+  2273  (1613)  %     deduction, and until it is made the loop stays as it is: honest and rude.
+  2274  (1614)  %     A short HOLD is the fallback if the wake does not arrive.
+  2275  (1615)  %
+  2276  (1616)  %  3. THE NAME IS NO LONGER FIXED AT RONNY, and this item is kept in corrected
+  2277  (1617)  %     form because it went through a wrong shape on the way.
+  2278  (1618)  %
+  2279  (1619)  %     It was briefly a PROMPT at start-up, and that was a mistake: on a machine
+  2280  (1620)  %     where you have already told SINTRAN who you are by logging in, being
+  2281  (1621)  %     asked your name again on every run is nagging. It is now read from
+  2282  (1622)  %     CHAT:CNFG in your own file area, changed with /nick, and saved only when
+  2283  (1623)  %     the ROOM confirms the rename - never when the request is sent, because
+  2284  (1624)  %     the room can refuse it.
+  2285  (1625)  %
+  2286  (1626)  %     WHAT IS STILL MISSING is the right fallback for somebody who has never
+  2287  (1627)  %     renamed: it should be the SINTRAN user name and it is still RONNY.
+  2288  (1628)  %     GetUserName is GUSNA 214B, and the PLANC runtime provides no MON214 -
+  2289  (1629)  %     the same gap CreateFile 221B falls into, which is why creating CHAT:CNFG
+  2290  (1630)  %     goes through MON70 instead. There is no command-level way round 214, so
+  2291  (1631)  %     it needs the route the PLANC manual describes in as many words: an
+  2292  (1632)  %     interface routine assembled in MAC and loaded BEFORE the PLANC runtime
+  2293  (1633)  %     library. MAC is installed here - LIST-REENTRANT shows it - so this is
+  2294  (1634)  %     work, not a wall.
+  2295  (1635)  %
+  2296  (1636)  %  4. The ON ROUTINEERROR form is taken from the Monitor Calls manual's own
+  2297  (1637)  %     PLANC example for InByte. That ErrCode 3 specifically means "nothing was
+  2298  (1638)  %     typed" is from the NoWaitSwitch entry, which says so for no-wait calls
+  2299  (1639)  %     generally rather than for InByte in particular. If some other code turns
+  2300  (1640)  %     up in practice, the handler above prints and carries on rather than
+  2301  (1641)  %     mistaking it for a keystroke.
+  2302  (1642)  % ---------------------------------------------------------------------------
+  2303  (1643)  

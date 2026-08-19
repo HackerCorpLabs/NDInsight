@@ -20,7 +20,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
     /// <remarks>
     /// When the capture cannot be located (set <c>XMSG_PCAP_DIR</c> or place <c>X25Emulator</c>
     /// next to <c>NDInsight</c>) the test passes with a log message rather than failing, so it
-    /// is portable to machines without the corpus — matching the existing pcap test policy.
+    /// is portable to machines without the corpus - matching the existing pcap test policy.
     /// </remarks>
     public sealed class TadReplayPcapTests
     {

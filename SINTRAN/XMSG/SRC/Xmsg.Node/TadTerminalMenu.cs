@@ -6,8 +6,8 @@ namespace NDInsight.Sintran.Xmsg.Node
     /// <summary>
     /// The application logic of the simulated remote machine's terminal: a message-of-the-day
     /// banner (with date and time), a <c>#</c> command prompt, and a four-item menu
-    /// (1 Time, 2 Date, 3 Echo, 4 Disconnect). This class is deliberately PURE — it produces
-    /// plain terminal text and never touches XMSG/TAD framing — so it can be unit-tested with a
+    /// (1 Time, 2 Date, 3 Echo, 4 Disconnect). This class is deliberately PURE - it produces
+    /// plain terminal text and never touches XMSG/TAD framing - so it can be unit-tested with a
     /// fixed clock. The TAD terminal session wraps this text into TAD BDAT messages.
     /// </summary>
     /// <remarks>
@@ -123,7 +123,7 @@ namespace NDInsight.Sintran.Xmsg.Node
 
             StringBuilder sb = new StringBuilder();
 
-            // A bare Enter (empty line) just re-shows the prompt — no error, common terminal UX.
+            // A bare Enter (empty line) just re-shows the prompt - no error, common terminal UX.
             if (command.Length == 0)
             {
                 sb.Append(BuildPrompt());
@@ -218,7 +218,7 @@ namespace NDInsight.Sintran.Xmsg.Node
     public enum TadDisconnectMode
     {
         /// <summary>
-        /// No disconnect — the session continues.
+        /// No disconnect - the session continues.
         /// </summary>
         None = 0,
 

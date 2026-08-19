@@ -105,7 +105,20 @@ and 358, both `>> 7 == 2`).
 > start by `**xx`, where xx are specific to the product." - appendix A section
 > 3.2.11 (VERIFIED)
 
-Hence the leading asterisk on every name we observe. The maximum name length is set
+**So the star means "this is an ND standard product", and nothing else.** It is a
+namespace convention, not a mechanism:
+
+ - It is NOT functional. The name travels as an ordinary string in the letter - the
+   captured `*TADADM` connect letter carries `FF 07 2A 54 41 44 41 44 4D`, where `2A`
+   is simply the asterisk character. XROUT resolves starred and unstarred names the
+   same way.
+ - It IS a reservation. A name of our own should NOT take it. `CHAT-LOBBY`, the room
+   `CHATSV` opens, is correct without a star; `*CHAT-LOBBY` would be claiming ND's
+   prefix for something ND never shipped.
+ - What matters is that both ends spell it identically - the server registers the name
+   and the client hands the same string to XROUT.
+
+Hence the leading asterisk on every ND name we observe. The maximum name length is set
 when XMSG is generated (default 32 bytes) and **XROUT silently truncates anything
 longer** (appendix B section 3.1, VERIFIED) - a quiet failure mode worth guarding
 against in our own code.

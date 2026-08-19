@@ -383,6 +383,29 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
         /// <remarks>
         /// Both sides send this, byte for byte identical in shape - the capture shows node 100 and
         /// node 102 each emitting <c>07C0 responder-word conversation 0000</c>.
+        /// <para><b>A network error AFTER the close is NORMAL. Do not chase it.</b></para>
+        /// <para>
+        /// D100 answers our close with a subtype-07 network error carrying
+        /// <c>Flags2 = 0xFFED</c>, and that looks exactly like the invalid-magic reject this class
+        /// used to cause. It is not. VERIFIED 2026-08-11 against
+        /// <c>DOC\captures\FA-READ-WRITE-2026-08-04\capture-list-files.txt</c>: a REAL D102 sends
+        /// its close at 02:20:29.594 and a REAL D100 answers with
+        /// <c>2113 0007 0066 0064 01F7 FFED DC36</c> seventeen milliseconds later. Two real
+        /// machines, same exchange, same <c>0xFFED</c>.
+        /// </para>
+        /// <para>
+        /// Our own teardown was compared field by field against that capture on 2026-08-11 and
+        /// agrees throughout - the FA body is byte-identical (<c>07C0 0002 0042 0000</c> answering
+        /// <c>0782 0042 0002 8000</c>), the sub-header mirrors the client's ports the same way, the
+        /// close carries the same Flags 1 as the release it answers, and it follows a datagram
+        /// acknowledgement in the same order. The only thing left that differs is timing: the real
+        /// server waits about 147 ms where we answer in 8.
+        /// </para>
+        /// <para>
+        /// So a <c>0xFFED</c> after a close is evidence of NOTHING. It was evidence once, when the
+        /// close carried <c>0x0000</c> as the client's conversation, and that is fixed - which is
+        /// exactly why it is worth writing down that the symptom outlived the defect.
+        /// </para>
         /// <para>
         /// Word 1 is the echoed responder word, not the <c>0x0002</c> constant this used to write.
         /// The real close in <c>DOC/captures/ND-TO-ND-2026-08-08/nd-to-nd-scenarios.pcapng</c> is

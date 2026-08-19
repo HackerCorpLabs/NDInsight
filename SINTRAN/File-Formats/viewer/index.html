@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ND-500(0) File-Format Viewer</title>
+<style>
+    :root {
+        --primary: #3498db;
+        --primary-dark: #2980b9;
+        --secondary: #2c3e50;
+        --accent: #e74c3c;
+        --warn: #f39c12;
+        --bg-body: #f5f5f5;
+        --bg-card: #fff;
+        --bg-code: #ecf0f1;
+        --text-primary: #2c3e50;
+        --text-secondary: #7f8c8d;
+        --text-muted: #95a5a6;
+        --border: #ddd;
+        --hover-bg: #f0f0f0;
+        --active-bg: #e8f4fc;
+        --active-border: #3498db;
+        --hex-hl: #f1c40f;
+    }
+    .dark-theme {
+        --primary: #3498db;
+        --primary-dark: #5dade2;
+        --secondary: #0a0a15;
+        --accent: #e74c3c;
+        --warn: #f5b041;
+        --bg-body: #1a1a2e;
+        --bg-card: #16213e;
+        --bg-code: #0f3460;
+        --text-primary: #ecf0f1;
+        --text-secondary: #bdc3c7;
+        --text-muted: #7f8c8d;
+        --border: #34495e;
+        --hover-bg: #1e2a4a;
+        --active-bg: #1e3a5f;
+        --active-border: #3498db;
+        --hex-hl: #b8860b;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: var(--bg-body);
+        color: var(--text-primary);
+        font-size: 14px;
+        line-height: 1.5;
+        display: flex;
+        flex-direction: column;
+    }
+    .header {
+        background: var(--primary);
+        color: white;
+        padding: 12px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-shrink: 0;
+    }
+    .header h1 { font-size: 18px; font-weight: 600; }
+    .header-controls { display: flex; gap: 10px; align-items: center; }
+    .settings-btn {
+        background: rgba(255,255,255,0.2);
+        border: none; color: white; font-size: 16px; cursor: pointer;
+        padding: 5px 10px; border-radius: 4px;
+    }
+    .settings-btn:hover { background: rgba(255,255,255,0.3); }
+
+    .control-bar {
+        background: var(--bg-card);
+        padding: 10px 20px;
+        border-bottom: 1px solid var(--border);
+        display: flex; gap: 16px; flex-wrap: wrap; align-items: center;
+        flex-shrink: 0;
+    }
+    .control-group { display: flex; gap: 6px; align-items: center; }
+    .control-group label { color: var(--text-secondary); font-size: 13px; }
+    input[type="text"], input[type="number"] {
+        padding: 6px 10px; border: 1px solid var(--border); border-radius: 4px;
+        font-family: inherit; font-size: 13px; background: var(--bg-card); color: var(--text-primary);
+    }
+    button {
+        padding: 6px 14px; border: none; border-radius: 4px; cursor: pointer;
+        font-family: inherit; font-size: 13px; font-weight: 500;
+    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
+    .btn-outline:hover { background: var(--hover-bg); }
+    select {
+        padding: 6px 10px; border: 1px solid var(--border); border-radius: 4px;
+        font-family: inherit; font-size: 13px; background: var(--bg-card); color: var(--text-primary);
+        cursor: pointer;
+    }
+
+    .main-content { flex: 1; display: flex; overflow: hidden; position: relative; }
+
+    .parsed-panel {
+        flex: 1.4; overflow-y: auto; background: var(--bg-card); min-width: 0;
+        padding: 14px 18px; border-right: 1px solid var(--border);
+    }
+    .hex-panel {
+        flex: 1; overflow-y: auto; background: var(--bg-card); min-width: 340px;
+        padding: 14px 18px;
+    }
+
+    .main-content.drag-over::after {
+        content: 'Drop an NRF / DOM / SEG / DESC file to load';
+        position: absolute; inset: 10px;
+        border: 3px dashed var(--primary); border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 20px; color: var(--primary);
+        background: rgba(52,152,219,0.08);
+        pointer-events: none; z-index: 5;
+    }
+
+    .placeholder { color: var(--text-muted); text-align: center; padding: 60px 20px; font-style: italic; }
+
+    .error-panel {
+        background: rgba(231,76,60,0.1); border: 1px solid var(--accent); border-radius: 6px;
+        padding: 14px; color: var(--accent); margin-bottom: 14px; white-space: pre-wrap;
+        font-family: 'Courier New', monospace; font-size: 12px;
+    }
+    .info-panel {
+        background: rgba(52,152,219,0.08); border: 1px solid var(--primary); border-radius: 6px;
+        padding: 10px 14px; color: var(--text-primary); margin-bottom: 14px; font-size: 12.5px;
+    }
+
+    h2.section-title {
+        font-size: 15px; color: var(--primary); margin: 18px 0 8px 0;
+        border-bottom: 1px solid var(--border); padding-bottom: 4px;
+    }
+    h2.section-title:first-child { margin-top: 0; }
+    h3.subsection-title { font-size: 13px; color: var(--text-secondary); margin: 12px 0 6px 0; }
+
+    table.field-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-bottom: 10px; }
+    table.field-table td, table.field-table th { padding: 3px 8px; text-align: left; vertical-align: top; }
+    table.field-table th { color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--border); }
+    table.field-table tr.fieldrow { cursor: pointer; font-family: 'Courier New', monospace; }
+    table.field-table tr.fieldrow:hover { background: var(--hover-bg); }
+    table.field-table tr.fieldrow.selected { background: var(--active-bg); }
+    td.fname { color: var(--text-primary); font-weight: 600; white-space: nowrap; }
+    td.foff { color: var(--text-muted); white-space: nowrap; }
+    td.fval { color: var(--primary); }
+    td.fdesc { color: var(--text-secondary); font-family: inherit; }
+    .unverified { color: var(--warn); font-style: italic; }
+    .bit-tag {
+        display: inline-block; background: var(--bg-code); border: 1px solid var(--border);
+        border-radius: 3px; padding: 0 5px; margin: 1px 3px 1px 0; font-size: 11px;
+    }
+    .bit-tag.setbit { border-color: var(--primary); color: var(--primary); font-weight: 600; }
+
+    .group-line {
+        font-family: 'Courier New', monospace; font-size: 12px; padding: 2px 4px;
+        cursor: pointer; white-space: pre; border-left: 3px solid transparent;
+    }
+    .group-line:hover { background: var(--hover-bg); }
+    .group-line.selected { background: var(--active-bg); border-left-color: var(--active-border); }
+    .group-line .gname { color: var(--primary); font-weight: 600; }
+    .group-line .gextra { color: var(--text-secondary); }
+    .module-block { border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; }
+    .module-block .mtitle { color: var(--primary); font-weight: 600; font-size: 12.5px; margin-bottom: 4px; }
+    .module-block .msym { font-family: 'Courier New', monospace; font-size: 12px; color: var(--text-secondary); padding-left: 14px; }
+
+    .hex-toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+    .hex-page-info { color: var(--text-secondary); font-size: 12px; }
+    pre.hexdump { font-family: 'Courier New', monospace; font-size: 12px; line-height: 18px; white-space: pre; }
+    .hexrow { display: flex; gap: 10px; }
+    .hexaddr { color: var(--text-muted); min-width: 78px; }
+    .hexbytes { flex-shrink: 0; }
+    .hexascii { color: var(--text-secondary); }
+    .hb { padding: 0 1px; }
+    .hb.hl { background: var(--hex-hl); color: #000; border-radius: 2px; }
+
+    .status-bar {
+        background: var(--secondary); color: rgba(255,255,255,0.85);
+        padding: 5px 20px; font-size: 12px; display: flex;
+        justify-content: space-between; align-items: center; gap: 20px; flex-shrink: 0;
+    }
+    .status-note { color: rgba(255,255,255,0.5); font-size: 11px; }
+    a.footer-link { color: rgba(255,255,255,0.8); text-decoration: none; margin-left: auto; }
+</style>
+</head>
+<body>
+<div class="header">
+    <h1>ND-500(0) File-Format Viewer <span style="font-weight:400;font-size:13px;opacity:.85;">NRF / DOM / SEG / DESC</span></h1>
+    <div class="header-controls">
+        <button class="settings-btn" id="themeBtn" title="Toggle dark/light theme">&#9788;</button>
+    </div>
+</div>
+
+<div class="control-bar">
+    <div class="control-group">
+        <button class="btn-primary" id="openFileBtn">Open file...</button>
+        <input type="file" id="fileInput" style="display:none;">
+    </div>
+    <div class="control-group">
+        <label>Format:</label>
+        <select id="formatSelect" title="Auto-detect, or force a specific parser">
+            <option value="auto" selected>auto-detect</option>
+            <option value="NRF">NRF (ND Relocatable Format)</option>
+            <option value="DOM">DOM (Domain file)</option>
+            <option value="SEG">SEG (free segment file)</option>
+            <option value="DESC">DESC (DESCRIPTION-FILE)</option>
+        </select>
+    </div>
+    <div class="control-group">
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
+            <input type="checkbox" id="addrOctCheckbox" checked> Octal addresses
+        </label>
+    </div>
+    <div class="control-group" id="fileInfoGroup" style="margin-left:auto;color:var(--text-secondary);font-size:12.5px;"></div>
+</div>
+
+<div class="main-content" id="mainContent">
+    <div class="parsed-panel" id="parsedPanel">
+        <div class="placeholder">Drag &amp; drop an .nrf / .dom / .seg / .desc file here, or click "Open file..." above.<br><br>
+        Format specs are loaded from the parent File-Formats folder (nrf-format.json / dom-format.json / desc-format.json) &mdash;
+        this page must be served over http(s), not opened directly as a file:// URL.</div>
+    </div>
+    <div class="hex-panel" id="hexPanel">
+        <div class="placeholder">Hex dump appears here once a file is loaded.</div>
+    </div>
+</div>
+
+<div class="status-bar">
+    <span id="statusLeft">Loading format specs...</span>
+    <span id="statusRight"></span>
+    <span class="status-note">Specs fetched live from ../nrf-format.json, ../dom-format.json, ../desc-format.json (single source of truth)</span>
+</div>
+
+<script>
+// ============================================================================
+// ND-500(0) File-Format Viewer
+//
+// Parses three vintage Norsk Data ND-500(0) binary formats client-side:
+//   - NRF  (ND Relocatable Format): a variable-length control-byte/group
+//     stream, no fixed magic. Ported from nrf_utils.c's nrf_read_group /
+//     nrf_scan_modules (pcc-nd500, read-only reference, NOT modified here).
+//   - DOM/SEG (Domain / free-Segment file): fixed 4096-byte header with a
+//     FLAGS byte at offset 0x06 that (per dom-format.json) carries
+//     IS_DOMAIN_FILE / IS_ND500 / IS_ROOT_DOMAIN / IS_SINTRAN_III bits -
+//     the closest thing this format has to a "magic" signature. Byte
+//     offsets ported from nd500/dom.h's struct layout (independently
+//     confirmed against real ND-500-APPS .DOM files during this build -
+//     see the "known limitations" note in README.md for what that check
+//     covered).
+//   - DESC (DESCRIPTION-FILE:DESC): no fixed magic either. Domain/Segment
+//     entry blocks are found by the SAME heuristic byte-scan algorithm as
+//     nd500-dump.c's dump_desc_file()/desc_scan_block()/looks_like_desc_name()
+//     - ported field-for-field below, including its exact tolerances
+//     (all-zero slots are gaps but scanning STOPS at the first gap, a
+//     Segment Entry name must start with '(' and contain a closing ')',
+//     a Domain Entry name needs >=4 printable characters). Only the two
+//     fields nd500-dump.c itself trusts (SEGLINK, DNAME/SNAME) are decoded;
+//     everything else is explicitly marked unverified rather than guessed.
+//
+// All field NAMES, DESCRIPTIONS and bit-table LABELS come from the three
+// JSON specs fetched at load time - they are the single source of truth,
+// not duplicated here. Only byte OFFSETS/SIZES (which the JSON also
+// states) and the semantic walking logic (stream grammar, heuristic scan)
+// are implemented in JS, mirroring the C reference implementation.
+// ============================================================================
+
+let SPEC = { nrf: null, dom: null, desc: null };
+let specsLoaded = false;
+
+let fileBytes = null;       // Uint8Array of the whole loaded file
+let fileName = '';
+let detectedFormat = null;  // 'NRF' | 'DOM' | 'SEG' | 'DESC' | null
+let parseResult = null;     // { type, error, sections:[...], hexNote }
+let useOctal = true;
+
+// Hex-dump paging (files can be several MB; render only a window)
+const HEX_BYTES_PER_ROW = 16;
+const HEX_ROWS_PER_PAGE = 64;
+const HEX_PAGE_BYTES = HEX_BYTES_PER_ROW * HEX_ROWS_PER_PAGE; // 1024 bytes/page
+let hexPage = 0;
+let highlightOffset = -1;
+let highlightLength = 0;
+
+// ---------------------------------------------------------------------
+// Byte-reading helpers (ND-500 is BIG-ENDIAN throughout, per every spec)
+// ---------------------------------------------------------------------
+function rd8(b, o) { return b[o]; }
+function rd16(b, o) { return (b[o] << 8) | b[o + 1]; }
+function rd32(b, o) { return ((b[o] << 24) | (b[o + 1] << 16) | (b[o + 2] << 8) | b[o + 3]) >>> 0; }
+
+function toHex(n, width) { return '0x' + (n >>> 0).toString(16).toUpperCase().padStart(width || 2, '0'); }
+function toOctal(n, width) { return (n >>> 0).toString(8).padStart(width || 1, '0'); }
+function fmtAddr(n) { return useOctal ? toOctal(n, 6) + 'o' : toHex(n, 6); }
+function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+// Printable-ASCII check used by both the hex-dump ASCII gutter and the
+// DESC heuristic scan (mirrors looks_like_desc_name's byte range 0x20-0x7e).
+function isPrintable(b) { return b >= 0x20 && b <= 0x7e; }
+
+// ---------------------------------------------------------------------
+// Spec loading
+// ---------------------------------------------------------------------
+async function loadSpecs() {
+    try {
+        const [nrf, dom, desc] = await Promise.all([
+            fetch('../nrf-format.json').then(r => { if (!r.ok) throw new Error('nrf-format.json: HTTP ' + r.status); return r.json(); }),
+            fetch('../dom-format.json').then(r => { if (!r.ok) throw new Error('dom-format.json: HTTP ' + r.status); return r.json(); }),
+            fetch('../desc-format.json').then(r => { if (!r.ok) throw new Error('desc-format.json: HTTP ' + r.status); return r.json(); })
+        ]);
+        SPEC.nrf = nrf; SPEC.dom = dom; SPEC.desc = desc;
+        specsLoaded = true;
+        document.getElementById('statusLeft').textContent = 'Format specs loaded. Ready.';
+    } catch (e) {
+        specsLoaded = false;
+        document.getElementById('statusLeft').textContent = 'Failed to load format specs.';
+        document.getElementById('parsedPanel').innerHTML =
+            '<div class="error-panel">Could not fetch ../nrf-format.json / ../dom-format.json / ../desc-format.json.\n\n' +
+            'This page must be served over http(s) (fetch() of a sibling folder is blocked under file://).\n' +
+            'Run from the viewer/ folder:\n\n    python -m http.server 8000\n\nthen open http://localhost:8000/\n\n' +
+            'Underlying error: ' + e.message + '</div>';
+    }
+}
+
+// Look up a controlNumbers[] entry by decimal number.
+function nrfControlInfo(num) {
+    return SPEC.nrf.controlNumbers.find(c => c.decimal === num) || null;
+}
+function nrfLanguageName(code) {
+    const l = SPEC.nrf.languageCodes.find(x => x.code === code);
+    return l ? l.name : 'UNKNOWN(' + code + ')';
+}
+
+// ============================================================================
+// NRF parser - ports nrf_utils.c's nrf_read_group() (Layer 1) and
+// nrf_scan_modules() (Layer 2). Layer 3 (nrf_reconstruct, full PSEG/DSEG
+// byte reconstruction) is NOT ported - out of scope for an inspector; the
+// group listing + module/symbol summary is what nd500-dump -N shows by
+// default and is what this task asked to match.
+// ============================================================================
+function nrfReadGroup(buf, pos) {
+    if (pos >= buf.length) return null; // clean end
+    const start = pos;
+    const ctl = buf[start];
+    const cn = (ctl >> 3) & 0x1F;
+    const nl = ctl & 0x07;
+    let p = start + 1;
+    if (p + nl > buf.length) return { malformed: true, offset: start };
+
+    const numericRaw = buf.slice(p, p + nl);
+    p += nl;
+
+    // Sign-extend NL bytes (2's complement) - mirrors nrf_read_group exactly.
+    let v = 0n;
+    for (let i = 0; i < nl; i++) v = (v << 8n) | BigInt(numericRaw[i]);
+    if (nl > 0) {
+        const signBit = 1n << BigInt(nl * 8 - 1);
+        if (v & signBit) v |= ~((signBit << 1n) - 1n);
+    }
+    const numericValue = v; // BigInt, exact for up to 7 bytes (56 bits)
+
+    const info = nrfControlInfo(cn);
+    const hasSymbol = !!(info && info.symbolic);
+    let symbol = '', symbolLength = 0, symbolHidden = false;
+    if (hasSymbol) {
+        if (p >= buf.length) return { malformed: true, offset: start };
+        const sl = buf[p]; p += 1;
+        if (p + sl > buf.length) return { malformed: true, offset: start };
+        symbolLength = sl;
+        const chars = [];
+        for (let i = 0; i < sl; i++) chars.push(String.fromCharCode(buf[p + i] & 0x7F)); // parity bit cleared
+        symbol = chars.join('');
+        symbolHidden = sl > 0 && symbol[0] === '#';
+        p += sl;
+    }
+
+    // LDN (control 27): the numeric field is N itself (a raw byte count,
+    // UNSIGNED - not the immediate data), and N more literal bytes follow
+    // the header that are not a second numeric or symbolic field. Every
+    // other group's numeric field IS its payload, so this is the one
+    // control number where "control + NL numeric bytes" is not the whole
+    // group. Missing this desyncs everything after the first LDN in the
+    // stream - verified against NC-LIB-A06.NRF (2026-08-11): skipping N
+    // raw bytes after the header lands cleanly on the next real group
+    // every time, matching nd500-dump's C reference after the same fix.
+    const NRF_LDN = 27;
+    if (cn === NRF_LDN) {
+        let skip = 0n;
+        for (let i = 0; i < nl; i++) skip = (skip << 8n) | BigInt(numericRaw[i]); // unsigned reinterpretation
+        const skipNum = Number(skip);
+        if (p + skipNum > buf.length) return { malformed: true, offset: start };
+        p += skipNum;
+    }
+
+    return {
+        malformed: false, offset: start, length: p - start,
+        controlNumber: cn, name: info ? info.name : '?', numericLength: nl,
+        numericRaw, numericValue, hasSymbol, symbolLength, symbol, symbolHidden
+    };
+}
+
+function parseNRF(buf) {
+    const groups = [];
+    let pos = 0, truncated = false;
+    const NRF_EOF = 22, NRF_BEG = 1, NRF_END = 2;
+    const MAX_GROUPS = 200000; // sanity bound against a runaway/garbage stream
+
+    while (pos < buf.length && groups.length < MAX_GROUPS) {
+        const g = nrfReadGroup(buf, pos);
+        if (!g) break;
+        if (g.malformed) { truncated = true; break; }
+        groups.push(g);
+        pos = g.offset + g.length;
+        if (g.controlNumber === NRF_EOF) break;
+    }
+    if (groups.length === 0) throw new Error('No valid NRF control groups found - control byte at offset 0 does not decode to a plausible group.');
+
+    // Module/symbol scan (mirrors nrf_scan_modules): BEG..END spans with
+    // their LIB/DEF/REF/LRF/DDF/DRF/MSG symbolic groups.
+    const modules = [];
+    let cur = null;
+    const SYMBOL_CONTROLS = [4, 5, 6, 7, 8, 9, 25]; // LIB DEF REF LRF DDF DRF MSG
+    for (const g of groups) {
+        if (g.controlNumber === NRF_BEG) {
+            cur = { language: g.numericLength >= 2 ? g.numericRaw[1] : 0, begOffset: g.offset, endOffset: -1, symbols: [] };
+            modules.push(cur);
+        } else if (g.controlNumber === NRF_END) {
+            if (cur) cur.endOffset = g.offset;
+            cur = null;
+        } else if (SYMBOL_CONTROLS.includes(g.controlNumber) && cur && g.hasSymbol) {
+            cur.symbols.push({ controlNumber: g.controlNumber, name: g.symbol, hidden: g.symbolHidden, offset: g.offset });
+        } else if (g.controlNumber === NRF_EOF) {
+            break;
+        }
+    }
+
+    return { type: 'NRF', groups, modules, truncated, byteLength: buf.length };
+}
+
+function renderNRF(r) {
+    const p = document.getElementById('parsedPanel');
+    let html = '';
+    if (r.truncated) html += '<div class="error-panel">Group stream ended with a malformed group (numeric/symbolic field ran past end of file) - showing everything decoded up to that point.</div>';
+
+    html += `<div class="info-panel">${r.groups.length} control groups decoded, ${r.modules.length} module(s) found (BEG..END spans). File size ${r.byteLength} bytes.</div>`;
+
+    html += '<h2 class="section-title">Modules &amp; Symbols</h2>';
+    for (let i = 0; i < r.modules.length; i++) {
+        const m = r.modules[i];
+        html += '<div class="module-block">';
+        html += `<div class="mtitle">Module ${i}: language=${escapeHtml(nrfLanguageName(m.language))}(${m.language}), BEG@${fmtAddr(m.begOffset)}${m.endOffset >= 0 ? ' END@' + fmtAddr(m.endOffset) : ' END=(unclosed)'}</div>`;
+        for (const s of m.symbols) {
+            const info = nrfControlInfo(s.controlNumber);
+            html += `<div class="msym" data-off="${s.offset}" data-len="1">${info ? info.name : '?'} ${escapeHtml(s.name)}${s.hidden ? ' [hidden]' : ''}</div>`;
+        }
+        html += '</div>';
+    }
+    if (r.modules.length === 0) html += '<div class="placeholder">No modules found.</div>';
+
+    html += '<h2 class="section-title">Control Group Stream</h2>';
+    html += '<div id="nrfGroupList">';
+    for (let idx = 0; idx < r.groups.length; idx++) {
+        const g = r.groups[idx];
+        let extra = ` NL=${g.numericLength}`;
+        if (g.numericLength > 0) {
+            let rawHex = '';
+            for (const b of g.numericRaw) rawHex += b.toString(16).padStart(2, '0');
+            extra += ` raw=${rawHex} val=${g.numericValue}`;
+        }
+        if (g.hasSymbol) extra += ` sym(${g.symbolLength})="${escapeHtml(g.symbol)}"${g.symbolHidden ? ' [hidden]' : ''}`;
+        html += `<div class="group-line" data-off="${g.offset}" data-len="${g.length}">` +
+                `[${String(idx).padStart(5)}] ${fmtAddr(g.offset)}  <span class="gname">${g.name}</span><span class="gextra">${escapeHtml(extra)}</span></div>`;
+    }
+    html += '</div>';
+
+    p.innerHTML = html;
+    p.querySelectorAll('[data-off]').forEach(el => {
+        el.addEventListener('click', () => {
+            p.querySelectorAll('.selected').forEach(x => x.classList.remove('selected'));
+            el.classList.add('selected');
+            highlightBytes(parseInt(el.dataset.off, 10), parseInt(el.dataset.len, 10) || 1);
+        });
+    });
+}
+
+// ============================================================================
+// DOM / SEG parser - byte offsets ported from nd500/dom.h (independently
+// confirmed against real ND-500-APPS .DOM files while building this: the
+// FLAGS byte, segment ATT bits and program/data lb/sz/att were hand-checked
+// against CONVERT-DOM-A03.DOM's real bytes). Field labels/bit names are
+// pulled live from dom-format.json.
+// ============================================================================
+function domFlagBits(flagsByte) {
+    return SPEC.dom.flagsBits.map(b => ({ name: b.name, bit: b.bit, set: !!(flagsByte & parseInt(b.value, 16)) }));
+}
+function domAttBits(attVal) {
+    return SPEC.dom.segAttBits.map(b => ({ name: b.name, bit: b.bit, set: !!(attVal & (1 << b.bit)) }));
+}
+
+function resolveName(buf, poolStart, minIdx, maxIdx) {
+    if (minIdx === 0 || maxIdx === 0 || minIdx >= maxIdx) return null;
+    const start = poolStart + minIdx, end = poolStart + maxIdx;
+    if (start < 0 || end > buf.length || end <= start) return null;
+    let s = '';
+    for (let i = start; i < end; i++) {
+        const c = buf[i];
+        if (c === 0) break;
+        s += isPrintable(c) ? String.fromCharCode(c) : '.';
+    }
+    return s;
+}
+
+function readSegmentPart(buf, off) {
+    return {
+        offset: off,
+        lb: rd32(buf, off), sz: rd32(buf, off + 4), att: rd32(buf, off + 8),
+        fla: rd32(buf, off + 12), fua: rd32(buf, off + 16), afa: rd32(buf, off + 20),
+        minp: rd16(buf, off + 24), maxp: rd16(buf, off + 26)
+    };
+}
+
+function parseDOMorSEG(buf, forceKind) {
+    if (buf.length < 16) throw new Error('File is smaller than the 16-byte common file header - cannot be a DOM/SEG file.');
+    const flags = rd8(buf, 0x06);
+    const isDomainFile = forceKind ? forceKind === 'DOM' : !!(flags & 0x10);
+    const isND500 = !!(flags & 0x80);
+    if (buf.length < 0x1000) {
+        // Not fatal - still show whatever header bytes are present, but warn.
+    }
+
+    const fileHeader = {
+        linklock: rd32(buf, 0x00), version: rd8(buf, 0x04), revision: rd8(buf, 0x05),
+        flags, machine: rd8(buf, 0x07), osId: rd8(buf, 0x08), reserved: rd8(buf, 0x09),
+        subsystemKey: Array.from(buf.slice(0x0A, 0x10))
+    };
+
+    const commonOff = 0xC6;
+    const common = buf.length >= commonOff + 66 ? {
+        freind: rd16(buf, commonOff), debLb: rd32(buf, commonOff + 2), debSz: rd32(buf, commonOff + 6),
+        linkLb: rd32(buf, commonOff + 10), linkSz: rd32(buf, commonOff + 14),
+        staddr: rd32(buf, commonOff + 18), restaddr: rd32(buf, commonOff + 22),
+        tha: rd32(buf, commonOff + 26), mte2: rd32(buf, commonOff + 30), mte1: rd32(buf, commonOff + 34),
+        ote2: rd32(buf, commonOff + 38), ote1: rd32(buf, commonOff + 42),
+        cte2: rd32(buf, commonOff + 46), cte1: rd32(buf, commonOff + 50),
+        temm2: rd32(buf, commonOff + 54), temm1: rd32(buf, commonOff + 58), priority: rd32(buf, commonOff + 62)
+    } : null;
+
+    const out = { type: isDomainFile ? 'DOM' : 'SEG', flags, isDomainFile, isND500, fileHeader, common, byteLength: buf.length };
+
+    if (isDomainFile) {
+        // ---- DOM-specific layout (0x10..0xC6), then segment table + name pool ----
+        const motherOff = 0x26;
+        out.mother = { minIndex: rd16(buf, motherOff), maxIndex: rd16(buf, motherOff + 2), linkKey: rd32(buf, motherOff + 4) };
+        out.children = [];
+        for (let i = 0; i < 16; i++) {
+            const o = 0x2E + i * 8;
+            const c = { minIndex: rd16(buf, o), maxIndex: rd16(buf, o + 2), linkKey: rd32(buf, o + 4) };
+            if (c.minIndex || c.maxIndex || c.linkKey) out.children.push(Object.assign({ index: i, offset: o }, c));
+        }
+        const namePoolStart = 0x954;
+        if (out.mother.minIndex || out.mother.maxIndex) out.mother.name = resolveName(buf, namePoolStart, out.mother.minIndex, out.mother.maxIndex);
+        for (const c of out.children) c.name = resolveName(buf, namePoolStart, c.minIndex, c.maxIndex);
+
+        out.indirectSegments = [];
+        const indOff = 0x108;
+        for (let i = 0; i < 32; i++) {
+            const o = indOff + i * 10;
+            const e = { index: i, offset: o, minIndex: rd16(buf, o), maxIndex: rd16(buf, o + 2), linkKey: rd32(buf, o + 4), slog: rd8(buf, o + 8) };
+            if (e.minIndex || e.maxIndex || e.linkKey || e.slog) { e.name = resolveName(buf, namePoolStart, e.minIndex, e.maxIndex); out.indirectSegments.push(e); }
+        }
+
+        out.languageMsal = rd32(buf, 0x248);
+        out.idxFreeMin = rd16(buf, 0x24C);
+        out.idxFreeMax = rd16(buf, 0x24E);
+
+        out.segments = [];
+        const segtabOff = 0x254;
+        for (let i = 0; i < 32; i++) {
+            const base = segtabOff + i * 56;
+            if (base + 56 > buf.length) break;
+            const program = readSegmentPart(buf, base);
+            const data = readSegmentPart(buf, base + 28);
+            const used = !!((program.att | data.att) & (1 << 13)); // SEGMENT_USED
+            if (used) out.segments.push({ index: i, base, program, data });
+        }
+        out.namePoolStart = namePoolStart;
+    } else {
+        // ---- SEG-specific layout (0x10..0xC6) ----
+        out.programPart = readSegmentPart(buf, 0x14);
+        out.dataPart = readSegmentPart(buf, 0x30);
+        out.progLogseg = rd8(buf, 0x70);
+        out.dataLogseg = rd8(buf, 0x71);
+        out.n100Count = rd16(buf, 0x72);
+        out.n100Segments = [];
+        for (let i = 0; i < 10; i++) {
+            const o = 0x74 + i * 12;
+            const nameBytes = Array.from(buf.slice(o, o + 6));
+            const nameStr = nameBytes.map(b => isPrintable(b) ? String.fromCharCode(b) : '').join('').trim();
+            if (nameStr) out.n100Segments.push({ index: i, offset: o, name: nameStr, n100sno: rd16(buf, o + 6), n500logpa: rd16(buf, o + 8), n100size: rd16(buf, o + 10) });
+        }
+
+        const namePoolStart = 0x454;
+        out.namePoolStart = namePoolStart;
+        out.indirectSegments = [];
+        const indOff = 0x108;
+        for (let i = 0; i < 32; i++) {
+            const o = indOff + i * 10;
+            const e = { index: i, offset: o, minIndex: rd16(buf, o), maxIndex: rd16(buf, o + 2), linkKey: rd32(buf, o + 4), slog: rd8(buf, o + 8) };
+            if (e.minIndex || e.maxIndex || e.linkKey || e.slog) { e.name = resolveName(buf, namePoolStart, e.minIndex, e.maxIndex); out.indirectSegments.push(e); }
+        }
+        out.languageMsal = rd32(buf, 0x1C8);
+        out.idxMin = rd16(buf, 0x1CC);
+        out.idxMax = rd16(buf, 0x1CE);
+        out.linkedSegments = [];
+        const linkOff = 0x1D4;
+        for (let i = 0; i < 32; i++) {
+            const o = linkOff + i * 16;
+            const l = { index: i, offset: o, progMin: rd16(buf, o), progMax: rd16(buf, o + 2), progKey: rd32(buf, o + 4), dataMin: rd16(buf, o + 8), dataMax: rd16(buf, o + 10), dataKey: rd32(buf, o + 12) };
+            if (l.progMin || l.progMax || l.progKey || l.dataMin || l.dataMax || l.dataKey) { l.progName = resolveName(buf, namePoolStart, l.progMin, l.progMax); l.dataName = resolveName(buf, namePoolStart, l.dataMin, l.dataMax); out.linkedSegments.push(l); }
+        }
+    }
+    return out;
+}
+
+function fieldRow(label, offset, size, valueHtml, descHtml) {
+    return `<tr class="fieldrow" data-off="${offset}" data-len="${size}"><td class="fname">${escapeHtml(label)}</td>` +
+           `<td class="foff">${fmtAddr(offset)} (${size}B)</td><td class="fval">${valueHtml}</td><td class="fdesc">${descHtml || ''}</td></tr>`;
+}
+function bitTags(bits) {
+    return bits.map(b => `<span class="bit-tag${b.set ? ' setbit' : ''}">${b.set ? '' : '&not;'}${escapeHtml(b.name)}</span>`).join('');
+}
+
+function renderDOM(r) {
+    const p = document.getElementById('parsedPanel');
+    let html = `<div class="info-panel">${r.type} file, ${r.byteLength} bytes. Header is the fixed 4096-byte region; segment/name-pool data beyond that follows on disk (see hex dump).</div>`;
+
+    html += '<h2 class="section-title">File Header (0x00, 16 bytes, shared by DOM &amp; SEG)</h2><table class="field-table"><tbody>';
+    html += fieldRow('linklock', 0x00, 4, toHex(r.fileHeader.linklock, 8), 'Random lock value - segments linked to this domain must match.');
+    html += fieldRow('version', 0x04, 1, r.fileHeader.version, 'ND Linker version');
+    html += fieldRow('revision', 0x05, 1, r.fileHeader.revision, 'ND Linker revision');
+    html += fieldRow('flags', 0x06, 1, toHex(r.fileHeader.flags, 2), bitTags(domFlagBits(r.fileHeader.flags)));
+    html += fieldRow('machine', 0x07, 1, r.fileHeader.machine, 'Target machine type');
+    html += fieldRow('osId', 0x08, 1, r.fileHeader.osId, 'Operating system ID');
+    html += fieldRow('subsystemKey', 0x0A, 6, r.fileHeader.subsystemKey.map(b => b.toString(16).padStart(2, '0')).join(' '), '');
+    html += '</tbody></table>';
+
+    if (r.type === 'DOM') {
+        html += '<h2 class="section-title">Mother Domain (0x26, 8 bytes)</h2><table class="field-table"><tbody>';
+        html += fieldRow('mother', 0x26, 8, (r.mother.name ? escapeHtml(r.mother.name) : '<span class="unverified">(no name / not set)</span>') + ` linkKey=${toHex(r.mother.linkKey, 8)}`, `minIndex=${r.mother.minIndex} maxIndex=${r.mother.maxIndex}`);
+        html += '</tbody></table>';
+
+        html += `<h2 class="section-title">Child Domains (0x2E, up to 16 &times; 8 bytes) &mdash; ${r.children.length} set</h2>`;
+        if (r.children.length) {
+            html += '<table class="field-table"><thead><tr><th>#</th><th>offset</th><th>name</th><th>linkKey</th></tr></thead><tbody>';
+            for (const c of r.children) html += fieldRow('child[' + c.index + ']', c.offset, 8, (c.name ? escapeHtml(c.name) : '<span class="unverified">(unresolved)</span>'), toHex(c.linkKey, 8));
+            html += '</tbody></table>';
+        } else html += '<div class="placeholder">No child domains set.</div>';
+
+        html += `<h2 class="section-title">Segment Table (0x254, 32 slots &times; 56 bytes) &mdash; ${r.segments.length} used</h2>`;
+        if (r.segments.length) {
+            for (const s of r.segments) {
+                html += `<h3 class="subsection-title">Segment ${s.index} (offset ${fmtAddr(s.base)})</h3><table class="field-table"><tbody>`;
+                html += fieldRow('program.lb', s.program.offset, 4, toHex(s.program.lb, 8), 'Lower bound (file offset), or name-pool index if LINKED_SEGMENT');
+                html += fieldRow('program.sz', s.program.offset + 4, 4, s.program.sz + ' bytes', '');
+                html += fieldRow('program.att', s.program.offset + 8, 4, toHex(s.program.att, 8), bitTags(domAttBits(s.program.att)));
+                html += fieldRow('program.fla/fua/afa', s.program.offset + 12, 12, `${toHex(s.program.fla, 8)} / ${toHex(s.program.fua, 8)} / ${toHex(s.program.afa, 8)}`, 'Fixed Lower / Upper / Absolute Fix Address');
+                html += fieldRow('program.minp/maxp', s.program.offset + 24, 4, `${s.program.minp} / ${s.program.maxp}`, 'Min/max pages (or MIN/MAX name index if LINKED)');
+                html += fieldRow('data.lb', s.data.offset, 4, toHex(s.data.lb, 8), 'Lower bound (file offset), or name-pool index if LINKED_SEGMENT');
+                html += fieldRow('data.sz', s.data.offset + 4, 4, s.data.sz + ' bytes', '');
+                html += fieldRow('data.att', s.data.offset + 8, 4, toHex(s.data.att, 8), bitTags(domAttBits(s.data.att)));
+                html += fieldRow('data.fla/fua/afa', s.data.offset + 12, 12, `${toHex(s.data.fla, 8)} / ${toHex(s.data.fua, 8)} / ${toHex(s.data.afa, 8)}`, 'Fixed Lower / Upper / Absolute Fix Address');
+                html += fieldRow('data.minp/maxp', s.data.offset + 24, 4, `${s.data.minp} / ${s.data.maxp}`, 'Min/max pages (or MIN/MAX name index if LINKED)');
+                html += '</tbody></table>';
+            }
+        } else html += '<div class="placeholder">No segment slots have SEGMENT_USED set.</div>';
+    } else {
+        html += '<h2 class="section-title">Program / Data Segment Parts</h2><table class="field-table"><tbody>';
+        html += fieldRow('programPart.lb/sz', r.programPart.offset, 8, `${toHex(r.programPart.lb, 8)} / ${r.programPart.sz}B`, '');
+        html += fieldRow('programPart.att', r.programPart.offset + 8, 4, toHex(r.programPart.att, 8), bitTags(domAttBits(r.programPart.att)));
+        html += fieldRow('dataPart.lb/sz', r.dataPart.offset, 8, `${toHex(r.dataPart.lb, 8)} / ${r.dataPart.sz}B`, '');
+        html += fieldRow('dataPart.att', r.dataPart.offset + 8, 4, toHex(r.dataPart.att, 8), bitTags(domAttBits(r.dataPart.att)));
+        html += fieldRow('progLogseg / dataLogseg', 0x70, 2, `${r.progLogseg} / ${r.dataLogseg}`, '');
+        html += '</tbody></table>';
+
+        html += `<h2 class="section-title">ND-100 RT Segments (0x74, up to 10 &times; 12 bytes) &mdash; ${r.n100Segments.length} set</h2>`;
+        if (r.n100Segments.length) {
+            html += '<table class="field-table"><tbody>';
+            for (const n of r.n100Segments) html += fieldRow('n100[' + n.index + '] ' + n.name, n.offset, 12, `sno=${n.n100sno} logpa=${n.n500logpa} size=${n.n100size}p`, '');
+            html += '</tbody></table>';
+        } else html += '<div class="placeholder">None set.</div>';
+
+        html += `<h2 class="section-title">Linked Segments (0x1D4, up to 32 &times; 16 bytes) &mdash; ${r.linkedSegments.length} set</h2>`;
+        if (r.linkedSegments.length) {
+            html += '<table class="field-table"><tbody>';
+            for (const l of r.linkedSegments) html += fieldRow('linked[' + l.index + ']', l.offset, 16, `prog=${l.progName ? escapeHtml(l.progName) : '?'} data=${l.dataName ? escapeHtml(l.dataName) : '?'}`, `progKey=${toHex(l.progKey, 8)} dataKey=${toHex(l.dataKey, 8)}`);
+            html += '</tbody></table>';
+        } else html += '<div class="placeholder">None set.</div>';
+    }
+
+    html += `<h2 class="section-title">Indirect Segments (0x108, up to 32 &times; 10 bytes) &mdash; ${r.indirectSegments.length} set</h2>`;
+    if (r.indirectSegments.length) {
+        html += '<table class="field-table"><tbody>';
+        for (const e of r.indirectSegments) html += fieldRow('indirect[' + e.index + ']', e.offset, 10, (e.name ? escapeHtml(e.name) : '<span class="unverified">(unresolved)</span>'), `linkKey=${toHex(e.linkKey, 8)} slog=${e.slog}`);
+        html += '</tbody></table>';
+    } else html += '<div class="placeholder">None set.</div>';
+
+    if (r.common) {
+        html += '<h2 class="section-title">Common Part (0xC6, 66 bytes)</h2><table class="field-table"><tbody>';
+        const c = r.common, co = 0xC6;
+        html += fieldRow('freind', co, 2, c.freind, 'Free byte pointer in name pool');
+        html += fieldRow('debLb / debSz', co + 2, 8, `${toHex(c.debLb, 8)} / ${c.debSz}B`, 'Debug info');
+        html += fieldRow('linkLb / linkSz', co + 10, 8, `${toHex(c.linkLb, 8)} / ${c.linkSz}B`, 'Link info');
+        html += fieldRow('staddr', co + 18, 4, toHex(c.staddr, 8), 'Start address');
+        html += fieldRow('restaddr', co + 22, 4, toHex(c.restaddr, 8), 'Restart address');
+        html += fieldRow('tha', co + 26, 4, toHex(c.tha, 8), 'Trap Handler Address');
+        html += fieldRow('mte2/mte1', co + 30, 8, `${toHex(c.mte2, 8)} ${toHex(c.mte1, 8)}`, 'Memory Trap Enable');
+        html += fieldRow('ote2/ote1', co + 38, 8, `${toHex(c.ote2, 8)} ${toHex(c.ote1, 8)}`, 'Own Trap Enable');
+        html += fieldRow('cte2/cte1', co + 46, 8, `${toHex(c.cte2, 8)} ${toHex(c.cte1, 8)}`, 'Child Trap Enable');
+        html += fieldRow('temm2/temm1', co + 54, 8, `${toHex(c.temm2, 8)} ${toHex(c.temm1, 8)}`, 'Trap Enable Mod Mask');
+        html += fieldRow('priority', co + 62, 4, c.priority, 'Process priority');
+        html += '</tbody></table>';
+    }
+
+    p.innerHTML = html;
+    p.querySelectorAll('[data-off]').forEach(el => {
+        el.addEventListener('click', () => {
+            p.querySelectorAll('.selected').forEach(x => x.classList.remove('selected'));
+            el.classList.add('selected');
+            highlightBytes(parseInt(el.dataset.off, 10), parseInt(el.dataset.len, 10) || 1);
+        });
+    });
+}
+
+// ============================================================================
+// DESC parser - ports nd500-dump.c's heuristic block scan EXACTLY
+// (looks_like_desc_name + desc_scan_block), since DESC has no documented
+// fixed offset for where its Domain/Segment Entry blocks start. SEGLINK and
+// DNAME/SNAME come from that heuristic scan. The ten Segment Entry fields
+// below (PLB..PUPLOGFIX) are fixed byte offsets confirmed against the
+// ND-500 Monitor's own code (MON-DEBUG:PROG) - see DESCRIPTION-FILE-FORMAT.md
+// section 4. Everything else in the Segment Entry, and everything in the
+// Domain Entry past SEGLINK/DNAME, is still manual-order-only and NOT shown.
+// ============================================================================
+const DESC_DOMAIN_ENTRY_SIZE = 56, DESC_DOMAIN_DNAME_OFFSET = 4, DESC_DOMAIN_DNAME_SIZE = 16;
+const DESC_SEGMENT_ENTRY_SIZE = 192, DESC_SEGMENT_SNAME_OFFSET = 4, DESC_SEGMENT_SNAME_SIZE = 54;
+const DESC_SCAN_MAX_ENTRIES = 4096;
+
+// Mirrors looks_like_desc_name(): all-zero = tolerated gap; otherwise must
+// start with the required first byte (or any printable char), contain only
+// printable ASCII up to a 0x27/0x00 terminator, and (for Segment sname)
+// have a ')' after the opening '(' with at least one char of filename after it.
+function looksLikeDescName(nameBytes, requireFirstByte, firstByte) {
+    let allZero = true;
+    for (const b of nameBytes) { if (b !== 0) { allZero = false; break; } }
+    if (allZero) return true;
+
+    if (requireFirstByte) { if (nameBytes[0] !== firstByte) return false; }
+    else if (!isPrintable(nameBytes[0])) return false;
+
+    let printableLen = 0, closeParenIdx = -1;
+    for (let i = 0; i < nameBytes.length; i++) {
+        const b = nameBytes[i];
+        if (b === 0x27 || b === 0) break;
+        if (!isPrintable(b)) return false;
+        if (b === 0x29 /* ')' */ && closeParenIdx < 0) closeParenIdx = i;
+        printableLen++;
+    }
+    if (requireFirstByte) {
+        if (closeParenIdx < 0) return false;
+        if (closeParenIdx >= printableLen - 1) return false;
+    } else {
+        if (printableLen < 4) return false;
+    }
+    return true;
+}
+
+// Mirrors desc_scan_block(): find the first non-empty plausible name field,
+// lock onto the given stride, then keep reading while entries keep
+// looking plausible; stop at the first all-zero (unused) slot.
+function descScanBlock(buf, nameFieldOffset, nameFieldSize, stride, requireFirstByte, firstByte) {
+    if (nameFieldOffset + nameFieldSize > stride) return { start: -1, count: 0 };
+    let foundStart = -1;
+    for (let off = 0; off + stride <= buf.length; off++) {
+        const name = buf.subarray(off + nameFieldOffset, off + nameFieldOffset + nameFieldSize);
+        let allZero = true;
+        for (const b of name) { if (b !== 0) { allZero = false; break; } }
+        if (allZero) continue; // skip empty slots while looking for the FIRST real entry
+        if (looksLikeDescName(name, requireFirstByte, firstByte)) { foundStart = off; break; }
+    }
+    if (foundStart < 0) return { start: -1, count: 0 };
+
+    let count = 0, off = foundStart;
+    while (off + stride <= buf.length && count < DESC_SCAN_MAX_ENTRIES) {
+        const name = buf.subarray(off + nameFieldOffset, off + nameFieldOffset + nameFieldSize);
+        let allZero = true;
+        for (const b of name) { if (b !== 0) { allZero = false; break; } }
+        if (allZero) break; // stop at the first unused slot - see C comment
+        if (!looksLikeDescName(name, requireFirstByte, firstByte)) break;
+        count++; off += stride;
+    }
+    return { start: foundStart, count };
+}
+
+// Read the confirmed fields of one Domain or Segment entry (seglink + name,
+// apostrophe-terminated per desc_utils.c's desc_read_domain_entry /
+// desc_read_segment_entry).
+function descReadEntry(buf, off, nameOffset, nameSize) {
+    const seglink = rd32(buf, off);
+    const nameRaw = buf.subarray(off + nameOffset, off + nameOffset + nameSize);
+    let term = -1;
+    for (let i = 0; i < nameRaw.length; i++) { if (nameRaw[i] === 0x27) { term = i; break; } }
+    const nameLen = term >= 0 ? term : nameSize;
+    // Stop at a NUL as well as at the 0x27 terminator. The C reader copies
+    // raw bytes and prints with %s, so a NUL ends the name there; without
+    // this a never-used slot becomes a string of 16 NUL characters, which
+    // is truthy in JavaScript and was counted as a real entry.
+    let name = '';
+    for (let i = 0; i < nameLen; i++) {
+        if (nameRaw[i] === 0) break;
+        name += String.fromCharCode(nameRaw[i]);
+    }
+    return { seglink, name, terminated: term >= 0, offset: off };
+}
+
+// The ten Segment Entry fields confirmed against the ND-500 Monitor's own
+// code (DESCRIPTION-FILE-FORMAT.md section 4). PSIZE/DSIZE are stored as
+// (size - 1) - the monitor prints them raw, so this decodes the stored
+// value AND the +1'd real size, per the doc's section 5 finding.
+function descReadSegmentDetail(buf, off) {
+    return {
+        plb: rd32(buf, off + 88),
+        psizeStored: rd32(buf, off + 92),
+        dlb: rd32(buf, off + 96),
+        dsizeStored: rd32(buf, off + 100),
+        debuginfo: rd32(buf, off + 104),
+        dlinkdate: rd32(buf, off + 108),
+        absfixad: rd16(buf, off + 112),
+        lowlogfix: rd16(buf, off + 114),
+        plologfix: rd16(buf, off + 126),
+        puplogfix: rd16(buf, off + 128),
+    };
+}
+
+// File geometry, from the monitor's own READ-DOMAIN-ENTRY (013454B):
+// position = 56*index + 256*(index div 32 + 1). That makes the file
+// 2048-byte pages of a 256-byte header plus 32 domain entries, so entry 0
+// starts at byte 256. Confirmed on 13 vendor floppies.
+const DESC_PAGE_HEADER_SIZE = 256, DESC_DOMAINS_PER_PAGE = 32, DESC_MAX_DOMAIN_INDEX = 253;
+const DESC_WALK_CHAIN_MAX = 256;
+
+function descDomainEntryPosition(index) {
+    return DESC_DOMAIN_ENTRY_SIZE * index +
+           DESC_PAGE_HEADER_SIZE * (Math.floor(index / DESC_DOMAINS_PER_PAGE) + 1);
+}
+
+// Follow one domain's segment chain. Word 0 of the domain entry is the file
+// byte position of its first segment entry; word 0 of each segment entry is
+// the position of the next; 0 ends it. Refuses a repeated position so a
+// corrupt file terminates instead of spinning.
+function descWalkSegmentChain(buf, domain) {
+    const out = [], seen = new Set();
+    let pos = domain.seglink;
+    while (pos !== 0 && out.length < DESC_WALK_CHAIN_MAX) {
+        if (seen.has(pos) || pos + DESC_SEGMENT_ENTRY_SIZE > buf.length) { out.malformed = true; break; }
+        seen.add(pos);
+        const e = descReadEntry(buf, pos, DESC_SEGMENT_SNAME_OFFSET, DESC_SEGMENT_SNAME_SIZE);
+        e.detail = descReadSegmentDetail(buf, pos);
+        out.push(e);
+        pos = e.seglink;
+    }
+    return out;
+}
+
+function parseDESC(buf) {
+    const domains = [], segments = [];
+    for (let i = 0; i <= DESC_MAX_DOMAIN_INDEX; i++) {
+        const off = descDomainEntryPosition(i);
+        if (off + DESC_DOMAIN_ENTRY_SIZE > buf.length) break;
+        const e = descReadEntry(buf, off, DESC_DOMAIN_DNAME_OFFSET, DESC_DOMAIN_DNAME_SIZE);
+        if (!e.name) continue;   // unused slot - the table is fixed-size and mostly empty
+        e.index = i;
+        e.segments = descWalkSegmentChain(buf, e);
+        domains.push(e);
+        for (const s of e.segments) segments.push(s);
+    }
+    if (domains.length === 0) throw new Error('No domain entries found at the documented positions (56*index + 256*(index div 32 + 1)).');
+
+    // Cross-check only: segment-shaped entries that no chain reaches would
+    // otherwise be invisible. The scan is a heuristic, so a difference is a
+    // prompt to look, not a defect by itself.
+    let orphanHint = 0;
+    try {
+        const seg = descScanBlock(buf, DESC_SEGMENT_SNAME_OFFSET, DESC_SEGMENT_SNAME_SIZE, DESC_SEGMENT_ENTRY_SIZE, true, 0x28 /* '(' */);
+        if (seg.count > segments.length) orphanHint = seg.count - segments.length;
+    } catch (e) { /* cross-check only */ }
+
+    return { type: 'DESC', domains, segments, orphanHint, byteLength: buf.length };
+}
+
+function renderDESC(r) {
+    const p = document.getElementById('parsedPanel');
+    let html = `<div class="info-panel">DESC file, ${r.byteLength} bytes. Domain entries are read at the positions the ND-500 Monitor itself computes (56*index + 256*(index div 32 + 1)), and each domain's segments by following the link chain - no heuristic scanning. Segment Entry: SEGLINK, SNAME and the ten fields taken from the monitor's own print routine (PLB, PSIZE, DLB, DSIZE, DEBUGINFO, DLINKDATE, ABSFIXAD, LOWLOGFIX, PLOLOGFIX, PUPLOGFIX - see DESCRIPTION-FILE-FORMAT.md section 4). PSIZE and DSIZE hold the LAST BYTE INDEX, so the real file sizes are PLB+PSIZE+1 and DLB+DSIZE+1 - checked against 24 real segment files across 13 vendor floppies with no mismatches. <b>Offsets are proven; some meanings are not</b> - DLINKDATE, ABSFIXAD, LOWLOGFIX, PLOLOGFIX and PUPLOGFIX read zero in all 26 real entries, so those names are the monitor's labels rather than decoded meanings. Domain Entry: only SEGLINK and DNAME are decoded; everything past DNAME is manual-order-only and not shown. The COMSEGSIZE/N100SEGNO conflict at bytes 74-84 is unadjudicated and not shown rather than guessed.${r.orphanHint ? ` <b>Note:</b> a heuristic scan finds ${r.orphanHint} more segment-shaped entr${r.orphanHint === 1 ? 'y' : 'ies'} than the chains reach - possibly unreferenced, possibly a false match.` : ''}</div>`;
+
+    html += `<h2 class="section-title">Domain Entries (56 bytes/entry)</h2>`;
+    if (r.domains.length === 0) html += '<div class="placeholder">(no domain entries - every slot in this file is unused)</div>';
+    else {
+        html += `<div class="info-panel">${r.domains.length} domain entr${r.domains.length === 1 ? 'y' : 'ies'} in use, read by index at the monitor's own computed positions.</div>`;
+        html += '<table class="field-table"><thead><tr><th>#</th><th>offset</th><th>dname</th><th>seglink</th></tr></thead><tbody>';
+        for (let i = 0; i < r.domains.length; i++) {
+            const d = r.domains[i];
+            const label = d.name ? escapeHtml(d.name) : '<span class="placeholder" style="padding:0;">(unused slot)</span>';
+            html += fieldRow('[' + i + ']', d.offset, DESC_DOMAIN_ENTRY_SIZE, label + (d.name && !d.terminated ? ' <span class="unverified">[full 16B, no terminator]</span>' : ''), 'seglink=' + toHex(d.seglink, 8));
+        }
+        html += '</tbody></table>';
+    }
+
+    html += `<h2 class="section-title">Segment Entries (192 bytes/entry)</h2>`;
+    if (r.segments.length === 0) html += '<div class="placeholder">(no segments - no domain entry links to one)</div>';
+    else {
+        html += `<div class="info-panel">${r.segments.length} segment entr${r.segments.length === 1 ? 'y' : 'ies'} reached by following the domain chains. PSIZE/DSIZE are stored as (size - 1) - "real size" below is the stored value + 1.</div>`;
+        html += '<table class="field-table"><thead><tr><th>#</th><th>offset</th><th>sname</th><th>PLB</th><th>PSIZE (real)</th><th>DLB</th><th>DSIZE (real)</th><th>DEBUGINFO</th></tr></thead><tbody>';
+        for (let i = 0; i < r.segments.length; i++) {
+            const s = r.segments[i];
+            const label = s.name ? escapeHtml(s.name) : '<span class="placeholder" style="padding:0;">(unused slot)</span>';
+            let detailCols = '<td></td><td></td><td></td><td></td><td></td>';
+            if (s.name && s.detail) {
+                const d = s.detail;
+                detailCols = `<td>${toHex(d.plb, 8)}</td><td>${d.psizeStored} (${d.psizeStored + 1})</td><td>${toHex(d.dlb, 8)}</td><td>${d.dsizeStored} (${d.dsizeStored + 1})</td><td>${d.debuginfo}</td>`;
+            }
+            html += `<tr data-off="${s.offset}" data-len="${DESC_SEGMENT_ENTRY_SIZE}"><td>[${i}]</td><td>${fmtAddr(s.offset)}</td><td>${label}${s.name && !s.terminated ? ' <span class="unverified">[full 54B, no terminator]</span>' : ''}</td>${detailCols}</tr>`;
+        }
+        html += '</tbody></table>';
+    }
+
+    p.innerHTML = html;
+    p.querySelectorAll('[data-off]').forEach(el => {
+        el.addEventListener('click', () => {
+            p.querySelectorAll('.selected').forEach(x => x.classList.remove('selected'));
+            el.classList.add('selected');
+            highlightBytes(parseInt(el.dataset.off, 10), parseInt(el.dataset.len, 10) || 1);
+        });
+    });
+}
+
+// ============================================================================
+// Format auto-detection
+// ============================================================================
+function detectFormat(buf, name) {
+    const lower = name.toLowerCase();
+    const hints = [];
+    if (lower.endsWith('.nrf')) hints.push('NRF');
+    if (lower.endsWith('.dom')) hints.push('DOM');
+    if (lower.endsWith('.seg')) hints.push('SEG');
+    if (lower.endsWith('.desc') || lower.includes('description-file')) hints.push('DESC');
+
+    // DOM/SEG "magic": FLAGS byte (offset 0x06) has IS_ND500 (0x80) set,
+    // and the file is at least the fixed header size.
+    const looksLikeDom = buf.length >= 4096 && (rd8(buf, 0x06) & 0x80) !== 0;
+    const domIsDomainFile = looksLikeDom && (rd8(buf, 0x06) & 0x10) !== 0;
+
+    // DESC heuristic: scan succeeds if either block is found.
+    let looksLikeDesc = false;
+    try {
+        const dom = descScanBlock(buf, DESC_DOMAIN_DNAME_OFFSET, DESC_DOMAIN_DNAME_SIZE, DESC_DOMAIN_ENTRY_SIZE, false, 0);
+        const seg = descScanBlock(buf, DESC_SEGMENT_SNAME_OFFSET, DESC_SEGMENT_SNAME_SIZE, DESC_SEGMENT_ENTRY_SIZE, true, 0x28);
+        looksLikeDesc = dom.count > 0 || seg.count > 0;
+    } catch (e) { looksLikeDesc = false; }
+
+    // NRF sanity: first group must decode cleanly and be a plausible
+    // control number (BEG/NUL/MSG/LIB are common file openers).
+    let looksLikeNrf = false;
+    try {
+        const g = nrfReadGroup(buf, 0);
+        looksLikeNrf = !!(g && !g.malformed);
+    } catch (e) { looksLikeNrf = false; }
+
+    if (hints.includes('DOM') && looksLikeDom) return 'DOM';
+    if (hints.includes('SEG') && looksLikeDom) return 'SEG';
+    if (hints.includes('DESC') && looksLikeDesc) return 'DESC';
+    if (hints.includes('NRF') && looksLikeNrf) return 'NRF';
+    // Filename hinted but structure didn't confirm - still trust the hint,
+    // parse will report its own error if it's actually wrong.
+    if (hints.length) return hints[0];
+
+    // No filename hint: structural priority DOM/SEG (most specific check) > DESC > NRF.
+    if (looksLikeDom) return domIsDomainFile ? 'DOM' : 'SEG';
+    if (looksLikeDesc) return 'DESC';
+    if (looksLikeNrf) return 'NRF';
+    return null;
+}
+
+// ============================================================================
+// Hex dump rendering + click-to-highlight
+// ============================================================================
+function renderHexDump() {
+    const panel = document.getElementById('hexPanel');
+    if (!fileBytes) { panel.innerHTML = '<div class="placeholder">Hex dump appears here once a file is loaded.</div>'; return; }
+
+    const totalPages = Math.max(1, Math.ceil(fileBytes.length / HEX_PAGE_BYTES));
+    if (hexPage < 0) hexPage = 0;
+    if (hexPage >= totalPages) hexPage = totalPages - 1;
+
+    const pageStart = hexPage * HEX_PAGE_BYTES;
+    const pageEnd = Math.min(fileBytes.length, pageStart + HEX_PAGE_BYTES);
+
+    let html = '<div class="hex-toolbar">' +
+        '<button class="btn-outline" id="hexPrevBtn">&laquo; Prev</button>' +
+        `<span class="hex-page-info">Page ${hexPage + 1} / ${totalPages} &nbsp; (${fmtAddr(pageStart)} - ${fmtAddr(pageEnd - 1)})</span>` +
+        '<button class="btn-outline" id="hexNextBtn">Next &raquo;</button>' +
+        '<input type="text" id="hexJumpInput" placeholder="jump to offset (dec/0x/oct-o)" style="width:190px;">' +
+        '<button class="btn-outline" id="hexJumpBtn">Go</button>' +
+        '</div>';
+
+    html += '<pre class="hexdump">';
+    for (let rowStart = pageStart; rowStart < pageEnd; rowStart += HEX_BYTES_PER_ROW) {
+        const rowEnd = Math.min(pageEnd, rowStart + HEX_BYTES_PER_ROW);
+        html += `<div class="hexrow"><span class="hexaddr">${fmtAddr(rowStart)}</span><span class="hexbytes">`;
+        for (let o = rowStart; o < rowEnd; o++) {
+            const hl = (o >= highlightOffset && o < highlightOffset + highlightLength) ? ' hl' : '';
+            html += `<span class="hb${hl}" data-off="${o}">${fileBytes[o].toString(16).padStart(2, '0')}</span> `;
+        }
+        // pad short last row so the ascii gutter still lines up
+        for (let o = rowEnd; o < rowStart + HEX_BYTES_PER_ROW; o++) html += '   ';
+        html += '</span><span class="hexascii">';
+        for (let o = rowStart; o < rowEnd; o++) {
+            const b = fileBytes[o];
+            const hl = (o >= highlightOffset && o < highlightOffset + highlightLength) ? ' hl' : '';
+            html += `<span class="hb${hl}">${isPrintable(b) ? escapeHtml(String.fromCharCode(b)) : '.'}</span>`;
+        }
+        html += '</span></div>';
+    }
+    html += '</pre>';
+
+    panel.innerHTML = html;
+    document.getElementById('hexPrevBtn').addEventListener('click', () => { hexPage--; renderHexDump(); });
+    document.getElementById('hexNextBtn').addEventListener('click', () => { hexPage++; renderHexDump(); });
+    document.getElementById('hexJumpBtn').addEventListener('click', () => {
+        const raw = document.getElementById('hexJumpInput').value.trim();
+        let v;
+        if (/o$/i.test(raw)) v = parseInt(raw.slice(0, -1), 8);
+        else if (/^0x/i.test(raw)) v = parseInt(raw, 16);
+        else v = parseInt(raw, 10);
+        if (!isNaN(v) && v >= 0 && v < fileBytes.length) { hexPage = Math.floor(v / HEX_PAGE_BYTES); highlightOffset = v; highlightLength = 1; renderHexDump(); }
+    });
+}
+
+function highlightBytes(offset, length) {
+    highlightOffset = offset;
+    highlightLength = Math.max(1, length);
+    hexPage = Math.floor(offset / HEX_PAGE_BYTES);
+    renderHexDump();
+    // Scroll the hex panel so the highlighted row is visible.
+    requestAnimationFrame(() => {
+        const el = document.querySelector(`#hexPanel [data-off="${offset}"]`);
+        if (el) el.scrollIntoView({ block: 'center' });
+    });
+}
+
+// ============================================================================
+// Top-level file load + parse dispatch
+// ============================================================================
+function parseAndRender() {
+    document.getElementById('hexPanel').scrollTop = 0;
+    hexPage = 0; highlightOffset = -1; highlightLength = 0;
+
+    if (!specsLoaded) {
+        document.getElementById('parsedPanel').innerHTML = '<div class="error-panel">Format specs failed to load - cannot parse. See status bar / reload the page over http(s).</div>';
+        return;
+    }
+
+    const override = document.getElementById('formatSelect').value;
+    let fmt = override === 'auto' ? detectFormat(fileBytes, fileName) : override;
+    detectedFormat = fmt;
+
+    document.getElementById('fileInfoGroup').textContent =
+        `${fileName} - ${fileBytes.length.toLocaleString()} bytes - detected: ${fmt || '(unknown)'}${override !== 'auto' ? ' (forced)' : ''}`;
+
+    if (!fmt) {
+        document.getElementById('parsedPanel').innerHTML =
+            '<div class="error-panel">Could not identify this file as NRF, DOM, SEG, or DESC.\n\n' +
+            'Neither the filename nor structural heuristics matched any known format. ' +
+            'Use the Format dropdown above to force a parser if you know what this file is.</div>';
+        renderHexDump();
+        return;
+    }
+
+    try {
+        let result;
+        if (fmt === 'NRF') result = parseNRF(fileBytes);
+        else if (fmt === 'DOM') result = parseDOMorSEG(fileBytes, 'DOM');
+        else if (fmt === 'SEG') result = parseDOMorSEG(fileBytes, 'SEG');
+        else if (fmt === 'DESC') result = parseDESC(fileBytes);
+        else throw new Error('Unknown format: ' + fmt);
+
+        parseResult = result;
+        if (fmt === 'NRF') renderNRF(result);
+        else if (fmt === 'DOM' || fmt === 'SEG') renderDOM(result);
+        else if (fmt === 'DESC') renderDESC(result);
+        document.getElementById('statusLeft').textContent = `Parsed ${fmt}: ${fileName}`;
+    } catch (e) {
+        document.getElementById('parsedPanel').innerHTML = `<div class="error-panel">Failed to parse as ${fmt}:\n\n${escapeHtml(e.message)}\n\n${e.stack ? escapeHtml(e.stack) : ''}</div>`;
+        document.getElementById('statusLeft').textContent = `Parse error (${fmt})`;
+    }
+    renderHexDump();
+}
+
+function loadFile(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+        fileBytes = new Uint8Array(reader.result);
+        fileName = file.name;
+        parseAndRender();
+    };
+    reader.onerror = () => {
+        document.getElementById('parsedPanel').innerHTML = '<div class="error-panel">Could not read the file: ' + escapeHtml(String(reader.error)) + '</div>';
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+// ---------------------------------------------------------------------
+// Wiring
+// ---------------------------------------------------------------------
+window.addEventListener('DOMContentLoaded', () => {
+    loadSpecs();
+
+    document.getElementById('themeBtn').addEventListener('click', () => document.body.classList.toggle('dark-theme'));
+    document.getElementById('addrOctCheckbox').addEventListener('change', e => { useOctal = e.target.checked; if (parseResult) parseAndRender(); });
+    document.getElementById('formatSelect').addEventListener('change', () => { if (fileBytes) parseAndRender(); });
+
+    document.getElementById('openFileBtn').addEventListener('click', () => document.getElementById('fileInput').click());
+    document.getElementById('fileInput').addEventListener('change', e => { if (e.target.files.length) loadFile(e.target.files[0]); });
+
+    const mc = document.getElementById('mainContent');
+    mc.addEventListener('dragover', e => { e.preventDefault(); mc.classList.add('drag-over'); });
+    mc.addEventListener('dragleave', () => mc.classList.remove('drag-over'));
+    mc.addEventListener('drop', e => {
+        e.preventDefault();
+        mc.classList.remove('drag-over');
+        if (e.dataTransfer.files.length) loadFile(e.dataTransfer.files[0]);
+    });
+});
+</script>
+</body>
+</html>

@@ -35,6 +35,38 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
         private readonly string _fileSpec;
         private readonly ushort _serverNode;
 
+        /// <summary>
+        /// Whether the pull may start from the REMEMBERED seed instead of waiting to be addressed.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// This is <c>--originate-from-seed</c>, and until 2026-08-17 only the SYNC daemon honoured
+        /// it. The pull gated on <c>CanReach</c> alone, which is true only once the PEER has
+        /// addressed us - so on a link where nothing arrives first the pull sat silent for ever. It
+        /// did not even print "reading &lt;file&gt;", because that line comes after the gate, and a
+        /// run that never starts looks exactly like a run that started and got no answer.
+        /// </para>
+        /// <para>
+        /// Measured the same day: a push over the same seam, in the same minute, carried 42368
+        /// bytes - because it went through the sync daemon, which built its readiness with the
+        /// seed. The one-shot pull never sent a frame.
+        /// </para>
+        /// </remarks>
+        public bool OriginateFromSeed { get; set; }
+        /// <summary>
+        /// Gets the node this transfer talks to.
+        /// </summary>
+        /// <remarks>
+        /// Exposed so the runner can open the XMSG link from the REMEMBERED seed before pumping.
+        /// Without that, a transfer can only start against a peer that has spoken to us first,
+        /// which is useless for a daemon and makes a transfer against an idle peer unobservable.
+        /// </remarks>
+        public ushort RemoteNode
+        {
+            get { return _serverNode; }
+        }
+
+
         private bool _started;
         private bool _reported;
 
@@ -76,7 +108,54 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
         /// </summary>
         public bool Finished
         {
-            get { return _crashed || _driver.Done || _driver.Failure.Length > 0; }
+            get
+            {
+                // Not finished while a goodbye is owed - see FaPushRun for the measurement.
+                if (_driver.ReleasePending) { return false; }
+
+                return _crashed || _driver.Done || _driver.Failure.Length > 0;
+            }
+        }
+
+        /// <summary>
+        /// Gets whether the transfer finished BADLY, as opposed to merely finishing.
+        /// </summary>
+        /// <remarks>
+        /// <c>Finished</c> is true either way - it answers "is it over", not "did it work" - and
+        /// reading it as success is how a refused transfer came to exit 0. MEASURED 2026-08-18: a
+        /// push the machine refused with SINTRAN error 39 printed a byte count and returned success.
+        /// </remarks>
+        public bool Failed
+        {
+            get { return _crashed || _driver.Failure.Length > 0; }
+        }
+
+        /// <summary>
+        /// Gets why the transfer failed, or an empty string when it did not.
+        /// </summary>
+        /// <remarks>
+        /// Carries the SERVER's own words where there are any - a refusal decodes to a SINTRAN
+        /// error number and its meaning. Worth passing on rather than replacing with a summary:
+        /// "No such user name in main directory" tells the operator what to fix, "the push failed"
+        /// does not.
+        /// </remarks>
+        public string Failure
+        {
+            get { return _driver.Failure; }
+        }
+
+        /// <summary>
+        /// Gets the SINTRAN error number behind the failure, or zero when there is none.
+        /// </summary>
+        /// <remarks>
+        /// Taken from the driver rather than scraped back out of <see cref="Failure"/>. The text is
+        /// for a person; a caller that has to make a DECISION on the number needs the number, and
+        /// one caller does - the sync daemon treats 62, "File already exists", as an answer rather
+        /// than a fault.
+        /// </remarks>
+        public int SintranError
+        {
+            get { return _driver.SintranError; }
         }
 
         /// <summary>
@@ -133,7 +212,16 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
             // The LINK knowing the peer is not enough. The XMSG layer learns its seed when the
             // first datagram is DISPATCHED, a tick after the link learned the peer's id, and a
             // frame built in that gap cannot be addressed at all.
-            if (!host.ServerHost.CanReach(_serverNode))
+            //
+            // CanReach alone means "the peer has addressed us", which never happens on a link
+            // where we speak first - so with it as the only gate a pull waits for ever and says
+            // nothing while it waits. OriginateFromSeed opens the link from the REMEMBERED seed
+            // instead, which is the same choice the sync daemon has always had.
+            bool reachable = OriginateFromSeed
+                ? host.ServerHost.OpenLinkFromRememberedSeed(_serverNode)
+                : host.ServerHost.CanReach(_serverNode);
+
+            if (!reachable)
             {
                 return;
             }

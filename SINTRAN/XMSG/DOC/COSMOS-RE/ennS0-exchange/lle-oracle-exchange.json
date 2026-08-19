@@ -1,0 +1,7802 @@
+{
+ "source": "C:/Users/ronny/AppData/Local/Temp/retrocore-ethii/oracle-startnet-device.txt",
+ "counts": {
+  "ident_lvl12": 38,
+  "scip": 45,
+  "xfrre_empty": 6
+ },
+ "console": "x....XMSG command program (210373M) of 88.08.18 09:28 ..Compiled for version 1988.04.12 (Release M)..XMSG kernel version 1988.04.12 (Release M)..Options: ..   ND-100/CX only. XPIT. Trace. Watchdog...   Inter-system:  Network gateway/IOC...   (Type ? to get a list of the new commands.)....X-C:DEF-REMOTE,,D100 100..*- WARNING: You can now bypass system protection mechanisms -*..Ok....X-C:DEF-REMOTE,,D102 102..Ok....X-C:DEF-REMOTE,,D103 103..Ok....X-C:DEFINE-REMOTE,,D2XX  17848..Ok....X-C:DEFINE-REMOTE,,A101  23772..Ok....X-C:DEFINE-REMOTE,,A102  21190..Ok....X-C:DEFINE-REMOTE,,A103  22979..Ok....X-C:start-net-server,enns0,,,N..Server not yet started - will try to start him now (wait 10 sec!)....1998-08-09 11:58:33 ENNS0-COSMOS Ethernet II Option : B01 - 1987-02-27Ok....X-C:..1998.08.09 11:58:40 .** XROUT: Network server ENNS0 started, sysid 9800 **..DEFINE-NETWORK-CONNECTION D2XX,ENNS0,,0,0,0,0..Ok....X-C:DEFINE-SYSTEM-ROUTE,,A101 D2XX..Ok....X-C:DEFINE-SYSTEM-ROUTE,,A102 D2XX..Ok....X-C:DEFINE-SYSTEM-ROUTE,,A103 D2XX..Ok....X-C:List-Routing-Info,,,..   To     Route..    100  L: *..         T: *..         A: *..  17848  L: *->WAN?->17848..         T: *->WAN?..         A: *->WAN?..  21190  L: *->WAN?->17848->21190..         T: *->17848, but no access to system 17848..         A: *->WAN?..  22979  L: *->WAN?->17848->22979..         T: *->17848",
+ "n_events": 685,
+ "timeline": [
+  {
+   "ts": "11:58:49.802",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFDCT",
+   "args": "Disconnect from message system"
+  },
+  {
+   "ts": "11:58:49.946",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFDUM",
+   "args": ""
+  },
+  {
+   "ts": "11:58:52.604",
+   "ev": "call",
+   "pil": 2,
+   "func": "XFDCT",
+   "args": "Disconnect from message system"
+  },
+  {
+   "ts": "11:58:52.604",
+   "ev": "call",
+   "pil": 2,
+   "func": "XFDCT",
+   "args": "Disconnect from message system"
+  },
+  {
+   "ts": "11:58:54.927",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFPRV",
+   "args": ""
+  },
+  {
+   "ts": "11:58:55.003",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFOPN",
+   "args": ""
+  },
+  {
+   "ts": "11:58:55.004",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFGET",
+   "args": ""
+  },
+  {
+   "ts": "11:58:55.005",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSCM",
+   "args": ""
+  },
+  {
+   "ts": "11:58:55.008",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "14",
+   "addr": "0x1E30",
+   "args": "NBYTES=14 Address=0x1E30 Displacement=0[0x0149][0x000A][0xFF04][0x4431][0x3030][0x0202][0x0064]"
+  },
+  {
+   "ts": "11:58:55.010",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "11:58:55.018",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "11:58:55.019",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0149",
+    "serial": 1,
+    "kind": "request",
+    "service": 73,
+    "service_name": "XSDRN",
+    "byte_len": 10,
+    "params": [
+     {
+      "num": 1,
+      "type": "str",
+      "len": 4,
+      "text": "D100"
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0064",
+      "dec": 100
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "11:58:55.019",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFMST",
+   "A": "0xE385",
+   "D": "0x000E",
+   "X": "0x0009",
+   "args": "handle A=0xE385 D=0x000E X=0x0009"
+  },
+  {
+   "ts": "11:58:55.020",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFM2P",
+   "args": "Magic number:  A:0x0064 D:0x0271"
+  },
+  {
+   "ts": "11:58:55.022",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "4",
+   "addr": "0x00D6",
+   "args": "NBYTES=4 Address=0x00D6 Displacement=0[0x0100][0x0000]"
+  },
+  {
+   "ts": "11:58:55.023",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "11:58:55.024",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "11:58:55.042",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "11:58:55.043",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "11:58:55.045",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 0,
+    "params": []
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "11:58:55.045",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREL",
+   "args": ""
+  },
+  {
+   "ts": "11:59:00.342",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFGET",
+   "args": ""
+  },
+  {
+   "ts": "11:59:00.343",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSCM",
+   "args": ""
+  },
+  {
+   "ts": "11:59:00.346",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "14",
+   "addr": "0x1E30",
+   "args": "NBYTES=14 Address=0x1E30 Displacement=0[0x0149][0x000A][0xFF04][0x4431][0x3032][0x0202][0x0066]"
+  },
+  {
+   "ts": "11:59:00.346",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "11:59:00.352",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "11:59:00.353",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0149",
+    "serial": 1,
+    "kind": "request",
+    "service": 73,
+    "service_name": "XSDRN",
+    "byte_len": 10,
+    "params": [
+     {
+      "num": 1,
+      "type": "str",
+      "len": 4,
+      "text": "D102"
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0066",
+      "dec": 102
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "11:59:00.353",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFMST",
+   "A": "0xE385",
+   "D": "0x000E",
+   "X": "0x0009",
+   "args": "handle A=0xE385 D=0x000E X=0x0009"
+  },
+  {
+   "ts": "11:59:00.353",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFM2P",
+   "args": "Magic number:  A:0x0064 D:0x0271"
+  },
+  {
+   "ts": "11:59:00.355",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "4",
+   "addr": "0x00D6",
+   "args": "NBYTES=4 Address=0x00D6 Displacement=0[0x0100][0x0000]"
+  },
+  {
+   "ts": "11:59:00.356",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "11:59:00.357",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "11:59:00.370",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "11:59:00.371",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "11:59:00.372",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 0,
+    "params": []
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "11:59:00.372",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREL",
+   "args": ""
+  },
+  {
+   "ts": "11:59:05.696",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFGET",
+   "args": ""
+  },
+  {
+   "ts": "11:59:05.698",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSCM",
+   "args": ""
+  },
+  {
+   "ts": "11:59:05.701",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "14",
+   "addr": "0x1E30",
+   "args": "NBYTES=14 Address=0x1E30 Displacement=0[0x0149][0x000A][0xFF04][0x4431][0x3033][0x0202][0x0067]"
+  },
+  {
+   "ts": "11:59:05.702",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "11:59:05.708",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "11:59:05.709",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0149",
+    "serial": 1,
+    "kind": "request",
+    "service": 73,
+    "service_name": "XSDRN",
+    "byte_len": 10,
+    "params": [
+     {
+      "num": 1,
+      "type": "str",
+      "len": 4,
+      "text": "D103"
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0067",
+      "dec": 103
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "11:59:05.709",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFMST",
+   "A": "0xE385",
+   "D": "0x000E",
+   "X": "0x0009",
+   "args": "handle A=0xE385 D=0x000E X=0x0009"
+  },
+  {
+   "ts": "11:59:05.710",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFM2P",
+   "args": "Magic number:  A:0x0064 D:0x0271"
+  },
+  {
+   "ts": "11:59:05.711",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "4",
+   "addr": "0x00D6",
+   "args": "NBYTES=4 Address=0x00D6 Displacement=0[0x0100][0x0000]"
+  },
+  {
+   "ts": "11:59:05.712",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "11:59:05.713",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "11:59:05.727",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "11:59:05.728",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "11:59:05.729",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 0,
+    "params": []
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "11:59:05.729",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREL",
+   "args": ""
+  },
+  {
+   "ts": "11:59:11.138",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFGET",
+   "args": ""
+  },
+  {
+   "ts": "11:59:11.139",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSCM",
+   "args": ""
+  },
+  {
+   "ts": "11:59:11.143",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "14",
+   "addr": "0x1E30",
+   "args": "NBYTES=14 Address=0x1E30 Displacement=0[0x0149][0x000A][0xFF04][0x4432][0x5858][0x0202][0x45B8]"
+  },
+  {
+   "ts": "11:59:11.145",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "11:59:11.152",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "11:59:11.153",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0149",
+    "serial": 1,
+    "kind": "request",
+    "service": 73,
+    "service_name": "XSDRN",
+    "byte_len": 10,
+    "params": [
+     {
+      "num": 1,
+      "type": "str",
+      "len": 4,
+      "text": "D2XX"
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "11:59:11.153",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFMST",
+   "A": "0xE385",
+   "D": "0x000E",
+   "X": "0x0009",
+   "args": "handle A=0xE385 D=0x000E X=0x0009"
+  },
+  {
+   "ts": "11:59:11.154",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFM2P",
+   "args": "Magic number:  A:0x0064 D:0x0271"
+  },
+  {
+   "ts": "11:59:11.156",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "4",
+   "addr": "0x00D6",
+   "args": "NBYTES=4 Address=0x00D6 Displacement=0[0x0100][0x0000]"
+  },
+  {
+   "ts": "11:59:11.156",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "11:59:11.158",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "11:59:11.173",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "11:59:11.174",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "11:59:11.175",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 0,
+    "params": []
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "11:59:11.175",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREL",
+   "args": ""
+  },
+  {
+   "ts": "11:59:16.494",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFGET",
+   "args": ""
+  },
+  {
+   "ts": "11:59:16.496",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSCM",
+   "args": ""
+  },
+  {
+   "ts": "11:59:16.498",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "14",
+   "addr": "0x1E30",
+   "args": "NBYTES=14 Address=0x1E30 Displacement=0[0x0149][0x000A][0xFF04][0x4131][0x3031][0x0202][0x5CDC]"
+  },
+  {
+   "ts": "11:59:16.499",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "11:59:16.505",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "11:59:16.506",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0149",
+    "serial": 1,
+    "kind": "request",
+    "service": 73,
+    "service_name": "XSDRN",
+    "byte_len": 10,
+    "params": [
+     {
+      "num": 1,
+      "type": "str",
+      "len": 4,
+      "text": "A101"
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x5CDC",
+      "dec": 23772
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "11:59:16.506",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFMST",
+   "A": "0xE385",
+   "D": "0x000E",
+   "X": "0x0009",
+   "args": "handle A=0xE385 D=0x000E X=0x0009"
+  },
+  {
+   "ts": "11:59:16.507",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFM2P",
+   "args": "Magic number:  A:0x0064 D:0x0271"
+  },
+  {
+   "ts": "11:59:16.509",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "4",
+   "addr": "0x00D6",
+   "args": "NBYTES=4 Address=0x00D6 Displacement=0[0x0100][0x0000]"
+  },
+  {
+   "ts": "11:59:16.510",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "11:59:16.511",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "11:59:16.527",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "11:59:16.528",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "11:59:16.529",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 0,
+    "params": []
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "11:59:16.529",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREL",
+   "args": ""
+  },
+  {
+   "ts": "11:59:22.094",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFGET",
+   "args": ""
+  },
+  {
+   "ts": "11:59:22.095",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSCM",
+   "args": ""
+  },
+  {
+   "ts": "11:59:22.099",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "14",
+   "addr": "0x1E30",
+   "args": "NBYTES=14 Address=0x1E30 Displacement=0[0x0149][0x000A][0xFF04][0x4131][0x3032][0x0202][0x52C6]"
+  },
+  {
+   "ts": "11:59:22.100",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "11:59:22.105",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "11:59:22.106",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0149",
+    "serial": 1,
+    "kind": "request",
+    "service": 73,
+    "service_name": "XSDRN",
+    "byte_len": 10,
+    "params": [
+     {
+      "num": 1,
+      "type": "str",
+      "len": 4,
+      "text": "A102"
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x52C6",
+      "dec": 21190
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "11:59:22.106",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFMST",
+   "A": "0xE385",
+   "D": "0x000E",
+   "X": "0x0009",
+   "args": "handle A=0xE385 D=0x000E X=0x0009"
+  },
+  {
+   "ts": "11:59:22.107",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFM2P",
+   "args": "Magic number:  A:0x0064 D:0x0271"
+  },
+  {
+   "ts": "11:59:22.108",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "4",
+   "addr": "0x00D6",
+   "args": "NBYTES=4 Address=0x00D6 Displacement=0[0x0100][0x0000]"
+  },
+  {
+   "ts": "11:59:22.109",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "11:59:22.110",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "11:59:22.123",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "11:59:22.124",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "11:59:22.124",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 0,
+    "params": []
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "11:59:22.124",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREL",
+   "args": ""
+  },
+  {
+   "ts": "11:59:22.607",
+   "ev": "call",
+   "pil": 2,
+   "func": "XFDCT",
+   "args": "Disconnect from message system"
+  },
+  {
+   "ts": "11:59:22.608",
+   "ev": "call",
+   "pil": 2,
+   "func": "XFDCT",
+   "args": "Disconnect from message system"
+  },
+  {
+   "ts": "11:59:27.676",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFGET",
+   "args": ""
+  },
+  {
+   "ts": "11:59:27.678",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSCM",
+   "args": ""
+  },
+  {
+   "ts": "11:59:27.682",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "14",
+   "addr": "0x1E30",
+   "args": "NBYTES=14 Address=0x1E30 Displacement=0[0x0149][0x000A][0xFF04][0x4131][0x3033][0x0202][0x59C3]"
+  },
+  {
+   "ts": "11:59:27.683",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "11:59:27.690",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "11:59:27.690",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0149",
+    "serial": 1,
+    "kind": "request",
+    "service": 73,
+    "service_name": "XSDRN",
+    "byte_len": 10,
+    "params": [
+     {
+      "num": 1,
+      "type": "str",
+      "len": 4,
+      "text": "A103"
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x59C3",
+      "dec": 22979
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "11:59:27.691",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFMST",
+   "A": "0xE385",
+   "D": "0x000E",
+   "X": "0x0009",
+   "args": "handle A=0xE385 D=0x000E X=0x0009"
+  },
+  {
+   "ts": "11:59:27.691",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFM2P",
+   "args": "Magic number:  A:0x0064 D:0x0271"
+  },
+  {
+   "ts": "11:59:27.693",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "4",
+   "addr": "0x00D6",
+   "args": "NBYTES=4 Address=0x00D6 Displacement=0[0x0100][0x0000]"
+  },
+  {
+   "ts": "11:59:27.694",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "11:59:27.695",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "11:59:27.708",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "11:59:27.709",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "11:59:27.710",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 0,
+    "params": []
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "11:59:27.710",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREL",
+   "args": ""
+  },
+  {
+   "ts": "11:59:33.362",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFGET",
+   "args": ""
+  },
+  {
+   "ts": "11:59:33.363",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSCM",
+   "args": ""
+  },
+  {
+   "ts": "11:59:33.367",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "28",
+   "addr": "0x1E30",
+   "args": "NBYTES=28 Address=0x1E30 Displacement=0[0x0154][0x0018][0xFF09][0x2A58][0x4D2D][0x454E][0x4E53][0x3000][0xFD05][0x454E][0x4E53][0x3000][0x0A02][0x0001]"
+  },
+  {
+   "ts": "11:59:33.368",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "11:59:33.375",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "11:59:33.376",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0154",
+    "serial": 1,
+    "kind": "request",
+    "service": 84,
+    "service_name": "XSLEK",
+    "byte_len": 24,
+    "params": [
+     {
+      "num": 1,
+      "type": "str",
+      "len": 9,
+      "text": "*XM-ENNS0"
+     },
+     {
+      "num": 3,
+      "type": "str",
+      "len": 5,
+      "text": "ENNS0"
+     },
+     {
+      "num": 10,
+      "type": "int",
+      "len": 2,
+      "value": "0x0001",
+      "dec": 1
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "11:59:33.376",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFMST",
+   "A": "0xE385",
+   "D": "0x001C",
+   "X": "0x0014",
+   "args": "handle A=0xE385 D=0x001C X=0x0014"
+  },
+  {
+   "ts": "11:59:33.377",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFM2P",
+   "args": "Magic number:  A:0x0064 D:0x0271"
+  },
+  {
+   "ts": "11:59:33.399",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "28",
+   "addr": "0x00D6",
+   "args": "NBYTES=28 Address=0x00D6 Displacement=0[0x0100][0x0018][0xFF09][0x2A58][0x4D2D][0x454E][0x4E53][0x3000][0xFD05][0x454E][0x4E53][0x3000][0x0A02][0x0001]"
+  },
+  {
+   "ts": "11:59:33.400",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "11:59:33.401",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "11:59:33.416",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "11:59:33.417",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "11:59:33.642",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0000",
+    "serial": 0,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 0,
+    "params": []
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "11:59:33.642",
+   "ev": "call",
+   "pil": 2,
+   "func": "XFDCT",
+   "args": "Disconnect from message system"
+  },
+  {
+   "ts": "11:59:33.642",
+   "ev": "call",
+   "pil": 2,
+   "func": "XFDCT",
+   "args": "Disconnect from message system"
+  },
+  {
+   "ts": "11:59:33.653",
+   "ev": "call",
+   "pil": 2,
+   "func": "XFDCT",
+   "args": "Disconnect from message system"
+  },
+  {
+   "ts": "11:59:33.654",
+   "ev": "call",
+   "pil": 2,
+   "func": "XFDCT",
+   "args": "Disconnect from message system"
+  },
+  {
+   "ts": "11:59:33.682",
+   "ev": "call",
+   "pil": 2,
+   "func": "XFDCT",
+   "args": "Disconnect from message system"
+  },
+  {
+   "ts": "11:59:33.682",
+   "ev": "call",
+   "pil": 2,
+   "func": "XFDCT",
+   "args": "Disconnect from message system"
+  },
+  {
+   "ts": "11:59:33.727",
+   "ev": "call",
+   "pil": 2,
+   "func": "XFDCT",
+   "args": "Disconnect from message system"
+  },
+  {
+   "ts": "11:59:33.727",
+   "ev": "call",
+   "pil": 2,
+   "func": "XFDCT",
+   "args": "Disconnect from message system"
+  },
+  {
+   "ts": "11:59:33.747",
+   "ev": "call",
+   "pil": 2,
+   "func": "XFDCT",
+   "args": "Disconnect from message system"
+  },
+  {
+   "ts": "11:59:33.747",
+   "ev": "call",
+   "pil": 2,
+   "func": "XFDCT",
+   "args": "Disconnect from message system"
+  },
+  {
+   "ts": "11:59:33.758",
+   "ev": "call",
+   "pil": 2,
+   "func": "XFDCT",
+   "args": "Disconnect from message system"
+  },
+  {
+   "ts": "11:59:33.758",
+   "ev": "call",
+   "pil": 2,
+   "func": "XFDCT",
+   "args": "Disconnect from message system"
+  },
+  {
+   "ts": "11:59:33.774",
+   "ev": "call",
+   "pil": 2,
+   "func": "XFDCT",
+   "args": "Disconnect from message system"
+  },
+  {
+   "ts": "11:59:33.775",
+   "ev": "call",
+   "pil": 2,
+   "func": "XFDCT",
+   "args": "Disconnect from message system"
+  },
+  {
+   "ts": "11:59:33.800",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFDUM",
+   "args": ""
+  },
+  {
+   "ts": "11:59:33.800",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFDCT",
+   "args": "Disconnect from message system"
+  },
+  {
+   "ts": "11:59:33.807",
+   "ev": "control",
+   "value": "0x0030",
+   "flags": "Reset | Halt"
+  },
+  {
+   "ts": "11:59:35.326",
+   "ev": "control",
+   "value": "0x0000",
+   "flags": "(none)"
+  },
+  {
+   "ts": "11:59:35.343",
+   "ev": "prkey",
+   "text": "[PRKEY] *** firmware posted PRKEY (052163B) @0x0404 - PISTA start-gate should now proceed ***"
+  },
+  {
+   "ts": "11:59:35.343",
+   "ev": "prkey",
+   "text": "[68K-RESET] PC=0x1DAA  PRKEY WRITTEN OK -> clr warm sig (cold start succeeded)"
+  },
+  {
+   "ts": "11:59:35.347",
+   "ev": "control",
+   "value": "0x0009",
+   "flags": "EnableScipInt | StartOpcom"
+  },
+  {
+   "ts": "11:59:35.348",
+   "ev": "mailbox_kick",
+   "request": "0x0001",
+   "subfunction": "0x0005",
+   "note": "valid"
+  },
+  {
+   "ts": "11:59:35.353",
+   "ev": "control",
+   "value": "0x0001",
+   "flags": "EnableScipInt"
+  },
+  {
+   "ts": "11:59:35.773",
+   "ev": "control",
+   "value": "0x0005",
+   "flags": "EnableScipInt | NdInterrupt"
+  },
+  {
+   "ts": "11:59:35.773",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "11:59:37.068",
+   "ev": "call",
+   "pil": 12,
+   "func": "XFDBK",
+   "args": ""
+  },
+  {
+   "ts": "11:59:37.069",
+   "ev": "call",
+   "pil": 12,
+   "func": "XFWDF",
+   "args": ""
+  },
+  {
+   "ts": "11:59:37.069",
+   "ev": "call",
+   "pil": 12,
+   "func": "XFDUM",
+   "args": ""
+  },
+  {
+   "ts": "11:59:37.070",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "11:59:37.070",
+   "ev": "control",
+   "value": "0x0001",
+   "flags": "EnableScipInt"
+  },
+  {
+   "ts": "11:59:37.072",
+   "ev": "call",
+   "pil": 12,
+   "func": "XFOPN",
+   "args": ""
+  },
+  {
+   "ts": "11:59:37.073",
+   "ev": "control",
+   "value": "0x0005",
+   "flags": "EnableScipInt | NdInterrupt"
+  },
+  {
+   "ts": "11:59:37.073",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "11:59:37.074",
+   "ev": "control",
+   "value": "0x0001",
+   "flags": "EnableScipInt"
+  },
+  {
+   "ts": "11:59:37.076",
+   "ev": "call",
+   "pil": 12,
+   "func": "XFGET",
+   "args": ""
+  },
+  {
+   "ts": "11:59:37.078",
+   "ev": "control",
+   "value": "0x0005",
+   "flags": "EnableScipInt | NdInterrupt"
+  },
+  {
+   "ts": "11:59:37.078",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "11:59:37.078",
+   "ev": "control",
+   "value": "0x0001",
+   "flags": "EnableScipInt"
+  },
+  {
+   "ts": "11:59:37.079",
+   "ev": "call",
+   "pil": 12,
+   "func": "XFDBK",
+   "args": ""
+  },
+  {
+   "ts": "11:59:37.081",
+   "ev": "control",
+   "value": "0x0005",
+   "flags": "EnableScipInt | NdInterrupt"
+  },
+  {
+   "ts": "11:59:37.081",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "11:59:37.081",
+   "ev": "control",
+   "value": "0x0001",
+   "flags": "EnableScipInt"
+  },
+  {
+   "ts": "11:59:37.083",
+   "ev": "call",
+   "pil": 12,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "5",
+   "args": "Receiving port: 0x00000000 Sending port: 5"
+  },
+  {
+   "ts": "11:59:37.084",
+   "ev": "control",
+   "value": "0x0005",
+   "flags": "EnableScipInt | NdInterrupt"
+  },
+  {
+   "ts": "11:59:37.084",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "11:59:37.084",
+   "ev": "control",
+   "value": "0x0001",
+   "flags": "EnableScipInt"
+  },
+  {
+   "ts": "11:59:37.085",
+   "ev": "call",
+   "pil": 12,
+   "func": "XFRCV",
+   "recv_port": "5",
+   "args": "Receiving port:  5"
+  },
+  {
+   "ts": "11:59:37.088",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "11:59:37.089",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x5342",
+    "serial": 83,
+    "kind": "request",
+    "service": 66,
+    "service_name": "XSNAM",
+    "byte_len": 12,
+    "params": [
+     {
+      "num": 1,
+      "type": "str",
+      "len": 9,
+      "text": "*XM-ENNS0"
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "11:59:37.089",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFMST",
+   "A": "0xE388",
+   "D": "0x0010",
+   "X": "0x0002",
+   "args": "handle A=0xE388 D=0x0010 X=0x0002"
+  },
+  {
+   "ts": "11:59:37.091",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "4",
+   "addr": "0x00D6",
+   "args": "NBYTES=4 Address=0x00D6 Displacement=0[0x5300][0x0000]"
+  },
+  {
+   "ts": "11:59:37.091",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "11:59:37.093",
+   "ev": "control",
+   "value": "0x0005",
+   "flags": "EnableScipInt | NdInterrupt"
+  },
+  {
+   "ts": "11:59:37.093",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "11:59:37.093",
+   "ev": "control",
+   "value": "0x0001",
+   "flags": "EnableScipInt"
+  },
+  {
+   "ts": "11:59:37.093",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "11:59:37.095",
+   "ev": "call",
+   "pil": 12,
+   "func": "XFREA",
+   "nbytes": "2",
+   "addr": "0xE9A8",
+   "args": "NBYTES=2 Address=0xE9A8 Displacement=0"
+  },
+  {
+   "ts": "11:59:37.096",
+   "ev": "control",
+   "value": "0x0005",
+   "flags": "EnableScipInt | NdInterrupt"
+  },
+  {
+   "ts": "11:59:37.096",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "11:59:37.096",
+   "ev": "control",
+   "value": "0x0001",
+   "flags": "EnableScipInt"
+  },
+  {
+   "ts": "11:59:37.099",
+   "ev": "control",
+   "value": "0x0005",
+   "flags": "EnableScipInt | NdInterrupt"
+  },
+  {
+   "ts": "11:59:37.099",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "11:59:37.099",
+   "ev": "control",
+   "value": "0x0001",
+   "flags": "EnableScipInt"
+  },
+  {
+   "ts": "11:59:37.264",
+   "ev": "control",
+   "value": "0x0005",
+   "flags": "EnableScipInt | NdInterrupt"
+  },
+  {
+   "ts": "11:59:37.264",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "11:59:37.265",
+   "ev": "control",
+   "value": "0x0001",
+   "flags": "EnableScipInt"
+  },
+  {
+   "ts": "11:59:49.450",
+   "ev": "record",
+   "buf": "0xE9A8",
+   "nbytes": 2,
+   "record": {
+    "word0": "0x0000",
+    "serial": 0,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK"
+   },
+   "by_pil": "12"
+  },
+  {
+   "ts": "11:59:49.450",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "28",
+   "addr": "0x1E30",
+   "args": "NBYTES=28 Address=0x1E30 Displacement=0[0x0141][0x0018][0xFF09][0x2A58][0x4D2D][0x454E][0x4E53][0x3000][0xFD05][0x454E][0x4E53][0x3000][0x0A02][0x0001]"
+  },
+  {
+   "ts": "11:59:49.451",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "11:59:49.457",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "11:59:49.458",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0141",
+    "serial": 1,
+    "kind": "request",
+    "service": 65,
+    "service_name": "XSLET",
+    "byte_len": 24,
+    "params": [
+     {
+      "num": 1,
+      "type": "str",
+      "len": 9,
+      "text": "*XM-ENNS0"
+     },
+     {
+      "num": 3,
+      "type": "str",
+      "len": 5,
+      "text": "ENNS0"
+     },
+     {
+      "num": 10,
+      "type": "int",
+      "len": 2,
+      "value": "0x0001",
+      "dec": 1
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "11:59:49.458",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x006402FE",
+   "send_port": "1",
+   "args": "Receiving port: 0x006402FE Sending port: 1"
+  },
+  {
+   "ts": "11:59:49.459",
+   "ev": "control",
+   "value": "0x0005",
+   "flags": "EnableScipInt | NdInterrupt"
+  },
+  {
+   "ts": "11:59:49.459",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "11:59:49.460",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "11:59:49.462",
+   "ev": "call",
+   "pil": 12,
+   "func": "XFRRE",
+   "A": "0x0005",
+   "D": "0x0004",
+   "X": "0xE97C",
+   "args": "port A=0x0005 D=0x0004 X=0xE97C"
+  },
+  {
+   "ts": "11:59:49.463",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "11:59:49.463",
+   "ev": "control",
+   "value": "0x0001",
+   "flags": "EnableScipInt"
+  },
+  {
+   "ts": "11:59:49.465",
+   "ev": "control",
+   "value": "0x0005",
+   "flags": "EnableScipInt | NdInterrupt"
+  },
+  {
+   "ts": "11:59:49.466",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "11:59:49.466",
+   "ev": "control",
+   "value": "0x0001",
+   "flags": "EnableScipInt"
+  },
+  {
+   "ts": "11:59:49.469",
+   "ev": "control",
+   "value": "0x0005",
+   "flags": "EnableScipInt | NdInterrupt"
+  },
+  {
+   "ts": "11:59:49.469",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "11:59:49.469",
+   "ev": "control",
+   "value": "0x0001",
+   "flags": "EnableScipInt"
+  },
+  {
+   "ts": "11:59:49.472",
+   "ev": "control",
+   "value": "0x0005",
+   "flags": "EnableScipInt | NdInterrupt"
+  },
+  {
+   "ts": "11:59:49.472",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "11:59:49.472",
+   "ev": "control",
+   "value": "0x0001",
+   "flags": "EnableScipInt"
+  },
+  {
+   "ts": "11:59:49.475",
+   "ev": "control",
+   "value": "0x0005",
+   "flags": "EnableScipInt | NdInterrupt"
+  },
+  {
+   "ts": "11:59:49.475",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "11:59:49.476",
+   "ev": "control",
+   "value": "0x0001",
+   "flags": "EnableScipInt"
+  },
+  {
+   "ts": "11:59:49.479",
+   "ev": "control",
+   "value": "0x0005",
+   "flags": "EnableScipInt | NdInterrupt"
+  },
+  {
+   "ts": "11:59:49.479",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "11:59:49.480",
+   "ev": "control",
+   "value": "0x0001",
+   "flags": "EnableScipInt"
+  },
+  {
+   "ts": "11:59:49.481",
+   "ev": "call",
+   "pil": 12,
+   "func": "XFRRE",
+   "A": "0x0005",
+   "D": "0x0004",
+   "X": "0xE97C",
+   "args": "port A=0x0005 D=0x0004 X=0xE97C"
+  },
+  {
+   "ts": "11:59:49.482",
+   "ev": "control",
+   "value": "0x0005",
+   "flags": "EnableScipInt | NdInterrupt"
+  },
+  {
+   "ts": "11:59:49.482",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "11:59:49.482",
+   "ev": "control",
+   "value": "0x0001",
+   "flags": "EnableScipInt"
+  },
+  {
+   "ts": "11:59:49.495",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "11:59:49.496",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "11:59:49.497",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 24,
+    "params": [
+     {
+      "num": 39,
+      "type": "int",
+      "len": 9,
+      "value": "2A584D2D454E4E5330"
+     },
+     {
+      "num": 3,
+      "type": "str",
+      "len": 5,
+      "text": "ENNS0"
+     },
+     {
+      "num": 10,
+      "type": "int",
+      "len": 2,
+      "value": "0x0001",
+      "dec": 1
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "11:59:49.497",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFMST",
+   "A": "0xFFFF",
+   "D": "0x0004",
+   "X": "0x0001",
+   "args": "handle A=0xFFFF D=0x0004 X=0x0001"
+  },
+  {
+   "ts": "11:59:49.498",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "10",
+   "addr": "0x1E30",
+   "args": "NBYTES=10 Address=0x1E30 Displacement=0[0x0255][0x0006][0x0104][0x0064][0x02FE]"
+  },
+  {
+   "ts": "11:59:49.499",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00640000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00640000 Sending port: 4"
+  },
+  {
+   "ts": "11:59:49.505",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "11:59:49.506",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0255",
+    "serial": 2,
+    "kind": "request",
+    "service": 85,
+    "service_name": "XSNET",
+    "byte_len": 6,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 4,
+      "value": "006402FE"
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "11:59:49.506",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFMST",
+   "A": "0xE385",
+   "D": "0x000A",
+   "X": "0x0015",
+   "args": "handle A=0xE385 D=0x000A X=0x0015"
+  },
+  {
+   "ts": "11:59:49.507",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFM2P",
+   "args": "Magic number:  A:0x0064 D:0x0271"
+  },
+  {
+   "ts": "11:59:49.508",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFOPN",
+   "args": ""
+  },
+  {
+   "ts": "11:59:49.509",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFP2M",
+   "args": ""
+  },
+  {
+   "ts": "11:59:49.510",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFGET",
+   "args": ""
+  },
+  {
+   "ts": "11:59:49.511",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFDUB",
+   "args": ""
+  },
+  {
+   "ts": "11:59:49.511",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFGET",
+   "args": ""
+  },
+  {
+   "ts": "11:59:49.512",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFDUB",
+   "args": ""
+  },
+  {
+   "ts": "11:59:49.513",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFGET",
+   "args": ""
+  },
+  {
+   "ts": "11:59:49.514",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFDUB",
+   "args": ""
+  },
+  {
+   "ts": "11:59:49.515",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFGET",
+   "args": ""
+  },
+  {
+   "ts": "11:59:49.516",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFDUB",
+   "args": ""
+  },
+  {
+   "ts": "11:59:49.517",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFGET",
+   "args": ""
+  },
+  {
+   "ts": "11:59:49.518",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFDUB",
+   "args": ""
+  },
+  {
+   "ts": "11:59:49.519",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFGET",
+   "args": ""
+  },
+  {
+   "ts": "11:59:49.520",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFGET",
+   "args": ""
+  },
+  {
+   "ts": "11:59:49.522",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "10",
+   "addr": "0x199F",
+   "args": "NBYTES=10 Address=0x199F Displacement=0[0x0081][0x2648][0x0270][0x00C8][0x0032]"
+  },
+  {
+   "ts": "11:59:49.523",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSCM",
+   "args": ""
+  },
+  {
+   "ts": "11:59:49.525",
+   "ev": "control",
+   "value": "0x0005",
+   "flags": "EnableScipInt | NdInterrupt"
+  },
+  {
+   "ts": "11:59:49.525",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "11:59:49.528",
+   "ev": "call",
+   "pil": 12,
+   "func": "XFRRE",
+   "A": "0x0005",
+   "D": "0x0004",
+   "X": "0xE97C",
+   "args": "port A=0x0005 D=0x0004 X=0xE97C"
+  },
+  {
+   "ts": "11:59:49.529",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "11:59:49.529",
+   "ev": "control",
+   "value": "0x0001",
+   "flags": "EnableScipInt"
+  },
+  {
+   "ts": "11:59:49.531",
+   "ev": "control",
+   "value": "0x0005",
+   "flags": "EnableScipInt | NdInterrupt"
+  },
+  {
+   "ts": "11:59:49.531",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "11:59:49.532",
+   "ev": "control",
+   "value": "0x0001",
+   "flags": "EnableScipInt"
+  },
+  {
+   "ts": "11:59:49.535",
+   "ev": "control",
+   "value": "0x0005",
+   "flags": "EnableScipInt | NdInterrupt"
+  },
+  {
+   "ts": "11:59:49.535",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "11:59:49.535",
+   "ev": "control",
+   "value": "0x0001",
+   "flags": "EnableScipInt"
+  },
+  {
+   "ts": "11:59:49.540",
+   "ev": "control",
+   "value": "0x0005",
+   "flags": "EnableScipInt | NdInterrupt"
+  },
+  {
+   "ts": "11:59:49.540",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "11:59:49.540",
+   "ev": "control",
+   "value": "0x0001",
+   "flags": "EnableScipInt"
+  },
+  {
+   "ts": "11:59:49.542",
+   "ev": "call",
+   "pil": 12,
+   "func": "XFRRE",
+   "A": "0x0005",
+   "D": "0x0004",
+   "X": "0xE97C",
+   "args": "port A=0x0005 D=0x0004 X=0xE97C"
+  },
+  {
+   "ts": "11:59:49.563",
+   "ev": "control",
+   "value": "0x0005",
+   "flags": "EnableScipInt | NdInterrupt"
+  },
+  {
+   "ts": "11:59:49.563",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "11:59:49.565",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "11:59:49.566",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "11:59:49.567",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "11:59:49.568",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "11:59:49.569",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "11:59:49.570",
+   "ev": "control",
+   "value": "0x0001",
+   "flags": "EnableScipInt"
+  },
+  {
+   "ts": "11:59:49.702",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "12",
+   "addr": "0x00D6",
+   "args": "NBYTES=12 Address=0x00D6 Displacement=0[0x0200][0x0008][0x0102][0x0003][0x0202][0x0001]"
+  },
+  {
+   "ts": "11:59:49.703",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "11:59:49.704",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "11:59:49.739",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "11:59:49.752",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "11:59:49.753",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "11:59:49.754",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0200",
+    "serial": 2,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 8,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x0003",
+      "dec": 3
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0001",
+      "dec": 1
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "11:59:49.754",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREL",
+   "args": ""
+  },
+  {
+   "ts": "11:59:52.605",
+   "ev": "call",
+   "pil": 2,
+   "func": "XFDCT",
+   "args": "Disconnect from message system"
+  },
+  {
+   "ts": "11:59:52.605",
+   "ev": "call",
+   "pil": 2,
+   "func": "XFDCT",
+   "args": "Disconnect from message system"
+  },
+  {
+   "ts": "12:00:22.602",
+   "ev": "call",
+   "pil": 2,
+   "func": "XFDCT",
+   "args": "Disconnect from message system"
+  },
+  {
+   "ts": "12:00:22.602",
+   "ev": "call",
+   "pil": 2,
+   "func": "XFDCT",
+   "args": "Disconnect from message system"
+  },
+  {
+   "ts": "12:00:35.729",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "2",
+   "args": "Receiving port:  2"
+  },
+  {
+   "ts": "12:00:35.730",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "3",
+   "args": "Receiving port:  3"
+  },
+  {
+   "ts": "12:00:35.738",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFGST",
+   "args": ""
+  },
+  {
+   "ts": "12:00:39.964",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFGET",
+   "args": ""
+  },
+  {
+   "ts": "12:00:39.966",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSCM",
+   "args": ""
+  },
+  {
+   "ts": "12:00:39.971",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "10",
+   "addr": "0x1E30",
+   "args": "NBYTES=10 Address=0x1E30 Displacement=0[0x0152][0x0006][0xFF04][0x4432][0x5858]"
+  },
+  {
+   "ts": "12:00:39.973",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "12:00:39.982",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "12:00:39.984",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 4,
+    "params": [
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:39.984",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "8",
+   "addr": "0x00D6",
+   "args": "NBYTES=8 Address=0x00D6 Displacement=0[0x0100][0x0004][0x0202][0x45B8]"
+  },
+  {
+   "ts": "12:00:39.985",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "12:00:39.987",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "12:00:40.009",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "12:00:40.011",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "12:00:40.013",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 4,
+    "params": [
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:40.013",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "8",
+   "addr": "0x1E30",
+   "args": "NBYTES=8 Address=0x1E30 Displacement=0[0x014B][0x0004][0x0102][0x45B8]"
+  },
+  {
+   "ts": "12:00:40.014",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "12:00:40.020",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "12:00:40.022",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:40.022",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "20",
+   "addr": "0x00D6",
+   "args": "NBYTES=20 Address=0x00D6 Displacement=0[0x0100][0x0010][0x0102][0x0000][0x0202][0x0000][0x0302][0x0000][0x0402][0x0000]"
+  },
+  {
+   "ts": "12:00:40.023",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "12:00:40.024",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "12:00:40.042",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "12:00:40.043",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "12:00:40.045",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:40.045",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSCM",
+   "args": ""
+  },
+  {
+   "ts": "12:00:40.049",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "40",
+   "addr": "0x1E30",
+   "args": "NBYTES=40 Address=0x1E30 Displacement=0[0x0441][0x0024][0x0B02][0x45B8][0xFF09][0x2A58][0x4D2D][0x454E][0x4E53][0x3000][0xF401][0x3000][0x0D02][0x0000][0x0E02][0x0000][0x0F02][0x0000][0x0A02][0x0002]"
+  },
+  {
+   "ts": "12:00:40.050",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "12:00:40.056",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "12:00:40.058",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0441",
+    "serial": 4,
+    "kind": "request",
+    "service": 65,
+    "service_name": "XSLET",
+    "byte_len": 36,
+    "params": [
+     {
+      "num": 11,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 1,
+      "type": "str",
+      "len": 9,
+      "text": "*XM-ENNS0"
+     },
+     {
+      "num": 12,
+      "type": "str",
+      "len": 1,
+      "text": "0"
+     },
+     {
+      "num": 13,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     },
+     {
+      "num": 14,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     },
+     {
+      "num": 15,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     },
+     {
+      "num": 10,
+      "type": "int",
+      "len": 2,
+      "value": "0x0002",
+      "dec": 2
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:40.058",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x006402FE",
+   "send_port": "1",
+   "args": "Receiving port: 0x006402FE Sending port: 1"
+  },
+  {
+   "ts": "12:00:40.059",
+   "ev": "control",
+   "value": "0x0005",
+   "flags": "EnableScipInt | NdInterrupt"
+  },
+  {
+   "ts": "12:00:40.059",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "12:00:40.059",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "12:00:40.061",
+   "ev": "call",
+   "pil": 12,
+   "func": "XFRRE",
+   "A": "0x0005",
+   "D": "0x0004",
+   "X": "0xE97C",
+   "args": "port A=0x0005 D=0x0004 X=0xE97C"
+  },
+  {
+   "ts": "12:00:40.063",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "12:00:40.063",
+   "ev": "control",
+   "value": "0x0001",
+   "flags": "EnableScipInt"
+  },
+  {
+   "ts": "12:00:40.066",
+   "ev": "control",
+   "value": "0x0005",
+   "flags": "EnableScipInt | NdInterrupt"
+  },
+  {
+   "ts": "12:00:40.066",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "12:00:40.066",
+   "ev": "control",
+   "value": "0x0001",
+   "flags": "EnableScipInt"
+  },
+  {
+   "ts": "12:00:40.069",
+   "ev": "control",
+   "value": "0x0005",
+   "flags": "EnableScipInt | NdInterrupt"
+  },
+  {
+   "ts": "12:00:40.069",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "12:00:40.070",
+   "ev": "control",
+   "value": "0x0001",
+   "flags": "EnableScipInt"
+  },
+  {
+   "ts": "12:00:40.072",
+   "ev": "control",
+   "value": "0x0005",
+   "flags": "EnableScipInt | NdInterrupt"
+  },
+  {
+   "ts": "12:00:40.072",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "12:00:40.072",
+   "ev": "control",
+   "value": "0x0001",
+   "flags": "EnableScipInt"
+  },
+  {
+   "ts": "12:00:40.075",
+   "ev": "control",
+   "value": "0x0005",
+   "flags": "EnableScipInt | NdInterrupt"
+  },
+  {
+   "ts": "12:00:40.075",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "12:00:40.075",
+   "ev": "control",
+   "value": "0x0001",
+   "flags": "EnableScipInt"
+  },
+  {
+   "ts": "12:00:40.080",
+   "ev": "control",
+   "value": "0x0005",
+   "flags": "EnableScipInt | NdInterrupt"
+  },
+  {
+   "ts": "12:00:40.080",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "12:00:40.080",
+   "ev": "control",
+   "value": "0x0001",
+   "flags": "EnableScipInt"
+  },
+  {
+   "ts": "12:00:40.084",
+   "ev": "control",
+   "value": "0x0005",
+   "flags": "EnableScipInt | NdInterrupt"
+  },
+  {
+   "ts": "12:00:40.084",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "12:00:40.084",
+   "ev": "control",
+   "value": "0x0001",
+   "flags": "EnableScipInt"
+  },
+  {
+   "ts": "12:00:40.087",
+   "ev": "control",
+   "value": "0x0005",
+   "flags": "EnableScipInt | NdInterrupt"
+  },
+  {
+   "ts": "12:00:40.087",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "12:00:40.087",
+   "ev": "control",
+   "value": "0x0001",
+   "flags": "EnableScipInt"
+  },
+  {
+   "ts": "12:00:40.092",
+   "ev": "control",
+   "value": "0x0005",
+   "flags": "EnableScipInt | NdInterrupt"
+  },
+  {
+   "ts": "12:00:40.092",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "12:00:40.092",
+   "ev": "control",
+   "value": "0x0001",
+   "flags": "EnableScipInt"
+  },
+  {
+   "ts": "12:00:40.097",
+   "ev": "control",
+   "value": "0x0005",
+   "flags": "EnableScipInt | NdInterrupt"
+  },
+  {
+   "ts": "12:00:40.097",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "12:00:40.098",
+   "ev": "control",
+   "value": "0x0001",
+   "flags": "EnableScipInt"
+  },
+  {
+   "ts": "12:00:40.100",
+   "ev": "call",
+   "pil": 12,
+   "func": "XFRRE",
+   "A": "0x0005",
+   "D": "0x0004",
+   "X": "0xE97C",
+   "args": "port A=0x0005 D=0x0004 X=0xE97C"
+  },
+  {
+   "ts": "12:00:40.101",
+   "ev": "control",
+   "value": "0x0005",
+   "flags": "EnableScipInt | NdInterrupt"
+  },
+  {
+   "ts": "12:00:40.102",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "12:00:40.102",
+   "ev": "control",
+   "value": "0x0001",
+   "flags": "EnableScipInt"
+  },
+  {
+   "ts": "12:00:40.116",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "12:00:40.117",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "12:00:40.118",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0400",
+    "serial": 4,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 36,
+    "params": [
+     {
+      "num": 17,
+      "type": "int",
+      "len": 2,
+      "value": "0x2648",
+      "dec": 9800
+     },
+     {
+      "num": 39,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     },
+     {
+      "num": 39,
+      "type": "int",
+      "len": 83,
+      "value": "30000A0200012720202020202020202020202020202020202020202020202020202020202020202020202020202025202020202020202020202020202020202020202020202020202020"
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:40.118",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFMST",
+   "A": "0xFFFF",
+   "D": "0x0008",
+   "X": "0x0001",
+   "args": "handle A=0xFFFF D=0x0008 X=0x0001"
+  },
+  {
+   "ts": "12:00:40.119",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "12",
+   "addr": "0x1E30",
+   "args": "NBYTES=12 Address=0x1E30 Displacement=0[0x054A][0x0008][0x0102][0x45B8][0x0202][0x2648]"
+  },
+  {
+   "ts": "12:00:40.120",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00640000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00640000 Sending port: 4"
+  },
+  {
+   "ts": "12:00:40.126",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "12:00:40.127",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x054A",
+    "serial": 5,
+    "kind": "request",
+    "service": 74,
+    "service_name": "XSDSY",
+    "byte_len": 8,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x2648",
+      "dec": 9800
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:40.127",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFMST",
+   "A": "0xE385",
+   "D": "0x000C",
+   "X": "0x000A",
+   "args": "handle A=0xE385 D=0x000C X=0x000A"
+  },
+  {
+   "ts": "12:00:40.128",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFM2P",
+   "args": "Magic number:  A:0x0064 D:0x0271"
+  },
+  {
+   "ts": "12:00:40.151",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "4",
+   "addr": "0x00D6",
+   "args": "NBYTES=4 Address=0x00D6 Displacement=0[0x0500][0x0000]"
+  },
+  {
+   "ts": "12:00:40.152",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "12:00:40.154",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "12:00:40.176",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "12:00:40.177",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "12:00:40.179",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0500",
+    "serial": 5,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 0,
+    "params": []
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:40.179",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREL",
+   "args": ""
+  },
+  {
+   "ts": "12:00:46.338",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFGET",
+   "args": ""
+  },
+  {
+   "ts": "12:00:46.341",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSCM",
+   "args": ""
+  },
+  {
+   "ts": "12:00:46.344",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "10",
+   "addr": "0x1E30",
+   "args": "NBYTES=10 Address=0x1E30 Displacement=0[0x0152][0x0006][0xFF04][0x4131][0x3031]"
+  },
+  {
+   "ts": "12:00:46.346",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "12:00:46.356",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "12:00:46.359",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 4,
+    "params": [
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x5CDC",
+      "dec": 23772
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:46.359",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "8",
+   "addr": "0x00D6",
+   "args": "NBYTES=8 Address=0x00D6 Displacement=0[0x0100][0x0004][0x0202][0x5CDC]"
+  },
+  {
+   "ts": "12:00:46.360",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "12:00:46.362",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "12:00:46.383",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "12:00:46.384",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "12:00:46.387",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 4,
+    "params": [
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x5CDC",
+      "dec": 23772
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:46.387",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "10",
+   "addr": "0x1E30",
+   "args": "NBYTES=10 Address=0x1E30 Displacement=0[0x0152][0x0006][0xFF04][0x4432][0x5858]"
+  },
+  {
+   "ts": "12:00:46.389",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "12:00:46.399",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "12:00:46.400",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 4,
+    "params": [
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:46.400",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "8",
+   "addr": "0x00D6",
+   "args": "NBYTES=8 Address=0x00D6 Displacement=0[0x0100][0x0004][0x0202][0x45B8]"
+  },
+  {
+   "ts": "12:00:46.401",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "12:00:46.402",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "12:00:46.415",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "12:00:46.416",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "12:00:46.418",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 4,
+    "params": [
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:46.418",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "12",
+   "addr": "0x1E30",
+   "args": "NBYTES=12 Address=0x1E30 Displacement=0[0x014A][0x0008][0x0102][0x5CDC][0x0202][0x45B8]"
+  },
+  {
+   "ts": "12:00:46.419",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "12:00:46.425",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "12:00:46.427",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x014A",
+    "serial": 1,
+    "kind": "request",
+    "service": 74,
+    "service_name": "XSDSY",
+    "byte_len": 8,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x5CDC",
+      "dec": 23772
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:46.427",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFMST",
+   "A": "0xE385",
+   "D": "0x000C",
+   "X": "0x000A",
+   "args": "handle A=0xE385 D=0x000C X=0x000A"
+  },
+  {
+   "ts": "12:00:46.429",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFM2P",
+   "args": "Magic number:  A:0x0064 D:0x0271"
+  },
+  {
+   "ts": "12:00:46.468",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "4",
+   "addr": "0x00D6",
+   "args": "NBYTES=4 Address=0x00D6 Displacement=0[0x0100][0x0000]"
+  },
+  {
+   "ts": "12:00:46.470",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "12:00:46.471",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "12:00:46.492",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "12:00:46.492",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "12:00:46.493",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 0,
+    "params": []
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:46.493",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREL",
+   "args": ""
+  },
+  {
+   "ts": "12:00:49.488",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFGET",
+   "args": ""
+  },
+  {
+   "ts": "12:00:49.489",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSCM",
+   "args": ""
+  },
+  {
+   "ts": "12:00:49.492",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "10",
+   "addr": "0x1E30",
+   "args": "NBYTES=10 Address=0x1E30 Displacement=0[0x0152][0x0006][0xFF04][0x4131][0x3032]"
+  },
+  {
+   "ts": "12:00:49.494",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "12:00:49.502",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "12:00:49.504",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 4,
+    "params": [
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x52C6",
+      "dec": 21190
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:49.504",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "8",
+   "addr": "0x00D6",
+   "args": "NBYTES=8 Address=0x00D6 Displacement=0[0x0100][0x0004][0x0202][0x52C6]"
+  },
+  {
+   "ts": "12:00:49.506",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "12:00:49.507",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "12:00:49.524",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "12:00:49.526",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "12:00:49.529",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 4,
+    "params": [
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x52C6",
+      "dec": 21190
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:49.529",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "10",
+   "addr": "0x1E30",
+   "args": "NBYTES=10 Address=0x1E30 Displacement=0[0x0152][0x0006][0xFF04][0x4432][0x5858]"
+  },
+  {
+   "ts": "12:00:49.531",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "12:00:49.539",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "12:00:49.542",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 4,
+    "params": [
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:49.542",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "8",
+   "addr": "0x00D6",
+   "args": "NBYTES=8 Address=0x00D6 Displacement=0[0x0100][0x0004][0x0202][0x45B8]"
+  },
+  {
+   "ts": "12:00:49.543",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "12:00:49.545",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "12:00:49.564",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "12:00:49.565",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "12:00:49.568",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 4,
+    "params": [
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:49.568",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "12",
+   "addr": "0x1E30",
+   "args": "NBYTES=12 Address=0x1E30 Displacement=0[0x014A][0x0008][0x0102][0x52C6][0x0202][0x45B8]"
+  },
+  {
+   "ts": "12:00:49.569",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "12:00:49.582",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "12:00:49.584",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x014A",
+    "serial": 1,
+    "kind": "request",
+    "service": 74,
+    "service_name": "XSDSY",
+    "byte_len": 8,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x52C6",
+      "dec": 21190
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:49.584",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFMST",
+   "A": "0xE385",
+   "D": "0x000C",
+   "X": "0x000A",
+   "args": "handle A=0xE385 D=0x000C X=0x000A"
+  },
+  {
+   "ts": "12:00:49.585",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFM2P",
+   "args": "Magic number:  A:0x0064 D:0x0271"
+  },
+  {
+   "ts": "12:00:49.626",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "4",
+   "addr": "0x00D6",
+   "args": "NBYTES=4 Address=0x00D6 Displacement=0[0x0100][0x0000]"
+  },
+  {
+   "ts": "12:00:49.626",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "12:00:49.627",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "12:00:49.657",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "12:00:49.658",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "12:00:49.658",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 0,
+    "params": []
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:49.659",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREL",
+   "args": ""
+  },
+  {
+   "ts": "12:00:52.610",
+   "ev": "call",
+   "pil": 2,
+   "func": "XFDCT",
+   "args": "Disconnect from message system"
+  },
+  {
+   "ts": "12:00:52.610",
+   "ev": "call",
+   "pil": 2,
+   "func": "XFDCT",
+   "args": "Disconnect from message system"
+  },
+  {
+   "ts": "12:00:52.628",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFGET",
+   "args": ""
+  },
+  {
+   "ts": "12:00:52.630",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSCM",
+   "args": ""
+  },
+  {
+   "ts": "12:00:52.633",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "10",
+   "addr": "0x1E30",
+   "args": "NBYTES=10 Address=0x1E30 Displacement=0[0x0152][0x0006][0xFF04][0x4131][0x3033]"
+  },
+  {
+   "ts": "12:00:52.634",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "12:00:52.641",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "12:00:52.644",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 4,
+    "params": [
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x59C3",
+      "dec": 22979
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:52.644",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "8",
+   "addr": "0x00D6",
+   "args": "NBYTES=8 Address=0x00D6 Displacement=0[0x0100][0x0004][0x0202][0x59C3]"
+  },
+  {
+   "ts": "12:00:52.646",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "12:00:52.647",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "12:00:52.668",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "12:00:52.669",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "12:00:52.671",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 4,
+    "params": [
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x59C3",
+      "dec": 22979
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:52.671",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "10",
+   "addr": "0x1E30",
+   "args": "NBYTES=10 Address=0x1E30 Displacement=0[0x0152][0x0006][0xFF04][0x4432][0x5858]"
+  },
+  {
+   "ts": "12:00:52.673",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "12:00:52.682",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "12:00:52.684",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 4,
+    "params": [
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:52.684",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "8",
+   "addr": "0x00D6",
+   "args": "NBYTES=8 Address=0x00D6 Displacement=0[0x0100][0x0004][0x0202][0x45B8]"
+  },
+  {
+   "ts": "12:00:52.685",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "12:00:52.686",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "12:00:52.699",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "12:00:52.700",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "12:00:52.702",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 4,
+    "params": [
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:52.702",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "12",
+   "addr": "0x1E30",
+   "args": "NBYTES=12 Address=0x1E30 Displacement=0[0x014A][0x0008][0x0102][0x59C3][0x0202][0x45B8]"
+  },
+  {
+   "ts": "12:00:52.704",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "12:00:52.713",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "12:00:52.714",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x014A",
+    "serial": 1,
+    "kind": "request",
+    "service": 74,
+    "service_name": "XSDSY",
+    "byte_len": 8,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x59C3",
+      "dec": 22979
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:52.715",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFMST",
+   "A": "0xE385",
+   "D": "0x000C",
+   "X": "0x000A",
+   "args": "handle A=0xE385 D=0x000C X=0x000A"
+  },
+  {
+   "ts": "12:00:52.715",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFM2P",
+   "args": "Magic number:  A:0x0064 D:0x0271"
+  },
+  {
+   "ts": "12:00:52.748",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "4",
+   "addr": "0x00D6",
+   "args": "NBYTES=4 Address=0x00D6 Displacement=0[0x0100][0x0000]"
+  },
+  {
+   "ts": "12:00:52.750",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "12:00:52.751",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "12:00:52.769",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "12:00:52.769",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "12:00:52.770",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 0,
+    "params": []
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:52.770",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREL",
+   "args": ""
+  },
+  {
+   "ts": "12:00:55.735",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFGET",
+   "args": ""
+  },
+  {
+   "ts": "12:00:55.737",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSCM",
+   "args": ""
+  },
+  {
+   "ts": "12:00:55.739",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "8",
+   "addr": "0x1E30",
+   "args": "NBYTES=8 Address=0x1E30 Displacement=0[0x014B][0x0004][0x0102][0x0001]"
+  },
+  {
+   "ts": "12:00:55.740",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "12:00:55.746",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "12:00:55.748",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x0064",
+      "dec": 100
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0004",
+      "dec": 4
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x0064",
+      "dec": 100
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:55.748",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "20",
+   "addr": "0x00D6",
+   "args": "NBYTES=20 Address=0x00D6 Displacement=0[0x0100][0x0010][0x0102][0x0064][0x0202][0x0004][0x0302][0x0064][0x0402][0x0000]"
+  },
+  {
+   "ts": "12:00:55.748",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "12:00:55.749",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "12:00:55.762",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "12:00:55.763",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "12:00:55.807",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x0064",
+      "dec": 100
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0004",
+      "dec": 4
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x0064",
+      "dec": 100
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:55.807",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "8",
+   "addr": "0x1E30",
+   "args": "NBYTES=8 Address=0x1E30 Displacement=0[0x014B][0x0004][0x0102][0x0064]"
+  },
+  {
+   "ts": "12:00:55.808",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "12:00:55.815",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "12:00:55.817",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x0064",
+      "dec": 100
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0004",
+      "dec": 4
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x0064",
+      "dec": 100
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:55.817",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "20",
+   "addr": "0x00D6",
+   "args": "NBYTES=20 Address=0x00D6 Displacement=0[0x0100][0x0010][0x0102][0x0064][0x0202][0x0004][0x0302][0x0064][0x0402][0x0000]"
+  },
+  {
+   "ts": "12:00:55.817",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "12:00:55.818",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "12:00:55.831",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "12:00:55.832",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "12:00:55.852",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x0064",
+      "dec": 100
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0004",
+      "dec": 4
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x0064",
+      "dec": 100
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:55.852",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "8",
+   "addr": "0x1E30",
+   "args": "NBYTES=8 Address=0x1E30 Displacement=0[0x014B][0x0004][0x0102][0x0064]"
+  },
+  {
+   "ts": "12:00:55.854",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "12:00:55.861",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "12:00:55.863",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x0064",
+      "dec": 100
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0004",
+      "dec": 4
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x0064",
+      "dec": 100
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:55.863",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "20",
+   "addr": "0x00D6",
+   "args": "NBYTES=20 Address=0x00D6 Displacement=0[0x0100][0x0010][0x0102][0x0064][0x0202][0x0004][0x0302][0x0064][0x0402][0x0000]"
+  },
+  {
+   "ts": "12:00:55.864",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "12:00:55.865",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "12:00:55.879",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "12:00:55.880",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "12:00:55.899",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x0064",
+      "dec": 100
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0004",
+      "dec": 4
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x0064",
+      "dec": 100
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:55.899",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "8",
+   "addr": "0x1E30",
+   "args": "NBYTES=8 Address=0x1E30 Displacement=0[0x014B][0x0004][0x0102][0x0064]"
+  },
+  {
+   "ts": "12:00:55.901",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "12:00:55.909",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "12:00:55.912",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x0064",
+      "dec": 100
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0004",
+      "dec": 4
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x0064",
+      "dec": 100
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:55.912",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "20",
+   "addr": "0x00D6",
+   "args": "NBYTES=20 Address=0x00D6 Displacement=0[0x0100][0x0010][0x0102][0x0064][0x0202][0x0004][0x0302][0x0064][0x0402][0x0000]"
+  },
+  {
+   "ts": "12:00:55.913",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "12:00:55.914",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "12:00:55.930",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "12:00:55.932",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "12:00:55.939",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x0064",
+      "dec": 100
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0004",
+      "dec": 4
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x0064",
+      "dec": 100
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:55.939",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "8",
+   "addr": "0x1E30",
+   "args": "NBYTES=8 Address=0x1E30 Displacement=0[0x014B][0x0004][0x0102][0x0065]"
+  },
+  {
+   "ts": "12:00:55.941",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "12:00:55.951",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "12:00:55.954",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x2648",
+      "dec": 9800
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0001",
+      "dec": 1
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x0001",
+      "dec": 1
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:55.954",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "20",
+   "addr": "0x00D6",
+   "args": "NBYTES=20 Address=0x00D6 Displacement=0[0x0100][0x0010][0x0102][0x2648][0x0202][0x0001][0x0302][0x0001][0x0402][0x0000]"
+  },
+  {
+   "ts": "12:00:55.954",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "12:00:55.955",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "12:00:55.971",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "12:00:55.972",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "12:00:55.973",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x2648",
+      "dec": 9800
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0001",
+      "dec": 1
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x0001",
+      "dec": 1
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:55.973",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "8",
+   "addr": "0x1E30",
+   "args": "NBYTES=8 Address=0x1E30 Displacement=0[0x014B][0x0004][0x0102][0x2710]"
+  },
+  {
+   "ts": "12:00:55.974",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "12:00:55.980",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "12:00:55.983",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0003",
+      "dec": 3
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:55.983",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "20",
+   "addr": "0x00D6",
+   "args": "NBYTES=20 Address=0x00D6 Displacement=0[0x0100][0x0010][0x0102][0x45B8][0x0202][0x0003][0x0302][0x45B8][0x0402][0x0000]"
+  },
+  {
+   "ts": "12:00:55.984",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "12:00:55.985",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "12:00:55.999",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "12:00:56.000",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "12:00:56.014",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0003",
+      "dec": 3
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:56.015",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "8",
+   "addr": "0x1E30",
+   "args": "NBYTES=8 Address=0x1E30 Displacement=0[0x014B][0x0004][0x0102][0x45B8]"
+  },
+  {
+   "ts": "12:00:56.016",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "12:00:56.022",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "12:00:56.024",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0003",
+      "dec": 3
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:56.024",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "20",
+   "addr": "0x00D6",
+   "args": "NBYTES=20 Address=0x00D6 Displacement=0[0x0100][0x0010][0x0102][0x45B8][0x0202][0x0003][0x0302][0x45B8][0x0402][0x0000]"
+  },
+  {
+   "ts": "12:00:56.025",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "12:00:56.026",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "12:00:56.038",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "12:00:56.039",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "12:00:56.067",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0003",
+      "dec": 3
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:56.067",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "8",
+   "addr": "0x1E30",
+   "args": "NBYTES=8 Address=0x1E30 Displacement=0[0x014B][0x0004][0x0102][0x45B8]"
+  },
+  {
+   "ts": "12:00:56.068",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "12:00:56.074",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "12:00:56.077",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0003",
+      "dec": 3
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:56.077",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "20",
+   "addr": "0x00D6",
+   "args": "NBYTES=20 Address=0x00D6 Displacement=0[0x0100][0x0010][0x0102][0x45B8][0x0202][0x0003][0x0302][0x45B8][0x0402][0x0000]"
+  },
+  {
+   "ts": "12:00:56.077",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "12:00:56.078",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "12:00:56.091",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "12:00:56.092",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "12:00:56.113",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0003",
+      "dec": 3
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:56.113",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "8",
+   "addr": "0x1E30",
+   "args": "NBYTES=8 Address=0x1E30 Displacement=0[0x014B][0x0004][0x0102][0x45B8]"
+  },
+  {
+   "ts": "12:00:56.114",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "12:00:56.119",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "12:00:56.121",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0003",
+      "dec": 3
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:56.121",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "20",
+   "addr": "0x00D6",
+   "args": "NBYTES=20 Address=0x00D6 Displacement=0[0x0100][0x0010][0x0102][0x45B8][0x0202][0x0003][0x0302][0x45B8][0x0402][0x0000]"
+  },
+  {
+   "ts": "12:00:56.122",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "12:00:56.123",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "12:00:56.139",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "12:00:56.140",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "12:00:56.150",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0003",
+      "dec": 3
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:56.150",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "8",
+   "addr": "0x1E30",
+   "args": "NBYTES=8 Address=0x1E30 Displacement=0[0x014B][0x0004][0x0102][0x45B9]"
+  },
+  {
+   "ts": "12:00:56.151",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "12:00:56.157",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "12:00:56.159",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x52C6",
+      "dec": 21190
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0002",
+      "dec": 2
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:56.159",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "20",
+   "addr": "0x00D6",
+   "args": "NBYTES=20 Address=0x00D6 Displacement=0[0x0100][0x0010][0x0102][0x52C6][0x0202][0x0002][0x0302][0x45B8][0x0402][0x0000]"
+  },
+  {
+   "ts": "12:00:56.160",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "12:00:56.160",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "12:00:56.173",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "12:00:56.174",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "12:00:56.191",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x52C6",
+      "dec": 21190
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0002",
+      "dec": 2
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:56.191",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "8",
+   "addr": "0x1E30",
+   "args": "NBYTES=8 Address=0x1E30 Displacement=0[0x014B][0x0004][0x0102][0x52C6]"
+  },
+  {
+   "ts": "12:00:56.192",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "12:00:56.199",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "12:00:56.201",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x52C6",
+      "dec": 21190
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0002",
+      "dec": 2
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:56.201",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "20",
+   "addr": "0x00D6",
+   "args": "NBYTES=20 Address=0x00D6 Displacement=0[0x0100][0x0010][0x0102][0x52C6][0x0202][0x0002][0x0302][0x45B8][0x0402][0x0000]"
+  },
+  {
+   "ts": "12:00:56.202",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "12:00:56.202",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "12:00:56.218",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "12:00:56.220",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "12:00:56.221",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x52C6",
+      "dec": 21190
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0002",
+      "dec": 2
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:56.221",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "8",
+   "addr": "0x1E30",
+   "args": "NBYTES=8 Address=0x1E30 Displacement=0[0x014B][0x0004][0x0102][0x45B8]"
+  },
+  {
+   "ts": "12:00:56.224",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "12:00:56.233",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "12:00:56.236",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0003",
+      "dec": 3
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:56.236",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "20",
+   "addr": "0x00D6",
+   "args": "NBYTES=20 Address=0x00D6 Displacement=0[0x0100][0x0010][0x0102][0x45B8][0x0202][0x0003][0x0302][0x45B8][0x0402][0x0000]"
+  },
+  {
+   "ts": "12:00:56.237",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "12:00:56.239",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "12:00:56.253",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "12:00:56.254",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "12:00:56.303",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0003",
+      "dec": 3
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:56.303",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "8",
+   "addr": "0x1E30",
+   "args": "NBYTES=8 Address=0x1E30 Displacement=0[0x014B][0x0004][0x0102][0x52C6]"
+  },
+  {
+   "ts": "12:00:56.304",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "12:00:56.310",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "12:00:56.311",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x52C6",
+      "dec": 21190
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0002",
+      "dec": 2
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:56.311",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "20",
+   "addr": "0x00D6",
+   "args": "NBYTES=20 Address=0x00D6 Displacement=0[0x0100][0x0010][0x0102][0x52C6][0x0202][0x0002][0x0302][0x45B8][0x0402][0x0000]"
+  },
+  {
+   "ts": "12:00:56.312",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "12:00:56.313",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "12:00:56.333",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "12:00:56.335",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "12:00:56.352",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x52C6",
+      "dec": 21190
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0002",
+      "dec": 2
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:00:56.352",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "8",
+   "addr": "0x1E30",
+   "args": "NBYTES=8 Address=0x1E30 Displacement=0[0x014B][0x0004][0x0102][0x52C6]"
+  },
+  {
+   "ts": "12:00:56.353",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x45B80000",
+   "send_port": "4",
+   "args": "Receiving port: 0x45B80000 Sending port: 4"
+  },
+  {
+   "ts": "12:00:56.358",
+   "ev": "control",
+   "value": "0x0005",
+   "flags": "EnableScipInt | NdInterrupt"
+  },
+  {
+   "ts": "12:00:56.358",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "12:00:56.364",
+   "ev": "control",
+   "value": "0x0001",
+   "flags": "EnableScipInt"
+  },
+  {
+   "ts": "12:00:56.388",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "12:01:11.636",
+   "ev": "control",
+   "value": "0x0005",
+   "flags": "EnableScipInt | NdInterrupt"
+  },
+  {
+   "ts": "12:01:11.637",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "12:01:11.718",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "12:01:11.728",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "12:01:11.966",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x014B",
+    "serial": 1,
+    "kind": "request",
+    "service": 75,
+    "service_name": "XSGSY",
+    "byte_len": 4,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x52C6",
+      "dec": 21190
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:01:11.966",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "8",
+   "addr": "0x1E30",
+   "args": "NBYTES=8 Address=0x1E30 Displacement=0[0x014B][0x0004][0x0102][0x52C6]"
+  },
+  {
+   "ts": "12:01:11.970",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "12:01:11.989",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "12:01:11.995",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x52C6",
+      "dec": 21190
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0002",
+      "dec": 2
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:01:11.996",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "20",
+   "addr": "0x00D6",
+   "args": "NBYTES=20 Address=0x00D6 Displacement=0[0x0100][0x0010][0x0102][0x52C6][0x0202][0x0002][0x0302][0x45B8][0x0402][0x0000]"
+  },
+  {
+   "ts": "12:01:11.998",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "12:01:12.002",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "12:01:12.045",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "12:01:12.050",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "12:01:12.053",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x52C6",
+      "dec": 21190
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0002",
+      "dec": 2
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:01:12.053",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "8",
+   "addr": "0x1E30",
+   "args": "NBYTES=8 Address=0x1E30 Displacement=0[0x014B][0x0004][0x0102][0x45B8]"
+  },
+  {
+   "ts": "12:01:12.059",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "12:01:12.083",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "12:01:12.088",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0003",
+      "dec": 3
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:01:12.088",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "20",
+   "addr": "0x00D6",
+   "args": "NBYTES=20 Address=0x00D6 Displacement=0[0x0100][0x0010][0x0102][0x45B8][0x0202][0x0003][0x0302][0x45B8][0x0402][0x0000]"
+  },
+  {
+   "ts": "12:01:12.090",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "12:01:12.092",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "12:01:12.147",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "12:01:12.149",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "12:01:12.193",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0003",
+      "dec": 3
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:01:12.193",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "8",
+   "addr": "0x1E30",
+   "args": "NBYTES=8 Address=0x1E30 Displacement=0[0x014B][0x0004][0x0102][0x52C7]"
+  },
+  {
+   "ts": "12:01:12.195",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "12:01:12.218",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "12:01:12.227",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x59C3",
+      "dec": 22979
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0002",
+      "dec": 2
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:01:12.227",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "20",
+   "addr": "0x00D6",
+   "args": "NBYTES=20 Address=0x00D6 Displacement=0[0x0100][0x0010][0x0102][0x59C3][0x0202][0x0002][0x0302][0x45B8][0x0402][0x0000]"
+  },
+  {
+   "ts": "12:01:12.230",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "12:01:12.233",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "12:01:12.275",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "12:01:12.277",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "12:01:12.338",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x59C3",
+      "dec": 22979
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0002",
+      "dec": 2
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:01:12.338",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "8",
+   "addr": "0x1E30",
+   "args": "NBYTES=8 Address=0x1E30 Displacement=0[0x014B][0x0004][0x0102][0x59C3]"
+  },
+  {
+   "ts": "12:01:12.342",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "12:01:12.365",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "12:01:12.371",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x59C3",
+      "dec": 22979
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0002",
+      "dec": 2
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:01:12.371",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "20",
+   "addr": "0x00D6",
+   "args": "NBYTES=20 Address=0x00D6 Displacement=0[0x0100][0x0010][0x0102][0x59C3][0x0202][0x0002][0x0302][0x45B8][0x0402][0x0000]"
+  },
+  {
+   "ts": "12:01:12.374",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "12:01:12.379",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "12:01:12.432",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "12:01:12.433",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "12:01:12.443",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x59C3",
+      "dec": 22979
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0002",
+      "dec": 2
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:01:12.443",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "8",
+   "addr": "0x1E30",
+   "args": "NBYTES=8 Address=0x1E30 Displacement=0[0x014B][0x0004][0x0102][0x45B8]"
+  },
+  {
+   "ts": "12:01:12.449",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "12:01:12.484",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "12:01:12.492",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0003",
+      "dec": 3
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:01:12.492",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "20",
+   "addr": "0x00D6",
+   "args": "NBYTES=20 Address=0x00D6 Displacement=0[0x0100][0x0010][0x0102][0x45B8][0x0202][0x0003][0x0302][0x45B8][0x0402][0x0000]"
+  },
+  {
+   "ts": "12:01:12.496",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "12:01:12.498",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "12:01:12.559",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "12:01:12.560",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "12:01:12.784",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0003",
+      "dec": 3
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:01:12.784",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "8",
+   "addr": "0x1E30",
+   "args": "NBYTES=8 Address=0x1E30 Displacement=0[0x014B][0x0004][0x0102][0x59C3]"
+  },
+  {
+   "ts": "12:01:12.786",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x00000000",
+   "send_port": "4",
+   "args": "Receiving port: 0x00000000 Sending port: 4"
+  },
+  {
+   "ts": "12:01:12.816",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "1408",
+   "addr": "0x00D6",
+   "args": "NBYTES=1408 Address=0x00D6 Displacement=0"
+  },
+  {
+   "ts": "12:01:12.821",
+   "ev": "record",
+   "buf": "0x00D6",
+   "nbytes": 1408,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x59C3",
+      "dec": 22979
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0002",
+      "dec": 2
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:01:12.822",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "20",
+   "addr": "0x00D6",
+   "args": "NBYTES=20 Address=0x00D6 Displacement=0[0x0100][0x0010][0x0102][0x59C3][0x0202][0x0002][0x0302][0x45B8][0x0402][0x0000]"
+  },
+  {
+   "ts": "12:01:12.828",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0xFFFFFFFF",
+   "send_port": "1",
+   "args": "Receiving port: 0xFFFFFFFF Sending port: 1"
+  },
+  {
+   "ts": "12:01:12.834",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "1",
+   "args": "Receiving port:  1"
+  },
+  {
+   "ts": "12:01:12.896",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  },
+  {
+   "ts": "12:01:12.897",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFREA",
+   "nbytes": "511",
+   "addr": "0x1D30",
+   "args": "NBYTES=511 Address=0x1D30 Displacement=0"
+  },
+  {
+   "ts": "12:01:12.933",
+   "ev": "record",
+   "buf": "0x1D30",
+   "nbytes": 511,
+   "record": {
+    "word0": "0x0100",
+    "serial": 1,
+    "kind": "reply",
+    "status": 0,
+    "status_name": "XRSOK",
+    "byte_len": 16,
+    "params": [
+     {
+      "num": 1,
+      "type": "int",
+      "len": 2,
+      "value": "0x59C3",
+      "dec": 22979
+     },
+     {
+      "num": 2,
+      "type": "int",
+      "len": 2,
+      "value": "0x0002",
+      "dec": 2
+     },
+     {
+      "num": 3,
+      "type": "int",
+      "len": 2,
+      "value": "0x45B8",
+      "dec": 17848
+     },
+     {
+      "num": 4,
+      "type": "int",
+      "len": 2,
+      "value": "0x0000",
+      "dec": 0
+     }
+    ]
+   },
+   "by_pil": "1"
+  },
+  {
+   "ts": "12:01:12.933",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFWRI",
+   "nbytes": "8",
+   "addr": "0x1E30",
+   "args": "NBYTES=8 Address=0x1E30 Displacement=0[0x014B][0x0004][0x0102][0x59C3]"
+  },
+  {
+   "ts": "12:01:12.935",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFSND",
+   "recv_port": "0x45B80000",
+   "send_port": "4",
+   "args": "Receiving port: 0x45B80000 Sending port: 4"
+  },
+  {
+   "ts": "12:01:12.944",
+   "ev": "mailbox_kick",
+   "request": "0x0000",
+   "subfunction": "0x0005",
+   "note": "ZERO"
+  },
+  {
+   "ts": "12:01:12.956",
+   "ev": "control",
+   "value": "0x0001",
+   "flags": "EnableScipInt"
+  },
+  {
+   "ts": "12:01:13.010",
+   "ev": "call",
+   "pil": 1,
+   "func": "XFRCV",
+   "recv_port": "4",
+   "args": "Receiving port:  4"
+  }
+ ]
+}

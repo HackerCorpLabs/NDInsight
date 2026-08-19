@@ -19,7 +19,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
     /// <summary>
     /// Phase 5 offline parity gate: the restructured seam composition (LapbLayerAdapter + XmsgCodec +
     /// XmsgLayer) must produce byte-for-byte the SAME wire output as the proven legacy composition
-    /// (LiveNode + XmsgNode) when driven with the identical inbound HDLC stream — a scripted
+    /// (LiveNode + XmsgNode) when driven with the identical inbound HDLC stream - a scripted
     /// connect-to handshake (peer SABM, connect request, session-setup). Byte-identical output here
     /// means the seam changed no wire behaviour; the remaining live half of the gate (against machine
     /// 100) is run by the user.

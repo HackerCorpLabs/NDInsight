@@ -7,8 +7,8 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
 {
     /// <summary>
     /// The connect-to CLIENT (asker) side of a TAD terminal session: builds the frames that drive a
-    /// connect-to against a <see cref="TadTerminalResponder"/> — the directory letter, the
-    /// session-setup, the terminal-setup negotiation, and the typed keystroke lines — and tracks its
+    /// connect-to against a <see cref="TadTerminalResponder"/> - the directory letter, the
+    /// session-setup, the terminal-setup negotiation, and the typed keystroke lines - and tracks its
     /// own outgoing datagram sequence. The mirror of the server-side responder.
     /// </summary>
     /// <remarks>
@@ -18,7 +18,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
     /// responder derives its own. Both nodes share the seed, so an in-memory pairing of a client and a
     /// responder is a coherent conversation without a real machine.
     /// <para><b>TAD content</b></para>
-    /// All TAD chains are built through <see cref="TadMessageBuilder"/> (typed, word-aligned) — no
+    /// All TAD chains are built through <see cref="TadMessageBuilder"/> (typed, word-aligned) - no
     /// hand-built byte arrays. The concrete negotiation values (TMOD flags, terminal type, OPSV
     /// version) are OBSERVED from a single capture and will be refined as the TAD spec firms up; they
     /// are isolated here so that refinement is a local change.
@@ -51,7 +51,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// The client's session-source port (its allocated TAD port on the wire).
         /// </param>
         /// <param name="seed">
-        /// The shared link seed (100↔102 = <c>0x14</c>, 100↔103 = <c>0x13</c>); the host learns the
+        /// The shared link seed (100-102 = <c>0x14</c>, 100-103 = <c>0x13</c>); the host learns the
         /// same value from the connect frame this client builds.
         /// </param>
         /// <param name="sequenceStore">
@@ -208,7 +208,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         }
 
         /// <summary>
-        /// Builds an ESCA (escape) control frame — sent once with the terminal-setup chain (spec 22.4).
+        /// Builds an ESCA (escape) control frame - sent once with the terminal-setup chain (spec 22.4).
         /// </summary>
         /// <returns>
         /// The ESCA frame.
@@ -220,7 +220,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         }
 
         /// <summary>
-        /// Builds a RECO (reset-confirm) control frame — the answer to each host RESE (spec 22.4).
+        /// Builds a RECO (reset-confirm) control frame - the answer to each host RESE (spec 22.4).
         /// </summary>
         /// <returns>
         /// The RECO frame.
@@ -232,7 +232,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         }
 
         /// <summary>
-        /// Builds a CERS (escape-response) control frame — sent after each consumed host burst / CESC
+        /// Builds a CERS (escape-response) control frame - sent after each consumed host burst / CESC
         /// transition (spec 22.6).
         /// </summary>
         /// <returns>
@@ -245,7 +245,29 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         }
 
         /// <summary>
-        /// Builds a DUMM (dummy keepalive) control frame — sent when idle (spec 22.6).
+        /// Builds a bare single-opcode control frame carrying ANY opcode, including one
+        /// <see cref="TadOp"/> does not name.
+        /// </summary>
+        /// <remarks>
+        /// The typed builders above cover the ops a real client sends during a session. This is the
+        /// way to drive the ops it sends only when a program is running - ISRQ, NWRE, TREP - and the
+        /// way to present a peer with something it cannot decode, which is what a real TAD answers
+        /// with a REJE (see <see cref="TadRejectPolicy"/>).
+        /// </remarks>
+        /// <param name="opcode">
+        /// The opcode byte to place at the head of the chain.
+        /// </param>
+        /// <returns>
+        /// The assembled control frame.
+        /// </returns>
+        public XmsgFrame BuildBareControl(byte opcode)
+        {
+            return BuildControl((TadOp)opcode, controlService: TerminalDataControlService,
+                role: (byte)(XmsgSendOptions.WaitForTransfer | XmsgSendOptions.Bounce | XmsgSendOptions.RoutedLetter));
+        }
+
+        /// <summary>
+        /// Builds a DUMM (dummy keepalive) control frame - sent when idle (spec 22.6).
         /// </summary>
         /// <returns>
         /// The DUMM frame.
@@ -257,7 +279,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         }
 
         /// <summary>
-        /// Builds a DCON (disconnect) control frame — sent after the host's 0xFD to end the session
+        /// Builds a DCON (disconnect) control frame - sent after the host's 0xFD to end the session
         /// (spec 22.7).
         /// </summary>
         /// <returns>

@@ -7,7 +7,7 @@
 
 **Goal driving this work:** recreate the ND-100 <-> ND-500 communication in the RetroCore emulator.
 **Version under analysis:** L-VSX-500 (L07).
-**Last status refresh:** 2026-07-15.
+**Last status refresh:** 2026-08-11.
 
 **Parent status doc:** [`..\CARVING-HANDOFF.md`](../CARVING-HANDOFF.md) — the overall carving/MON effort.
 This file is the ND-500-specific view; the parent owns ND-100 dispatch and segment status.
@@ -378,7 +378,151 @@ and confirm one stored field is the file connect number or a disc/page address t
 later consumes. Also unchecked: whether `055 ISPLACE` / `056 IEPLACE` / `007 IPLSWAPPER` do a
 bulk transfer instead.
 
-### THE `B-176` STORES ARE RESOLVED - AND ONE OF THEM FEEDS `RPHS` (2026-08-03) `[V]`
+### THE MON 60B "ANSWER RESULT BLOCK 40B-47B" IS DECODED - it is the info-block 5DDn/5Pn array, per-command layouts carved (2026-08-10) `[V]`
+
+Full carve: [`CARVE-ANSWER-RESULT-BLOCKS-2026-08-10.md`](CARVE-ANSWER-RESULT-BLOCKS-2026-08-10.md).
+
+The FUNCS bodies' `,X 40/43/46/47` stores are **NOT message offsets and NOT frame-relative** -
+they are the MON 60 info block's parameter records: `5DD1..5DD5` (32-bit values @ 40/43/46/51/54B)
++ `5P1..5P5` (user addresses @ 42/45/50/53/56B), 3-word stride, L07-SYMBOL + byte-verified
+(`B-11 = S500DF-ZPREG = 165777B` in 030-S3SM5). The NPL post-return `FUNCS @034534` copies
+`5DDn -> [5Pn]` per command. Key per-command results now byte-pinned:
+
+- **RSTAT 041B (STATUS):** 5DD1 = {5015 CSCNT-read half, live RSTA5 half}, 5DD2 = MAR (2x IOXT,
+  MS & 377B), 5DD3 low = **the third word = 5015 WA register & 37777B** (-1 on SAMSON). No mailbox.
+- **REGRE 000 = MICFU 16B `3EXAR`** (msg[7]=reg#, ANSWER msg[10B-11B]=value); **REGWR 001 =
+  17B `3DEPR`** (msg[7]=reg#, msg[10B-11B]=value) - byte-pins the catalog 7c INFERRED layout.
+- **Examine 06B/32B answers at msg[11B-12B]** (request addr @ msg[7-10B]); deposits 07B/33B mirror.
+- **3RMICV answer: msg[7]=version, msg[10B]=CPU parameter.** CSLOA sends a live 3RMICV after
+  micro-start and **VERIFIES msg[7] == the version word extracted from the CS FILE** (word 7 or
+  10B of the image, buffer @166056B), then caches msg[10B] -> `CPUDF[20B]`; `CPUDF[-7]` = version.
+  GETCP 170B is a pure cache read (`CPUDF[27B]&7` type, `(CPUDF[20B]<<16)|CPUDF[-7]`); **RMVER
+  057B's classic branch does a LIVE 3RMICV** (the "RMVER is cached, no HW access" claim is wrong).
+- **Classic microcode cross-check (CONT-STORE-10611):** dispatch `007636+fn` (range check 50B,
+  illegal -> answer status 4 @007740); fn 1 answers `LARG 24563B` (= 10611, the image's own id) via
+  one TAG-code-7 DMA write - version-from-loaded-image proven on BOTH sides; fn 44B writes sampled
+  P (32-bit -> msg[7-10B], matching HISTSAMPLE) + process + AM#15.
+- **SPRES 043B returns nothing** - the caller's `STD ,X 6` word is the reserve-scope INPUT (5DD1).
+
+**Poisoned priors retired:** "`LDX ,B -11` = the message pointer" (FUNCS-BODIES README - it is the
+info block; the message is `B-67`); catalog UNKNOWN #2's "answer block 40B-47B: treat as
+NON-EXISTENT". Emulator consequences (servicer answer writes incl. the CSLOA version-verify trap)
+are listed in the carve doc section 5.
+
+### DEFMC's "051302/051367 IOX helpers" DO NOT EXIST - no MPM BASE register programming (2026-08-10) `[V]`
+
+Full carve: [`CARVE-ANSWER-DEFMC-MPM-BASE-051302-2026-08-10.md`](CARVE-ANSWER-DEFMC-MPM-BASE-051302-2026-08-10.md).
+
+The RetroCore design doc's TODO 2 ("NEXT CARVE: 051302B-051450B to get the actual
+LCON5/limit/BASE IOXT sequence") is answered: **the range holds `RLSWM`/`RELAA`/`RELAL`/`PTOS3`
+(N500-SYMBOLS) and contains not one `IOX`/`IOXT`.** DEFMC's two delegation pool words
+(`M[156056]=051367` RELAA, `M[156057]=051302` RLSWM, byte-verified) point at memory-release
+bookkeeping, not an IOX driver. A whole-segment IOXT scan attributes every site to already
+documented routines (3022 driver, CS loader, TSTPO/CHKST/RSTAT). ND-10.004.01 §2 closes it:
+the MPM-5 port BASE/limit registers are programmed ONLY from the MPM cabinet's own Test and
+Maintenance Program console - never by the ND-100. **Poisoned prior retired:** "DEFMC delegates
+the register programming to IOX-driver helpers at 051367B then 051302B". Emulator consequence:
+no new register; the MPM window base stays machine configuration; DEFMC is a pure software
+answer (ADRZERO value = software allocation: `ALLOC` @171076 -> `SSYSE` store @170705).
+
+### THE TRAP-RECORD FAULT-PARAMETER OFFSETS AND THE MMS STATUS BITS ARE PINNED (2026-08-11) `[V-MC + MANUAL]`
+
+Full carve: [`CARVE-ANSWER-TRAP-RECORD-OFFSETS-AND-MMS-BITS-2026-08-11.md`](CARVE-ANSWER-TRAP-RECORD-OFFSETS-AND-MMS-BITS-2026-08-11.md).
+Closes the two OPEN items of `MICROCODE-ANSWER-TRAP-REPORT-FIELDS-2026-07-20.md` and D4-plan
+task 3.2's residue (the RetroCore `AnswerTrapStop` blocker).
+
+- **Method:** the B30 trap generators' `ADACT`/`ORCON` fields decode as "address for the NEXT
+  microword's memory access; ORCON = byte offset from the message base". Proven on four
+  independent anchors (STOPR@11, trapping P@12, restart P@14, TRAPN@16 - all match the SINTRAN
+  symbols exactly).
+- **Page fault (TRAPN=46B, `TRAP_GEN4` 013560-013605):** fault LA @ **17B-20B** (32-bit),
+  physical segment (`DMM,CAP & 017777`) @ **21B** (hw), MMS status @ **22B-23B** (32-bit).
+  PHYS collected but NOT written; WR not read.
+- **All other stop traps (`TRAP_GEN3`+3B/3C - PV, trace, handler-missing, HWF 51B):** LA @
+  **17B-20B**, MMS @ **21B-22B**, phys addr @ 23B-24B, phys seg @ 25B, WR @ 26B, ASTS @ 27B,
+  BADAP @ 30B. Identities pinned by the SRF record order {STS,LA,PHYS,CAP,WR} (RFA1=40B,
+  `012675-012723`) + the manual's decoded message dump (ND-05.017.01 pp.119-120) matching
+  word for word.
+- **MMS status word (hardware bit order, ND-05.017.01 A.12):** read-vs-write is NOT one "WR
+  bit" - it is **STATE7-5, bits 31-29** (100=read, 101=write, 000/001=POFF r/w, 110/111=PHS
+  r/w); **bit 6 = 0 DATA / 1 PROGRAM**; bit 11 = TSB miss; bits 3-0 = trap sub-code (1101 =
+  zero in PST entry). The "WR" in trap reports is the WR REGISTER (link.26), a failing
+  physical page address. Refines the old "MMS_SIX0 top 2 bits = fault class" note
+  (0xC0000000 = STATE7-6). Both manual examples decode consistently (5B -> DATA POFF read +
+  memory timeout; 22701016000B -> read request + MISS).
+- SINTRAN level-12 reads ONLY TRAPN (TRAPDECODER/DECOERRMESS); the detail decode is the
+  ND-500 Monitor's, from the 200B stop block (next entry). The OPEN item "classic
+  CONT-STORE-10611 trap writer not yet read - layout expected identical" is now CLOSED by
+  `CARVE-ANSWER-CLASSIC-TRAPWRITER-S2-CONTROL-2026-08-11.md`: the "identical" expectation
+  held ONLY for the header and the page-fault LA/phys-seg slots - the rest of the
+  trap-dependent area is generation-specific (next-next entry).
+
+### CLASSIC (CONT-STORE-10611) TRAP WRITER READ - header matches B30, trap-dependent area DIVERGES; mid-run resume + CONTROL bits 6/8 settled (2026-08-11) `[V-MC classic + V-NPL]`
+
+Full carve: [`CARVE-ANSWER-CLASSIC-TRAPWRITER-S2-CONTROL-2026-08-11.md`](CARVE-ANSWER-CLASSIC-TRAPWRITER-S2-CONTROL-2026-08-11.md).
+Closes the B30 trap-record carve's §6 OPEN item and the integration doc's "CONTROL bits 6/8
+semantics unknown".
+
+- **Classic trap-stop writer = microwords `011271-011337`** (entry via the micro-trap
+  sorter `011022`, exit through `010537 -> 011405` shared answer block). Header AGREES with
+  B30 slot for slot (`11B` STOPR:=2, `12-13` trapping P from ctx[224B], `14-15` restart P
+  from ctx[240B], `16B` TRAPN). Trap-dependent area: **46B** = LA@17-20 + phys-seg@21
+  (mask `7777B`) + ONE composed status halfword @22 (`TRAPINF<<8|subtype`, bit 6 = program
+  side) - NOT the B30 32-bit MMS@22-23. **{44B,51B} only** get the big record:
+  17-20 REAL addr (24-bit), 21-22 logical addr, 23 DSTS1/2 hw, 24 DSTS0 hw, 25-26 loop
+  state, 27-30 DCINHLL, 31 composed status. **{25B,26B,27B}** = LL@17-20 + ctx[124B]@21-22.
+  **45B and all others: NO fault parameters.** Do NOT feed B30 GEN3 offsets to a
+  classic-generation emulator path.
+- **Mid-run S2 poll `011066/011067`** sits in the micro-trap sorter (vector `011022`,
+  installed by init word `000627`). A mid-run activate resumes the running program because
+  the queue walk accepts **N5STA 1 AND 2** and re-dispatches the program's own status-2
+  message; `011473` skips the context reload when the process is already current; re-entry
+  is `011370 -> 011377-011401` (`DP:=P; PRF,START; JMPMAP`). Queue-empty -> IDLE happens
+  only when nothing should keep running.
+- **CONTROL bit 8** = "run the power-fail save on this terminate" (jump into `010750`:
+  save the full 35B-register macro context to the process context block, dump
+  DWIPGU|IWIPGU written-in-page bytes to memory - mirror loader at `011000-011013` -
+  STATUS|=210B, UNLOCK, IDLE). Writer: SINTRAN's ND-100 power-fail path,
+  `PH-P2-RESTART.NPL @032246` `LCON5:=400B` + SLOC5 + TERM5. **CONTROL bit 6** only gates
+  whether a terminate that aborts an in-progress message sets `AL#10` bit 0 ("no current
+  macro process", read only by the MICFU 44B histogram answer). **No SINTRAN writer of
+  bit 6 exists in the NPL corpus** (LCON5 values used: 0,1,5,10B,40B,400B) - latent
+  test/maintenance feature.
+
+### FPRSTART's 200B "STOP (TRAP) INFO" SOURCE IS CARVED - message hw 12B..41B via the sysmon trap-stop builder (2026-08-11) `[V]`
+
+Full carve: [`CARVE-ANSWER-PRSTART-STOPINFO-SOURCE-2026-08-11.md`](CARVE-ANSWER-PRSTART-STOPINFO-SOURCE-2026-08-11.md).
+
+RUNN's post-return `TOUSMOVE(dest=5P2, len=200B)` copies from the MON60 com-buffer (LOGBADR
+window), and the buffer is filled in `030-S3SM5` by `PROGS`' STOPR dispatch
+(`146726-146742`: STOPR 1..3 else `N5FAT`; **2 = trap -> `064300`**) whose builder does
+**`MOVEW` of 30B (=24) words from message hw 12B into buffer word 0** (`064415-064426`,
+source addr = msg + `M[064437]=000012`; dest = ABUFA converted to a window address via
+resident `036003`). So the user's stop block = the trap record verbatim, shifted by -12B
+(word 0 = trapping P, word 4 = TRAPN, words 5-6 = fault LA, ...). Buffer words 24-63 are NOT
+written on this path (stale). **Bonus byte-pin:** the RUNN "stop reason" `5DD1 = (0, TRAPN)`
+(`065141-065143`: `STA ,X 41` / `STZ ,X 40`). `FREL5`'s break-state answer reuses the same
+copies. All pool words re-read from raw bytes (appendix in the carve doc).
+
+### PSPHS vs THE ND-500 PST: PARALLEL BOOKKEEPING - the PST is swapper-maintained, its base a SINTRAN allocation (2026-08-11) `[V by elimination + MANUAL]`
+
+Full carve: [`CARVE-ANSWER-PST-WRITER-VS-PSPHS-2026-08-11.md`](CARVE-ANSWER-PST-WRITER-VS-PSPHS-2026-08-11.md).
+Settles the UNPROVEN flag of `PSPHS-PHYSICAL-SEGMENT-TABLES-CARVED-2026-08-03.md` §0.
+
+SINTRAN does NOT build the ND-500's MMU-walked PST from PSPHS/PSLLI/PSULI/PSMOD. The PST
+BASE is a SINTRAN software allocation (`ALLOC @171076` -> `SSYSE`; MEM-CONF lists it) handed
+to the CPU as control-store cell `0o21` (patched; `PSTP = cell21 << 11`). The PST ENTRIES
+are maintained by the SWAPPER: microcode writes none [V, prior], carved SINTRAN writes none
+[V, prior], and ND-05.017.01 says it outright three times (`:4648` "the swapper is also
+using physical addressing when accessing the physical segment table"; `:4658`/`:4662`
+"wrongly updated by the swapper process"; `:4801` page-fault flow). Swapper-side signature:
+25+ `dctsb`/`pctsb` TSB flushes, zero `wphs` (its PST writes are ordinary stores into
+mapped data space - why opcode hunts never found "the PST writer"). RESIWR/13B/14B carry
+segment content and the swapper LOADER's page lists, never PST entries. **[OPEN]** the
+exact swapper store sites; the cell-`0o21` patcher instructions; the ND-100 "first page"
+PST seeding the manual's startup chart claims (`:3681`, un-carved).
+
+### THE `B-176` STORES ARE RESOLVED - the PSPHS/PSLLI/PSULI/PSMOD tables (2026-08-03) `[V]` (RPHS relation since settled: see the 2026-08-11 PST entry above)
 
 Full carve:
 [`PSPHS-PHYSICAL-SEGMENT-TABLES-CARVED-2026-08-03.md`](PSPHS-PHYSICAL-SEGMENT-TABLES-CARVED-2026-08-03.md).
@@ -2207,10 +2351,16 @@ implement to actually run/connect the ND-500 CPU.
 ### Interface / mechanism
 | Doc | Grade / caution |
 |---|---|
-| [`ND500-MAILBOX-MESSAGE-CATALOG.md`](ND500-MAILBOX-MESSAGE-CATALOG.md) | **The complete 5MPM message spec for the emulator**: all fields + direction overlays (11B/13B), every MICFU, STOPR codes, ISR dispatch tables, MONICO write-back, watchdog/HIMESS/DUMMESS, swapper MSW*/MON 377B family, 11 explicit UNKNOWNS. NOTE: kills the "40B-47B result block" assumption (no symbol evidence) and flags MP-P2-N500.md sec 7.6 as a conflicting NON-mailbox table |
+| [`ND500-MAILBOX-MESSAGE-CATALOG.md`](ND500-MAILBOX-MESSAGE-CATALOG.md) | **The complete 5MPM message spec for the emulator**: all fields + direction overlays (11B/13B), every MICFU, STOPR codes, ISR dispatch tables, MONICO write-back, watchdog/HIMESS/DUMMESS, swapper MSW*/MON 377B family, 11 explicit UNKNOWNS. NOTE: its "40B-47B result block: no symbol evidence" caution is now SUPERSEDED by `CARVE-ANSWER-RESULT-BLOCKS-2026-08-10.md` (the block exists - it is the info-block 5DDn/5Pn array, not a message structure); still correctly flags MP-P2-N500.md sec 7.6 as a conflicting NON-mailbox table |
 | [`ND500-WHO-ANSWERS-THE-MAILBOX.md`](ND500-WHO-ANSWERS-THE-MAILBOX.md) | **The mailbox servicer is THE MICROCODE** (hence MICFU) - not the 5015, not the swapper; three-layer model, MICFU handling map, emulator role mapping. MANUAL/DERIVED + trace-consistent |
 | [`ND500-CS-LOAD-TRACE-FINDINGS-2026-07-16.md`](ND500-CS-LOAD-TRACE-FINDINGS-2026-07-16.md) | **OBSERVED (live traces of real SINTRAN + nd-500-mon J04).** The complete CS-load protocol incl. the previously UNDOCUMENTED verify pass (words 0-7 read-back; mismatch aborts BEFORE micro-start); SLOC5/UNLC5/MCLR5 strobe on IOX READ; RETG5 bit1-clear = clock restart; bare LCON5 activate = lock only. Where it disagrees with the bus reference, the trace record wins |
 | [`CARVE-ANSWER-Q7-COMPLETION-POLL-VS-INTERRUPT.md`](CARVE-ANSWER-Q7-COMPLETION-POLL-VS-INTERRUPT.md) | **Q7: completion detection is INTERRUPT-DRIVEN (level 12), not RSTA5 poll.** [V-NPL] walk of `5STDRIV`/`XACT500`/`CLE5STATUS`/`CHN5STATUS` + [V] L07 symbols. RSTA5 has no finished bit; payload read from MPM `N5STA`. See section 0d. GAP: L07 5STDR byte disassembly |
+| [`CARVE-ANSWER-RESULT-BLOCKS-2026-08-10.md`](CARVE-ANSWER-RESULT-BLOCKS-2026-08-10.md) | **The MON 60B "answer result block 40B-47B" decoded: it is the info-block `5DD1..5DD5`/`5P1..5P5` parameter array (3-word stride, 40B-56B), NOT a message structure.** [V bytes+SYMBOL] 5FP2E frame map (B-11=info @165777B, B-67=message, B-65=ABUFA, B-56=CPU-DF); full per-command result table (NPL post-return FUNCS); mailbox answer offsets per command (16B/17B register value @ msg 10B-11B, examine @ msg 11B-12B, 3RMICV version @ msg 7 + CPU param @ msg 10B, CSLOA's version-verify + CPUDF[-7]/[20B] cache); RSTAT's third word = 5015 WA reg & 37777B; classic microcode (CONT-STORE-10611) cross-check incl. fn 1 `LARG 24563B`=10611 answer. Servicer modeling list in sec 5 |
+| [`CARVE-ANSWER-DEFMC-MPM-BASE-051302-2026-08-10.md`](CARVE-ANSWER-DEFMC-MPM-BASE-051302-2026-08-10.md) | **051302B-051450B in 030-S3SM5 = RLSWM/RELAA/RELAL/PTOS3, ZERO IOX - the "MPM BASE register programming" DEFMC was said to delegate to does not exist.** [V bytes] full annotated carve + whole-segment IOXT inventory + [V manual] ND-10.004.01 §2 (MPM-5 port registers set only from the MPM cabinet's own maintenance console). Retires design-doc TODO 2's premise; MPM window base = machine config, no new emulator register |
+| [`CARVE-ANSWER-TRAP-RECORD-OFFSETS-AND-MMS-BITS-2026-08-11.md`](CARVE-ANSWER-TRAP-RECORD-OFFSETS-AND-MMS-BITS-2026-08-11.md) | **The trap record's per-trap fault-parameter offsets + the MMS status word bit numbers (hardware order).** [V-MC] B30 ADACT/ORCON pipeline decoded (4 anchor matches vs SINTRAN symbols): page fault 46B = LA@17-20, phys-seg@21, MMS@22-23; GEN3-class traps (PV/trace/THM/HWF 51B) = LA@17-20, MMS@21-22, PHYS@23-24, phys-seg@25, WR@26 (+ASTS@27, BADAP@30). [MANUAL] ND-05.017.01 A.12: read/write = STATE7-5 bits 31-29, DATA/PROGRAM = bit 6, TSB-miss = bit 11, trap sub-code = bits 3-0; "WR" in reports = the WR REGISTER word, not a bit. Emulator `AnswerTrapStop` write list in §5. Its [OPEN] classic-10611 item is CLOSED by the next row (layout NOT identical) |
+| [`CARVE-ANSWER-CLASSIC-TRAPWRITER-S2-CONTROL-2026-08-11.md`](CARVE-ANSWER-CLASSIC-TRAPWRITER-S2-CONTROL-2026-08-11.md) | **The CLASSIC (CONT-STORE-10611) trap-stop writer read from the real control store: `011271-011337`.** [V-MC classic] Header agrees with B30 (STOPR:=2@11, P@12-13/14-15 from ctx[224B]/[240B], TRAPN@16); trap-dependent area DIVERGES: 46B = LA@17-20 + physseg@21 (7777B mask) + ONE composed status hw@22 (TRAPINF<<8\|subtype, bit6=program); {44B,51B} = real-addr/logical-addr/DSTS-composites/DCINHLL 7-slot record ending @31; {25-27B} = LL + ctx[124B]; 45B and rest = NO params. Also: micro-trap sorter entry `011022` (init `000627`), mid-run activate resume mechanism (queue walk accepts N5STA 1 AND 2, `011473` skips reload for the current process, re-entry `011370->011401` JMPMAP), and CONTROL bit 8 = power-fail save (writer: PH-P2-RESTART 5PF `LCON5:=400B`+SLOC5+TERM5 [V-NPL]) / bit 6 = keep-current-process across terminate (no SINTRAN writer exists - NOT FOUND). AL#10 flag pair fully mapped |
+| [`CARVE-ANSWER-PRSTART-STOPINFO-SOURCE-2026-08-11.md`](CARVE-ANSWER-PRSTART-STOPINFO-SOURCE-2026-08-11.md) | **RUNN's 200B "stop (trap) info" source: message hw 12B..41B, MOVEW'd into the MON60 com-buffer by 030-S3SM5's trap-stop builder** (`PROGS` STOPR dispatch 146726-146742, trap builder 064300, copy 064415-064426), then `TOUSMOVE` from LOGBADR to the user's 5P2. [V bytes, pool words re-read] Stop block word N = message hw N+12B; words 24-63 stale. 5DD1 stop reason = (0, TRAPN) @065141-065143. Covers FREL5's break-state answer too |
+| [`CARVE-ANSWER-PST-WRITER-VS-PSPHS-2026-08-11.md`](CARVE-ANSWER-PST-WRITER-VS-PSPHS-2026-08-11.md) | **PSPHS/PSLLI/PSULI/PSMOD are parallel ND-100 bookkeeping - the MMU-walked PST is NOT built from them.** PST base = SINTRAN allocation (ALLOC->SSYSE) handed over as patched control-store cell 0o21; PST entries maintained by the SWAPPER [V elimination + ND-05.017.01 :4648/:4658/:4662]; RESIWR/13B/14B never carry PST entries. [OPEN] exact swapper store sites, cell-21 patcher, ND-100 first-page seeding (manual :3681) |
 | [`ND500-TO-SINTRAN-MON-MAPPING.md`](ND500-TO-SINTRAN-MON-MAPPING.md) | **Complete MON-call mapping ND-500 -> SINTRAN/ND-100 (2026-07-30).** The `callg $0xF80000NN` seg-31 gate (NN = MON number as integer, VERIFIED vs DEABF/DVOUTS/B5XMSG); MCHANDEL GOSW table 500B-523B vs below-500B forward to native MCTAB; shared vs ND-500-specific numbers; the definitive >255 answer (ND-100 native MON = 8-bit field, 377B=255=0xFF boundary; ND-500 MCNO is a 16-bit SOFTWARE-decoded field, no limit); arg marshalling via 4.2.5.2 + 5AP1..5AP4/NUMPA. Per-claim [VERIFIED]/[INFERRED] |
 | [`ND500-MONITOR-CALL-MECHANISM.md`](ND500-MONITOR-CALL-MECHANISM.md) | v1.1. **NPL + symbol only, no carved bytes.** Origin of the section-3 model |
 | [`ND500-MONITOR-CALL-PARAMETER-PASSING.md`](ND500-MONITOR-CALL-PARAMETER-PASSING.md) | cited second-hand by the activation doc |

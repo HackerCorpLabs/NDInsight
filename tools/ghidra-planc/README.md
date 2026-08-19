@@ -78,6 +78,12 @@ multi-value returns work.
 | `PlancFixFlow.java` | **Fixes problem 1.** Ghidra script. Flow only - it renames nothing and sets no types. |
 | `PlancUndoFixFlow.java` | Reverts `PlancFixFlow`. |
 | `PlancApplyNdSymbols.java` | Applies ND's **embedded vendor symbol table** - creates and names functions from it. Run AFTER `PlancFixFlow`. |
+| `PlancAnnotate.java` | Comments error slots, unwinds, prologues, `ON ROUTINEERROR`; adds tags. |
+| `PlancSetupTypes.java` | Data types, namespaces, register signatures for the leaf runtime. |
+| `PlancApplyConvention.java` | Sets `__planc` on every PLANC routine (needs the cspec snippet installed). |
+| `PlancFrameTypes.java` | Retypes frame pointers to `PlancFrame*` (decides `ERRCODE` width per routine - see below). |
+| `PlancDumpDecomp.java` | Read-only. Dumps the decompiled C of every function to one text file, so analysis can continue while the GUI is closed. Headless: `-postScript PlancDumpDecomp.java <outFile> [timeoutSec]`. |
+| `M68kVectorTable.java` | Lays out the 68000 exception vector table at 0x000-0x3FF. |
 | `planc-68000.cspec-snippet.xml` | **Addresses problem 2.** A `__planc` prototype model to paste into the 68000 compiler spec. |
 
 ### `PlancApplyNdSymbols.java` and the stale-body trap
@@ -95,10 +101,17 @@ first move on any of these binaries.
 +0x10 12  name (10 characters in practice)
 ```
 
-In `tcp-ser-all-banks-b05-68k.bin` the table is at `0x7C3A4-0x7FBA0` (448 records), then an 8-byte
-misalignment, then `0x7FBA8-0x7FD88` (15 more) - **463 records**, 317 CODE and 134 DRAM. Note this
-layout sits **4 bytes later** than the one recorded for the ENCOS table; if a table will not parse,
-shift the record base by -4.
+In `tcp-ser-all-banks-b05-68k.bin` the table runs `0x7C3A0-0x7FD88`: **463 slots**, of which
+**436 are defined** (317 CODE + 119 DRAM) and 27 are `kind=0xFF` NIL/NONE markers that are skipped.
+
+**Verify the base by the +0 pointer stride, never by eye.** An earlier revision of this note (and
+the script default) claimed the base was `0x7C3A4` ("4 bytes later than ENCOS"). That is WRONG: at
++4 the name-length byte reads 0 and the parser rejects EVERY record - a dry run on 2026-08-08
+parsed 0. The correct base `0x7C3A0` is pinned because the +0 self/next pointer steps by exactly
+0x20 across records. If a symbol pass reports "0 records parsed", the base is off - shift it and
+re-check the stride; do not conclude the table is missing. The ENCOS table (`encos-ser`, @0x663E0)
+uses a DIFFERENT, shorter record shape (name length at +0, no leading pointer) - the two images are
+not interchangeable.
 
 **The trap this script exists to avoid:** Ghidra does **not** recompute an existing function's body
 when control flow changes underneath it, and `createFunction()` on an existing entry point returns

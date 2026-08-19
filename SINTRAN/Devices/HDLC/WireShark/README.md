@@ -1,10 +1,22 @@
 # LAPB / SINTRAN Wireshark dissector (`hdlc_tcp.lua`)
 
-A Wireshark/tshark Lua dissector for SINTRAN III HDLC traffic carried over the
-`nd100x --hdlc` TCP bridge. It de-frames byte-stuffed HDLC, checks the FCS, and
-decodes LAPB, the SINTRAN header, the XMSG envelope (seed/epoch/channel with
-built-in validation), the secure ACK, reachability/resync, XROUT routing
-letters, and the full TAD terminal protocol (login ladder, opcodes, ports).
+A Wireshark/tshark Lua dissector for SINTRAN III traffic on **both** COSMOS
+transports. One file, two protocols:
+
+- **`hdlc_lapb`** — HDLC carried over the `nd100x --hdlc` TCP bridge (ports 10362 /
+  10364 and friends). It de-frames byte-stuffed HDLC, checks the FCS, and decodes
+  LAPB, the SINTRAN header, the XMSG envelope (seed/epoch/channel with built-in
+  validation), the secure ACK, reachability/resync, XROUT routing letters, and the
+  full TAD terminal protocol (login ladder, opcodes, ports).
+- **`ndlink`** — the COSMOS **Ethernet hub** on TCP **5010** (added 2026-08-11).
+  COSMOS does not use LLC1's connectionless service on Ethernet: it carries its own
+  sequenced, acknowledged link protocol, and that is what `ndlink` decodes, along
+  with the hub's length prefix, the 802.3 header and the LLC header above it. The
+  SINTRAN datagram inside is handed to exactly the same code the HDLC path uses, so
+  everything above the link layer decodes identically on both transports.
+
+The two link layers never appear in the same stream. LAPB is HDLC only; the ND link
+header is Ethernet only.
 
 > **Protocol details live in one place.** This README covers only how to *run*
 > the dissector. The wire format it implements is documented in
@@ -63,6 +75,16 @@ directory, and the installed copy lives in the global one.)
 The acceptance check before installing: run it over several captures and require
 **zero Lua errors** and **no NEW expert warnings** versus the installed copy. Count
 them with `grep -c "Expert Info"` on both and compare - the numbers must match.
+
+Two things make that comparison lie, so check them first:
+
+- **The installed copy may be old.** Compare against `git show HEAD:<path>` rather
+  than against whatever is in the plugins folder - the installed copy here was found
+  to be several revisions behind, which made every count look like a regression.
+- **Compare like for like when a change adds a transport.** Adding the `ndlink` path
+  makes frames decode that previously decoded as nothing, so their expert items are
+  new by definition. Filter them out to check the HDLC path alone:
+  `-Y "_ws.expert && hdlc_lapb && !ndlink"`.
 
 ## Use — the display filter you type at the top of the window
 
@@ -129,18 +151,90 @@ auto-decoded, force it: `tshark -r cap.pcapng -d tcp.port==<port>,hdlc_lapb`.
   enable "Allow subdissector to reassemble TCP streams" and disable TCP checksum
   validation.
 
+## Reading a COSMOS Ethernet hub capture (TCP 5010)
+
+All the lab machines join one hub, so a single loopback capture sees every node:
+
+```powershell
+& "C:\Program Files\Wireshark\tshark.exe" -i "\Device\NPF_Loopback" -f "tcp port 5010" -a duration:120 -w out.pcapng
+```
+
+Then filter on `ndlink`. Wireshark's own table claims 5010 as IPSICTL, so without
+this dissector a hub capture shows nothing useful.
+
+> **Do NOT instead force `-d tcp.port==5010,hdlc_lapb`.** It looks like it works —
+> thousands of frames turn into LAPB — but the decode is misaligned and the output
+> is noise that reads like data: node numbers come out as `53306 → 1` instead of
+> 100/102/103.
+
+Useful fields: `ndlink.kind`, `ndlink.seq`, `ndlink.backlog`, `ndlink.dupof`,
+`ndlink.srclink` / `ndlink.dstlink`, `ndlink.sysno`.
+
+**The hub is a BROADCAST hub**, so one frame sent once is forwarded to every other
+member and the same bytes appear on several TCP streams. The dissector counts each
+frame exactly once by binding every MAC-to-MAC direction to the first TCP stream it
+was seen on; the other copies are marked `hub fan-out copy` and carry no backlog
+line. Do not count all the copies by hand — that is what made one earlier set of
+block-size numbers unusable.
+
 ## Validation the dissector performs
 
-For each data frame it derives the link seed, epoch and expected channel
-(spec §18.5) and flags a Wireshark **expert warning** when the on-wire
-Protocol-ID, `Flags2`, secure-ACK channel, or the LAPB odd-length address bit
-disagree with the model — so a malformed or mis-sequenced frame stands out in
+**On the HDLC path**, for each data frame it derives the link seed, epoch and
+expected channel (spec §18.5) and flags a Wireshark **expert warning** when the
+on-wire Protocol-ID, `Flags2`, secure-ACK channel, or the LAPB odd-length address
+bit disagree with the model — so a malformed or mis-sequenced frame stands out in
 the packet list. A clean capture shows zero expert warnings.
+
+**On the SINTRAN header**, on both transports, it recomputes word 6 (the
+ones-complement checksum over the other six words) and warns when it disagrees.
+
+**On the ND link layer** it carries the three checks that came out of the
+2026-08-11 investigation, where two nights went into the file-access protocol for a
+fault one layer below it. All three are the cheap tells that would have found it in
+minutes:
+
+| Check | Warns when | Why it matters |
+|---|---|---|
+| seven-bit sequence | a data frame's sequence has bit 7 set | the sequence is 7 bits; the highest value in three real captures is `0x7F` and the wrap `0x7F → 0x00` is visible. No real ND emits a `0x80`. |
+| send window | more than **4** frames are unacknowledged from one sender | a real ND sends at most four before waiting. A backlog that climbs and never comes down is THE symptom: the peer starts retransmitting everything, and that reads as a pile of application defects one layer up. |
+| retransmission | a sender repeats a sequence still unacknowledged | a peer repeating a data frame is never normal — it means it has not seen an acknowledgement. The warning says whether the bytes were byte-for-byte identical. |
+
+The acknowledgement carries the **next expected** sequence, not the one being
+acknowledged, and its trailing word is `0000` on every captured acknowledgement from
+both machines — there is no credit field, so the window cannot be negotiated. The
+two constants live in `hdlc_tcp.lua` as `ND_SEQ_MODULUS` and `ND_SEND_WINDOW`, next
+to the measurement that produced them; the same two numbers are pinned in the C#
+reference implementation (`SINTRAN/XMSG/SRC/Xmsg.Ethernet/`) and held to the
+captures by `NdLinkCaptureConformanceTests`.
+
+**Measure the window on a READ capture, never a listing.** A listing tops out at two
+frames — the short acknowledgement and the reply — because it never sends a content
+message, and reading only a listing gives a window half the real size.
+
+What this looks like in practice, measured over the shipped captures: every capture
+of two real ND machines stays at a backlog of 1–4 with zero retransmissions, while
+every capture of a run made before the send window existed shows a backlog of 17 to
+125 and dozens of retransmissions. The two are told apart at a glance by one column.
 
 ## Field reference
 
 Filter fields are namespaced `lapb.*`, `sintran.*`, `xmsg.*`, `tad.*`,
-`routing.*`, `xm.*`, `env.*`, `ack.*`, `reach.*`. See the `ProtoField`
-definitions at the top of `hdlc_tcp.lua`; field meanings are explained in the two
-protocol documents linked above. Test captures live in the separate sibling
-**X25Emulator** repository (`pcap/` directory).
+`routing.*`, `xm.*`, `env.*`, `ack.*`, `reach.*` for the HDLC path and `ndlink.*`
+for the Ethernet hub path. See the `ProtoField` definitions at the top of
+`hdlc_tcp.lua` (HDLC) and in the ND link section near the bottom; field meanings are
+explained in the two protocol documents linked above, and the ND link header field
+by field in `../../../XMSG/SRC/Xmsg.Ethernet/NdLinkHeader.cs`.
+
+Test captures: the separate sibling **X25Emulator** repository (`pcap/` directory)
+holds both HDLC and hub captures, and `../../../XMSG/DOC/captures/` holds the
+machine-to-machine hub captures.
+
+> The captures in `../../../XMSG/DOC/captures/FA-READ-WRITE-2026-08-04/` are **text
+> hex dumps, not pcap** — one frame per line as `time length hex`, raw 802.3 frames
+> with no hub length prefix. tshark cannot open them directly. To run the dissector
+> over them, prefix each frame with its own 2-byte big-endian length and feed the
+> result to `text2pcap -t "%H:%M:%S." -T <anyport>,5010`. Doing that reproduces both
+> measured constants from the dissector's own output: the highest sequence in all
+> three is 127, and the backlog peaks at 2 for `capture-list-files`, **4** for
+> `capture-read` and 2 for `capture-write` — the read capture being the only one
+> that shows the real window.

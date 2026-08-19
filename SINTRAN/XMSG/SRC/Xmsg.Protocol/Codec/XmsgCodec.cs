@@ -7,13 +7,13 @@ namespace NDInsight.Sintran.Xmsg.Codec
     /// <summary>
     /// The concrete XMSG codec: parses one complete information field into an
     /// <see cref="XmsgPacketInfo"/> and raises it upward; serialises an <see cref="XmsgPacket"/> and
-    /// sends it downward. Stateless — it holds nothing between frames.
+    /// sends it downward. Stateless - it holds nothing between frames.
     /// </summary>
     /// <remarks>
     /// The link below delivers already-deframed information fields (LAPB reassembles the HDLC
     /// I-frames into one information field before it reaches us), so <see cref="ProcessBytes"/>
     /// treats its input as exactly one packet. A span that is too short or does not begin with the
-    /// SINTRAN Marker 1 is ignored rather than raised — the same log-and-drop policy the live node
+    /// SINTRAN Marker 1 is ignored rather than raised - the same log-and-drop policy the live node
     /// used, so stray keepalive/garbage never reaches a service handler.
     /// </remarks>
     public sealed class XmsgCodec : XmsgCodecBase

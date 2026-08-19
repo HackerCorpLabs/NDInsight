@@ -23,17 +23,21 @@ SINTRAN III was a sophisticated real-time operating system providing:
 
 | Folder | Contents | Files |
 |--------|----------|-------|
-| [Devices/](Devices/) | Hardware device documentation (HDLC, SCSI, SMD, Octobus, bus signals) | 95+ files |
-| [Emulator/](Emulator/) | C# emulator implementation guides | 5 files |
-| [File-Formats/](File-Formats/README.md) | ND file formats: BRF (relocatable object) and `:PROG` (executable) | 4 files |
-| [ND500/](ND500/) | ND-500 processor documentation | TBD |
-| [ND500-APPS/](ND500-APPS/README.md) | **ND-500 vendor programs (FraTor DOMs): runnable files + user guide per program** | **13 programs** |
-| [NPL-SOURCE/](NPL-SOURCE/) | **SINTRAN III NPL source code & symbols** | **45 NPL + 7 symbol files** |
-| [OS/](OS/) | Core operating system architecture (00-19) | 34 files |
-| [Release-Documentation/](Release-Documentation/) | SINTRAN III release information (versions J-N) | 7 files |
+| [Devices/](Devices/README.md) | Hardware device documentation (HDLC, SCSI, SMD, Octobus, FloppyDMA, bus signals) | 177 files |
+| [Emulator/](Emulator/README.md) | C# emulator implementation guides | 16 files |
+| [File-Formats/](File-Formats/README.md) | ND object and executable file formats: BRF, `:PROG`, `:NRF`, `:DOM`/`:SEG`, `DESCRIPTION-FILE:DESC` - each with a machine-readable `.json`, plus a drag-and-drop browser viewer | 16 files |
+| [Filesystem/](Filesystem/README.md) | SINTRAN III directory-device on-disk format: master block, object entry, user entry, page bitmap, boot sector - byte-verified against real disk images | 21 files |
+| [ND500/](ND500/README.md) | ND-500 CPU architecture, the 3022/5015 bus interface, SINTRAN integration, and the MON-call hub | 482 files |
+| [ND500-APPS/](ND500-APPS/README.md) | **ND-500 vendor programs (FraTor DOMs): runnable files + user guide per program** | **13 programs, 75 files** |
+| [ND5000/](ND5000/README.md) | ND-5000 (SAMSON) generation: Octobus protocol, ACCP access module, ND-5800 microcode, and the RetroCore ND-100 <-> ND-5000 emulation | 65 files |
+| [NPL-SOURCE/](NPL-SOURCE/README.md) | **SINTRAN III NPL source code & symbols** | **45 NPL + 7 symbol files** |
+| [OS/](OS/README.md) | Core operating system architecture (00-19) | 42 files |
+| [Print/](Print/README.md) | Printing and output spooling: peripheral files, spooling queues, printer hardware, remote printing, and an emulated PDF printer design | 13 files |
+| [Release-Documentation/](Release-Documentation/) | SINTRAN III release information (versions J-N) | 8 files |
 | [SINTRAN Structures/](SINTRAN%20Structures/) | System structures and data analysis | 6 files |
-| [TAD/](TAD/) | TAD protocol analysis | 7 files |
-| [XMSG/](XMSG/README.md) | XMSG message system: wire protocol, MON 200B API, C# library, COSMOS RE | 40+ files |
+| [TAD/](TAD/README.md) | TAD protocol analysis (X.25, HDLC encapsulation) | 8 files |
+| [TSS/](TSS/) | Introduction to TSS - slide deck and PDF only, no written notes yet | 2 files |
+| [XMSG/](XMSG/README.md) | XMSG message system: wire protocol, MON 200B API, C# library, COSMOS RE | 4287 files (incl. C# sources) |
 
 **ND-500 <-> ND-100 interface reverse-engineering (done, byte-verified from L07):**
 - Status of record + master index: `SINTRAN/ND500/ND500-STATUS-AND-INDEX.md`
@@ -267,6 +271,25 @@ Located in [OS/](OS/) folder:
 | 17 | SCHEDULER-AND-PRIORITIES.md | Task scheduler |
 | 18 | DEVICE-DRIVER-FRAMEWORK.md | Device driver architecture |
 | 19 | MEMORY-MAP-REFERENCE.md | Complete memory layout |
+| 20 | MPM-VS-LOCAL-MEMORY-DETECTION.md | Telling multiport memory from local memory |
+| 21 | SEMAPHORES-EXPLAINED.md / SEMAPHORES-RECOVERED-CODE.md | Semaphores, with the recovered kernel code |
+| 22 | READING-RT-AND-SEGMENT-TABLES-FROM-MEMORY.md | Locating RT and segment tables in a live dump |
+| 23 | MON-CALL-DISPATCH-DEVELOPER-GUIDE.md | How a MON call is dispatched |
+| 24 | INITIAL-COMMANDS-AND-STARTUP.md | Startup and the initial command sequence |
+| 25 | ND120-MICROCODE-VERSION.md | ND-120 microcode versions |
+| 26 | INITIAL-COMMAND-BUFFER-ON-DISK.md | Where the initial command buffer lives on disk |
+
+Unnumbered references in the same folder:
+
+| Document | Topic |
+|----------|-------|
+| [OS/IOX-REGISTER-COMPLETE-REFERENCE.md](OS/IOX-REGISTER-COMPLETE-REFERENCE.md) | Complete IOX register map |
+| [OS/SINTRAN-DEVICE-DRIVER-IOX-EXR-COMPLETE.md](OS/SINTRAN-DEVICE-DRIVER-IOX-EXR-COMPLETE.md) | Driver IOX/EXR reference |
+| [OS/N500DF-STRUCTURE-COMPLETE-REFERENCE.md](OS/N500DF-STRUCTURE-COMPLETE-REFERENCE.md) | The N500DF structure |
+| [OS/SEGMENTS-INTRO-AND-DEEP-DIVE.md](OS/SEGMENTS-INTRO-AND-DEEP-DIVE.md) | Segments, introduction and deep dive |
+| [OS/BUS-EXPANDER-BUSC-REGISTER-REFERENCE.md](OS/BUS-EXPANDER-BUSC-REGISTER-REFERENCE.md) | Bus expander BUSC registers |
+| [OS/MEMORY-TYPE-DETECTION.md](OS/MEMORY-TYPE-DETECTION.md), [OS/HOW-TO-DETECT-FIRST-2MB-AS-LOCAL-MEMORY.md](OS/HOW-TO-DETECT-FIRST-2MB-AS-LOCAL-MEMORY.md), [OS/MPM5-MEMORY-DETECTION-AND-IDENTIFICATION.md](OS/MPM5-MEMORY-DETECTION-AND-IDENTIFICATION.md) | Memory detection and identification |
+| [OS/KERNEL-DOCUMENTATION-SUMMARY.md](OS/KERNEL-DOCUMENTATION-SUMMARY.md) | Summary of the kernel documentation set |
 
 ### Hardware Documentation
 
@@ -338,19 +361,30 @@ Located in [Emulator/](Emulator/) folder:
 
 ## Document Statistics
 
-| Category | Files | Size |
-|----------|-------|------|
-| **NPL Source Code** | **45** | **~3.9MB** |
-| **Symbol Tables (L07)** | **7** | **~450KB** |
-| OS Architecture (00-19) | 34 | ~550KB |
-| Release Documentation (J-N) | 7 | ~1.2MB |
-| SINTRAN Structures | 6 | ~570KB |
-| HDLC Documentation | 30+ | ~350KB |
-| SCSI Documentation | 10+ | ~125KB |
-| Emulator Guides | 5 | ~115KB |
-| TAD Protocol | 7 | ~75KB |
-| XMSG Reference | 1 | ~40KB |
-| **Total** | **160+** | **~7.4MB** |
+Measured 2026-08-17, counting every file in each folder (not only Markdown).
+
+| Folder | Files | Size |
+|--------|-------|------|
+| XMSG | 4287 | 210 MB |
+| ND500 | 482 | 8.6 MB |
+| Devices | 177 | 30 MB |
+| ND500-APPS | 75 | 40 MB |
+| NPL-SOURCE | 73 | 7.7 MB |
+| ND5000 | 65 | 1.5 MB |
+| OS | 42 | 1.6 MB |
+| Filesystem | 21 | 372 KB |
+| Emulator | 16 | 412 KB |
+| File-Formats | 16 | 244 KB |
+| Print | 13 | 168 KB |
+| Release-Documentation | 8 | 1.3 MB |
+| TAD | 8 | 240 KB |
+| SINTRAN Structures | 6 | 560 KB |
+| TSS | 2 | 8.7 MB |
+| **Total** | **5294** | **310 MB** |
+
+The size columns are dominated by non-text content: XMSG carries a full C# solution,
+ND500-APPS carries runnable vendor binaries, Devices carries scanned material, and TSS
+is two slide-deck files.
 
 ---
 
@@ -397,6 +431,15 @@ Located in [Emulator/](Emulator/) folder:
 **Network Management:**
 → See [XMSG/](XMSG/) for the full XMSG hub (protocol, API, C# library), and
 [XMSG/DOC/XMSG-COMMAND-REFERENCE.md](XMSG/DOC/XMSG-COMMAND-REFERENCE.md) for the COSMOS/XMSG operator utility
+
+**Decoding an ND File:**
+→ See [File-Formats/](File-Formats/README.md) for BRF, `:PROG`, `:NRF`, `:DOM`/`:SEG` and
+`DESCRIPTION-FILE:DESC` byte layouts, and [File-Formats/viewer/](File-Formats/viewer/README.md)
+for the drag-and-drop hex + parsed browser viewer that reads the `.json` layouts directly
+
+**Reading a Raw Disk Image:**
+→ See [Filesystem/on-disk-format/](Filesystem/on-disk-format/README.md) for the four
+directory-device structures and the boot sector, all verified against real disk bytes
 
 **Protocol Analysis:**
 → See [TAD/](TAD/) folder

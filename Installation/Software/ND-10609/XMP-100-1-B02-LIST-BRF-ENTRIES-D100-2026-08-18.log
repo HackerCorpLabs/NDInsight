@@ -1,0 +1,21 @@
+Session Log Started: 2026-08-17 16:44:55
+Format: DecodedText
+------------------------------------------------------------------------
+[16:44:59.310] >>> LIST-BRF-ENTRIES (UTILITY)XMP-100-1-B02,TERMINAL<CR>
+[16:44:59.550] <<< LIST-BRF-ENTRIES (UTILITY)XMP-100-1-B02,TERMINAL<CR><LF>
+[16:44:59.720] <<< BRF unit: Library mode. Size:    527 P  XMPOPNM......0    <CR><LF>BRF unit: Library mode. Size:     34 P  XMPCLNM......0    <CR><LF>BRF unit: Library mode. Size:    625 P
+[16:44:59.890] <<<   XMPOPCN......0    <CR><LF>BRF unit: Library mode. Size:    220 P  XMPINFC......0    <CR><LF>BRF unit: Library mode. Size:     61 P  XMPREAD......0    <CR><LF>BRF unit: Library mode. Size:     61 P  XMPWRTE......0    <CR><LF>
+[16:45:00.059] <<< BRF unit: Library mode. Size:     52 P  XMPWRHD......0    <CR><LF>BRF unit: Library mode. Size:     56 P  XMPROUT......0    <CR><LF>BRF unit: Library mode. Size:     50 P  XMPSEND......0    <CR><LF>BRF unit: Library mode. Size:     25 P  XMPFOPN......0    <CR><LF>BRF unit: Library mode. Size:
+[16:45:00.230] <<<      25 P  XMPFCLS......0    <CR><LF>BRF unit: Library mode. Size:     26 P  XMPFGET......0    <CR><LF>BRF unit: Library mode. Size:     25 P  XMPFREL......0    <CR><LF>BRF unit: Library mode. Size:     26 P  XMPFGST......0    <CR><LF>BRF unit: Library mode. Size:     34 P  XMPFREA......0    <CR><LF>
+[16:45:00.384] <<< BRF unit: Library mode. Size:     34 P  XMPFWRI......0    <CR><LF>BRF unit: Library mode. Size:     31 P  XMPFRHD......0    <CR><LF>BRF unit: Library mode. Size:     30 P  XMPFWHD......0    <CR><LF>BRF unit: Library mode. Size:     26 P  XMPFSND......0    <CR><LF>BRF unit: Library mode. Size:     30 P  XMPFR
+[16:45:00.541] <<< TN......0    <CR><LF>BRF unit: Library mode. Size:     52 P  XMPFRCV......0    <CR><LF>BRF unit: Library mode. Size:     60 P  XMPFRRE......0    <CR><LF>BRF unit: Library mode. Size:     52 P  XMPFRRH......0    <CR><LF>BRF unit: Library mode. Size:     40 P  XMPFPST......0    <CR>
+[16:45:00.711] <<< <LF>BRF unit: Library mode. Size:     36 P  XMPFMST......0    <CR><LF>BRF unit: Library mode. Size:     27 P  XMPFSCM......0    <CR><LF>BRF unit: Library mode. Size:     26 P  XMPFP2M......0    <CR><LF>BRF unit: Library mode. Size:     25 P  XMPFPRV......0    <CR><LF>BRF unit: Librar
+[16:45:00.880] <<< y mode. Size:     25 P  XMPFDMM......0    <CR><LF>BRF unit: Library mode. Size:     26 P  XMPFALM......0    <CR><LF>BRF unit: Library mode. Size:     24 P  XMPFDUM......0    <CR><LF>BRF unit: Library mode. Size:     24 P  XMPFDCT......0    <CR><LF>BRF unit: Library mode. Size:     26 P  XMPFDUB......0    <CR><LF>
+[16:45:01.049] <<< BRF unit: Library mode. Size:     26 P  XMPFFRM......0    <CR><LF>BRF unit: Library mode. Size:     25 P  XMPFDBK......0    <CR><LF>BRF unit: Library mode. Size:     41 P  XMPFSMC......0    <CR><LF>BRF unit: Library mode. Size:     32 P  XMPFLMP......0    <CR><LF>BRF unit: Library mode. Size
+[16:45:01.189] <<< :     37 P  XMPFM2P......0    <CR><LF>BRF unit: Library mode. Size:     27 P  XMPFWDF......0    <CR><LF>BRF unit: Library mode. Size:     30 P  XMPFCPV......0    <CR><LF>BRF unit: Library mode. Size:     25 P  XMPFSIN......0    <CR><LF>BRF unit: Library mode. Size:     46 P  XMPFABR......0    <CR><LF>
+[16:45:01.358] <<< BRF unit: Library mode. Size:     30 P  XMPFCRD......0    <CR><LF>BRF unit: Library mode. Size:     25 P  XMPFSTD......0    <CR><LF>BRF unit: Library mode. Size:     30 P  XMPCONF......0    <CR><LF>BRF unit: Library mode. Size:    121 P  XMPBLET......0    <CR><LF>
+[16:45:01.526] <<< BRF unit: Library mode. Size:     76 P  XMPBINI......0    XMPBRDY.....41    <CR><LF>BRF unit: Library mode. Size:    101 P  XMPBAIN......0    <CR><LF>BRF unit: Library mode. Size:    160 P  XMPBADB......0    <CR><LF>BRF unit: Library mode. Size:    
+[16:45:01.697] <<< 140 P  XMPBAST......0    <CR><LF>BRF unit: Library mode. Size:    261 P  XMPBLOC......0    <CR><LF>BRF unit: Library mode. Size:     20 P  XMPXETS......0    <CR><LF>BRF unit: Library mode. Size:     15 P  XMPXRTS......0    <CR><LF>BRF unit: Library mode. Size:
+[16:45:01.870] <<<      11 P  XMPBLEN......0    <CR><LF>BRF unit: Library mode. Size:    311 P  XMFSTAC......0    <CR><LF>Brl: 
+[16:45:53.052] >>> EXIT<CR>
+[16:45:53.182] <<< EXIT<CR><LF><CR><LF>@

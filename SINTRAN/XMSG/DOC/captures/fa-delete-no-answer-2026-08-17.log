@@ -1,0 +1,158 @@
+[runner] topology loaded: self=19999, 4 node(s), file=topology-d19999.json
+[runner] logging to E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\xmsg-d19999.log (level Info, max 2 MB, keep 3).
+2026-08-17 03:40:17.089 | [runner] Xmsg.Live.Runner v1.1.0.0 built 2026-08-17 03:38:53
+2026-08-17 03:40:17.137 | [runner] config folder: 
+2026-08-17 03:40:17.158 | [runner] config file:   topology-d19999.json
+2026-08-17 03:40:17.192 | [runner] log folder:    E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0
+2026-08-17 03:40:17.271 | [runner] log file:      E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\xmsg-d19999.log
+2026-08-17 03:40:17.364 | [runner] path=seam connecting to 127.0.0.1:10364 as node 19999 for 3600s
+2026-08-17 03:40:17.390 | [fa] connection numbers 0x0082..0x00C1 (state: E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\fa-connection.state)
+2026-08-17 03:40:17.409 | [fa] file server ON as *FA-SERVER (logical port 4, wire port 0x0257)
+2026-08-17 03:40:17.419 | [fa] serving folder: E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\served-files
+2026-08-17 03:40:17.438 | [fa] files visible now: 7
+2026-08-17 03:40:17.453 | [runner] joining COSMOS segment tcp:127.0.0.1:5010 as node 19999 (MAC 08:00:26:1F:4E:00), peer 100 (MAC 08:00:26:64:00:00)
+2026-08-17 03:40:17.473 | [runner] datagram-sequence state file: E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\xmsg-sequence.state
+2026-08-17 03:40:17.494 | [tad] 2 login account(s) loaded
+2026-08-17 03:40:17.503 | [runner] link-seed state file: E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\xmsg-link-seed.state
+2026-08-17 03:40:17.526 | [link] eth:d100 status Stopped -> Starting (backend started, awaiting peer)
+2026-08-17 03:40:17.538 | [runner] waiting for node 100 to send us a frame (we cannot address it until it does)...
+2026-08-17 03:40:22.581 | [segment] still waiting for 100. Frames from other stations: 0 (+0 in the last 5s). NOTHING at all is arriving - either no ND machine is on this group, or they have not been restarted since the ini change.
+2026-08-17 03:40:27.586 | [segment] still waiting for 100. Frames from other stations: 0 (+0 in the last 5s). NOTHING at all is arriving - either no ND machine is on this group, or they have not been restarted since the ini change.
+2026-08-17 03:40:32.590 | [segment] still waiting for 100. Frames from other stations: 0 (+0 in the last 5s). NOTHING at all is arriving - either no ND machine is on this group, or they have not been restarted since the ini change.
+2026-08-17 03:40:37.596 | [segment] still waiting for 100. Frames from other stations: 0 (+0 in the last 5s). NOTHING at all is arriving - either no ND machine is on this group, or they have not been restarted since the ini change.
+2026-08-17 03:40:41.257 | [sniff] node100 -> node19999  kind0x0F seq=9 snd=0 rcv=42865 plen=100   <== ADDRESSED TO US
+2026-08-17 03:40:41.272 | [sniff]   llc+nd : 0B020F00090000A7710064
+2026-08-17 03:40:41.278 | [sniff]   frame  : 0800261F4E00080026640000000EA8A8030B020F00090000A77100640001D03A00050008000044000000000000000000000000010001D01E001C000E
+2026-08-17 03:40:41.302 | [link] eth:d100 status Starting -> Active (peer learned)
+2026-08-17 03:40:41.311 | [runner] peer 100 heard after 23.8s; link is up
+2026-08-17 03:40:41.319 | [tx] node19999 -> node100  kind0x1F seq=9 snd=42865 rcv=1 plen=19999
+2026-08-17 03:40:41.331 | [tx]   llc+nd : 0B021F0009A77100014E1F
+2026-08-17 03:40:41.339 | [sniff] node100 -> node19999  data seq=0 snd=1 rcv=42865 plen=64   <== ADDRESSED TO US
+2026-08-17 03:40:41.350 | [announce] telling system 100 that our XMSG restarted, so it resets the datagram sequence it expects from us
+2026-08-17 03:40:41.365 | [announce] --resync-hard: also zeroing OUR counter for 100. The next originated frame goes out at 0x0000 - if the peer accepts it, the peer resets on our announce; if it is dropped in silence, it does not.
+2026-08-17 03:40:41.391 | [sniff]   llc+nd : 0B022000000001A77100402113000E4E1F0064000600249031210086E44E1F0000006404EF00241B410014FF0A2A46412D534552564552FE0644313939393907E2000000066400A200FF92
+2026-08-17 03:40:41.415 | [sniff]   frame  : 0800261F4E00080026640000004EA8A8030B022000000001A77100402113000E4E1F0064000600249031210086E44E1F0000006404EF00241B410014FF0A2A46412D534552564552FE0644313939393907E2000000066400A200FF92
+2026-08-17 03:40:41.443 | [tx] node19999 -> node100  data seq=0 snd=42865 rcv=1 plen=14
+2026-08-17 03:40:41.453 | [tx]   llc+nd : 0B02200000A7710001000E2113001900644E1FFFFF0001904F
+2026-08-17 03:40:41.463 | [tx] node19999 -> node100  ack seq=1 snd=42865 rcv=1 plen=0
+2026-08-17 03:40:41.472 | [seq] node 100: RESET to 0x0000 (was 0x002D); link KEPT
+2026-08-17 03:40:41.480 | [tx]   llc+nd : 0B023F0001A77100010000
+2026-08-17 03:40:41.486 | [announce] telling system 102 that our XMSG restarted, so it resets the datagram sequence it expects from us
+2026-08-17 03:40:41.503 | [RX] 100->19999 sub=Data f1=0x0006 info=2113000E4E1F0064000600249031210086E44E1F0000006404EF00241B410014FF0A2A46412D534552564552FE0644313939393907E2000000066400A200FF92
+2026-08-17 03:40:41.528 | [announce] --resync-hard: also zeroing OUR counter for 102. The next originated frame goes out at 0x0000 - if the peer accepts it, the peer resets on our announce; if it is dropped in silence, it does not.
+2026-08-17 03:40:41.567 | [seq] node 100: link created, starting Flags1 0x0000 from the store (the frame that created it carried 0x0006)
+2026-08-17 03:40:41.585 | [fa] connect letter from node 100 (system 100 port 0x04EF); serving E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\served-files; answering from session port 0x0211 with an FA ConnectionConfirm 07D2000600826400
+2026-08-17 03:40:41.616 | [seq] node 100: ORIGINATE at Flags1 0x0000 (next becomes 0x0001)
+2026-08-17 03:40:41.624 | [TX] *** PARKED *** eth:d100 took a 14B frame but the send window is full; 1 datagram(s) now waiting and NOTHING is leaving this node until the peer acknowledges us
+2026-08-17 03:40:41.645 | [TX] *** PARKED *** eth:d100 took a 36B frame but the send window is full; 2 datagram(s) now waiting and NOTHING is leaving this node until the peer acknowledges us
+2026-08-17 03:40:41.669 | [RX] 100->19999 sub=Data answered with 2 frame(s)
+2026-08-17 03:40:41.677 | [TX] *** PARKED *** eth:d100 took a 14B frame but the send window is full; 3 datagram(s) now waiting and NOTHING is leaving this node until the peer acknowledges us
+2026-08-17 03:40:41.700 | [sniff] node100 -> node19999  ack seq=1 snd=1 rcv=42865 plen=0   <== ADDRESSED TO US
+2026-08-17 03:40:41.713 | [seq] node 102: RESET to 0x0000 (was 0x0000); link KEPT
+2026-08-17 03:40:41.722 | [sniff]   llc+nd : 0B023F00010001A7710000
+2026-08-17 03:40:41.728 | [sniff]   frame  : 0800261F4E00080026640000000EA8A8030B023F00010001A77100000001D09200050008000044000000000000000000000000010001D076001C000E
+2026-08-17 03:40:41.751 | [tx] node19999 -> node100  data seq=1 snd=42865 rcv=1 plen=14
+2026-08-17 03:40:41.760 | [tx]   llc+nd : 0B02200001A7710001000E2113000300644E1F00060001905F
+2026-08-17 03:40:41.770 | [tx] node19999 -> node100  data seq=2 snd=42865 rcv=1 plen=36
+2026-08-17 03:40:41.779 | [tx]   llc+nd : 0B02200002A771000100242113000E00644E1F00000008905321008284006404EF4E1F0211000807D2000600826400
+2026-08-17 03:40:41.795 | [tx] node19999 -> node100  data seq=3 snd=42865 rcv=1 plen=14
+2026-08-17 03:40:41.803 | [tx]   llc+nd : 0B02200003A7710001000E2113001900664E1FFFFF0001904D
+2026-08-17 03:40:41.813 | [sniff] node100 -> node19999  data seq=1 snd=1 rcv=42865 plen=14   <== ADDRESSED TO US
+2026-08-17 03:40:41.825 | [sniff]   llc+nd : 0B022000010001A771000E211300134E1F0064FFFF00019055
+2026-08-17 03:40:41.834 | [sniff]   frame  : 0800261F4E00080026640000001CA8A8030B022000010001A771000E211300134E1F0064FFFF00019055210086E44E1F0000006406B1040000410012
+2026-08-17 03:40:41.853 | [tx] node19999 -> node100  ack seq=2 snd=42865 rcv=1 plen=0
+2026-08-17 03:40:41.861 | [tx]   llc+nd : 0B023F0002A77100010000
+2026-08-17 03:40:41.869 | [RX] 100->19999 sub=ReachabilityReply f1=0xFFFF info=211300134E1F0064FFFF00019055
+2026-08-17 03:40:41.880 | [RX] 100->19999 sub=ReachabilityReply (no reply expected)
+2026-08-17 03:40:41.889 | [sniff] node100 -> node19999  data seq=1 snd=1 rcv=42865 plen=14   <== ADDRESSED TO US
+2026-08-17 03:40:41.903 | [sniff]   llc+nd : 0B022000010001A771000E211300134E1F0064FFFF00019055
+2026-08-17 03:40:41.914 | [sniff]   frame  : 0800261F4E00080026640000001CA8A8030B022000010001A771000E211300134E1F0064FFFF00019055210086E44E1F0000006406B1040000410012
+2026-08-17 03:40:41.935 | [link] WARNING the peer RE-SENT data frame seq=1 (we were waiting for 2). It has not seen our acknowledgement - check the send window and our own receive latency BEFORE looking for a fault in XMSG or the file server.
+2026-08-17 03:40:41.966 | [tx] node19999 -> node100  ack seq=2 snd=42865 rcv=1 plen=0
+2026-08-17 03:40:41.974 | [tx]   llc+nd : 0B023F0002A77100010000
+2026-08-17 03:40:41.979 | [RX] 100->19999 sub=ReachabilityReply f1=0xFFFF info=211300134E1F0064FFFF00019055
+2026-08-17 03:40:41.990 | [RX] 100->19999 sub=ReachabilityReply (no reply expected)
+2026-08-17 03:40:41.998 | [sniff] node100 -> node19999  ack seq=2 snd=1 rcv=42865 plen=0   <== ADDRESSED TO US
+2026-08-17 03:40:42.010 | [sniff]   llc+nd : 0B023F00020001A7710000
+2026-08-17 03:40:42.017 | [sniff]   frame  : 0800261F4E00080026640000000EA8A8030B023F00020001A77100000001CF3200050008000044000000000000000000000000010001D0CE001C000E
+2026-08-17 03:40:42.040 | [sniff] node100 -> node19999  ack seq=3 snd=1 rcv=42865 plen=0   <== ADDRESSED TO US
+2026-08-17 03:40:42.078 | [sniff]   llc+nd : 0B023F00030001A7710000
+2026-08-17 03:40:42.085 | [sniff]   frame  : 0800261F4E00080026640000000EA8A8030B023F00030001A77100000001CF3200000000000500200000340000000000000000004E1F0001A3940100
+2026-08-17 03:40:42.105 | [sniff] node100 -> node19999  data seq=2 snd=1 rcv=42865 plen=14   <== ADDRESSED TO US
+2026-08-17 03:40:42.116 | [sniff]   llc+nd : 0B022000020001A771000E211300034E1F0064000000019065
+2026-08-17 03:40:42.126 | [sniff]   frame  : 0800261F4E00080026640000001CA8A8030B022000020001A771000E211300034E1F0064000000019065210086E44E1F0000006406B1040000410012
+2026-08-17 03:40:42.146 | [tx] node19999 -> node100  ack seq=3 snd=42865 rcv=1 plen=0
+2026-08-17 03:40:42.154 | [tx]   llc+nd : 0B023F0003A77100010000
+2026-08-17 03:40:42.159 | [RX] 100->19999 sub=Ack f1=0x0000 info=211300034E1F0064000000019065
+2026-08-17 03:40:42.169 | [seq] node 100: ACK 0x0000 did NOT advance the store (still 0x0001)
+2026-08-17 03:40:42.178 | [RX] 100->19999 sub=Ack (no reply expected)
+2026-08-17 03:40:42.185 | [sniff] node100 -> node19999  ack seq=4 snd=1 rcv=42865 plen=0   <== ADDRESSED TO US
+2026-08-17 03:40:42.196 | [sniff]   llc+nd : 0B023F00040001A7710000
+2026-08-17 03:40:42.202 | [sniff]   frame  : 0800261F4E00080026640000000EA8A8030B023F00040001A77100000001CFE20005000800004400000000000001A3D2000000010001CFC6001C000E
+2026-08-17 03:40:42.219 | [sniff] node100 -> node102  data seq=114 snd=51615 rcv=42837 plen=14
+2026-08-17 03:40:42.229 | [sniff] node102 -> node100  ack seq=115 snd=42837 rcv=51615 plen=0
+2026-08-17 03:40:42.238 | [sniff] node102 -> node19999  kind0x0F seq=112 snd=0 rcv=51629 plen=102   <== ADDRESSED TO US
+2026-08-17 03:40:42.252 | [sniff]   llc+nd : 0B020F00700000C9AD0066
+2026-08-17 03:40:42.259 | [sniff]   frame  : 0800261F4E00080026660000000EA8A8030B020F00700000C9AD00660001CF320005000800004400000000000001A356000000010001D0CE001C000E
+2026-08-17 03:40:42.285 | [sniff] node100 -> node19999  data seq=1 snd=1 rcv=42865 plen=14   <== ADDRESSED TO US
+2026-08-17 03:40:42.298 | [sniff]   llc+nd : 0B022000010001A771000E211300134E1F0064FFFF00019055
+2026-08-17 03:40:42.310 | [sniff]   frame  : 0800261F4E00080026640000001CA8A8030B022000010001A771000E211300134E1F0064FFFF00019055210086E44E1F0000006406B1040000410012
+2026-08-17 03:40:42.333 | [link] WARNING the peer RE-SENT data frame seq=1 (we were waiting for 3). It has not seen our acknowledgement - check the send window and our own receive latency BEFORE looking for a fault in XMSG or the file server.
+2026-08-17 03:40:42.367 | [tx] node19999 -> node100  ack seq=2 snd=42865 rcv=1 plen=0
+2026-08-17 03:40:42.377 | [tx]   llc+nd : 0B023F0002A77100010000
+2026-08-17 03:40:42.384 | [RX] 100->19999 sub=ReachabilityReply f1=0xFFFF info=211300134E1F0064FFFF00019055
+2026-08-17 03:40:42.397 | [RX] 100->19999 sub=ReachabilityReply (no reply expected)
+2026-08-17 03:40:42.405 | [sniff] node100 -> node19999  data seq=2 snd=1 rcv=42865 plen=14   <== ADDRESSED TO US
+2026-08-17 03:40:42.418 | [sniff]   llc+nd : 0B022000020001A771000E211300034E1F0064000000019065
+2026-08-17 03:40:42.429 | [sniff]   frame  : 0800261F4E00080026640000001CA8A8030B022000020001A771000E211300034E1F0064000000019065210086E44E1F0000006406B1040000410012
+2026-08-17 03:40:42.448 | [link] WARNING the peer RE-SENT data frame seq=2 (we were waiting for 3). It has not seen our acknowledgement - check the send window and our own receive latency BEFORE looking for a fault in XMSG or the file server.
+2026-08-17 03:40:42.477 | [tx] node19999 -> node100  ack seq=3 snd=42865 rcv=1 plen=0
+2026-08-17 03:40:42.485 | [tx]   llc+nd : 0B023F0003A77100010000
+2026-08-17 03:40:42.491 | [RX] 100->19999 sub=Ack f1=0x0000 info=211300034E1F0064000000019065
+2026-08-17 03:40:42.501 | [seq] node 100: ACK 0x0000 did NOT advance the store (still 0x0001)
+2026-08-17 03:40:42.510 | [RX] 100->19999 sub=Ack (no reply expected)
+2026-08-17 03:40:42.516 | [sniff] node102 -> node19999  kind0x0F seq=112 snd=0 rcv=51629 plen=102   <== ADDRESSED TO US
+2026-08-17 03:40:42.528 | [sniff]   llc+nd : 0B020F00700000C9AD0066
+2026-08-17 03:40:42.535 | [sniff]   frame  : 0800261F4E00080026660000000EA8A8030B020F00700000C9AD00660001CF320005000800004400000000000001A356000000010001D0CE001C000E
+2026-08-17 03:40:42.561 | [sniff] node102 -> node19999  kind0x0F seq=112 snd=0 rcv=51629 plen=102   <== ADDRESSED TO US
+2026-08-17 03:40:42.581 | [sniff]   llc+nd : 0B020F00700000C9AD0066
+2026-08-17 03:40:42.592 | [sniff]   frame  : 0800261F4E00080026660000000EA8A8030B020F00700000C9AD00660001CF320005000800004400000000000001A356000000010001D0CE001C000E
+2026-08-17 03:40:42.614 | [segment] data=6 acks=4 other-stations=3
+2026-08-17 03:40:42.620 | [sniff] node102 -> node19999  kind0x0F seq=112 snd=0 rcv=51629 plen=102   <== ADDRESSED TO US
+2026-08-17 03:40:42.635 | [sniff]   llc+nd : 0B020F00700000C9AD0066
+2026-08-17 03:40:42.642 | [sniff]   frame  : 0800261F4E00080026660000000EA8A8030B020F00700000C9AD00660001CF320005000800004400000000000001A356000000010001D0CE001C000E
+2026-08-17 03:40:42.663 | [sniff] node102 -> node19999  kind0x0F seq=112 snd=0 rcv=51629 plen=102   <== ADDRESSED TO US
+2026-08-17 03:40:42.678 | [sniff]   llc+nd : 0B020F00700000C9AD0066
+2026-08-17 03:40:42.683 | [sniff]   frame  : 0800261F4E00080026660000000EA8A8030B020F00700000C9AD00660001CF320005000800004400000000000001A356000000010001D0CE001C000E
+2026-08-17 03:40:42.702 | [sniff] node102 -> node19999  kind0x0F seq=112 snd=0 rcv=51629 plen=102   <== ADDRESSED TO US
+2026-08-17 03:40:42.714 | [sniff]   llc+nd : 0B020F00700000C9AD0066
+2026-08-17 03:40:42.720 | [sniff]   frame  : 0800261F4E00080026660000000EA8A8030B020F00700000C9AD00660001CF320005000800004400000000000001A356000000010001D0CE001C000E
+2026-08-17 03:40:42.899 | [sniff] node102 -> node19999  kind0x0F seq=112 snd=0 rcv=51629 plen=102   <== ADDRESSED TO US
+2026-08-17 03:40:42.916 | [sniff]   llc+nd : 0B020F00700000C9AD0066
+2026-08-17 03:40:42.922 | [sniff]   frame  : 0800261F4E00080026660000000EA8A8030B020F00700000C9AD00660001CF320005000800004400000000000001A356000000010001D0CE001C000E
+2026-08-17 03:40:43.046 | [sniff] node102 -> node19999  kind0x0F seq=112 snd=0 rcv=51629 plen=102   <== ADDRESSED TO US
+2026-08-17 03:40:43.060 | [sniff]   llc+nd : 0B020F00700000C9AD0066
+2026-08-17 03:40:43.073 | [sniff]   frame  : 0800261F4E00080026660000000EA8A8030B020F00700000C9AD00660001CF320005000800004400000000000001A356000000010001D0CE001C000E
+2026-08-17 03:40:43.216 | [sniff] node102 -> node19999  kind0x0F seq=112 snd=0 rcv=51629 plen=102   <== ADDRESSED TO US
+2026-08-17 03:40:43.231 | [sniff]   llc+nd : 0B020F00700000C9AD0066
+2026-08-17 03:40:43.236 | [sniff]   frame  : 0800261F4E00080026660000000EA8A8030B020F00700000C9AD00660001CF320005000800004400000000000001A356000000010001D0CE001C000E
+2026-08-17 03:40:43.357 | [sniff] node102 -> node19999  kind0x0F seq=112 snd=0 rcv=51629 plen=102   <== ADDRESSED TO US
+2026-08-17 03:40:43.371 | [sniff]   llc+nd : 0B020F00700000C9AD0066
+2026-08-17 03:40:43.377 | [sniff]   frame  : 0800261F4E00080026660000000EA8A8030B020F00700000C9AD00660001CF320005000800004400000000000001A356000000010001D0CE001C000E
+2026-08-17 03:40:43.519 | [sniff] node102 -> node19999  kind0x0F seq=112 snd=0 rcv=51629 plen=102   <== ADDRESSED TO US
+2026-08-17 03:40:43.534 | [sniff]   llc+nd : 0B020F00700000C9AD0066
+2026-08-17 03:40:43.539 | [sniff]   frame  : 0800261F4E00080026660000000EA8A8030B020F00700000C9AD00660001CF320005000800004400000000000001A356000000010001D0CE001C000E
+2026-08-17 03:40:47.618 | [segment] data=6 acks=4 other-stations=12
+2026-08-17 03:40:52.634 | [segment] data=6 acks=4 other-stations=12
+2026-08-17 03:40:57.665 | [segment] data=6 acks=4 other-stations=12
+2026-08-17 03:41:02.688 | [segment] data=6 acks=4 other-stations=12
+2026-08-17 03:41:07.702 | [segment] data=6 acks=4 other-stations=12
+2026-08-17 03:41:12.725 | [segment] data=6 acks=4 other-stations=12
+2026-08-17 03:41:17.735 | [segment] data=6 acks=4 other-stations=12
+2026-08-17 03:41:22.760 | [segment] data=6 acks=4 other-stations=12
+2026-08-17 03:41:27.787 | [segment] data=6 acks=4 other-stations=12
+2026-08-17 03:41:32.817 | [segment] data=6 acks=4 other-stations=12
+2026-08-17 03:41:37.821 | [segment] data=6 acks=4 other-stations=12
+2026-08-17 03:41:42.849 | [segment] data=6 acks=4 other-stations=12
+2026-08-17 03:41:47.851 | [segment] data=6 acks=4 other-stations=12
+2026-08-17 03:41:52.878 | [segment] data=6 acks=4 other-stations=12

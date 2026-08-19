@@ -1,0 +1,61 @@
+{
+  "_readme": [
+    "Canonical locations for this work. RESOLVE NAMES FROM HERE - do not remember",
+    "paths and do not guess them. Rule #0 (never assume, verify first) exists",
+    "because a wrong folder was assumed twice on 2026-08-03.",
+    "",
+    "If a path here turns out to be wrong, FIX THIS FILE - do not work around it.",
+    "Every entry below was checked with a directory listing on the date in _verified."
+  ],
+  "_verified": "2026-08-08",
+
+  "repos": {
+    "ndinsight": "E:\\Dev\\Ronny\\NDInsight",
+    "ndinsight_scripts": "E:\\Dev\\Ronny\\NDInsight\\scripts",
+    "retrocore": "E:\\Dev\\Repos\\Ronny\\RetroCore",
+    "retroterm": "E:\\Dev\\Ronny\\RetroTerm",
+    "tss": "E:\\Dev\\Ronny\\TSS"
+  },
+
+  "unity": {
+    "project": "E:\\Dev\\Ronny\\UnityDev\\NorskData",
+    "scene": "E:\\Dev\\Ronny\\UnityDev\\NorskData\\Assets\\Scenes\\SampleScene.unity",
+    "scripts": "E:\\Dev\\Ronny\\UnityDev\\NorskData\\Assets\\Scripts",
+    "models": "E:\\Dev\\Ronny\\UnityDev\\NorskData\\Assets\\Models",
+    "sandbox_do_not_build": "E:\\Dev\\Ronny\\UnityDev\\Test1",
+    "skill_pack_clone": "E:\\Dev\\Ronny\\UnityDev\\unity-game-skills",
+    "mcp_endpoint": "http://127.0.0.1:8088/mcp"
+  },
+
+  "hardware": {
+    "models_3d": "E:\\Dev\\Ronny\\NDInsight\\Hardware\\3D-Models",
+    "photo_archive": "\\\\Nas9t\\data\\NorskData\\Pictures",
+    "_photo_note": "ONLY source for cabinet colours and appearance."
+  },
+
+  "reference": {
+    "manuals": "E:\\Dev\\Ronny\\NDInsight\\Reference-Manuals",
+    "npl_source": "E:\\Dev\\Ronny\\NDInsight\\SINTRAN\\NPL-SOURCE",
+    "nd5000_microcode_manuals": "E:\\Dev\\Ronny\\ND5000UC\\manual",
+    "_manuals_note": "GREP THE MANUALS FIRST. Days were lost twice carving what the manuals state outright."
+  },
+
+  "media": {
+    "nd_distribution": "F:\\ND",
+    "sintran_l_images": "F:\\ND\\SINTRAN-L - 2026\\HDD",
+    "_media_note": "TAKE A COPY before booting or attaching any image. Never work on the original."
+  },
+
+  "tools": {
+    "retroterm_exe": "E:\\Dev\\Ronny\\RetroTerm\\publish\\RetroTerm.Desktop.exe",
+    "ocr_output": "D:\\OCR\\ai",
+    "windows_notes": "D:\\nd\\fuck-me-windows.md"
+  },
+
+  "claude": {
+    "global_instructions": "C:\\Users\\ronny\\.claude\\CLAUDE.md",
+    "skills": "C:\\Users\\ronny\\.claude\\skills",
+    "memory_ndinsight": "C:\\Users\\ronny\\.claude\\projects\\E--Dev-Ronny-NDInsight\\memory",
+    "sessions": "C:\\Users\\ronny\\.claude\\projects"
+  }
+}

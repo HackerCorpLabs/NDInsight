@@ -21,7 +21,7 @@ namespace NDInsight.Sintran.Xmsg.Node
     /// datagram sequence, <c>Flags2 = 0x0001</c>) are VERIFIED against captures
     /// (XMSG-PROTOCOL.md sections 5.1 and 6). The reachability-reply command byte
     /// (<c>0x0E</c>) is OBSERVED from the single captured request/reply pair. Port/magic
-    /// allocation is not modelled here — INFERRED / stubbed.
+    /// allocation is not modelled here - INFERRED / stubbed.
     /// </remarks>
     public sealed class XmsgNode
     {
@@ -70,7 +70,7 @@ namespace NDInsight.Sintran.Xmsg.Node
         /// <summary>
         /// When true, secure-ACK (subtype <c>0x03</c>, echoing Flags1) each TAD connect and
         /// session frame from the peer. DEFAULT FALSE: the experiment showed that sending a
-        /// <c>0x03</c> ACK (echoing the connect's <c>DA</c> channel) CRASHES 100 (XXPER) — a real
+        /// <c>0x03</c> ACK (echoing the connect's <c>DA</c> channel) CRASHES 100 (XXPER) - a real
         /// responder ACKs the connect on the <c>DD</c> (TAD) channel, so a naive echo-channel ACK
         /// is malformed. Left as a toggle for a future correctly-channelled ACK experiment.
         /// </summary>
@@ -102,7 +102,7 @@ namespace NDInsight.Sintran.Xmsg.Node
         // The per-link seed for the session ACK model, learned ONCE from the first valid data frame.
         // It is a per-link CONSTANT (VERIFIED across every session/reconnect/reboot in the corpus), so
         // it must never be re-learned per frame: a single out-of-model received frame would poison the
-        // seed for the next frames we originate (measured live 2026-07-07 — a burst chunk went out with
+        // seed for the next frames we originate (measured live 2026-07-07 - a burst chunk went out with
         // the Counter for seed 0x16 instead of 0x14; same bug class as the historical per-connect ACK
         // re-seed that 24B-crashed 100).
         private bool _linkSeedLearned;
@@ -110,7 +110,7 @@ namespace NDInsight.Sintran.Xmsg.Node
 
         /// <summary>
         /// Optional diagnostics sink for envelope anomalies (a received frame whose implied seed
-        /// disagrees with the learned link seed — the out-of-model frame to hunt in a capture).
+        /// disagrees with the learned link seed - the out-of-model frame to hunt in a capture).
         /// </summary>
         public XmsgLogHandler? Log { get; set; }
 
@@ -254,6 +254,45 @@ namespace NDInsight.Sintran.Xmsg.Node
         }
 
         /// <summary>
+        /// Offers a received frame to this node's fragment reassembler, ahead of any dispatch.
+        /// </summary>
+        /// <param name="incoming">
+        /// The frame as it arrived.
+        /// </param>
+        /// <returns>
+        /// The frame to go on handling: <paramref name="incoming"/> unchanged when it is not a
+        /// fragment, the joined data frame when a pair has just completed, or
+        /// <see langword="null"/> when it was the first half and there is nothing to handle yet.
+        /// </returns>
+        /// <remarks>
+        /// <para><b>Why this is public rather than private to <see cref="HandleFrames"/></b></para>
+        /// <para>
+        /// Anything watching inbound traffic has to see WHOLE messages, not halves. The file-access
+        /// CLIENT is the case that proved it: a pull driver subscribed to the layer's
+        /// message event, which fired before <see cref="HandleFrames"/> ran, so the driver was
+        /// handed a first fragment and a continuation separately and never saw the file content
+        /// they carry. The ladder ran perfectly to <c>ReadFile</c>, D100 sent the file, and it went
+        /// on the floor - measured live 2026-08-11.
+        /// </para>
+        /// <para>
+        /// So the rejoin belongs at the FRONT of the chain, and this exposes it there. It is still
+        /// the node's one reassembler - two would pair fragments against two separate tables and
+        /// join nothing. <see cref="HandleFrames"/> still calls it, which is harmless and keeps
+        /// this type correct on its own: a frame that has already been joined is an ordinary data
+        /// frame, and the reassembler returns those unchanged.
+        /// </para>
+        /// </remarks>
+        public XmsgFrame? AcceptFragment(XmsgFrame incoming)
+        {
+            if (incoming == null)
+            {
+                throw new ArgumentNullException(nameof(incoming));
+            }
+
+            return _fragments.Accept(incoming);
+        }
+
+        /// <summary>
         /// Processes a received frame and returns ALL frames to send in response (zero or more).
         /// This is the multi-frame entry point the live node uses: a TAD connect needs several
         /// frames (secure ACK + connect-accept + greeting), which the single-frame
@@ -353,7 +392,7 @@ namespace NDInsight.Sintran.Xmsg.Node
                     // Seed the ACK counter to connect-counter + 0x0A so the first ACK trailing byte
                     // matches the captured value (VALIDATED: 8/13 captures, both connect captures:
                     // 0x0D->0x17, 0xCE->0xD8) and the per-ACK decrement reproduces the captured
-                    // sequence. Without this the trailing byte is 0x00 — a malformed ACK that
+                    // sequence. Without this the trailing byte is 0x00 - a malformed ACK that
                     // crashed 100 (XXPER).
                     if (incoming.SubHeader != null)
                     {
@@ -363,7 +402,7 @@ namespace NDInsight.Sintran.Xmsg.Node
                         // every connect - never re-seeded per connect (the old connect-Counter+0x0A
                         // re-seed reset the channel to DE where the real 102 rode DD past the ACK baseLow,
                         // crashing 100 at PERF_CONNCT on the third connect). Learn the link seed here
-                        // (once — see LearnLinkSeedOnce).
+                        // (once - see LearnLinkSeedOnce).
                         _receiver.UseSessionAckModel(LearnLinkSeedOnce(incoming));
                     }
 
@@ -414,7 +453,7 @@ namespace NDInsight.Sintran.Xmsg.Node
                     result.Add(_receiver.ReceiveDataFrame(incoming, TadResponder.AckChannel));
                     if (TadResponder.IsDisconnect(incoming))
                     {
-                        // 100's graceful teardown (DCON) — e.g. its 1-minute "TAD not logged in" idle
+                        // 100's graceful teardown (DCON) - e.g. its 1-minute "TAD not logged in" idle
                         // timeout. ACK it (above) and close our session so the next connect is clean.
                         TadResponder.CloseSession();
                     }
@@ -522,7 +561,7 @@ namespace NDInsight.Sintran.Xmsg.Node
                 case SintranPacketSubtype.Ack:
                     // 100's delivery ACK confirms it received our frame (its Flags1 echoes ours).
                     // Persist ackedFlags1 + 1 as our next sequence, so a restart continues exactly
-                    // where 100 expects — never ahead of what it actually received. ConfirmDelivered also
+                    // where 100 expects - never ahead of what it actually received. ConfirmDelivered also
                     // releases a server's output flow-control window; the OUTER HandleFrames drains the
                     // newly-permitted chunk(s) after this returns (see the Ack-drain block there).
                     TadResponder?.ConfirmDelivered(incoming.Header.SourceNode, incoming.Header.Flags1);
@@ -530,7 +569,18 @@ namespace NDInsight.Sintran.Xmsg.Node
                     return null;
 
                 case SintranPacketSubtype.NetworkError:
-                    // Network error. A XENSE (Flags2 0xFFDE) reject of our accept means our sequence
+                    // SAY WHAT THE ERROR WAS. Everything below acts on ONE code (XENSE) and drops
+                    // the rest on the floor, which made a live push look like plain silence: the
+                    // machine WAS answering, and answering with a named reason, and nothing printed
+                    // it. Measured 2026-08-11 on a push to D100 - two NetworkError frames arrived
+                    // and the log said only "NO REPLY BUILT". The code rides Flags2 as a negative
+                    // XMSG error number (see XmsgError, from XMSG-VALUES-M.SYMB).
+                    Log?.Invoke(
+                        "[net] node " + incoming.Header.SourceNode.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                        + " rejected our frame at Flags1 0x" + incoming.Header.Flags1.ToString("X4", System.Globalization.CultureInfo.InvariantCulture)
+                        + " with " + DescribeNetworkError(incoming.Header.Flags2));
+
+                    // A XENSE (Flags2 0xFFDE) reject of our accept means our sequence
                     // was AHEAD of 100's expected-from-us (drift). Step the accept DOWN and re-send;
                     // one step per XENSE converges on 100's exact value with no restart. Only while
                     // the accept is still un-confirmed (before the session-setup).
@@ -542,7 +592,7 @@ namespace NDInsight.Sintran.Xmsg.Node
                     // Same recovery on the framework ServerHost path (the live runner): the host keeps
                     // the un-ACKed accept and rebuilds it one Flags1 lower per XENSE. The error code
                     // rides the Flags2 field of the subtype-0x07 frame; only XENSE (-34 = 0xFFDE) is a
-                    // sequencing reject we can recover from — other codes (e.g. XEIMA 0xFFED) are not.
+                    // sequencing reject we can recover from - other codes (e.g. XEIMA 0xFFED) are not.
                     if (ServerHost != null && incoming.Header.Flags2 == unchecked((ushort)XmsgError.XENSE))
                     {
                         return ServerHost.ResyncAcceptDown(incoming.Header.SourceNode);
@@ -654,10 +704,10 @@ namespace NDInsight.Sintran.Xmsg.Node
         /// <summary>
         /// Learns the per-link seed from the FIRST valid data frame and returns it; later frames only
         /// VALIDATE against it. The seed is a per-link constant (VERIFIED across every session,
-        /// reconnect and reboot in the corpus — 0x14 for 100 to/from 102), so re-learning per frame is
+        /// reconnect and reboot in the corpus - 0x14 for 100 to/from 102), so re-learning per frame is
         /// wrong: one out-of-model received frame would poison the seed for the frames we originate
         /// next (measured live 2026-07-07: a burst chunk carried the Counter for seed 0x16 instead of
-        /// 0x14). A mismatch is logged with the offending frame's envelope — that frame is the thing
+        /// 0x14). A mismatch is logged with the offending frame's envelope - that frame is the thing
         /// to hunt in a capture.
         /// </summary>
         /// <param name="incoming">
@@ -681,10 +731,49 @@ namespace NDInsight.Sintran.Xmsg.Node
             if (implied != _linkSeed)
             {
                 Log?.Invoke(
-                    $"[node] WARNING: frame from node {incoming.Header.SourceNode} F1=0x{incoming.Header.Flags1:X4} ctr=0x{incoming.Header.Counter:X2} F2=0x{incoming.Header.Flags2:X4} implies seed 0x{implied:X2} but link seed is 0x{_linkSeed:X2} — keeping 0x{_linkSeed:X2} (out-of-model frame)");
+                    $"[node] WARNING: frame from node {incoming.Header.SourceNode} F1=0x{incoming.Header.Flags1:X4} ctr=0x{incoming.Header.Counter:X2} F2=0x{incoming.Header.Flags2:X4} implies seed 0x{implied:X2} but link seed is 0x{_linkSeed:X2} - keeping 0x{_linkSeed:X2} (out-of-model frame)");
             }
 
             return _linkSeed;
+        }
+
+        /// <summary>
+        /// Names the XMSG error code carried in a subtype-<c>0x07</c> frame's Flags2 field.
+        /// </summary>
+        /// <param name="flags2">
+        /// The Flags2 word, a negative XMSG error number in two's complement.
+        /// </param>
+        /// <returns>
+        /// The symbol and number when the code is known, otherwise the raw value.
+        /// </returns>
+        /// <remarks>
+        /// The two seen live are called out because they mean opposite things and the difference
+        /// decides what to do next:
+        ///  - <c>XENSE</c> (-34) says OUR sequence is ahead of what the peer expects, and stepping
+        ///    down recovers it.
+        ///  - <c>XEIMA</c> (-19) says the magic number was invalid - the wrong port or a closed
+        ///    receiving port - and no amount of sequence work will fix it.
+        /// Anything else is printed as a number rather than guessed at.
+        /// </remarks>
+        private static string DescribeNetworkError(ushort flags2)
+        {
+            short code = unchecked((short)flags2);
+            string name;
+            switch (code)
+            {
+                case (short)XmsgError.XENSE:
+                    name = "XENSE (our sequence is AHEAD of what the peer expects)";
+                    break;
+                case (short)XmsgError.XEIMA:
+                    name = "XEIMA (invalid magic number - wrong port, or the receiving port is closed)";
+                    break;
+                default:
+                    name = "an error this node does not name";
+                    break;
+            }
+
+            return name + " Flags2=0x" + flags2.ToString("X4", System.Globalization.CultureInfo.InvariantCulture)
+                + " (" + code.ToString(System.Globalization.CultureInfo.InvariantCulture) + ")";
         }
     }
 }

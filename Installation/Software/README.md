@@ -364,7 +364,7 @@ Documented products link from the **Doc** column below.
 | [ND-10337 Backup-System (older article no.)](ND-10337/README.md) | [ND-10337B](ND-10337/ND-10337B/README.md), [ND-10337F](ND-10337/ND-10337F/README.md) — F is unverified |
 | [ND-10309 PLANC for ND-100](ND-10309/README.md) | [ND-10309A](ND-10309/ND-10309A/README.md), [ND-10309B](ND-10309/ND-10309B/README.md), [ND-10309F](ND-10309/ND-10309F/README.md) — F is unverified |
 | [ND-10023 FORTRAN (48-bit)](ND-10023/README.md) | [ND-10023K](ND-10023/ND-10023K/README.md) — unverified |
-| [ND-10191 Fortran 77 for ND-100/NORD-10](ND-10191/README.md) | [ND-10191A](ND-10191/ND-10191A/README.md), [ND-10191D](ND-10191/ND-10191D/README.md) — both unverified, D's PART1 is missing/unresolved |
+| [ND-10191 Fortran 77 for ND-100/NORD-10](ND-10191/README.md) | [ND-10191A](ND-10191/ND-10191A/README.md), [ND-10191E00](ND-10191/ND-10191E00/README.md) — complete matched set, resolves the D-revision PART1 question, [ND-10191D](ND-10191/ND-10191D/README.md) — PART1 still unfound but now understood to be a gap in the floppy library, not a frozen compiler |
 | [ND-210191 Fortran 77 for ND-100/NORD-10 (later article no.)](ND-210191/README.md) | [ND-210191F02](ND-210191/ND-210191F02/README.md) — unverified |
 | [ND-210190 FORTRAN for ND-500](ND-210190/README.md) | [ND-210190K02](ND-210190/ND-210190K02/README.md) — installer identified, not run live |
 | [ND-10335 ND-500 Symbolic Debugger](ND-10335/README.md) | [ND-10335B](ND-10335/ND-10335B/README.md) |
@@ -408,6 +408,28 @@ Documented products link from the **Doc** column below.
 | [ND-211159 LED-FORTRAN](ND-211159/README.md) | STUB — real floppy decoded, no installer program on it |
 | [ND-211158 LED-PLANC](ND-211158/README.md) | STUB — no source located |
 | [ND-230050 LED for OWS](ND-230050/README.md) | STUB — no source located |
+| [ND-10340 SIBAS-II for ND-500](ND-10340/README.md) | IN-PROGRESS — real floppy set (6 parts) decoded, confirms `SIB2-DRL` prerequisite for ND-211049 SQL |
+| [ND-10745 ND-Ada (subset compiler)](ND-10745/README.md) | [ND-10745A00](ND-10745/ND-10745A00/README.md) — VERIFIED, real `:MODE` build + demo compile/link/run scripts decoded |
+| [ND-10013 NSHS (NORD Screen Handling System)](ND-10013/README.md) | IN-PROGRESS — real floppy (parts 2-3) decoded, part 1/installer missing |
+| [ND-10609 COSMOS Programmers Library](ND-10609/README.md) | IN-PROGRESS — real floppy decoded, full module inventory (XMSG/TLIB x PLANC/FORTRAN + RRP), installer not decoded |
+| [ND-10080 PED Program Editor](ND-10080/README.md) | STUB — PI-sheet only, floppy not accessible |
+| [ND-10730 UNIQUE II for ND-500 (English)](ND-10730/README.md) | IN-PROGRESS — real floppy set decoded, includes a complete real `:UNIQ` application example |
+| [ND-10511 Exception Handling System](ND-10511/README.md) | IN-PROGRESS — real floppy decoded, confirms the `EXCEPT-LIB` identity |
+| [ND-250007 Mini-Line Editor (MLE) for ND-100/500](ND-250007/README.md) | IN-PROGRESS — real floppy decoded, full runtime module inventory |
+| [ND-10130 Xmessage for SINTRAN-III/VS](ND-10130/README.md) | IN-PROGRESS — real J-version floppy decoded, full load/start `:MODE`/`:BATC` scripts |
+| [ND-10373 IS XMSG (Inter System)](ND-10373/README.md) | IN-PROGRESS — real J-version floppy decoded, XFTRA file-transfer extra confirmed |
+| [PLANC-SCREEN-H — PLANC Screen Handling Library](ND-PLANC-SCREEN-H/README.md) | IN-PROGRESS — real floppy decoded, real PLANC interface + `.PICT` screen format; no ND article number |
+| [ND-10704 FORTRAN Interface (T2000 patch)](ND-10704/README.md) | IN-PROGRESS — real floppy decoded, real QED patch script |
+| [ND-10516 FILE-HANDLER](ND-10516/README.md) | IN-PROGRESS — real floppy decoded, installer + main program + samples found |
+| [ND-10732 ND Telex](ND-10732/README.md) | IN-PROGRESS — real floppy decoded, complete real SINTRAN monitor-call install (DMAC assembly) |
+| [ND-210793 NOTIS-BG for ND-500](ND-210793/README.md) | IN-PROGRESS — real floppy decoded, confirms VTM-COMPOUND pattern in the wild |
+| [ND-210794 NOTIS-DS for ND-500](ND-210794/README.md) | STUB — both real floppies confirmed empty/broken |
+| [ND-210865 MERCUR for ND-500](ND-210865/README.md) | IN-PROGRESS — real floppy decoded, runtime module inventory |
+| [ND-210260 NORTEXT-100 Book Pagination](ND-210260/README.md) | IN-PROGRESS — real floppy set decoded, real `:XCOM` installer scripts recovered |
+| [ND-210636 NORTEXT-100 AD Order Entry w/Editor](ND-210636/README.md) | IN-PROGRESS — real floppy set decoded |
+| [ND-210733 NORTEXT-100 AD Order Entry Module](ND-210733/README.md) | IN-PROGRESS — real floppy decoded |
+| [ND-210412 ND-500/1 CXA Microprogram](ND-210412/README.md) | IN-PROGRESS — real floppy decoded; likely source of the ND-500 microcode project's control store |
+| [ND-210628 SINTRAN III VSE/VSX Utility Programs](ND-210628/README.md) | STUB — no PD/PI, floppy not accessible |
 
 ---
 

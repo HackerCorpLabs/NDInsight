@@ -6,6 +6,7 @@ Scripts for driving a running SINTRAN machine headless over its RetroCore termin
 | --- | --- |
 | `lab-status.ps1` | **Start here.** Read-only snapshot of the whole lab: which machines are up, how each HDLC line is wired right now, whether our relay is running, and which .NET hosts are ours versus another repo's. |
 | `ndterm.ps1` | Drives one SINTRAN terminal session: ESC, login, commands one prompt at a time, logout. |
+| `run-all-tests.ps1` | Builds and runs every test project. **A project that produces no result counts as a FAILURE**, not a skip - see the note below. |
 | `restart-xmsg-cosmos.ps1` | Restarts XMSG and COSMOS and puts the machine back on the Ethernet segment. |
 
 > **Ports and LUs live in [`../lab-topology.json`](../lab-topology.json), explained in
@@ -13,6 +14,30 @@ Scripts for driving a running SINTRAN machine headless over its RetroCore termin
 > The sequences written out further down this page were captured on 2026-08-04 against a DIFFERENT
 > HDLC wiring (note `START-LINK,1362`) - check LAB.md for the current controller-to-port-to-LU
 > mapping before copying a command from here.
+
+## Why `run-all-tests.ps1` exists
+
+A one-line loop over `dotnet test` is not enough, and this was learned the expensive way.
+
+On 2026-08-17 an ad-hoc loop reported **"0 failing, 177 passed"** after a wide edit and looked
+perfectly healthy. Nine of the eleven projects had failed to BUILD. The loop only counted projects
+that printed a `Passed!`/`Failed!` summary, so those nine were skipped in silence rather than
+counted, and the 177 was simply the two projects that still compiled. A broken tree was one commit
+away from going in on a green light.
+
+The rule the script enforces: **absence of a red line is not evidence of green.** A project that
+produces no result at all is reported as a failure and the run exits non-zero. It also builds
+everything first, because a build error is the failure most easily mistaken for "nothing to run",
+and it finishes with `dotnet build-server shutdown` so a leftover MSBuild node cannot hold the DLLs
+and have the next run quietly test stale code.
+
+```powershell
+.un-all-tests.ps1                                  # everything
+.un-all-tests.ps1 -Filter "FullyQualifiedName~Tad" # one area
+```
+
+Verified to fail as intended: reintroducing a bare `<` in an XML doc comment - the exact break that
+started this - makes it report eight red projects and exit 1 without running a single test.
 
 ## Reading the lab
 

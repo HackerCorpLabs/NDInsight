@@ -194,5 +194,65 @@ namespace NDInsight.Sintran.Xmsg.Sync.Tests
             Assert.Throws<ArgumentNullException>(() => tracker.Observe(null!, 1, 1, 0));
             Assert.Throws<ArgumentNullException>(() => tracker.Forget(null!));
         }
+
+        /// <summary>
+        /// A settled file that is observed again, unchanged, is NOT presented as being written.
+        /// </summary>
+        /// <remarks>
+        /// MEASURED 2026-08-11 and it is why the settled entry is kept rather than removed. A
+        /// scanning caller re-observes every file in the folder every few seconds; when a settled
+        /// entry had been removed, the next observation created a brand new one with a fresh clock,
+        /// so the daemon reported "1 file(s) still being written" for ever about a file it had
+        /// already carried.
+        /// </remarks>
+        [Fact]
+        public void ASettledFileObservedAgainUnchangedIsNotBeingWritten()
+        {
+            FileSettleTracker tracker = new FileSettleTracker(Quiet);
+            tracker.Observe("a.symb", 100, 1, 0);
+
+            Assert.Single(tracker.TakeSettled(Quiet));
+            Assert.False(tracker.IsStillBeingWritten("a.symb"));
+
+            // The scanner comes round again and sees the same untouched file.
+            tracker.Observe("a.symb", 100, 1, Quiet + 500);
+
+            Assert.False(tracker.IsStillBeingWritten("a.symb"));
+            Assert.Equal(0, tracker.PendingCount);
+            Assert.Empty(tracker.TakeSettled(Quiet + 5000));
+        }
+
+        /// <summary>
+        /// A settled file that is really edited settles again, and is reported again.
+        /// </summary>
+        /// <remarks>
+        /// The other half: marking a file settled must not mean it is never carried again. An edit
+        /// puts it back in play.
+        /// </remarks>
+        [Fact]
+        public void AnEditedFileSettlesAgain()
+        {
+            FileSettleTracker tracker = new FileSettleTracker(Quiet);
+            tracker.Observe("a.symb", 100, 1, 0);
+            Assert.Single(tracker.TakeSettled(Quiet));
+
+            // Edited: different size and stamp.
+            tracker.Observe("a.symb", 250, 2, Quiet + 100);
+
+            Assert.True(tracker.IsStillBeingWritten("a.symb"));
+            Assert.Equal(1, tracker.PendingCount);
+            Assert.Equal(new string[] { "a.symb" }, tracker.TakeSettled(Quiet + 100 + Quiet));
+        }
+
+        /// <summary>
+        /// A file the tracker has never seen is not "being written".
+        /// </summary>
+        [Fact]
+        public void AnUnknownFileIsNotBeingWritten()
+        {
+            FileSettleTracker tracker = new FileSettleTracker(Quiet);
+
+            Assert.False(tracker.IsStillBeingWritten("never-seen.symb"));
+        }
     }
 }

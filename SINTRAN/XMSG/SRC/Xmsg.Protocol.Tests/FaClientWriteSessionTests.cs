@@ -78,8 +78,8 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
             }
 
             Assert.Equal(Blocks, blocksSent);
-            Assert.Equal(FaClientAction.SendClose, session.NextAction());
-            session.OnCloseSent();
+            Assert.Equal(FaClientAction.SendRelease, session.NextAction());
+            session.OnReleaseSent();
 
             Assert.Equal(FaClientAction.Done, session.NextAction());
             Assert.Equal(string.Empty, session.Failure);
@@ -305,7 +305,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
 
             // The ladder already contains the close and the release, so what is left after walking
             // it is the conversation close - not another operation and not more content.
-            Assert.Equal(FaClientAction.SendClose, session.NextAction());
+            Assert.Equal(FaClientAction.SendRelease, session.NextAction());
         }
 
         /// <summary>
@@ -318,5 +318,72 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
 
             Assert.Throws<ArgumentNullException>(() => session.OnRejected(null!));
         }
-    }
+    
+        /// <summary>
+        /// A push that dies after OpenFile still closes the file on the peer.
+        /// </summary>
+        /// <remarks>
+        /// This is the D100 lesson of 2026-08-17 written down as a test. A transfer stalled part
+        /// way through and simply stopped; CHAT:PLNC was then stuck OPEN on the machine, could not
+        /// be rewritten, and could not even be deleted - SINTRAN answered FILE ALREADY OPEN. It
+        /// took a file-server restart to clear, because the file belongs to the server's RT
+        /// program rather than to any terminal, so it does not even show in LIST-OPEN-FILES.
+        /// <para>
+        /// Without <see cref="FaClientWriteSession.AbandonAfterOpenFile"/> the session reports
+        /// <see cref="FaClientAction.Failed"/> and there is no way to reach the epilogue, so this
+        /// test cannot be made to pass by tightening the assertions - the capability has to exist.
+        /// </para>
+        /// </remarks>
+        [Fact]
+        public void AbandoningAfterOpenFileStillSendsTheEpilogueThatClosesTheFile()
+        {
+            FaClientWriteSession session = new FaClientWriteSession(9);
+
+            session.OnConnectionConfirmed();
+            CompleteOneStep(session);                       // ReserveFileEntry
+            Assert.False(session.FileOpenOnPeer);
+
+            Assert.Equal(FaOperation.OpenFile, session.CurrentOperation);
+            CompleteOneStep(session);                       // OpenFile - the file is now open
+            Assert.True(session.FileOpenOnPeer);
+
+            // The peer goes quiet in the middle and the caller gives up.
+            session.OnRejected("the peer stopped answering");
+            Assert.Equal(FaClientAction.Failed, session.NextAction());
+
+            Assert.True(session.AbandonAfterOpenFile());
+
+            // What follows must be the same epilogue a finished write sends, in order.
+            FaOperation[] epilogue = FaWriteLadder.Epilogue();
+            for (int i = 0; i < epilogue.Length; i++)
+            {
+                Assert.Equal(FaClientAction.SendRequest, session.NextAction());
+                Assert.Equal(epilogue[i], session.CurrentOperation);
+                CompleteOneStep(session);
+            }
+
+            Assert.False(session.FileOpenOnPeer);
+            Assert.Equal(FaClientAction.SendRelease, session.NextAction());
+            session.OnReleaseSent();
+            Assert.Equal(FaClientAction.Done, session.NextAction());
+
+            _output.WriteLine("abandoned push still walked " + epilogue.Length
+                + " epilogue steps, so the peer closed the file");
+        }
+
+        /// <summary>
+        /// Abandoning before OpenFile has nothing to put down and says so.
+        /// </summary>
+        [Fact]
+        public void AbandoningBeforeOpenFileReportsThereIsNothingToClose()
+        {
+            FaClientWriteSession session = new FaClientWriteSession(2);
+
+            session.OnConnectionConfirmed();
+            CompleteOneStep(session);                       // ReserveFileEntry only
+
+            Assert.False(session.FileOpenOnPeer);
+            Assert.False(session.AbandonAfterOpenFile());
+        }
+}
 }

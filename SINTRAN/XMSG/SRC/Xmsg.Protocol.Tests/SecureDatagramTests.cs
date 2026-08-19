@@ -154,7 +154,7 @@ namespace NDInsight.Sintran.Xmsg.Tests
         [Fact]
         public void Receiver_SessionAckModel_MatchesCaptureAcrossDeToDdWrap()
         {
-            // CAPTURE-VERIFIED (multiple-connect, 100<->102 seed 0x14 -> ACK seed 0x1F): the TAD-session
+            // CAPTURE-VERIFIED (multiple-connect, 100-102 seed 0x14 -> ACK seed 0x1F): the TAD-session
             // ACK is a STATELESS closed form over the acknowledged Flags1. These are the real 102 ACK
             // Counter+channel rows, including the DE->DD wrap at F1 0x1F and the session-3 crash case
             // F1 0x2A (where our old per-connect re-seed wrongly emitted DE 0xF4 and 100 PERF_CONNCT'd).

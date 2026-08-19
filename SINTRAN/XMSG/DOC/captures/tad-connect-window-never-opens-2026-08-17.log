@@ -1,0 +1,66 @@
+[runner] topology loaded: self=19999, 4 node(s), file=topology-d19999.json
+[runner] logging to E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\xmsg-d19999.log (level Info, max 2 MB, keep 3).
+2026-08-17 01:38:56.177 | [runner] Xmsg.Live.Runner v1.1.0.0 built 2026-08-17 01:33:41
+2026-08-17 01:38:56.224 | [runner] config folder: 
+2026-08-17 01:38:56.244 | [runner] config file:   topology-d19999.json
+2026-08-17 01:38:56.278 | [runner] log folder:    E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0
+2026-08-17 01:38:56.350 | [runner] log file:      E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\xmsg-d19999.log
+2026-08-17 01:38:56.444 | [runner] path=seam connecting to 127.0.0.1:10364 as node 19999 for 3600s
+2026-08-17 01:38:56.458 | [fa] connection numbers 0x00C2..0x0101 (state: E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\fa-connection.state)
+2026-08-17 01:38:56.476 | [fa] file server ON as *FA-SERVER (logical port 4, wire port 0x0257)
+2026-08-17 01:38:56.485 | [fa] serving folder: E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\served-files
+2026-08-17 01:38:56.502 | [fa] files visible now: 6
+2026-08-17 01:38:56.512 | [runner] joining COSMOS segment tcp:127.0.0.1:5010 as node 19999 (MAC 08:00:26:1F:4E:00), peer 100 (MAC 08:00:26:64:00:00)
+2026-08-17 01:38:56.529 | [runner] datagram-sequence state file: E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\xmsg-sequence.state
+2026-08-17 01:38:56.546 | [tad] 2 login account(s) loaded
+2026-08-17 01:38:56.554 | [runner] link-seed state file: E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\xmsg-link-seed.state
+2026-08-17 01:38:56.571 | [link] eth:d100 status Stopped -> Starting (backend started, awaiting peer)
+2026-08-17 01:38:56.582 | [link] asking node 100 to open the ND link again, so it forgets the sequence it expects from our previous run
+2026-08-17 01:38:56.597 | [runner] waiting for node 100 to send us a frame (we cannot address it until it does)...
+2026-08-17 01:38:56.608 | [link] eth:d100 status Starting -> Active (peer learned)
+2026-08-17 01:38:56.616 | [runner] peer 100 heard after 0.0s; link is up
+2026-08-17 01:38:56.622 | [link] disconnect request from the peer, ND frame kind 0x6F
+2026-08-17 01:38:56.653 | [announce] telling system 100 that our XMSG restarted, so it resets the datagram sequence it expects from us
+2026-08-17 01:38:56.666 | [announce] --resync-hard: also zeroing OUR counter for 100. The next originated frame goes out at 0x0000 - if the peer accepts it, the peer resets on our announce; if it is dropped in silence, it does not.
+2026-08-17 01:38:56.694 | [link] disconnect request from the peer, ND frame kind 0x6F
+2026-08-17 01:38:56.703 | [seq] node 100: RESET to 0x0000 (was 0x0002); link KEPT
+2026-08-17 01:38:56.710 | [announce] telling system 102 that our XMSG restarted, so it resets the datagram sequence it expects from us
+2026-08-17 01:38:56.723 | [announce] --resync-hard: also zeroing OUR counter for 102. The next originated frame goes out at 0x0000 - if the peer accepts it, the peer resets on our announce; if it is dropped in silence, it does not.
+2026-08-17 01:38:56.752 | [seq] node 102: RESET to 0x0000 (was 0x0000); link KEPT
+2026-08-17 01:38:56.777 | [link] disconnect request from the peer, ND frame kind 0x6F
+2026-08-17 01:39:01.627 | [segment] data=0 acks=0 other-stations=0
+2026-08-17 01:39:06.652 | [segment] data=0 acks=0 other-stations=0
+2026-08-17 01:39:11.389 | [seq] node 100: link created, starting Flags1 0x0000 from the store (the frame that created it carried 0x0000)
+2026-08-17 01:39:11.419 | [tad] session opened: tty1 from node 100
+2026-08-17 01:39:11.429 | [seq] node 100: ECHO Flags1 0x0000 (our next stays 0x0000)
+2026-08-17 01:39:11.438 | [TX] *** PARKED *** eth:d100 took a 40B frame but the send window is full; 1 datagram(s) now waiting and NOTHING is leaving this node until the peer acknowledges us
+2026-08-17 01:39:11.459 | [RX] 100->19999 sub=Data answered with 2 frame(s)
+2026-08-17 01:39:11.655 | [segment] data=1 acks=0 other-stations=0
+2026-08-17 01:39:16.671 | [segment] data=1 acks=0 other-stations=0
+2026-08-17 01:39:21.690 | [segment] data=1 acks=0 other-stations=0
+2026-08-17 01:39:26.712 | [segment] data=1 acks=0 other-stations=0
+2026-08-17 01:39:31.734 | [segment] data=1 acks=0 other-stations=0
+2026-08-17 01:39:36.740 | [segment] data=1 acks=0 other-stations=0
+2026-08-17 01:39:41.760 | [segment] data=1 acks=0 other-stations=0
+2026-08-17 01:39:46.771 | [segment] data=1 acks=0 other-stations=0
+2026-08-17 01:39:51.273 | [tad] session closed: tty1 from node 100
+2026-08-17 01:39:51.278 | [tad] session opened: tty1 from node 100
+2026-08-17 01:39:51.283 | [seq] node 100: ECHO Flags1 0x0000 (our next stays 0x0000)
+2026-08-17 01:39:51.291 | [TX] *** PARKED *** eth:d100 took a 14B frame but the send window is full; 2 datagram(s) now waiting and NOTHING is leaving this node until the peer acknowledges us
+2026-08-17 01:39:51.314 | [TX] *** PARKED *** eth:d100 took a 40B frame but the send window is full; 3 datagram(s) now waiting and NOTHING is leaving this node until the peer acknowledges us
+2026-08-17 01:39:51.341 | [RX] 100->19999 sub=Data answered with 2 frame(s)
+2026-08-17 01:39:51.789 | [segment] data=2 acks=0 other-stations=0
+2026-08-17 01:39:56.814 | [segment] data=2 acks=0 other-stations=0
+2026-08-17 01:40:01.829 | [segment] data=2 acks=0 other-stations=0
+2026-08-17 01:40:06.852 | [segment] data=2 acks=0 other-stations=0
+2026-08-17 01:40:11.870 | [segment] data=2 acks=0 other-stations=0
+2026-08-17 01:40:16.882 | [segment] data=2 acks=0 other-stations=0
+2026-08-17 01:40:21.910 | [segment] data=2 acks=0 other-stations=0
+2026-08-17 01:40:26.934 | [segment] data=2 acks=0 other-stations=0
+2026-08-17 01:40:31.070 | [tad] session closed: tty1 from node 100
+2026-08-17 01:40:31.081 | [tad] session opened: tty1 from node 100
+2026-08-17 01:40:31.091 | [seq] node 100: ECHO Flags1 0x0000 (our next stays 0x0000)
+2026-08-17 01:40:31.098 | [TX] *** PARKED *** eth:d100 took a 14B frame but the send window is full; 4 datagram(s) now waiting and NOTHING is leaving this node until the peer acknowledges us
+2026-08-17 01:40:31.117 | [TX] *** PARKED *** eth:d100 took a 40B frame but the send window is full; 5 datagram(s) now waiting and NOTHING is leaving this node until the peer acknowledges us
+2026-08-17 01:40:31.137 | [RX] 100->19999 sub=Data answered with 2 frame(s)
+2026-08-17 01:40:31.959 | [segment] data=3 acks=0 other-stations=0

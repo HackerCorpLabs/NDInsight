@@ -3,3 +3,17 @@
 
 # Temporary/debug files
 nul
+
+# XMSG live-transfer working directories - these are where the sync daemon and
+# the one-shot transfers put files while they run. The CONTENT is throwaway test
+# data (ROUNDTRIP.TXT, FINAL1.TXT, copies of sources being pushed); the code that
+# uses them is in SRC/ and SINTRAN-CHAT/.
+SINTRAN/XMSG/share/
+SINTRAN/XMSG/syncbox/
+SINTRAN/XMSG/watch/
+
+# Run logs from the live runner and its restart scripts
+SINTRAN/XMSG/tools/*.log
+SINTRAN/XMSG/tools/*.err
+SINTRAN/XMSG/SRC/**/xmsg-runner.log
+SINTRAN/XMSG/SRC/**/push*.log

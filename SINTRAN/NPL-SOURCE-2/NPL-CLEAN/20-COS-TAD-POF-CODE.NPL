@@ -1,0 +1,2216 @@
+ @DEV 1
+ @DEV (S-S-J)COS-TAD-POF-CODE
+
+
+ %%%%%%%%%%%%%%%%%%%%%%%%% COS-TAD-POF-CODE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ *"BADAD
+" %==============================================================================
+ %      T * A * D   P * A * G * I * N * G    O * F * F    P * A * R * T
+ %==============================================================================
+
+ %=======================================================================
+ %      T A D   B U F F E R   O P E R A T I O N   R O U T I N E S
+ %=======================================================================
+
+ % XX.XX      D R X A C C
+ %
+ % SUBROUTINE TO PERFORM DIRECT ACCESS TO XMSG BUFFERS
+ % NOTE! THE ROUTINE TURNS THE INTERRUPT OFF AND RETURNS IN IOF
+ SUBR DRXACC
+ INTEGER POINTER LREG
+ INTEGER FUNC=?
+ DISP 0; INTEGER ACCFUN; PSID
+ DRXACC: IF X=0 THEN A:=XEIBP; EXITA; FI          % INCORRECT BUFFID
+         X:=:L; A=:D; X.ACCFUN; *IOF
+         A=:FUNC; X=:"LREG"; L=:X; D=:A
+         CALL DRXMSG; INTEGER FUNC
+         GO RETU; MIN "LREG"
+ RETU:   MIN "LREG"; GO LREG
+ RBUS
+
+ %========================================================================
+ %      W R M H E A D
+ %
+ % ROUTINE TO WRITE MESSAGE HEADER ON EVEN BYTE
+ %      ENTRY:   A-REG - MESSAGE HEADER
+ %               B-REG - TAD OUTPUT DATAFIELD
+ %      RETURN:  EXIT
+ %
+ SUBR WRMHEAD
+ WRMHEAD: A=:D; T:=TDTAFI; X:=TDTALA
+        IF TDBTPT BIT "0" THEN                    % ODD START, CREATE PAD BYTE
+           A SHZ -1; X+A; *LDATX
+           A/\177400; *STATX
+           MIN TDBTPT; REMSIZ-1=:REMSIZ
+        FI
+        X:=TDTALA
+        TDBTPT SHZ -1; X+A; D=:A; *STATX                    % WRITE IN BUFFER
+        TDBTPT+2=:TDBTPT; REMSIZ-2=:REMSIZ
+        EXIT
+ RBUS
+
+ %=======================================================================
+ % XX.XX      C R E M E S
+ %
+ % ROUTINES TO CREATE MESSAGE-HEADERS IN XMSG BUFFER  (TAD OUTPUT)
+ %
+ % ENTRY:     A-REG - MESSAGE TYPE
+ %            T-REG - REQUIRED I-FIELD SIZE
+ %            B-REG - TAD OUTPUT DATAFIELD
+ %
+ % RETURN:    SKIP-RETURN:  OK     TAD DATAFIELD BUFFER VARIABLES
+ %                                 REMSIZ,CURMES,NOBDIS ARE UPDATED
+ %
+ %            NOSKIP:       ERROR  A-REG:  1  NO OUTPUT BUFFER PRESENT
+ %                                 A-REG:  2  OUTPUT-BUFFER FULL
+ %                                 A-REG: <0  XMSG ERROR CODE
+ %
+ SUBR CREMES
+ DISP -2; INTEGER AREG,TREG; PSID
+ CREMES: L=:D; CALL SETSTACK(AREG)
+        CALL STAB(AREG); CALL STTB(TREG)
+        IF BUFFID=0 THEN CALL GETPOOL; GO NOPOL FI          % NO BUFFER
+        CALL LDTB(TREG)                                     % GET REQUIRED IFIELD SIZE
+        IF TDBTPT BIT "0" THEN T+3 ELSE T+2 FI              % ODD OR EVEN START IN BUFFER
+        IF REMSIZ<T THEN A:=2; GO T1BEXI FI                 % NOT ENOUGH SPACE
+        CALL LDAB(AREG); A SHZ 10; CALL WRMHEAD             % WRITE MESSAGE HEADER
+        TDBTPT-1=:NOBDIS; CALL LDAB(AREG); A=:CURMES        % UPDATE MESSAGE INFO
+        GO T2BEXI
+ NOPOL: A:=1; GO T1BEXI
+ RBUS
+
+ %=======================================================================
+ %            C R H E E V
+ %
+ % ROUTINE LIKE CREMES BUT BYTE COUNTER IS ALSO WRITTEN
+ % USED WHEN MESSAGE IS COMPLETED BY CALLING ROUTINE
+ % MESSAGE HEADER IS CREATED ON EVEN BYTE
+ %
+ % ENTRY:     A-REG - MESSAGE TYPE
+ %            T-REG - REQUIRED I-FIELD SIZE
+ %            B-REG - TAD OUTPUT DATAFIELD
+ %
+ % RETURN:    SKIP-RETURN:  OK     TAD DATAFIELD BUFFER VARIABLES
+ %                                 REMSIZ,CURMES,NOBDIS ARE UPDATED
+ %
+ %            NOSKIP:       ERROR  A-REG:  1  NO OUTPUT BUFFER PRESENT
+ %                                 A-REG:  2  OUTPUT-BUFFER FULL
+ %
+ SUBR CRHEEV
+ DISP -2; INTEGER AREG,TREG; PSID
+ CRHEEV: L=:D; CALL SETSTACK(AREG)
+        CALL STAB(AREG); CALL STTB(TREG)
+        IF BUFFID=0 THEN CALL GETPOOL; GO NOPOL FI          % NO BUFFER
+        CALL LDTB(TREG)                                     % GET REQUIRED IFIELD SIZE
+        IF TDBTPT BIT "0" THEN T+3 ELSE T+2 FI              % ODD OR EVEN START IN BUFFER
+        IF REMSIZ<T THEN A:=2; GO T1BEXI FI                 % NOT ENOUGH SPACE
+        CALL LDAB(AREG); A SHZ 10; CALL LDTB(TREG)
+        A+T; CALL WRMHEAD                                   % WRITE MESSAGE HEADER
+        TDBTPT-1=:NOBDIS; CALL LDAB(AREG); A=:CURMES        % UPDATE MESSAGE INFO
+        GO T2BEXI
+ NOPOL: A:=1; GO T1BEXI
+ RBUS
+
+ %=======================================================================
+ %            C R H E O D
+ %
+ % ROUTINE LIKE CREMES BUT BYTE COUNTER IS ALSO WRITTEN
+ % USED WHEN MESSAGE IS COMPLETED BY CALLING ROUTINE
+ % MESSAGE HEADER IS CREATED ON ODD BYTE
+ %
+ % ENTRY:     A-REG - MESSAGE TYPE
+ %            T-REG - REQUIRED I-FIELD SIZE
+ %            B-REG - TAD OUTPUT DATAFIELD
+ %
+ % RETURN:    SKIP-RETURN:  OK     TAD DATAFIELD BUFFER VARIABLES
+ %                                 REMSIZ,CURMES,NOBDIS ARE UPDATED
+ %
+ %            NOSKIP:       ERROR  A-REG:  1  NO OUTPUT BUFFER PRESENT
+ %                                 A-REG:  2  OUTPUT-BUFFER FULL
+ %
+ SUBR CRHEOD
+ DISP -2; INTEGER AREG,TREG; PSID
+ CRHEOD: L=:D; CALL SETSTACK(AREG)
+        CALL STAB(AREG); CALL STTB(TREG)
+        IF BUFFID=0 THEN CALL GETPOOL; GO NOPOL FI          % NO BUFFER
+        CALL LDTB(TREG)                                     % GET REQUIRED IFIELD SIZE
+        IF TDBTPT NBIT "0" THEN T+3 ELSE T+2 FI             % ODD OR EVEN START IN BUFFER
+        IF REMSIZ<T THEN A:=2; GO T1BEXI FI                 % NOT ENOUGH SPACE
+        IF TDBTPT NBIT "0" THEN A:=0; CALL STORBYT FI       % EVEN START, CREATE PAD BYTE
+        CALL LDAB(AREG); CALL STORBYT                       % WRITE MESSAGE TYPE
+        CALL LDAB(TREG); CALL STORBYT                       % WRITE BYTE COUNTER
+        TDBTPT-1=:NOBDIS; CALL LDAB(AREG); A=:CURMES        % UPDATE MESSAGE INFO
+        GO T2BEXI
+ NOPOL: A:=1; GO T1BEXI
+ RBUS
+
+ %=======================================================================
+ % XX.XX      G E T M E S
+ %
+ % ROUTINE TO FIND NEXT MESSAGE HEADER IN XMSG BUFFER  (TAD INPUT)
+ % ENTRY:     B-REG - TAD INPUT DATAFIELD
+ %
+ % RETURN:    SKIP-RETURN:  OK     A-REG:  MESSAGE-TYPE
+ %                                 T-REG:  NUMBER OF BYTES IN I-FIELD
+ %                                 TAD DATAFIELD BUFFER VARIABLES
+ %                                 REMSIZ,TDBTPT,CURMES,REMBYT ARE UPDATED
+ %
+ %            NOSKIP:       ERROR  A-REG:  1  NO INPUT BUFFER
+ %                                 A-REG:  2  BUFFER IS EMPTY
+ %                                 A-REG:  3  INCONSISTENCY, MESSAGE BIGGER THAN BUFFER
+ SUBR GETMES
+ GETMES: IF BUFFID=0 THEN A:=1; EXIT FI                     % NO BUFFER
+ TSTSP:  IF REMSIZ<2 THEN T=:A; EXIT FI
+         T:=TDTAFI; X:=TDTALA; TDBTPT=:D SHZ -1
+         X+A; *LDATX
+         MIN TDBTPT
+         IF D BIT "0" THEN                                  % ODD BYTE
+            IF A/\377=0 THEN REMSIZ-1=:REMSIZ; GO TSTSP FI  % FIRST BYTE FOUND
+            A=:CURMES; X+1; *LDATX
+            A SHZ -10; MIN TDBTPT; GO RCHK                  % RETURN AND CHECK
+         FI
+         A=:T SHZ -10
+         IF A=0 THEN
+            REMSIZ-1=:REMSIZ; GO TSTSP                      % PAD BYTE
+         FI
+         A=:CURMES:=T/\377; MIN TDBTPT
+ RCHK:   IF A>REMSIZ-2 THEN A:=3; EXIT FI                   % INCONSISTENT MESSAGE
+         A=:T+1-=:REMBYT; X:=REMSIZ-2=:REMSIZ
+         A:=CURMES; EXITA                                   % MESSAGE FOUND
+ RBUS
+
+ %========================================================================
+ %            U P D M B C
+ %
+ % ROUTINE TO UPDATE MESSAGE BYTE COUNT
+ % ENTRY:       A-REG - NUMBER OF BYTES
+ %              B-REG - TAD OUTPUT DATAFIELD
+ % SKIP RETURN: OK
+ % RETURN:      NOT ENOUGH SPACE
+ SUBR UPDMBC
+ UPDMBC: A=:D; T:=TDTAFI; X:=TDTALA
+        IF NOBDIS BIT "0" THEN                    % BYTE COUNT ON ODD BYTE
+           A SHZ -1; X+A; *LDATX                  % READ BYTE COUNT
+           A=:T; A/\177400; A:=:T; A/\377
+           A+D; T=:D; IF A>=400 THEN EXIT FI      % MESSAGE FULL?
+           A\/D
+        ELSE                                      % BYTE COUNT ON EVEN BYTE
+           A SHZ -1; X+A; *LDATX                  % READ BYTE COUNT
+           A=:T; A/\377; A:=:T; A SHZ -10
+           A+D; T=:D; IF A>=400 THEN EXIT FI      % MESSAGE FULL?
+           A SHZ 10; A\/D
+        FI
+        T:=TDTAFI; *STATX                         % WRITE BACK BYTE COUNT
+        EXITA
+ RBUS
+
+ %=======================================================================
+ %            G E T M B C
+ %
+ % ROUTINE TO FIND NUMBER OF BYTES IN CURRENT OUTPUT MESSAGE
+ %
+ % ENTRY:     B-REG - TAD OUTPUT DATAFIELD
+ % RETURN:    A-REG - BYTE COUNT
+ SUBR GETMBC
+ GETMBC: IF NOBDIS=0 THEN A:=400; EXIT FI
+         A=:D SHZ -1; T:=TDTAFI; X:=TDTALA; X+A; *LDATX
+         IF D BIT "0" THEN A/\377 ELSE A SHZ -10 FI
+         EXIT
+ RBUS
+
+ %=======================================================================
+ % XX.XX      B Y T P U T
+ %
+ % ROUTINE TO PUT A BYTE IN XMSG BUFFER  (TAD OUTPUT)
+ %
+ % ENTRY:     A-REG - BYTE
+ %            B-REG - TAD OUTPUT DATAFIELD
+ %
+ % RETURN:    SKIP-RETURN:  OK     TAD DATAFIELD BUFFER VARIABLES
+ %                                 REMSIZ AND TDBTPT IS UPDATED
+ %
+ %            NOSKIP:       ERROR  A-REG:  1  NO OUTPUT BUFFER PRESENT
+ %                                 A-REG:  2  OUTPUT BUFFER FULL
+ %                                 A-REG:  3  MESSAGE FULL
+ SUBR BYTPUT
+ DISP -1; INTEGER AREG; PSID
+ BYTPUT: L=:D; CALL SETSTACK(AREG); A/\377; CALL STAB(AREG)
+        IF BUFFID=0 THEN A:=1; GO T1BEXI FI          % OUTPUT BUFFER PRESENT?
+        IF REMSIZ<=0 THEN A:=2; GO T1BEXI FI         % BUFFER FULL?
+        A:=1; CALL UPDMBC; GO MSFUL                  % UPDATE MESSAGE BYTE COUNT
+        T:=TDTAFI; X:=TDTALA; TDBTPT=:D SHZ -1; X+A
+        IF D BIT "0" THEN                            % DESTINATION ODD BYTE
+           *LDATX
+           A/\177400; CALL LDTB(AREG); A\/T
+        ELSE                                         % DESTINATION EVEN BYTE
+           CALL LDAB(AREG); A SHZ 10
+        FI
+        T:=TDTAFI; *STATX                         % PUT BYTE IN BUFFER
+        REMSIZ-1=:REMSIZ; MIN TDBTPT; GO T2BEXI   % UPDATE BUFFER COUNTERS AND RETURN
+ MSFUL: A:=3; GO T1BEXI                           % MESSAGE IS FULL
+ RBUS
+
+ %=======================================================================
+ % XX.XX      W O R D P U T
+ %
+ % ROUTINE TO PUT A WORD IN XMSG BUFFER  (TAD OUTPUT)
+ %
+ % ENTRY:     A-REG - WORD
+ %            B-REG - TAD OUTPUT DATAFIELD
+ %
+ % RETURN:    SKIP-RETURN:  OK     TAD DATAFIELD BUFFER VARIABLES
+ %                                 REMSIZ AND TDBTPT IS UPDATED
+ %
+ %            NOSKIP:       ERROR  A-REG:  1  NO OUTPUT BUFFER PRESENT
+ %                                 A-REG:  2  OUTPUT BUFFER FULL
+ %                                 A-REG:  3  MESSAGE FULL
+ SUBR WORDPUT
+ DISP -1; INTEGER AREG; PSID
+ WORDPUT: L=:D; CALL SETSTACK(AREG); CALL STAB(AREG)
+        IF BUFFID=0 THEN A:=1; GO T1BEXI FI          % OUTPUT BUFFER PRESENT?
+        IF REMSIZ<=1 THEN A:=2; GO T1BEXI FI         % BUFFER FULL?
+        A:=2; CALL UPDMBC; GO MSFUL                  % UPDATE MESSAGE BYTE COUNT
+        T:=TDTAFI; X:=TDTALA; TDBTPT=:D SHZ -1; X+A
+        IF D BIT "0" THEN                            % ODD START IN BUFFER
+           *LDATX
+           A/\177400; CALL LDTB(AREG); T:=:A
+           A SHZ -10; A\/T; T:=TDTAFI; *STATX        % WRITE FIRST BYTE
+           CALL LDAB(AREG); A SHZ 10; X+1; *STATX    % WRITE SECOND BYTE
+        ELSE                                         % EVEN START IN BUFFER
+           CALL LDAB(AREG); *STATX                   % WRITE WORD IN BUFFER
+        FI
+        REMSIZ-2=:REMSIZ; MIN TDBTPT; MIN TDBTPT  % UPDATE BUFFER COUNTERS
+        GO T2BEXI                                 % RETURN
+ MSFUL: A:=3; GO T1BEXI                           % MESSAGE IS FULL
+ RBUS
+
+ %=======================================================================
+ % XX.XX      B Y T G E T
+ %
+ % ROUTINE TO GET A BYTE IN XMSG BUFFER  (TAD INPUT)
+ % MUST BE CALLED WITH PAGING INTERUPT OFF!
+ % ENTRY:     B-REG - TAD INPUT DATAFIELD
+ %
+ % RETURN:    SKIP-RETURN:  OK     A-REG:  BYTE
+ %                                 TAD DATAFIELD BUFFER VARIABLES
+ %                                 REMSIZ,REMBYT ARE UPDATED
+ %
+ %            NOSKIP:       ERROR  A-REG:  0  MESSAGE EMPTY
+ %                                 A-REG:  1  NO INPUT BUFFER PRESENT
+ %                                 A-REG:  2  BUFFER IS EMPTY
+ SUBR BYTGET
+ BYTGET:IF BUFFID=0  THEN A:=1; EXIT FI                % NO INPUT BUFFER
+        IF REMSIZ<=0 THEN A:=2; EXIT FI                % INPUT BUFFER EMPTY
+        IF REMBYT=0  THEN EXIT FI                      % MESSAGE EMPTY
+        MIN REMBYT; GO CONT
+        A:=0=:CURMES; EXIT                             % MESSAGE EMPTY
+ CONT:  T:=TDTAFI; X:=TDTALA
+        TDBTPT=:D SHZ -1; X+A; *LDATX                  % GET WORD WITH BYTE
+        IF D BIT "0" THEN A/\377 ELSE A SHZ -10 FI     % GET WANTED BYTE
+        T:=REMSIZ-1=:REMSIZ; MIN TDBTPT
+        EXITA
+ RBUS
+
+
+
+ %======================================================================
+ %      L O A D B Y T
+ %
+ % ROUTINE TO LOAD A BYTE FROM THE XMSG BUFFER ACCORDING TO TDBTPT
+ % TDBTPT IS INCREMEMENTED
+ % ENTRY:     B-REG  - TAD-DATAFIELD  INPUT OR OUTPUT
+ % RETURN:    A-REG  - BYTE   (OTHER REGISTERS IS NOT MODIFIED)
+ SUBR LOADBYT
+ INTEGER XREG,TREG,DREG
+ LOADBYT: *IOF
+        T=:TREG:=D=:DREG; X=:XREG
+        T:=TDTAFI; X:=TDTALA; TDBTPT=:D SHZ -1; X+A; *LDATX
+        MIN TDBTPT; IF D BIT "0" THEN A/\377 ELSE A SHZ -10 FI
+        T:=DREG=:D:=TREG; X:=XREG; *ION; EXIT
+ RBUS
+
+ %======================================================================
+ %      S T O R B Y T
+ %
+ % ROUTINE TO STORE A BYTE IN THE XMSG BUFFER ACCORDING TO TDBTPT
+ % TDBTPT AND REMSIZ IS UPDATED
+ % ENTRY:     B-REG  - TAD-DATAFIELD  INPUT OR OUTPUT
+ %            A-REG  - BYTE
+ % RETURN:    NO REGISTERS MODIFIED
+ SUBR STORBYT
+ INTEGER TREG,AREG,DREG,XREG; TRIPLE TADREG=TREG
+ STORBYT: *IOF
+        TAD=:TADREG; X=:XREG
+        T:=TDTAFI; X:=TDTALA; TDBTPT=:D SHZ -1; X+A
+        IF D BIT "0" THEN
+           *LDATX
+           A/\177400=:T; AREG\/T; T:=TDTAFI; *STATX
+        ELSE
+           AREG SHZ 10; *STATX
+        FI
+        MIN TDBTPT; REMSIZ-1=:REMSIZ
+        TAD:=TADREG; X:=XREG; *ION; EXIT
+ RBUS
+
+ %=======================================================================
+ %      T A D   I O T R A N S   R O U T I N E S
+ %=======================================================================
+
+ % XX.XX      B D P U T
+ %
+ % OUTPUT IOTRANS ROUTINE FOR TAD.
+ % CALLED WITH PAGING INTERUPT OFF
+ % ENTRY:        A-REG - BYTE
+ %               B-REG - TAD OUTPUT DATAFIELD
+ % SKIP RETURN:  OK
+ % RETURN:       ERROR-CODE IN DERROR
+ SUBR BDPUT
+ BDPUT: A=:LAST:=L=:"LRSA"; X=:XRSA; 0=:TMR
+        CALL MLVLOC; CALL BRSTACK
+        IF DFOPP.PORTNO=0 THEN MIN "LRSA"; GO RETU; FI      % NOT CONNECTED
+        IF 7BDAT><CURMES THEN
+ CRMES:    T:=3; CALL CREMES; GO ERR
+        FI
+        LAST; CALL BYTPUT; GO ERR
+        MIN "LRSA" GO RETU                                  % SKIP RETURN OK
+
+ ERR:   IF A<0 GO CNXE                                      % ERROR FROM XMSG
+        IF A=1 GO RETU                                      % WAIT FOR BUFFER
+        IF A=2 THEN                                         % BUFFER FULL
+           CALL SNDBUF; GO CNXE
+           IF BUFFID><0 THEN 7BDAT; GO CRMES FI
+           GO RETU
+        FI
+        IF A=3 THEN 7BDAT; GO CRMES; FI                     % MESSAGE FULL
+        GO RETU
+ CNXE:  CALL CNVERR                                         % CONVERT ERROR-CODE
+ EROUT: A=:DERROR; X:=XRSA; CALL MLVULOC; GO LRSA
+ RETU:  TTMR=:TMR; X:=XRSA; LAST; CALL MLVULOC; GO LRSA
+ RBUS
+
+ %=======================================================================
+ % XX.XX      B D G E T
+ %
+ % INPUT IOTRANS ROUTINE FOR TAD.
+ % CALLED WITH PAGING INTERUPT OFF
+ % ENTRY:        B-REG - TAD INPUT DATAFIELD
+ % SKIP RETURN:  OK
+ %               A-REG - BYTE
+ % RETURN:       ERROR-CODE IN DERROR
+ SUBR BDGET
+ BDGET: A:=L=:"LRSA"; X=:XRSA; CALL MLVLOC
+        CALL BRSTACK; CALL IEDCHK; GO EROUT       % INPUT WHILE DELAYED ESCAPE
+        IF PORTNO=0 THEN A:=TER02; GO EROUT; FI   % NOT CONNECTED
+ BYGET: IF CURMES=7BDAT THEN
+           CALL BYTGET; GO ERR; A=:LAST; MIN "LRSA"; GO RETU
+        FI
+ NXMES: CALL GETMES; GO ERR
+        IF A=X:=7BDAT THEN
+           IF T=0 THEN GO NXMES ELSE GO BYGET FI
+        ELSE
+           CALL CTRMES; GO CNXE; GO BYGET
+        FI
+        GO RETU
+
+ ERR:   IF A<0 GO CNXE                                      % XMSG ERROR CODE
+        IF A=0 GO NXMES                                     % DATA MESSAGE EMPTY
+        IF A=1 OR A=2 THEN CALL SNDRFI; GO CNXE; GO RETU;FI % BUFFER EMPTY, SEND RFI
+        IF A=3 THEN                                         % INCONSISTENT MESSAGE
+           CALL SNDREJ; GO CNXE; A:=TER01; GO EROUT         % MESSAGE REJECTED
+        FI
+        GO RETU
+ CNXE:  CALL CNVERR
+ EROUT: A=:DERROR
+ RETU:  X:=XRSA; CALL MLVULOC; GO LRSA
+ RBUS
+
+ %=====================================================================
+ % XX.XX      B M 8 O U T   B B 8 O U T   B D T C H
+ %
+ % BM8OUT (MON 22):
+ %    MONITOR CALL TO WRITE UP TO 8 BYTES ON A TAD (0 BYTE TERMINATES)
+ % BB8OUT (MON 24):
+ %    MONITOR CALL TO WRITE 8 BYTES ON A TAD
+ %
+ % CALLED WITH PAGING INTERUPT OFF WITH B = OUTPUT-DATAFIELD
+
+ SUBR BM8OUT,BB8OUT,BDTCH
+
+ % ROUTINE TO CHECK FOR TERMINATION IN DATA
+ BDTCH:  A=:D
+         IF X:=XRSA=0 THEN
+           A SHZ -10; IF A=0 THEN EXIT FI      % FIRST BYTE EMPTY
+           D=:A; A/\377
+           IF A=0 THEN A:=D SHZ -10; EXITA FI  % LAST BYTE EMPTY
+         FI
+         D=:A; L+1; EXITA
+
+ BM8OUT: 0=:XRSA; GO FELLS
+ BB8OUT: 1=:XRSA
+ FELLS: IF DFOPP.PORTNO=0 GO MOURET               % NOT CONNECTED
+        0=:TMR; CALL BRSTACK                      % RESET TAD STACK
+        IF 7BDAT><CURMES THEN                     % CURRENT NOT DATA-MESS
+ CRMES:    T:=10; CALL CREMES; GO ERR             % RESERVE 10 BYTES
+        ELSE
+           IF REMSIZ<12 THEN A:=2; GO ERR FI      % NOT ENOUGH SPACE IN BUFFER
+           CALL GETMBC                            % GET BYTE COUNT IN CURMES
+           IF A+10>377 THEN 7BDAT; GO CRMES FI    % NOT ENOUGH SPACE IN MESSAGE
+        FI
+
+ % ENOUGH SPACE IN BUFFER
+
+        *IRR ALEVB DA
+        CALL BDTCH; GO OKRET; GO LASBY; CALL WORDPUT; GO ERR; *IRR ALEVB DD
+        CALL BDTCH; GO OKRET; GO LASBY; CALL WORDPUT; GO ERR; *IRR ALEVB DL
+        CALL BDTCH; GO OKRET; GO LASBY; CALL WORDPUT; GO ERR; *IRR ALEVB DX
+        CALL BDTCH; GO OKRET; GO LASBY; CALL WORDPUT; GO ERR
+
+ % NORMAL RETURN, BYTES STORED IN BUFFER
+ OKRET: TTMR=:TMR; GO MOURET
+
+ % ONE BYTE LEFT TO WRITE IN BUFFER
+ LASBY: CALL BYTPUT; GO ERR; GO OKRET
+
+ % ERRORS FROM CREMES
+ ERR:   IF A=1 GO RETU                            % WAIT FOR BUFFER
+        IF A=2 THEN                               % BUFFER FULL
+           CALL SNDBUF; GO CNXE
+           IF BUFFID><0 THEN 7BDAT; GO CRMES FI   % NEW BUFFER
+           GO RETU                                % WAIT FOR BUFFER
+        FI
+        GO RETU
+
+ CNXE: CALL CNVERR; A=:DERROR
+ RETU: TTMR=:TMR; GO WDX
+
+ RBUS
+
+ %=======================================================================
+ % XX.XX      B B 4 I N W
+ %
+ % MON 63: MONITOR CALL ALWAYS RETURNS 8 BYTES FROM A TAD
+ % CALLED WITH PAGING INTERUPT OFF WITH B = INPUT DATAFIELD
+
+ SUBR BB4INW
+ BB4INW: CALL BRSTACK; CALL IEDCHK; GO EROUT       % INPUT WHILE DELAYED ESCAPE
+        IF PORTNO=0 THEN A:=TER02; GO EROUT FI    % NOT CONNECTED
+ POSDA: IF CURMES><7BDAT THEN                     % NOT DATA MESSAGE
+ NXMES:    CALL GETMES; GO ERR                    % GET NEW MESSAGE
+           IF A><X:=7BDAT THEN                    % CONTROLL MESSAGE
+              CALL CTRMES; GO CNXE; GO POSDA      % PERFORM CONTROLL
+           FI
+        FI
+        IF REMBYT=0 OR A=-1 GO NXMES              % CURRENT MESSAGE EMPTY
+
+ % DATA-MESSAGE WITH AT LEAST ONE BYTE
+
+        DBCOU GOSW BYT1,BYT2,BYT3,BYT4,BYT5,BYT6,BYT7,BYT8
+
+ BYT1:  CALL BYTGET; GO ERR; A=:LAST SHZ 10; *IRW ALEVB DA
+        MIN DBCOU
+ BYT2:  CALL BYTGET; GO ERR; A=:LAST; *IRR ALEVB DA
+        A\/LAST; *IRW ALEVB DA
+        MIN DBCOU
+ BYT3:  CALL BYTGET; GO ERR; A=:LAST SHZ 10; *IRW ALEVB DD
+        MIN DBCOU
+ BYT4:  CALL BYTGET; GO ERR; A=:LAST; *IRR ALEVB DD
+        A\/LAST; *IRW ALEVB DD
+        MIN DBCOU
+ BYT5:  CALL BYTGET; GO ERR; A=:LAST SHZ 10; *IRW ALEVB DL
+        MIN DBCOU
+ BYT6:  CALL BYTGET; GO ERR; A=:LAST; *IRR ALEVB DL
+        A\/LAST; *IRW ALEVB DL
+        MIN DBCOU
+ BYT7:  CALL BYTGET; GO ERR; A=:LAST SHZ 10; *IRW ALEVB DX
+        MIN DBCOU
+ BYT8:  CALL BYTGET; GO ERR; A=:LAST; *IRR ALEVB DX
+        A\/LAST; *IRW ALEVB DX
+
+ % ALL CHARACTERS COLLECTED, RETURN TO USER
+        0=:DBCOU; A:=10; *IRW ALEVB DT
+        GO MOURET
+
+ % DETERMINE ACTION ON ERRORS
+ ERR:   IF A<0 GO CNXE                            % XMSG ERROR
+        IF A=0 GO NXMES                           % MESSAGE EMPTY
+        IF A=1 OR A=2 THEN
+           CALL SNDRFI; GO CNXE; GO RETU          % BUFFER EMPTY, SEND RFI
+        FI
+        IF A=3 THEN
+           CALL SNDREJ; GO CNXE; A:=TER01; GO EROUT         % MESSAGE REJECTED
+        FI
+        GO RETU
+
+ CNXE:  CALL CNVERR
+ EROUT: A=:DERROR; 0=:DBCOU
+ RETU:  GO WDX
+ RBUS
+
+ %=======================================================================
+ % XX.XX      B B 8 I N P
+ %
+ % MON 310: MONITOR CALL RETURNS UP TO 8 BYTES FROM A TAD.
+ % NUMBER OF BYTES READ IS RETURNED IN T-REG. WHEN LAST
+ % CHARACTER IS READ FROM BUFFER T BIT 17 IS SET TO INDICATE
+ % BREAK CHARACTER.
+ % CALLED WITH PAGING INTERUPT OFF WITH B = INPUT DATAFIELD
+
+ SUBR BB8INP
+ BB8INP: CALL BRSTACK; CALL IEDCHK; GO EROUT       % INPUT WHILE DELAYED ESCAPE
+        IF PORTNO=0 THEN A:=TER02; GO EROUT FI    % NOT CONNECTED
+        0=:DBCOU                                  % ZERO CHARACTER COUNT
+ POSDA: IF CURMES><7BDAT THEN                     % NOT DATA MESSAGE
+ NXMES:    CALL GETMES; GO ERR                    % GET NEW MESSAGE
+           IF A><X:=7BDAT THEN                    % CONTROLL MESSAGE
+              CALL CTRMES; GO CNXE; GO POSDA      % PERFORM CONTROLL
+           FI
+        FI
+        IF REMBYT=0 OR A=-1 GO NXMES              % CURRENT MESSAGE EMPTY
+
+ % DATA-MESSAGE WITH AT LEAST ONE BYTE
+
+ BYT1:  CALL BYTGET; GO ERR; A=:LAST SHZ 10; *IRW ALEVB DA
+        MIN DBCOU
+ BYT2:  CALL BYTGET; GO ERR; A=:LAST; *IRR ALEVB DA
+        A\/LAST; *IRW ALEVB DA
+        MIN DBCOU
+ BYT3:  CALL BYTGET; GO ERR; A=:LAST SHZ 10; *IRW ALEVB DD
+        MIN DBCOU
+ BYT4:  CALL BYTGET; GO ERR; A=:LAST; *IRR ALEVB DD
+        A\/LAST; *IRW ALEVB DD
+        MIN DBCOU
+ BYT5:  CALL BYTGET; GO ERR; A=:LAST SHZ 10; *IRW ALEVB DL
+        MIN DBCOU
+ BYT6:  CALL BYTGET; GO ERR; A=:LAST; *IRR ALEVB DL
+        A\/LAST; *IRW ALEVB DL
+        MIN DBCOU
+ BYT7:  CALL BYTGET; GO ERR; A=:LAST SHZ 10; *IRW ALEVB DX
+        MIN DBCOU
+ BYT8:  CALL BYTGET; GO ERR; A=:LAST; *IRR ALEVB DX
+        A\/LAST; *IRW ALEVB DX
+        MIN DBCOU
+        IF REMBYT=-1 THEN DBCOU BONE 17=:DBCOU FI % LAST CHARACTER, BREAK
+
+ % ALL CHARACTERS COLLECTED, RETURN TO USER
+ OKRET: A:=DBCOU; 0=:DBCOU; *IRW ALEVB DT
+        GO MOURET
+
+ % DETERMINE ACTION ON ERRORS
+ ERR:   IF A<0 GO CNXE                            % XMSG ERROR
+        IF A=0 GO NXMES                           % MESSAGE EMPTY
+        IF A=1 OR A=2 THEN
+           IF DBCOU><0 THEN                       % CHARACTERS TO RETURN
+              A BONE 17=:DBCOU; GO OKRET          % MARK FOR BREAK
+           ELSE
+              CALL SNDRFI; GO CNXE; GO RETU       % BUFFER EMPTY, SEND RFI
+           FI
+        FI
+        IF A=3 THEN
+           CALL SNDREJ; GO CNXE; A:=TER01; GO EROUT         % MESSAGE REJECTED
+        FI
+        GO RETU
+
+ CNXE:  CALL CNVERR
+ EROUT: A=:DERROR; 0=:DBCOU
+ RETU:  GO WDX
+ RBUS
+
+
+ %==============================================================================
+ %      C N V E R R
+ %
+ %      SUBROUTINE TO CONVERT FROM XMSG ERROR
+ %      TO STANDARD ERROR CODE.
+ SUBR CNVERR
+ CNVERR: A-\/XKXXX; EXIT
+ RBUS
+
+
+ %=========================================================================
+ %  B U F F E R   C O N T R O L L   R O U T I N E S   F O R   B A D
+ %=========================================================================
+
+ % XX.XX      P U T P O O L
+ %
+ % ROUTINE TO PUT A BUFFER IN FREE POOL OF OUTPUT DATAFIELD
+ % THE ROUTINE EXECUTES IN IOF TO AVOID DOUBLE ACCESSES TO THE POOL
+ % ENTRY:    AD-REG - BUFFER-ADDRESS
+ %            X-REG - BUFFER ID
+ %            B-REG - TAD OUTPUT DATAFIELD
+ SUBR PUTPOOL
+ INTEGER XREG
+ PUTPOOL: *IOF
+        IF X=0 GO RETU; X=:XREG                   % DUMMY CALL
+        A=:T; D=:X; AD:=POOLLI; *STDTX            % PUT OLD POOLLI IN NEW BUFFER
+        X+2; A:=XREG; *STATX                      % PUT BUFFID IN NEW BUFFER
+        T=:A; X-2=:D; AD=:POOLLI                  % PUT NEW BUFFER IN POOLLI
+ RETU:  *ION; EXIT
+ RBUS
+
+ %=========================================================================
+ % XX.XX      G E T P O O L
+ %
+ % ROUTINE TO GET A BUFFER FROM FREE-POOL
+ % THE ROUTINE EXECUTES IN IOF TO AVOID DOUBLE ACCESSES TO THE POOL
+ % ENTRY:       B-REG - TAD OUTPUT DATAFIELD
+ % SKIP RETURN: OK
+ %              FOLLOWING VARIABLES IN OUTPUT DATAFIELD IS MODIFIED:
+ %              BUFFID
+ %              TDTADD
+ %              TDBTPT
+ %              REMSIZ
+ %
+ % RETURN:      ERROR   A-REG < 0 XMSG ERROR , ELSE POOL EMPTY
+
+ SUBR GETPOOL
+ GETPOOL: *IOF
+        POOLLI; IF A=0 AND D=0 GO NOPOL           % POOL EMPTY
+        A=:T; D=:X; *LDDTX                        % GET NEXT IN CHAIN
+        AD=:POOLLI                                % UPDATE POOL POINTER
+        T=:A; X=:D; AD=:TDTADD; X+2; *LDATX       % SAVE ADDRESS AND GET BUFFID
+        A=:BUFFID; BUDIS=:TDBTPT                  % SET BUFFID AND BYTE POINTER
+        DFOPP.FBSIZ-BUDIS=:REMSIZ                 % SET REMAINING SIZE
+        *ION; EXIT AD1
+ NOPOL: AD=:TDTADD; 0=:BUFFID=:REMSIZ=:TDBTPT; *ION; EXIT
+ RBUS
+
+ %=========================================================================
+ % XX.XX      M O V I T O
+ %
+ % ROUTINE TO RELOCATE INPUT BUFFER AS OUTPUT BUFFER
+ % CALLED WITH PAGING OFF
+ % ENTRY:       B-REG - OUTPUT-DATAFIELD
+ SUBR MOVITO
+ MOVITO: DFOPP.BUFFID=:BUFFID; X.TDTADD=:TDTADD
+         X.FBSIZ-BUDIS=:REMSIZ; BUDIS=:TDBTPT; 0=:CURMES
+         A:=0=:D; AD=:X.TDTADD
+         0=:X.BUFFID=:X.REMBYT=:X.TDBTPT=:X.REMSIZ=:X.CURMES
+         EXIT
+ RBUS
+
+ %=========================================================================
+ % XX.XX      C L I D A T
+ %
+ % ROUTINE TO REPLACE DATA MESSAGES IN INPUT BUFFER WITH DUMMY
+ % ENTRY        B-REG - INPUT DATAFIELD
+ % SKIP RETURN: OK      A-REG = 0  BUFFER IS EMPTY
+ %                      A-REG = 1  CONTROLL MESSAGES LEFT IN BUFFER
+ % RETURN:      ERROR   A-REG - XMSG ERROR CODE
+ SUBR CLIDAT
+ DISP -3; INTEGER CTRBUF,BUFBP,BREMAI; PSID
+ CLIDAT: L=:D; CALL SETSTACK(CTRBUF); A:=0; CALL STAB(CTRBUF)
+        IF BUFFID=0 OR REMSIZ=0 GO OKOUT
+        REMSIZ; CALL STAB(BREMAI); TDBTPT; CALL STAB(BUFBP)
+        IF CURMES=7BDAT THEN
+           T:=REMBYT-; T-1; TDBTPT+T=:TDBTPT; CALL STAB(BUFBP)
+           REMSIZ-T=:REMSIZ; CALL STAB(BREMAI)
+        FI
+        DO WHILE REMSIZ>0
+           CALL GETMES; GO ECHECK; T=:D
+           IF CURMES=7BDAT THEN
+              T:=TDTAFI; X:=TDTALA; TDBTPT-2=:L SHZ -1; X+A; *LDATX
+              IF L BIT "0" THEN
+                 T:=7DUMM; A/\177400\/T
+              ELSE
+                 T:=7DUMM SHZ 10; A/\377\/T
+              FI
+              T:=TDTAFI; *STATX
+           ELSE
+              A:=1; CALL STAB(CTRBUF)
+           FI
+           TDBTPT+D=:TDBTPT
+        OD
+ EOUT:  CALL LDAB(BUFBP); A=:TDBTPT
+        0=:CURMES=:REMBYT; CALL LDAB(BREMAI); A=:REMSIZ
+ OKOUT: CALL LDAB(CTRBUF); GO T2BEXI
+
+ ECHECK: IF A<0 GO T1BEXI                         % XMSG ERROR CODE
+        IF A=3 THEN A:=TER01; GO T1BEXI FI        % MESSAGE ERROR
+        GO EOUT
+ RBUS
+
+ %=========================================================================
+ % XX.XX      C L O D A T
+ %
+ % ROUTINE TO REPLACE DATA MESSAGES IN OUTPUT BUFFER WITH DUMMY
+ % ENTRY        B-REG - OUTPUT DATAFIELD
+ % SKIP RETURN: OK      A-REG = 0  BUFFER IS EMPTY
+ %                      A-REG = 1  CONTROLL MESSAGES IN BUFFER
+ % RETURN:      ERROR   A-REG - XMSG ERROR CODE
+ SUBR CLODAT
+ DISP -3; INTEGER CTRBUF,BUFBP,AUXBP; PSID
+ CLODAT: L=:D; CALL SETSTACK(CTRBUF); A:=0; CALL STAB(CTRBUF)
+        IF BUFFID=0 OR REMSIZ=DFOPP.FBSIZ-BUDIS GO OKOUT
+        TDBTPT=:D; CALL STAB(BUFBP); BUDIS=:TDBTPT
+ NXTBY: DO WHILE TDBTPT<D
+           CALL LOADBYT; IF A=0 GO NXTBY; A=:CURMES; CALL LOADBYT; A=:X
+           IF CURMES=7BDAT THEN
+              TDBTPT-1=:TDBTPT; A:=7DUMM; CALL STORBYT
+           ELSE
+              1=:CTRBUF
+           FI
+           TDBTPT+X=:TDBTPT
+        OD
+        CALL LDAB(BUFBP); A=:TDBTPT
+ OKOUT: 0=:CURMES=:NOBDIS; CALL LDAB(CTRBUF); GO T2BEXI
+ RETU:  GO T1BEXI
+ RBUS
+
+ %=========================================================================
+ % XX.XX      S N D B U F
+ %
+ % ROUTINE TO SEND OUTPUT BUFFER
+ % ENTRY:     B-REG - TAD OUTPUT DATAFIELD
+ SUBR SNDBUF
+ SNDBUF: L=:D; CALL SETSTACK(0)
+        IF BUFFID><0 THEN
+           IF REMSIZ><DFOPP.FBSIZ-4 THEN
+              1=:DRFUNC; CALL STDEV               % SEND BUFFER
+           FI
+        FI
+        GO T2BEXI
+ RBUS
+
+
+
+
+ %=========================================================================
+ %      M E S S A G E   G E N E R A T I N G   R O U T I N E S
+ %
+ % XX.XX      S N D R F I
+ %
+ % ROUTINE TO GENERATE AND SEND RFI-MESSAGE.
+ % CALLED FROM ALL INPUT CALLS WHEN INPUT BUFFER IS EMPTY.
+
+ % ENTRY:          B-REG - TAD INPUT DATAFIELD
+ % SKIP RETURN:    OK
+ % RETURN:         A-REG - XMSG ERROR CODE
+ SUBR SNDRFI
+ SNDRFI: L=:D; CALL SETSTACK(0); B=:X; DFOPP=:B
+        IF X.ISTATE<0 THEN                        % NOWAIT MODE
+           IF X.DFLAG BIT 5RQI GO NOSND           % RFI ALREADY SENT
+        FI
+        IF BUFFID=0 AND DFOPP.BUFFID><0 GO USINP  % OUTPUT BUFFER PRESENT?
+        A:=7RFI; T:=0; CALL CREMES; GO NOSPA      % GENERATE MESSAGE
+        GO SBUFF
+
+ NOSPA: IF A<0 GO RETU                            % XMSG ERROR
+        IF A=1 GO NOPOL                           % NO BUFFERS IN POOL
+        CALL SNDBUF; GO RETU                      % OUTPUT BUFFER FULL, SEND
+        IF BUFFID=0 GO USINP                      % NO BUFFER, USE INPUT
+        A:=7RFI; T:=0; CALL CREMES; GO RETU       % GENERATE MESSAGE
+
+ SBUFF: CALL SNDBUF; GO RETU                      % SEND BUFFER
+        DFOPP.DFLAG BONE 5RQI=:X.DFLAG            % MARK RFI SENT IN INPUT-DATAFIELD
+ NOSND: IF DFOPP.BUFFID><0 THEN
+           0=:X.BUFFID=:X.REMSIZ=:X.CURMES=:X.REMBYT
+           A=:T; AD:=X.TDTADD; T=:X; CALL PUTPOOL % RETURN INPUT BUFFER TO POOL
+        FI
+ OKRET: DFOPP=:B; GO T2BEXI                       % OK RETURN
+
+ USINP: IF DFOPP.BUFFID=0 GO NOPOL                % POOL IS EMPTY
+        CALL MOVITO                               % MOVE INP. BUFF. TO OUTPUT
+        A:=7RFI; T:=0; CALL CREMES; GO RETU       % GENERATE MESSAGE
+        CALL SNDBUF; GO RETU                      % SEND MESSAGE
+        DFOPP.DFLAG BONE 5RQI=:X.DFLAG            % MARK RFI SENT IN INPUT-DATAFIELD
+        GO OKRET                                  % OK RETURN
+ RETU:  X:=DFOPP=:B; GO T1BEXI
+
+ NOPOL: DFOPP.DFLAG BZERO 5RQI BONE 5WRQI=:X.DFLAG
+        GO OKRET                                  % DRIVER SENDS RFI WHEN BUFFER AVAILABLE
+ RBUS
+
+ %===========================================================================
+ % XX.XX      S N D R E J
+ %
+ % ROUTINE TO GENERATE AND SEND REJECT-MESSAGE.
+ % IF REJECTED MESSAGE IS DATA, RFI-MESSAGE
+ % IS ALSO SENDT.
+
+ % ENTRY:          B-REG - TAD INPUT DATAFIELD
+ % SKIP RETURN:    OK
+ % RETURN:         A-REG - XMSG ERROR CODE
+ SUBR SNDREJ
+ SNDREJ: L=:D; CALL SETSTACK(0); A:=DFOPP=:B
+        IF BUFFID=0 AND DFOPP.BUFFID><0 GO USINP     % OUTPUT BUFFER PRESENT?
+        IF DFOPP.CURMES=7BDAT THEN T:=3 ELSE T:=1 FI % INCLUDING RFI?
+        A:=7REJE; CALL CREMES; GO NOSPA              % GENERATE REJECT
+        DFOPP.CURMES; CALL BYTPUT; GO RETU           %
+        A:=7RFI; T:=0; CALL CREMES; GO RETU          % GENERATE RFI
+        GO SBUFF
+
+ NOSPA: IF A<0 GO RETU                            % XMSG ERROR
+        CALL SNDBUF; GO RETU                      % OUTPUT BUFFER FULL, SEND
+        IF BUFFID=0 GO USINP                      % NO BUFFER, USE INPUT
+        A:=7REJE; T:=1; CALL CREMES; GO RETU      % GENERATE REJECT
+        DFOPP.CURMES; CALL BYTPUT; GO RETU
+        IF DFOPP.CURMES=7BDAT THEN
+           A:=7RFI; T:=0; CALL CREMES; GO RETU    % GENERATE RFI
+        FI
+
+ SBUFF: CALL SNDBUF; GO RETU                      % SEND BUFFER
+        IF DFOPP.BUFFID><0 THEN
+           0=:X.BUFFID=:X.REMSIZ=:X.CURMES=:X.REMBYT
+           A=:T; AD:=X.TDTADD; T=:X; CALL PUTPOOL % RETURN INPUT BUFFER TO POOL
+        FI
+ OKRET: DFOPP=:B; GO T2BEXI                       % OK RETURN
+
+ USINP: IF DFOPP.BUFFID=0 THEN                    % NO BUFFERS AVAILABLE
+           IF X.CURMES=7BDAT THEN
+              X.DFLAG BONE 5WRQI=:X.DFLAG         % RFI MUST BE SENT BY DRIVER
+           FI
+           GO OKRET                               % REJECT IS NOT POSSIBLE
+        FI
+        CALL MOVITO                               % MOVE INP. BUFF. TO OUTPUT
+        A:=7REJE; T:=1; CALL CREMES; GO RETU      % GENERATE REJECT
+        DFOPP.CURMES; CALL BYTPUT; GO RETU
+        IF DFOPP.CURMES=7BDAT THEN
+           A:=7RFI; T:=0; CALL CREMES; GO RETU    % GENERATE RFI
+        FI
+        CALL SNDBUF; GO RETU                      % SEND BUFFER
+        GO OKRET                                  % OK RETURN
+
+ RETU: X:=DFOPP=:B; GO T1BEXI
+ RBUS
+
+ %=====================================================================
+ %            C B R E C T A
+ %
+ % ROUTINE TO COPY BREAK AND ECHO TABLES
+ % ENTRY:    AD-REG  - SOURCE ADDRESS
+ %           B-REG   - TAD OUTPUT DATAFIELD
+ % RETURN:   EXIT    TDBTPT, REMSIZ IS UPDATED
+ %
+ SUBR CBRECTA
+ CBRECTA: D=:X:=L; CALL SETSTACK(0); X=:D; A=:L
+        TDBTPT SHZ -1+TDTALA
+        A=:OBCOU
+        FOR X:=0 TO 7 DO; X=:XRSA
+           L=:T; D=:X; *LDATX
+           D+1; T:=TDTAFI; X:=OBCOU; *STATX
+           MIN OBCOU
+        X:=XRSA; OD
+        TDBTPT+20=:TDBTPT; REMSIZ-20=:REMSIZ
+        GO T1BEXI
+ RBUS
+
+ %=====================================================================
+ % XX.XX      B D E C H O
+ %
+ % ROUTINE TO SEND ECHO-MESSAGE
+ % ENTRY:       A-REG = ECHO STRATEGY
+ %              X-REG = TAD INPUT DATAFIELD
+ SUBR BDECHO
+ DISP -3; INTEGER AREG,BREG,MSSIZ; PSID
+ BDECHO: A=:T; B=:A:=X; L=:D; CALL SETSTACK(AREG);
+         CALL STAB(BREG); CALL STTB(AREG); DFOPP=:B
+        IF T=X:=7 THEN T:=21 ELSE T:=1 FI; CALL STTB(MSSIZ)
+        IF BUFFID=0 THEN
+           CALL GETPOOL; GO NYTRY
+        ELSE
+           IF REMSIZ<T+3 THEN
+              CALL SNDBUF; GO NYTRY
+              IF BUFFID=0 GO NYTRY
+           FI
+        FI
+        A:=7ECKM; CALL LDTB(MSSIZ); CALL CRHEOD; GO RETU    % CREATE MESSAGE HEADER
+        CALL LDAB(AREG); A=:D; CALL STORBYT                 % WRITE ECHO TYPE
+        IF D=7 THEN                                         % COPY ECHO TABLE
+           DFOPP+"PECH7"=:D:=0; CALL CBRECTA
+        FI
+ RETU:  DFOPP=:X; CALL LDAB(BREG); A=:B; GO T1XEXI
+
+ NYTRY: DFOPP=:B; RTREF=:X; CALL LDAB(BREG); A=:D; GO REDOM
+ RBUS
+
+ %=====================================================================
+ % XX.XX      B D B R E A
+ %
+ % ROUTINE TO SEND BREAK-MESSAGE.
+ % ENTRY:       A-REG = BREAK STRATEGY
+ %              X-REG = TAD INPUT DATAFIELD
+ SUBR BDBREA
+ DISP -4; INTEGER AREG,BREG,MSSIZ,BRSTR; PSID
+ BDBREA: A=:T; B=:A:=X; L=:D; CALL SETSTACK(AREG)
+        CALL STAB(BREG); CALL STTB(AREG)
+        IF T>X:=7 THEN T:=7 FI; CALL STTB(BRSTR)
+        IF T=X:=7 THEN T:=23 ELSE T:=3 FI; CALL STTB(MSSIZ); DFOPP=:B
+        IF BUFFID=0 THEN
+           CALL GETPOOL; GO NYTRY
+        ELSE
+           IF REMSIZ<T+3 THEN
+              CALL SNDBUF; GO NYTRY
+              IF BUFFID=0 GO NYTRY
+           FI
+        FI
+        A:=7BMMX; CALL LDTB(MSSIZ); CALL CRHEOD; GO RETU    % CREATE MESSAGE HEADER
+        CALL LDAB(BRSTR); A=:D; CALL STORBYT                % WRITE BREAK TYPE
+        TDBTPT SHZ-1; T:=TDTALA+A; DFOPP.BRKMAX
+        T=:X:=TDTAFI; *STATX                                % WRITE MAXBREAK
+        TDBTPT+2=:TDBTPT; REMSIZ-2=:REMSIZ
+        IF D=7 THEN
+           CALL LDAB(AREG)
+           IF A=11 THEN DFOPP.BRKTAB ELSE DFOPP+"PBRK7" FI
+           A=:D:=0; CALL CBRECTA
+        FI
+ RETU:  DFOPP=:X; CALL LDAB(BREG); A=:B; GO T1XEXI
+
+ NYTRY: DFOPP=:B; RTREF=:X; CALL LDAB(BREG); A=:D; GO REDOM
+ RBUS
+
+ %=======================================================================
+ % XX.XX      N W S T A
+ %
+ % ROUTINE TO SEND NOWAIT STATUS, CALLED WITH PAGING INTERUPT OFF
+ % ENTRY:      A = NOWAIT STATUS
+ %             X = TAD INPUT-DATAFIELD
+ SUBR NWSTA
+ DISP -2; INTEGER BREG,NWS; PSID
+ NWSTA: A=:D; IF X.PORTNO=0 THEN EXITA FI; D=:A             % NOT CONNECTED
+        L=:D; X:=:B; CALL MLVLOC; CALL BRSTACK
+        CALL SETSTACK(BREG); CALL STXB(BREG); CALL STAB(NWS)
+ NXBFF: IF A=0 THEN A:=7NOWT ELSE A:=7TNOW FI               % DETERMINE NOWT TYPE
+        T:=DFOPP=:B; T:=1; CALL CRHEEV; GO ECHK             % CREATE MESSAGE
+        CALL LDAB(NWS); CALL STORBYT                        % WRITE STATUS
+        CALL SNDBUF; 0/\0; GO RETUO                         % SEND MESSAGE
+
+ ECHK:  IF A=1 THEN                                         % NO BUFFER
+           DFOPP=:B; RTREF=:X; CALL LDAB(BREG); A=:D
+           CALL MLVULOC; GO REDOM                           % TRY LATER
+        FI
+        IF A=2 THEN                                         % NOT ENOUGH SPACE
+           CALL SNDBUF; GO RETUO; DFOPP=:B
+           CALL LDAB(NWS); GO NXBFF                         % NEXT BUFFER
+        FI
+ RETUO: DFOPP=:B
+ RETUI: B=:X; CALL LDAB(BREG); A=:B; CALL MLVULOC; GO T2XEXI
+ RBUS
+
+ %=======================================================================
+ % XX.XX      S N D C P
+ %
+ % ROUTINE TO SEND COMPLETION CODE CALLED FROM BSCPC
+ % ENTRY:     AD= COMPLETION CODE
+ %            B = TAD INPUT DATAFIELD
+ % RETURN:    EXIT, NO ERRORS RAPPORTED
+
+ SUBR SNDCP
+ DISP -3; INTEGER BREG,CPC1,CPC2; PSID
+ SNDCP: D=:T:=L; CALL SETSTACK(BREG)
+        CALL STXB(BREG); CALL STAB(CPC1); CALL STTB(CPC2)
+        DFOPP=:B                                  % B-REG - OUTPUT-DATAFIELD
+ NXBUF: 7CPCO; T:=5; CALL CRHEEV; GO ECHEC        % CREATE MESSAGE
+        TDBTPT SHZ -1; T:=TDTAFI; X:=TDTALA+A
+        CALL LDAB(CPC1); *STATX
+        X+1; CALL LDAB(CPC2); *STATX
+        TDBTPT+4=:TDBTPT; REMSIZ-4=:REMSIZ
+        CALL SNDBUF; 0/\0
+ RETU:  DFOPP=:B; CALL LDXB(BREG); GO T1BEXI
+ ECHEC: IF A=2 THEN CALL SNDBUF; 0/\0; GO NXBUF FI; GO RETU
+ RBUS
+
+ %=======================================================================
+ % XX.XX      C T R M E S
+ %
+ % ROUTINE TO TAKE ACTION ON CONTROLL-MESSAGES
+ % ENTRY:       B = INPUT DATAFIELD
+ % SKIP-RETURN: OK
+ % RETURN:      ERROR A = XMSG ERROR CODE
+ SUBR CTRMES
+ CTRMES: L=:D; CALL SETSTACK(0)
+        IF CURMES=0 THEN
+ NXMES:    CALL GETMES; GO ECHECK
+        FI
+        IF CURMES=7BDAT GO OKRET                  % DATA MESSAGE
+        IF A=7TMOD THEN                           % TMODE-MESSAGE
+           CALL BDTMOD; GO RETU; GO NXMES
+        FI
+        IF A=7TTYP THEN                           % TTYPE-MESSAGE
+           CALL BDTTYP; GO RETU; GO NXMES
+        FI
+        IF A=7DESC THEN                           % DEF-ESC MESSAGE
+           CALL BDDESC; GO RETU; GO NXMES
+        FI
+        IF A=7DUMM THEN                           % DUMMY MESSAGE
+           CALL BDDUMM; GO RETU; GO NXMES
+        FI
+ SRJE:  CALL SNDREJ; GO RETU; A:=TER01; GO RETU   % MESSAGE REJECTED
+
+ ECHECK: IF A=1 OR A=2 GO OKRET                   % EMPTY
+        IF A=3 GO SRJE                            % SEND REJECT
+        GO RETU                                   % XMSG ERROR
+ OKRET: GO T2BEXI
+ RETU:  GO T1BEXI
+ RBUS
+
+ %=======================================================================
+ % XX.XX      B D T M O D
+ %
+ % ROUTINE TO SET TERMINAL MODE ON A TAD
+ % ENTRY:       B = INPUT-DATAFIELD
+ % SKIP-RETURN: OK
+
+ SUBR BDTMOD
+ BDTMOD: TDBTPT=:D SHZ -1; T:=TDTAFI; X:=TDTALA+A; *LDATX
+        IF D BIT "0" THEN A/\377 ELSE A SHZ -10 FI; A=:D
+        REMSIZ-1=:REMSIZ; MIN TDBTPT; 0=:REMBYT
+
+ % CAPITAL LETTERS?
+        T:=DFLAG BZERO 5CAPITAL
+        IF D BIT "0" THEN T BONE 5CAPITAL FI; T=:DFLAG
+
+ % CR DELAY?
+        T:=TYPRING BZERO 5CRDLY=:TYPRING
+        IF D BIT 1 THEN
+           T BONE 5CRDLY=:TYPRING
+           T:=DFOPP.TYPRING BONE 5CRDLY=:X.TYPRING
+        FI
+
+ % STOP ON FULL PAGE?
+        0=:DFOPP.SCREEN
+        IF D BIT 2 THEN MIN X.SCREEN FI
+
+ % LOGGOUT ON MISSING CARRIER
+        T:=FLAGB BZERO 5LBLOG
+        IF D BIT 3 THEN T BONE 5LBLOG FI
+        T=:FLAGB
+
+ RETU:  EXITA
+ RBUS
+
+ %=======================================================================
+ % XX.XX      B D T T Y P
+ %
+ % ROUTINE TO SET TERMINAL TYPE ON A TAD
+ % ENTRY:         B = INPUT-DATAFIELD
+ % SKIP-RETURN:   OK
+ SUBR BDTTYP
+ BDTTYP: TDBTPT=:D SHZ -1; T:=TDTAFI; X:=TDTALA+A; *LDATX
+        IF D BIT "0" THEN
+           A SHZ 10=:D; X+1; *LDATX
+           A SHZ -10+D
+        FI
+        A=:CTTYP; TDBTPT+2=:TDBTPT; REMSIZ-2=:REMSIZ; 0=:REMBYT
+ RETU:  EXITA
+ RBUS
+
+ %==========================================================================
+ % XX.XX      B D D E S C
+ %
+ % ROUTINE TO SET ESCAPE CHARACTER ON A TAD
+ % ENTRY:        B = INPUT-DATAFIELD
+ % SKIP-RETURN:  OK
+ SUBR BDDESC
+ BDDESC: TDBTPT=:D SHZ -1; T:=TDTAFI; X:=TDTALA+A; *LDATX
+        IF D BIT "0" THEN A/\377 ELSE A SHZ -10 FI; A=:T
+        CESCP/\177400+T=:CESCP
+        MIN TDBTPT; REMSIZ-1=:REMSIZ; 0=:REMBYT
+ RETU:  EXITA
+ RBUS
+
+ %===========================================================================
+ % XX.XX      B D D U M M
+ %
+ % ROUTINE TO BYPASS DUMMY MESSAGES
+ % ENTRY:        B = INPUT-DATAFIELD
+ % SKIP-RETURN:  OK
+ SUBR BDDUMM
+ BDDUMM: T:=REMBYT-; T-1; TDBTPT+T=:TDBTPT; REMSIZ-T=:REMSIZ
+         0=:REMBYT
+         EXITA
+ RBUS
+
+
+ %========================================================================
+ %      T A D   D R I V E R
+ %========================================================================
+
+ % THIS DRIVER HAS EIGTH EXTERNAL ENTRY POINTS.
+ %      INIBDR:     INITIAL START, CALLED FROM TADADM IN CONNECTION-
+ %                  PHASE
+ %      INISND:     INITIAL SEND, CALLED FROM TADADM TO SEND START-
+ %                  BUFFER
+ %      BDRINP:     INPUT-DRIVER, ACTIVATED FIRST TIME FROM INIBDR
+ %                  ELSE ACTIVATED BY XMSG WHEN RECEIVING A BUFFER.
+ %      BERESP:     ROUTINE TO SEND ESCAPE-RESPONSE, CALLED FROM
+ %                  ESCAPE HANDLING.
+ %      STOTAD:     ROUTINE TO STOP A TAD, THE PORT IS DISCONNECTED
+ %                  IF OPEN.
+ %      BDDSCN:     ROUTINE TO DISCONNECT A TAD WITHOUT LOGGING OUT.
+ %      BDROUT:     OUTPUT-DRIVER, ACTIVATED FROM OUTPUT CALLS.
+ %=======================================================================
+ %      M E S S A G E   H E A D E R S
+
+ INTEGER HIGHT                % SAVE TYPE OF HIGH PRIORITY MESSAGE
+ INTEGER RDATR                % DATA IN RESPONSE MESSAGE
+ INTEGER EBUFF:=(7DUMM\0)     % DUMMY-MESSAGE 0 (EMPTY BUFFER)
+ INTEGER BDESC:=(7ESCA\0)     % ESCAPE-MESSAGE
+ INTEGER RLOCA:=(7RLOC\0)     % REMOTE LOCAL (RUBOUT NORD-NET)
+ INTEGER BDDIS:=(7DCON\0)     % DISCONNECT-MESSAGE
+ INTEGER CESCR:=(7CERS\0)     % CESC-RESP MESSAGE
+ INTEGER RESCF:=(7RECO\0)     % RESET-CONF MESSAGE
+ INTEGER NWREM:=(7NWRE\0)     % NOWAIT RESTART MESSAGE
+ INTEGER ISZRS:=(7ISRS\2)     % ISIZE RESPONSE MESSAGE
+ INTEGER ERRSP:=(7ERRS\2)     % ERROR-RESPONSE MESSAGE
+ INTEGER TREPS:=(7TREP\2)     % TREPP STATUS MESSAGE
+
+ TRIPLE  DMMES:=(7DUMM\0,0,2) % DUMMY MESSAGE
+ TRIPLE  RFIMS:=(7RFI\0,0,2)  % RFI MESSAGE
+ TRIPLE  ERESP:=(7ESRS\0,0,2) % ESCAPE RESPONSE BUFFER
+ TRIPLE  EDRSP:=(7EDRS\0,0,2) % ESCAPE RESPONSE ESCAPE DISABLED BUFFER
+
+ @ICR
+ SUBR   INIBDR,INISND,
+        BDRINP,BDROUT,
+        BERESP,STOTAD,BDLOUT,BDDSCN,BDRWT,
+        FAERR,FAERO;
+ @CR;
+
+ %=======================================================================
+ %      I N I B D R
+ %
+ % INITIAL ENTRY, LEVEL 10:
+ %
+ %      PROGRAMMED FROM TADADM WITH B = TAD INPUT-DATAFIELD
+ %      TO EXECUTE FOLLOWING TASKS:
+ %            - OPEN A XMSG PORT.
+ %            - RESERVE BUFFERS ACCORDING TO NOBUFF AND FBSIZ IN
+ %              DATAFIELD, ARRANGE FREE-POOL.
+ %            - UPDATE PORTNO IN DATAFIELD
+ %            - RETURN TO TADADM
+
+ INIBDR: IF PORTNO=0 THEN                                   % NO PORT OPENED
+           0=:DFOPP.BXTADD; T:=XFOPN; CALL MXMSG; GO IERR   % OPEN PORT
+           A=:PORTNO; A:=L=:DFOPP.BXTADD                    % UPDATE DATAFIELDS
+           IF XFOPN=T THEN T:=XENOT; GO IERR; FI            % SPECIAL TEST FOR XTBLOC
+           A:=0=:D; AD=:X.POOLLI                            % POOL EMPTY
+           FOR X:=1 TO NOBUFF DO; X=:XRSA
+              T:=XFGET; A:=FBSIZ; CALL MXMSG; GO IERR       % RESERVE BUFFERS
+              T:=DFOPP=:B; A=:X=:BUFFID                     % B = OUTPUT-DATAFIELD
+              CALL DRXACC(XDINF); GO OERR; *ION
+              X:=BUFFID; CALL PUTPOOL; 0=:BUFFID; DFOPP=:B  % PUT BUFFER IN FREEPOOL
+           X:=XRSA; OD
+        FI
+        GO BDRWT; *)FILL                                    % LEAVE LEVEL
+
+ INISND: DFOPP=:B; CALL GETPOOL; GO OERR; BUFFID
+        T:=DFOPP=:B; T:=PORTNO=:D
+        T:=XFSCM; CALL MXMSG; GO IERR                       % SET CURRENT
+        TAD:=DMMES; T=:X:=XFWHD; CALL MXMSG; GO IERR
+        AD:=DFOPP.PARTNER; X:=PORTNO
+        T:=XFSND; CALL MXMSG; GO IERR                       % SEND BUFFER
+        T:=XFWDF; A:="BDRINP"; CALL MXMSG; GO IERR          % SET "WAKE UP" MODE
+        FLAGB BZERO 5LSTA=:FLAGB                            % SET LINE OK BIT
+        CALL BRSTACK                                        % INIT STACKS.
+        0=:DFOPP.BUFFID; GO BDRINP                          % ENTER RECEIVE MODE
+
+ % ----- INITIALIZING ERRORS -----
+ OERR:  *ION
+        A=:T; DFOPP=:B
+ IERR:  T=:DFOPP.DERROR                                     % SAVE ERROR
+        GO FAERR
+ *)FILL
+
+ %==========================================================================
+ %      B D R I N P
+ %
+ % TAD INPUT DRIVER.  B = TAD INPUT DATAFIELD
+ %
+ % BDRINP IS INITIALLY STARTED BY INIBDR
+ % THE FUNCTION OF THIS DRIVER IS TO RECEIVE BUFFERS FROM XMSG AND TAKE
+ % PROPER ACTION DEPENDING ON THE CONTENTS IN THE BUFFER
+ % ACTTIONS MAY BE THE FOLLOWING:
+ %      - EMPTY BUFFER, RETURN TO POOL
+ %      - DATA-MESSAGE, RESPONSE-MESSAGE, WAKE USER
+ %      - CONTROLL-MESSAGE, PROCEED ACCORDINGLY
+ %
+ % THE DRIVER IS RESTARTED BY XMSG WHEN A BUFFER IS QUEUED ON THE PORT.
+ % THE STRATEGY FOR HANDLING MESSAGES DEPENDS ON WETHER THE MESSAGE IS
+ % A HIGH PRIORITY MESSAGE OR NORMAL PRIORITY MESSAGE
+ %      - NORMAL:  MESSAGE IS REMOVED FROM PORT QUEUE ONLY IF
+ %                 CURRENT INPUT-BUFFER IS EMPTIED (BUFFID=0)
+ %      - HIGH:    MESSAGE IS IMIDEATELY SERVED.
+ %==========================================================================
+
+ BDRINP: *ION
+         IF PORTNO=0 GO BDRWT; T:=XFPST BONE XFWAK
+         CALL MXMSG; GO FAERR                               % READ PORT STATUS
+         IF T=0 GO BDRWT                                    % NO BUFFER
+         CALL CHPART; GO BDRINP                             % CHECK IF LEGAL PARTNER
+         IF XMTHI><T GO FAR NORMP                           % NORMAL PRIORITY
+         T:=XFRCV; A:=PORTNO; CALL MXMSG; GO FAERR          % RECEIVE
+         IF T=0 GO BDRWT                                    % NO BUFFER
+         X:=D=:TMPBUF
+         T:=XFRHD; A:=TMPBUF; CALL MXMSG; GO FAERR          % READ SIX BYTES
+
+ % CHECK IF RESPONSE-MESSAGE OR EMPTY BUFFER
+         X=:HIGHT                                           % SAVE MESSAGE TYPE
+         IF X=EBUFF OR X=CESCR OR X=RESCF OR X=ISZRS OR X=ERRSP THEN
+           IF X=EBUFF THEN DFLAG BZERO 5RQI=:DFLAG FI       % ALLOW RFI IN NOWAIT
+           IF X=ISZRS OR X=ERRSP THEN                       % MESSAGE WITH DATA
+              X:=TMPBUF; T:=6; CALL DRXACC(XDGER); GO FAERR; *ION
+              A SHZ 10=:RDATR
+              X:=TMPBUF; T:=7; CALL DRXACC(XDGER); GO FAERR; *ION
+              T:=RDATR+A=:RDATR                             % DATA IN RDATR
+           FI
+           IF DFLAG BIT 5WRQI THEN                          % RFI WAITING TO BE SENDT
+              A BZERO 5WRQI=:DFLAG; GO FAR RETRFI
+           FI
+           IF DFOPP.BUFFID=0 THEN                           % PUT BUFFER TO OUTPUT
+              X:=TMPBUF; CALL CHSIZE; GO FAR CHRESO
+              X:=TMPBUF; A:=-1; CALL DRXACC(XDSBP); GO FAERR; *ION
+              X:=TMPBUF; A:=BUDIS; CALL DRXACC(XDSBP); GO FAERR; *ION
+              AD=:DFOPP.TDTADD; TMPBUF=:X.BUFFID
+              BUDIS=:X.TDBTPT; FBSIZ-BUDIS=:X.REMSIZ; 0=:TMPBUF
+              GO FAR CHRESO; *)FILL
+           ELSE                                             % PUT BUFFER IN POOL
+              X:=TMPBUF; CALL CHSIZE; GO FAR CHRESO
+              X:=TMPBUF; T:=DFOPP=:B; CALL PUTPOOL
+              DFOPP=:B; 0=:TMPBUF; GO FAR CHRESO
+           FI
+         FI
+         IF X=NWREM THEN                                    % NOWAIT RESTART
+           T:=XFSND; AD:=DFOPP.PARTNER; X:=PORTNO
+           CALL MXMSG; GO FAERR                             % RETURN MESSAGE
+           GO FAR DATRES                                    % RESTART USER
+         FI
+         IF X=TREPS THEN                                    % TREP STATUS
+           X:=TMPBUF; T:=6; CALL DRXACC(XDGER); GO FAERR; *ION
+           A SHZ 10=:RDATR
+           X:=TMPBUF; T:=7; CALL DRXACC(XDGER); GO FAERR; *ION
+           T:=RDATR+A=:RDATR                                % DATA IN RDATR
+           T:=XFSND; AD:=DFOPP.PARTNER; X:=PORTNO
+           CALL MXMSG; GO FAERR
+           T:=RDATR; A:=TINFO
+           IF T BIT 2 THEN A BONE 5BFUL FI                  % BUFFER OVERRUN
+           IF T BIT 3 THEN A BONE 5PAER FI                  % PARITY ERROR
+           IF T BIT 4 THEN A BONE 5FRER FI                  % FRAMING ERROR
+           A=:TINFO
+           GO FAR BDRINP
+         FI
+         GO FAR ESCDIS; *)FILL                              % ESCAPE OR DISCONNECT
+
+ % ----- NORMAL PRIORITY -----
+ NORMP: IF BUFFID><0 GO BDRWT                               % INPUT-BUFFER NOT EMPTY
+        DFLAG BZERO 5RQI=:DFLAG                             % ALLOW RFI IN NOWAIT
+        T:=XFRCV; A:=PORTNO; CALL MXMSG; GO FAERR           % RECEIVE FUNCTION
+        IF T=0 GO BDRWT
+        X-BUDIS=:REMSIZ:=D=:BUFFID=:TMPBUF
+        X:=BUFFID; CALL CHSIZE; GO WRSIZE; AD=:TDTADD; BUDIS=:TDBTPT
+
+ % ----- BUFFER RECEIVED -----
+ NXMES: CALL GETMES; GO ECHECK
+        IF CURMES=7BDAT GO DATRES                 % DATA MESSAGE
+        IF A=7TMOD THEN                           % TMODE-MESSAGE
+           CALL BDTMOD; GO FAERR; GO NXMES
+        FI
+        IF A=7TTYP THEN                           % TTYPE-MESSAGE
+           CALL BDTTYP; GO FAERR; GO NXMES
+        FI
+        IF A=7DESC THEN                           % DEF-ESC MESSAGE
+           CALL BDDESC; GO FAERR; GO NXMES
+        FI
+        IF A=7DUMM THEN                           % DUMMY MESSAGE
+           CALL BDDUMM; GO FAERR; GO NXMES
+        FI
+ SRJE:  CALL REJECT; 0/\0; GO BDRINP              % MESSAGE REJECTED
+ ECHECK: IF A=1 OR A=2 GO BEMTY                   % EMPTY
+         IF A=3 GO SRJE                           % SEND REJECT
+         GO FAERR                                 % XMSG ERROR
+ *)FILL
+
+ WRSIZE: 0=:BUFFID=:CURMES=:REMSIZ; GO BDRINP
+
+ BEMTY: X:=BUFFID; 0=:BUFFID=:CURMES=:REMSIZ
+        CALL CHSIZE; GO BDRINP
+        T:=DFOPP=:B; CALL PUTPOOL; DFOPP=:B
+        GO BDRINP
+
+ DATRES: A:=DFOPP.RSPNUM BZERO 17
+         IF A><7CERS AND A><7RECO AND A><7ISRS THEN         % NOT AWAITING RESPONSE
+           CALL STBACK; "IORESTART"=:MFUNC; CALL RTACT      % RESTART USER
+         FI
+         GO BDRINP; *)FILL
+
+ RSPRST: 0=:DFOPP.RSPNUM                                    % RESET RESPONSE WAIT
+         CALL STBACK; "RSRESTART"=:MFUNC; CALL RTACT        % RESTART AFTER RESPONSE
+         GO BDRINP
+
+ CHRESO: A:=HIGHT; 0=:HIGHT
+         IF A=CESCR THEN                                    % CESC-RESP
+           IF DFOPP.RSPNUM=7CERS GO RSPRST
+           GO BDRINP
+         FI
+         IF A=RESCF THEN                                    % RESET-CONF
+           IF DFOPP.RSPNUM=7RECO GO RSPRST
+           GO BDRINP
+         FI
+         IF A=ISZRS THEN
+            DFOPP.RSPNUM=:T; A BZERO 17
+            IF A=X:=7ISRS THEN                             % WAITING FOR ISIZE-RESPONSE
+              RDATR=:RTRES.RTDLGADDR.DAREG                 % RETURN PARAMETERS
+              IF T NBIT 17 THEN A=:X.DXREG FI              % IBRSIZ ONLY
+              GO RSPRST
+            FI
+         FI
+         IF A=ERRSP THEN
+            IF DFOPP.RSPNUM=7ERRS THEN
+              IF RTRES.STATUS BIT 5WAIT THEN
+                 RDATR=:X.RTDLGADDR.DAREG
+                 IF A=0 THEN X.DPREG+1=:X.DPREG FI
+                 GO RSPRST
+              FI
+            FI
+         FI
+         DFOPP.RSPNUM BZERO 17
+         IF A><7CERS AND A><7RECO AND A><7ISRS THEN        % NOT AWAITING RESPONSE
+           IF DFOPP.ISTATE>=0 THEN X=:B
+              "IORESTART"=:MFUNC; CALL RTACT; DFOPP=:B      % RESTART OUTPUT
+           FI
+         FI
+         GO BDRINP
+ *)FILL
+
+ % ----- RFI MESSAGE SENT FROM DRIVER WHEN BUFFER ARRIVES AND 5WRQI IS SET.
+ %       BUFFER WAS NOT AVAILABLE FOR NORMAL SENDING.
+
+ RETRFI: TAD:=RFIMS; T=:X:=XFWHD; CALL MXMSG; GO FAERR
+         AD:=DFOPP.PARTNER; X:=PORTNO
+         T:=XFSND; CALL MXMSG; GO FAERR; GO FAR CHRESO
+
+ % ----- ESCAPE OR DISCONNECT, X = MESSAGE HEADER -----
+
+
+ ESCDIS: IF X=BDESC OR X=RLOCA THEN                  % ESCAPE OR REMOTE-LOCAL MESSAGE
+           IF DFLAG NBIT 5IESC THEN                  % ESCAPE ENABLED
+              IF X=BDESC THEN
+                 CESCP/\377=:LAST                    % ESCAPE
+              ELSE
+                 IF FLAGB BIT 5LCHAR THEN
+                    CESCP SHZ-10=:LAST               % LOCAL CHARACTER
+                 ELSE
+                    177=:LAST                        % RUBOUT IN NORD-NET
+                 FI
+              FI
+              DFLAG BZERO 5RQI=:DFLAG                % ALLOW RFI IN NOWAIT
+              CALL ESCAPE; 0/\0
+              TAD:=ERESP; T=:X:=XFWHD
+              CALL MXMSG; GO FAERR                   % WRITE ESCAPE-RESPONCE
+              TMPBUF=:ESCBUF; 0=:TMPBUF; GO BDRINP
+           ELSE                                   % ESCAPE DISABLED
+              TAD:=EDRSP; T=:X:=XFWHD
+              CALL MXMSG; GO FAERR                   % WRITE ESCAPE DISABLED RESPONSE
+              AD:=DFOPP.PARTNER; X:=PORTNO
+              T:=XFSND; CALL MXMSG; GO FAERR         % SEND RESPONSE
+              0=:TMPBUF; GO BDRINP
+           FI
+        FI
+        IF X=BDDIS THEN                           % DISCONNECT-MESSAGE
+           GO STOTAD                              % STOP AND DISCONNECT TAD
+        FI
+        A:=X SHZ -10=:CURMES; GO FAR SRJE         % ILLEGAL HIGH-PRIORITY
+        GO BDRINP
+ *)FILL
+
+ %=========================================================================
+ %      B E R E S P
+ %
+ % ESCAPE RESPONSE, ACTIVATED FROM ESCAPE HANDLING WITH B = INPUT DATAFIELD
+
+ BERESP: IF ESCBUF><0 THEN
+           PORTNO=:D; A:=ESCBUF; 0=:ESCBUF
+           T:=XFSCM; CALL MXMSG; GO FAERR         % SET CURRENT
+           T:=XFSND; AD:=DFOPP.PARTNER; X:=PORTNO
+           CALL MXMSG; GO FAERR                   % SEND RESPONCE
+         FI
+         GO BDRINP
+
+ %=========================================================================
+ %      S T O B A D
+ %
+ % ROUTINE ACTIVATED TO STOP A TAD, B = INPUT DATAFIELD
+ % IF BACKROUND: TLREP ENABLED:  5LSTA AND 5LOGOUT IS SET
+ %               TLREP DISABLED: TAD IS LOGGED OUT
+ % TAD RESERVED: 5LSTA IS SET
+ % THE TADS PORT IS CLOSED IF OPEN
+
+ STOTAD: IF DBPROG><0 AND A=RTRES THEN               % BACKGROUND
+            IF FLAGB BIT 5TLREP THEN
+              A BONE 5LOGOUT=:FLAGB                  % PROGRAM IS RESPONSIBLE, LOGOUT AT MON 0
+              "IORESTART"=:MFUNC; CALL RTACT         % RESTART PROGRAM
+            ELSE
+              CALL BDLOUT                            % LOGGOUT USER
+            FI
+         FI
+         IF FLAGB NBIT 5LSTA THEN GO BDDSCN FI       % PORT SHOULD BE CLOSED
+         GO BDRWT                                    % LEAVE DRIVER LEVEL
+
+ %=========================================================================
+ %      B D L O U T
+ %
+ % SUBROUTINE TO LOG OUT A TAD
+ % B = INPUT-DATAFIELD
+
+ BDLOUT: A:=L=:"DRIVER"
+        IF DBPROG><0 AND A=RTRES THEN             % BACKGROUND AND LOGGED ON
+           DFLAG BZERO 5IESC=:DFLAG               % ENABLE ESCAPE
+           0=:ISTATE=:DFOPP.ISTATE                % RESET ISTATE
+           DBPROG.STATUS BZERO 5WAIT=:X.STATUS    % CLEAR WAIT BIT
+           FLAGB/\ESCMASK BONE 5ESCON=:FLAGB      % RESET USER ESCAPE/LOCAL
+           -1=:LAST; CALL ESCAPE; 0/\0            % LOGOUT USER
+        FI
+        GO DRIVER
+ *)FILL
+
+ %=========================================================================
+ %      B D D S C N
+ %
+ % ROUTINE TO DISCONNECT A TAD IF PORT IS OPEN, B = INPUT-DATAFIELD
+ % RETURN IS DONE BY LEAVING DRIVER-LEVEL.
+
+ BDDSCN: FLAGB BONE 5LSTA=:FLAGB                     % SET LINE DEAD BIT
+         IF PORTNO><0 AND DFOPP.BXTADD><0 THEN       % PORT IS OPEN
+           IF TMPBUF><0 THEN
+              0=:TMPBUF; T:=XFREL; CALL MXMSG; 0/\0  % RELEASE CURRENT BUFFER
+           FI
+           X.BXTADD=:L; 0=:PORTNO=:X.BXTADD          % CLEAR DATAFIELD
+           0=:BUFFID=:X.BUFFID=:X.POOLP
+           T:=XFDCT; *MON 2XMSG                      % DISCONNECT
+        ELSE                                         % PORT IS CLOSED
+           0=:PORTNO=:DFOPP.BXTADD
+           0=:X.POOLP=:BUFFID=:X.BUFFID              % CLEAR DATAFIELD
+        FI
+        GO BDRWT
+
+
+ %=========================================================================
+ %      B D R O U T
+ %
+ % TAD OUTPUT DRIVER ACTIVATED FROM STDEV WITH B = TAD OUTPUT-DATAFIELD
+
+ BDROUT: IF DRFUNC=0 OR DFOPP.PORTNO=0 GO BDRWT             % DUMMY CALL
+        IF BUFFID=0 GO OUT                                  % NO BUFFER
+        0=:DRFUNC; CALL SETSIZE
+        DFOPP=:B                                            % B = INPUT-DATAFIELD
+        PORTNO=:D; A:=DFOPP.BUFFID
+        T:=XFSCM; CALL MXMSG; GO FAERR                      % SET CURRENT
+        AD:=DFOPP.PARTNER; X:=PORTNO
+        T:=XFSND; CALL MXMSG; GO FAERR                      % SEND BUFFER
+        DFOPP=:B; 0=:CURMES
+        CALL GETPOOL; 0/\0
+ OUT:   DFOPP=:B; GO BDRINP             % RETURN VIA INPUT-DRIVER
+
+ % ----- F A E R R   FATAL ERROR IN DRIVER
+ FAERO: DFOPP=:B
+ FAERR: *ION
+        GO STOTAD
+
+ % ----- B D R W T    LEAVE DRIVER LEVEL
+ BDRWT: *ION
+        CALL WT10; *JMP *-1
+
+ RBUS
+
+ %=======================================================================
+ %      S E T S I Z E
+ %
+ % ROUTINE TO SET CORRECT SIZE AND BYTE-POINTER BEFORE SEND
+ %      ENTRY: B-REG - TAD OUTPUT-DATAFIELD
+ SUBR SETSIZE
+ SETSIZE: A:=L=:DFOPP."DRIVER"
+        A:=DFOPP.FBSIZ-REMSIZ-BUDIS=:REMSIZ                 % UPDATE SIZE
+        T:=TDTAFI; X:=TDTALA; A:=0; *STATX
+        X+1; REMSIZ; *STATX
+        X:=BUFFID; A:=-1; CALL DRXACC(XDSBP); 0/\0; *ION    % SET BYTE POINTER
+        X:=BUFFID; TDBTPT; CALL DRXACC(XDSBP); 0/\0; *ION
+        DFOPP."DRIVER"=:P
+ RBUS
+
+ %=======================================================================
+ %      C H P A R T
+ %
+ % ROUTINE TO CHECK IF BUFFER IS SENT FROM PARTNER
+ % B = INPUT-DATAFIELD, A = SENDERS NUMBER FROM RECEIVE
+ SUBR CHPART
+ CHPART: X:=L=:"DRIVER"
+         IF A=X:=DFOPP.RPORT THEN                 % SENDER OK
+            MIN "DRIVER"
+         ELSE                                     % UNAUTORIZED SENDER
+            DFOPP.BXTADD=:L:=PORTNO; T:=XFRCV; *MON 2XMSG
+            CALL WT10; IF T<0 GO DRIVER           % RECEIVE BUFFER
+            DFOPP.BXTADD=:L:=D; T:=XFREL; *MON 2XMSG
+            CALL WT10                             % RELEASE BUFFER
+         FI
+        GO DRIVER
+ RBUS
+
+ %=====================================================================
+ %      C H S I Z E
+ %
+ % ROUTINE TO CHECK IF A BUFFER IS OF CORRECT SIZE, IF NOT THE
+ % BUFFER IS RELEASED.
+ % ENTRY:        X-REG - BUFFER ID
+ %               B-REG - TAD INPUT DATAFIELD
+ % SKIP RETURN:  BUFFER OK, AD-REG - BUFFER ADDRESS
+ % EXIT:         WRONG SIZE, BUFFER IS RELEASED
+ SUBR CHSIZE
+ INTEGER XREG
+ CHSIZE: *IOF
+        A:=L=:"DRIVER"; X=:XREG
+        CALL DRXACC(XDINF); GO FAERR; X:=XREG
+        T=:L
+        IF L=FBSIZ THEN; *ION
+           MIN "DRIVER"
+        ELSE
+           DFOPP.BXTADD=:L; T:=XFREL; XREG; *ION; MON 2XMSG
+           CALL WT10
+        FI
+        GO DRIVER
+ RBUS
+
+ %====================================================================
+ %      R E J E C T
+ %
+ %  ROUTINE TO SEND REJECT MESSAGE. THE ROUTINE HAS THE SAME FUNCTION
+ %  AS SNDREJ. REJECT IS ONLY CALLED FROM DRIVER.
+ %      ENTRY:   B-REG  - INPUT DATAFIELD
+ %               CURMES - REJECTED MESSAGE
+ SUBR REJECT
+ REJECT: A:=L=:"DRIVER"
+        IF DFOPP.BUFFID=0 THEN
+           BUFFID; X:=DFOPP=:B
+           IF A><0 THEN
+              CALL MOVITO; GO GESND
+           ELSE
+              CALL GETPOOL; GO NOPOL; GO GESND
+           FI
+        ELSE
+           IF REMSIZ>=3 GO GESND
+           CALL SETSIZE; BXTADD=:L; BUFFID; T:=XFSCM; *MON 2XMSG
+           CALL WT10; IF T>0 GO FAERO; AD:=PARTNER; X:=DFOPP.PORTNO
+           T:=BXTADD=:L:=XFSND; *MON 2XMSG
+           CALL WT10; IF T>0 GO FAERO
+           CALL GETPOOL; GO NOPOL
+        FI
+ GESND: A:=7REJE; CALL STORBYT; A:=1; CALL STORBYT
+        DFOPP.CURMES/\377; CALL STORBYT
+        CALL SETSIZE; BXTADD=:L; BUFFID; T:=XFSCM; *MON 2XMSG
+        CALL WT10; IF T>0 GO FAERO; AD:=PARTNER; X:=DFOPP.PORTNO
+        T:=BXTADD=:L:=XFSND; *MON 2XMSG
+        CALL WT10; IF T>0 GO FAERO
+ NOPOL: DFOPP=:B; GO DRIVER
+ RBUS
+
+ %=====================================================================
+ %      M X M S G
+ %
+ % ROUTINE TO PERFORM XMSG MONITOR CALL, B = INPUT-DATAFIELD
+ % SKIP RETURN: OK,    RETURN: XMSG ERROR
+
+ SUBR MXMSG
+ MXMSG: A:=:L=:"DRIVER"; A:=L; X=:L
+        X:=DFOPP.BXTADD; X:=:L; *MON 2XMSG
+        CALL WT10; IF T>=0 THEN MIN "DRIVER" FI
+        GO DRIVER
+ RBUS
+
+ *"-BADAD
+" @EOF
+
+ %
+
+ %============================================================================
+ %  PIT3-PIT0-CODE
+ %
+ %============================================================================
+ *"-3PIT
+" *)KILL YENDC; YENDC=*
+ *7ENDC/
+ *"
+" %
+ *"8UDMA 8PUDM
+" *)KILL 3PITU 3POFU
+ *"8UDMA+8VICO -3PIT
+"
+ *"8PUDM+8PVIC -3PIT
+" *"3PITU+3POFU
+"
+
+ *"8PIOC 8PPIO
+" *)KILL 3PITP 3POFP
+ *"8PIOC 3PIT
+" *"8PPIO -3PIT
+" *"8PIOC+8PPIO -3PIT
+" SUBR PIOCM,APIOCM
+ %===================================================================
+ % LEVEL 1 ROUTINE TO CALL PIOC MONITOR CALL, ACTIVATED FROM SWAPREG
+ % ALWAYS ON PIT 0
+ %===================================================================
+ PIOCM:
+   *"8PIOC -3PIT
+"   CALL SPT3PIT                    % SET NORM PIT=3, ALT PIT=0
+   *"8PIOC+8PPIO -3PIT
+"   * BSET ZRO
+   GO APIOCM
+ RBUS
+ *"
+" *"3PITP+3POFP
+"
+ *"8PIOC+8PPIO -3PIT
+" SUBR PDRIV,APDRIV
+ %===================================================================
+ % ROUTINE ON LEVEL 13 TO CALL PIOC DRIVER
+ % (DRIVER AND STDRIV = PDRIV) ALWAYS ON PIT0
+ %===================================================================
+ PDRIV:
+      *"8PIOC -3PIT
+"      * PON
+      *"8PIOC+8PPIO -3PIT
+"      GO APDRIV
+ RBUS
+ *"
+" *"8PIOC+8PPIO -3PIT
+" SUBR PITIM
+ %===================================================================
+ % TIMOUT AFTER REMOVING RESET AND START
+ % (TMSUB=PITIM) ALWAYS ON PIT0
+ %===================================================================
+ PITIM: X := 1002; A:=1; L=:D;
+        *"8PIOC -3PIT
+"        CALL SPT3PIT
+        *"8PIOC+8PPIO -3PIT
+"        CALL PWRIT;
+        *"8PIOC -3PIT
+"        CALL SPT0PIT
+        *"8PIOC+8PPIO -3PIT
+"        D=:P                                                % SET FLAG TO STOP LOOP
+ RBUS
+ *"
+"
+ *"8PIOC+8PPIO -3PIT
+" SUBR PIORE
+ %===================================================================
+ % SPECIAL IO-RESTART ROUTINE FOR PIOC  (MFUNC=PIORE)
+ % X = DATAFIELD, RTRES = PROGRAM TO BE STARTED
+ % KPROS = PROCESS TO BE ACTIVATED (RT)
+ % ALWAYS ON PIT0
+ %===================================================================
+ PIORE: X=:B:=KPROS
+        PWCR BONE BENA=: PWCR; T := HDEV+3; *IOXT          % ENABLE PIOC
+        CALL RTENTRY
+        *IOF
+        "STDRIV"; *IOF; IRW LV12B DT                        % START DRIVER AGAIN
+        B=:A; *IRW LV12B DB
+        "SLV12"; *IRW LV12B DP
+        LV12; *MST PID; PION
+        CALL STUPR
+ RBUS
+ *"
+" *"-3PIT
+" *)KILL 7ENDC; 7ENDC=*
+ *YENDC/
+ *"
+" @EOF
+
+
+
+%==============================================================================
+%      M R E S - S I N 2 - G E N
+%==============================================================================
+
+
+% LOGICAL NUMBER TABLES
+
+%==============================================================================
+% 42.1       D V 0 0 0
+%
+DV000, 100
+       0;0                   % 0 - DUMMY
+
+       DT01R;DT01W           % 1 - TERMINAL 1
+"
+DV000+6/DT01W                % 2 OUTPUT: ERROR DEVICE
+"8SMO1
+DV000+15/IDMO1;UDMO1         % 6 - SYNCRON MODEM
+"8TR5
+DV000+111/DT05R;DT05W        % 44 - TERMINAL 5
+"8TR6
+DV000+113/DT06R;DT06W        % 45 - TERMINAL 6
+"8TR7
+DV000+115/DT07R;DT07W        % 46 - TERMINAL 7
+"8TR8
+DV000+117/DT08R;DT08W        % 47 - TERMINAL 8
+"8TR9
+DV000+141/DT09R;DT09W        % 60 - TERMINAL 9
+"8TR10
+DV000+143/DT10R;DT10W        % 61 - TERMINAL 10
+"8TR11
+DV000+145/DT11R;DT11W        % 62 - TERMINAL 11
+"8TR12
+DV000+147/DT12R;DT12W        % 63 - TERMINAL 12
+"
+EN000=*
+
+
+
+
+%==============================================================================
+% 42.2       D V 2 0 0
+%
+DV200, 100
+"IND01+IBL01; ID01I;ID01O
+"IND02+IBL02; ID02I;ID02O
+"IND03+IBL03; ID03I;ID03O
+"IND04+IBL04; ID04I;ID04O
+"IND05+IBL05; ID05I;ID05O
+"IND06; ID06I;ID06O
+"IND07;      ID07I;ID07O
+"IND08;      ID08I;ID08O
+"8SIBA
+DV200+101/SI01I;SI01O
+       SI02I;SI02O
+       SI03I;SI03O
+       SI04I;SI04O
+       SI05I;SI05O
+       SI06I;SI06O
+"
+EN200=*
+
+
+
+%==============================================================================
+% 42.3       D V 3 0 0
+%
+DV300, 100
+       SEMI1;0
+       SEMI2;0
+       SEMI3;0
+       SEMI4;0
+       SEMI5;0
+"8SM10+8SM20+8SM30+8SM40+8SM50
+       SEMI6;0
+       SEMI7;0
+       SEMI8;0
+       SEMI9;0
+       SEM10;0
+"
+% SEMAPHORES USED BY THE BACKUP-SYSTEM
+DV300+167/SEM60;0            % LOGICAL DEVICE NUMBER 373B
+       SEM61;0
+       SEM62;0
+       SEM63;0
+       SEM64;0
+EN300=*
+
+
+
+%==============================================================================
+% 42.4       D V 4 0 0
+%
+DV400, 100
+
+
+
+
+
+
+
+
+
+
+% END OF LOG. NO TABLE FOR DIGIO   (KGS)
+
+EN400=*
+
+
+
+%==============================================================================
+% 42.5       D V 5 0 0
+%
+DV500, 100
+       IERRF;OERRF
+       CLFIE;0
+"-8DI1
+       0;0
+"
+       RTLFI;0
+       FS4;0
+       FS5;0
+       FS6;0
+       FS7;0
+
+DV500+33/
+       DF1;0
+       DF2;0
+       NAMSE;0
+       FS20;0                % GRAFS SEMAPHORE NO. 2
+       FS21;0
+"-8S3C
+DV500+57/FS27;0
+       ACSEM;0
+"RQIBM
+DV500+101/IIBMI;IIBMO
+"RQUNI
+DV500+103/IUNII;IUNIO
+"RQHON
+DV500+105/IHONI;IHONO
+"RQCDC
+DV500+107/ICDCI;ICDCO
+"
+EN500=*
+
+
+
+%==============================================================================
+% 42.6       D V 6 0 0
+%
+DV600, 100
+"BADAD
+DV600+1/BDSEM                % BADMIN SEMAPHORES
+DV600+3/BASEM;0              %
+"
+EN600=*
+
+
+%==============================================================================
+% 42.7       D V 7 0 0
+%
+DV700, 100
+
+EN700=*
+
+
+
+%==============================================================================
+% 42.8       D 1 0 0 0
+%
+D1000,100                    % PERIPHERALS
+"8F1U0
+D1000+1/F1U0I;F1U0O
+"
+E1000=*
+
+
+%==============================================================================
+% 42.9       D 1 1 0 0
+%
+D1100,100                    % SYSTEM DEVICES
+"SLP1+SLP12
+D1100+75/
+F1136;0
+F1137;0
+"SLP2
+D1100+101/
+F1140;0
+F1141;0
+"
+D1100+105/
+F1142;0
+F1143;0
+F1144;0
+% ************
+"8FDI1+8BFD1
+D1100+113/FDID1;0
+       DF9;0
+"8F1U0
+D1100+121/F1150;0
+       F1151;0
+"SLP3
+D1100+167/F1173;0
+       F1174;0
+"
+D1100+177/F1177;0
+E1100=*
+
+%==============================================================================
+% 42.10      D 1 2 0 0
+%
+D1200,100
+       F1200;0               % *** SPECIAL FOR NORD TPS ***
+       D1201;0
+"8LOG
+D1200+5/F1202;0              % RT-PROGRAM-LOG
+"8HIST
+D1200+7/F1203;0              % HISTOGRAM LOCK.
+"-8S3C
+D1200+11/F1204;0             % LOCK FOR SINTRAN SERVICE PROGRAM
+D1200+13/F1205;0             % MAIL
+"
+D1200+15/DT01R;DT01W         % 1206 - TERMINAL 1
+
+D1200+45/F1222;0             % TERMINATION COMMAND BUFFER LOCK
+       F1223;0               % GRAFS SEMAPHORE NO. 1
+"8WD1+8MD1
+D1200+51/WIGDI;0             % 1224 WINCHESTER CONTROLLER 1 (14,21,23 OR 45MB).
+"8BCH1
+D1200+75/BT01R;BT01W         %1236
+       BT01I;BT01O
+"8BCH2
+D1200+101/BT02R;BT02W        %1240
+       BT02I;BT02O
+"8BCH3
+D1200+105/BT03R;BT03W        %1242
+       BT03I;BT03O
+"
+       0;0;0;0;0;0
+E1200=*
+
+%==============================================================================
+% 42.11      D 1 3 0 0
+%
+D1300,100
+"8LOG
+D1300+125/F1352;0
+"8C1HD
+D1300+141/HDIF1;0            % 1360              HDLC-1 INPUT
+D1300+143/0;HDOF1            % 1361              HDLC-1 OUTPUT
+"8C2HD
+D1300+145/HDIF2;0            % 1362              HDLC-2 INPUT
+D1300+147/0;HDOF2            % 1363              HDLC-2 OUTPUT
+"8HMO3
+D1300+151/IDHM3;UDHM3        % 1364              SYNC MODEM FOR HDLC INTERFACE
+"8HMO4
+D1300+155/IDHM4;UDHM4        % 1366              SYNC MODEM FOR HDLC INTERFACE
+"8C1X2
+D1300+171/X21F1;0            % 1374              X21 LINE 1
+"-8C2X2 -8C3X2 -8C4X2
+       0;0;0;0;0;0           % FREE NUMBERS AT THE END OF 1300 SERIES
+                             % (IF NOT USED BY X21 LINE 2-4)
+"
+E1300=*
+
+
+
+%==============================================================================
+% 42.11.01   D 1 4 0 0
+%
+D1400, 100
+"BAD01;D1400+1/BD01R;BD01W             % 1400 - BACKGROUND-ACCESS-DEVICE  1
+"BAD02;D1400+3/BD02R;BD02W             % 1401 - BACKGROUND-ACCESS-DEVICE  2
+"BAD03;D1400+5/BD03R;BD03W             % 1402 - BACKGROUND-ACCESS-DEVICE  3
+"BAD04;D1400+7/BD04R;BD04W             % 1403 - BACKGROUND-ACCESS-DEVICE  4
+"BAD05;D1400+11/BD05R;BD05W            % 1404 - BACKGROUND-ACCESS-DEVICE  5
+"
+E1400=*
+
+
+
+%==============================================================================
+% 42.11.02   D 1 5 0 0
+%
+D1500, 100
+
+9EBAD=*
+
+E1500=*
+
+
+
+%==============================================================================
+% 42.11.03   D 1 6 0 0
+D1600, 100
+"8BU0+8BU1+8BU2+8BU3+8BU4+8BU5+8BU6+8BU7
+D1600+1/  F1600; 0
+"8BU1+8BU2+8BU3+8BU4+8BU5+8BU6+8BU7
+D1600+3/  F1601; 0
+"8BU2+8BU3+8BU4+8BU5+8BU6+8BU7
+D1600+5/  F1602; 0
+"8BU3+8BU4+8BU5+8BU6+8BU7
+D1600+7/  F1603; 0
+"8BU10+8BU20+8BU30+8BU40+8BU50+8BU60+8BU70
+D1600+21/ F1610; 0
+          F1611; 0
+          F1612; 0
+          F1613; 0
+          F1614; 0
+          F1615; 0
+          F1616; 0
+          F1617; 0
+"8BU20+8BU30+8BU40+8BU50+8BU60+8BU70
+D1600+41/ F1620; 0
+          F1621; 0
+          F1622; 0
+          F1623; 0
+          F1624; 0
+          F1625; 0
+          F1626; 0
+          F1627; 0
+"
+E1600=*
+
+
+
+%==============================================================================
+% 42.11.04   D 1 7 0 0
+
+D1700, 100
+"8PC01; D1700+1/PIO01;PIO01        % 1700 PIOC 1
+"
+
+"8RFAC
+D1700+61/    DFRRT;0                   % 1730 : REMOTE FILE ACCESS, DF DATAFIELD
+"8COSP
+D1700+63/    0;F1731                   % 1731 : COSMOS SPOOLING PERIPHERAL DEVICE
+"4M1U0+2M1U0+1M1U0+3M1U0+7M1U0
+D1700+65/    F1732;0                   % 1732 : 45/23 & 74/28 MBYTE DIRECTORY, UNIT 0 DIRECTORY LOCK.
+"4M1U1+2M1U1+1M1U1+3M1U1+7M1U1
+D1700+67/    F1733;0                   % 1733 : 45/23 & 74/28 MBYTE DIRECTORY, UNIT 1 DIRECTORY LOCK.
+"4M1U0+2M1U0+1M1U0+3M1U0+7M1U0
+D1700+71/    F1734;0                   % 1734 : 45/23 & 74/28 MBYTE DIRECTORY, UNIT 0 BIT FILE LOCK.
+"4M1U1+2M1U1+1M1U1+3M1U1+7M1U1
+D1700+73/    F1735;0                   % 1735 : 45/23 & 74/28 MBYTE DIRECTORY, UNIT 1 BIT FILE LOCK.
+
+"8SIBA+8SIBX+8SIBM
+D1700+121/DSI0;0                       % 1750 : SIBAS # 0
+          DSI1;0                       % 1751 : SIBAS # 1
+          DSI2;0                       % 1752 : SIBAS # 2
+"
+
+
+E1700=*
+
+D2000, 100
+"9TR27;D2000+175/T127R;T127W           % TERMINAL #127
+"9TR28;D2000+177/T128R;T128W           % TERMINAL #128
+"
+
+E2000=*
+
+D2100, 100
+
+
+"8COSP; D2100+155/ F2166;0             % 2166    COSMOS SPOOLING   , QUEUE SEMA
+        D2100+157/ F2167;0             % 2167    COSMOS SPOOLING   , I/O SEMA
+"
+E2100=*
+
+D2200, 100
+
+
+E2200=*
+
+D2300, 100
+*+NULDN+NULDN/           %  USER  LOGICAL DEVICE NUMBERS
+E2300=*
+
+D2400, 100
+
+E2400=*
+
+
+%
+
+%============================================================================
+% TIMER TABLE
+
+%==============================================================================
+% 42.12      T M R T A
+%
+TMRTA=*
+"8WD1+8MD1;WIGDI
+"
+M1TMR, -1
+"8FDI1+8BFD1;FDID1
+"8SMO1
+       IDMO1;UDMO1
+"8HMO3
+       IDHM3;UDHM3
+"8HMO4
+       IDHM4;UDHM4
+"8C1HD;HDOF1
+"8C2HD;HDOF2
+"8C1X2;X21F1
+"8PC01;PIO01
+"
+"8PC01; PIO01
+"8MOLI; MLIDF
+"
+*+XTIME/                     % EXTRA ENTRIES, DEFAULT=6
+
+9SXTD=*                      % START OF TERMINALS
+       DT01R;DT01W
+TMRTE, -1; 0
+"8TR5
+       DT05R;DT05W
+"8TR6
+       DT06R;DT06W
+"8TR7
+       DT07R;DT07W
+"8TR8
+       DT08R;DT08W
+"8TR9
+       DT09R;DT09W
+"8TR10
+       DT10R;DT10W
+"8TR11
+       DT11R;DT11W
+"8TR12
+       DT12R;DT12W
+"9TR27;T127R;T127W
+"9TR28;T128R;T128W
+"
+9EXTD=*                      % END OF TERMINALS
+
+"BAD01;BD01R;BD01W
+"BAD02;BD02R;BD02W
+"BAD03;BD03R;BD03W
+"BAD04;BD04R;BD04W
+"BAD05;BD05R;BD05W
+"
+ETMRT, -1                           % END OF TIMER TABLE
+
+
+
+%==============================================================================
+% IDENT CODE TABLES
+
+%==============================================================================
+% 42.13      I T B 1 0
+%
+ITB10, DT01W
+"8SMO1
+ITB10+3/UDMO1
+"8TR5
+ITB10+43/DT05W
+"8TR6
+ITB10+44/DT06W
+"8TR7
+ITB10+45/DT07W
+"8TR8
+ITB10+46/DT08W
+"8TR9
+ITB10+47/DT09W
+"8TR10
+ITB10+50/DT10W
+"8TR11
+ITB10+51/DT11W
+"8TR12
+ITB10+52/DT12W
+"
+ITB10+117/DT01W              % 120 - TERM. 1, FOR MULTITERM INTERF.
+
+MAX10=*-ITB10
+
+
+
+%==============================================================================
+% 42.14      I T B 1 1
+%
+ITB11=*
+"8WD1+8MD1
+ITB11/WIGDI
+"8FDI1+8BFD1
+ITB11+20/FDID1
+"
+
+MAX11=*-ITB11
+
+
+
+%==============================================================================
+% 42.15      I T B 1 2
+%
+ITB12, DT01R
+"8SMO1
+ITB12+3/IDMO1

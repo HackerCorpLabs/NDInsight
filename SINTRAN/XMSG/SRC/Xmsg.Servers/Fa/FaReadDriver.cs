@@ -50,6 +50,16 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
         private readonly FaClientReadSession _session;
 
         /// <summary>
+        /// The SINTRAN error number the server refused with, or zero.
+        /// </summary>
+        private ushort _sintranError;
+
+        /// <summary>
+        /// Set when a refusal has ended the transfer but the goodbye has not gone out yet.
+        /// </summary>
+        private bool _releaseOwed;
+
+        /// <summary>
         /// The conversation state: the number in use, the exchange sequence and the message counter.
         /// </summary>
         /// <remarks>
@@ -97,6 +107,12 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
         /// How many content messages have landed in total, across every block.
         /// </summary>
         private int _messagesCollected;
+
+        /// <summary>
+        /// The block the outstanding <c>ReadFile</c> asked for, so its answer lands in the right
+        /// place however many times the peer sends it.
+        /// </summary>
+        private int _blockBeingRead;
 
         /// <summary>
         /// The serial the connect letter carries; the reply echoes it.
@@ -217,6 +233,34 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
         }
 
         /// <summary>
+        /// Gets the SINTRAN error number the server refused with, or zero when it did not.
+        /// </summary>
+        /// <remarks>
+        /// Kept as a number beside the words, because one caller has to decide on it rather than
+        /// print it: the sync daemon treats 62, "File already exists", as the answer to a question
+        /// it could not otherwise ask, and reading that out of a sentence would break the first time
+        /// somebody improved the sentence.
+        /// </remarks>
+        public ushort SintranError
+        {
+            get { return _sintranError; }
+        }
+
+        /// <summary>
+        /// Gets whether a goodbye is still owed to the server.
+        /// </summary>
+        /// <remarks>
+        /// A caller that stops the moment the transfer reports failure would leave the conversation
+        /// open, so the server never closes its session port and the connection seat XROUT spent on
+        /// our connect letter is never given back. A refusal ends the TRANSFER; only the Release
+        /// ends the CONVERSATION. See <see cref="BuildReleaseBody"/>.
+        /// </remarks>
+        public bool ReleasePending
+        {
+            get { return _releaseOwed; }
+        }
+
+        /// <summary>
         /// Gets whether the pull has finished successfully.
         /// </summary>
         public bool Done
@@ -288,6 +332,16 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
 
             List<XmsgFrame> frames = new List<XmsgFrame>(2);
 
+            // Outside the ladder on purpose: once the session has failed, NextAction answers Failed
+            // and would send nothing, so the goodbye would never go and the seat would be stranded.
+            if (_releaseOwed)
+            {
+                _releaseOwed = false;
+                AddBodyMessage(frames, transport, BuildReleaseBody(),
+                    (byte)XmsgFrameFlags.ControlBare, 0x84);
+                return frames;
+            }
+
             switch (_session.NextAction())
             {
                 case FaClientAction.SendConnectLetter:
@@ -313,9 +367,11 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
                     _session.OnShortAckSent();
                     break;
 
-                case FaClientAction.SendClose:
-                    AddBodyMessage(frames, transport, BuildCloseBody());
-                    _session.OnCloseSent();
+                case FaClientAction.SendRelease:
+                    // frameFlags 0x82 / role 0x84, as every real ND FA message carries.
+                    AddBodyMessage(frames, transport, BuildReleaseBody(),
+                        (byte)XmsgFrameFlags.ControlBare, 0x84);
+                    _session.OnReleaseSent();
                     break;
 
                 default:
@@ -471,6 +527,43 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
                 return;
             }
 
+            // A REFUSAL ENDS THE LADDER HERE, and until 2026-08-18 it did not end it at all.
+            //
+            // The server says no by putting QFORM selector 1 in the reply, carrying a SINTRAN
+            // file-system error number; a success omits the selector entirely. This driver never
+            // read it. MEASURED against D100: a pull of a file that does not exist was refused on
+            // the FIRST step -
+            //
+            //     OpenFile reply  ... F2 0001  A2 002E ...      0x2E = 46 = NO SUCH FILE NAME
+            //
+            // and this code took that for an ordinary reply, climbed SetBlockSize, SiiiSpecial and
+            // ReadFile against a file that was never opened, collected a refusal on each of those
+            // too, and then waited for a data block that was never coming. The transfer only ended
+            // because a wall-clock timeout was added above it - which was the right net and the
+            // wrong explanation.
+            //
+            // TESTED BOTH WAYS. A successful 53-block read carries no selector 1 anywhere, so this
+            // cannot fail a healthy transfer; FaRefusalCodecTests pins both endings against bytes
+            // captured from the machine. See DOC\CARVE-FA-READ-REFUSAL-2026-08-18.md.
+            //
+            // Checked BEFORE LearnFileLength: a refused open has no length to learn, and reading one
+            // out of a refusal would size the read from whatever the error fields happen to hold.
+            ushort refusal;
+            if (FaRefusalCodec.TryReadStatus(body, out refusal))
+            {
+                _sintranError = refusal;
+
+                // STILL SAY GOODBYE - the same fix as the write driver, for the same measured
+                // reason. A refusal ends the TRANSFER but not the CONVERSATION, and the seat
+                // belongs to the conversation. See DOC\CARVE-FA-SEAT-LEAK-2026-08-18.md.
+                _releaseOwed = true;
+
+            _session.OnRejected(
+                    operation + " was refused: SINTRAN error " + refusal
+                    + FaSintranError.Describe(refusal));
+                return;
+            }
+
             // The OPEN reply is the one that carries the file's length, and it must be read BEFORE
             // the reply is handed to the session - the session may complete the step on it, and the
             // block count has to be settled while the ladder is still in its prologue.
@@ -537,21 +630,39 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
         /// The whole data message: the eight-byte FA envelope, then raw file content.
         /// </param>
         /// <remarks>
-        /// <para><b>The offset is computed, not appended</b></para>
+        /// <para><b>The offset comes from the LADDER, not from a count of arrivals</b></para>
         /// <para>
-        /// Each message lands at its own place, derived from how many have arrived. Appending would
-        /// assemble a plausible file out of messages that arrived out of order, and a file that is
-        /// wrong in the middle is far worse than one that is short.
+        /// Each message lands at the position of the block the outstanding request asked for,
+        /// remembered as <c>_blockBeingRead</c> when that request was built. That makes the write
+        /// idempotent: a block the peer sends TWICE lands on itself instead of shifting everything
+        /// after it along. It is remembered rather than read from the session because the ladder
+        /// has already stepped on by the time the content arrives.
+        /// </para>
+        /// <para><b>It used to be a running count, and a real machine broke it</b></para>
+        /// <para>
+        /// The position was <c>_messagesCollected * BlockLength</c>. That is appending with extra
+        /// steps, and it only holds while every message arrives exactly once. Real ND machines
+        /// retransmit - measured live 2026-08-11, D100 re-sending content while we pulled a
+        /// 20400-byte file - so a repeat was written to the NEXT slot, the buffer overran, and the
+        /// pull died on the guard below saying the server had sent more than it declared. The
+        /// server had done nothing of the kind; we had counted the same block twice.
         /// </para>
         /// <para>
-        /// A message arriving past the end of the file is dropped rather than growing the buffer.
-        /// That means the server sent more than the length it declared, which is a disagreement
-        /// worth failing on rather than papering over - the session raises it.
+        /// The guard stays, because a message genuinely past the end of the declared file is a real
+        /// disagreement and worth failing on rather than papering over.
         /// </para>
         /// </remarks>
         private void CollectContent(byte[] body)
         {
-            long at = (long)_messagesCollected * FaFileDataCodec.BlockLength;
+            // Which HALF of the block this is. One block is two messages of 1024 bytes, and the
+            // sender marks them: bit 7 of the session-header counter is set on every message EXCEPT
+            // the first of a content pair. Reading the half off the message rather than counting
+            // arrivals is what keeps this idempotent - a repeated pair rewrites itself.
+            bool isSecondHalf =
+                (body[FaExchangeCodec.SessionHeaderOffset] & FaFileDataCodec.LastDataMessageFlag) != 0;
+
+            long at = ((long)_blockBeingRead * FaWriteLadder.ContentBytesPerBlock)
+                + (isSecondHalf ? FaFileDataCodec.BlockLength : 0);
 
             if (at + FaFileDataCodec.BlockLength > _collected.Length)
             {
@@ -566,6 +677,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
                 _collected[at + i] = body[FaExchangeCodec.QformOffset + i];
             }
 
+            // Counted for reporting only - the file's shape no longer depends on it.
             _messagesCollected++;
             _session.OnContentReceived();
         }
@@ -645,8 +757,13 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
                     return _conversation.BuildRequest(operation, FaReadRequests.FileInformation());
 
                 case FaOperation.ReadFile:
+                    // Remember WHICH block this asks for. The content that answers it arrives after
+                    // the ladder has already stepped on, so by then the session can no longer say -
+                    // and the answer has to land at the position of the request, not wherever a
+                    // count of arrivals happens to point. See CollectContent.
+                    _blockBeingRead = _session.CurrentBlock;
                     return _conversation.BuildRequest(
-                        operation, FaReadRequests.ReadFile((uint)_session.CurrentBlock));
+                        operation, FaReadRequests.ReadFile((uint)_blockBeingRead));
 
                 case FaOperation.CloseFile:
                     return _conversation.BuildRequest(operation, FaWriteRequests.CloseFile());
@@ -680,18 +797,33 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
         }
 
         /// <summary>
-        /// Builds the close that ends the conversation.
+        /// Builds the client's Release, the ten-byte message that ends the conversation.
         /// </summary>
         /// <returns>
-        /// The eight-byte body.
+        /// The ten-byte body.
         /// </returns>
-        private byte[] BuildCloseBody()
+        /// <remarks>
+        /// The pull side of the identical message the write driver sends, and it matters for the
+        /// identical reason: this Release is what makes the server conclude the session and CLOSE
+        /// its session port, and closing that port is what returns the connection seat. XROUT spent
+        /// the seat forwarding our connect letter and marked the port with <c>5PKOC</c>
+        /// ("KICK XROUT ON CLOSE (SET BY XROUT)", <c>XMSG-POFTABS-L03.SYMB</c>); the kernel's
+        /// <c>YCLOS</c> sees that bit on close and kicks XROUT, which restores the count. Sending
+        /// the server's own Close (<c>0x07C0</c>) instead leaves the server waiting, the port open
+        /// and the seat gone. Full chain and the operand order:
+        /// <c>DOC\COSMOS-RE\CARVE-ANSWER-FA-SEAT-RETURN-2026-08-18.md</c> and
+        /// <c>DOC\CARVE-FA-SEAT-LEAK-2026-08-18.md</c>.
+        /// </remarks>
+        private byte[] BuildReleaseBody()
         {
-            byte[] body = new byte[8];
-            NdEndian.PutBe16(body, 0, (ushort)FaMessageType.Close);
-            NdEndian.PutBe16(body, 2, _source.LetterEchoWord);
-            NdEndian.PutBe16(body, 4, _serverConversation);
-            NdEndian.PutBe16(body, 6, 0x0000);
+            // Sender's conversation FIRST, then the peer's - LetterEchoWord is the number the
+            // SERVER stamps on its messages, not ours. This code had them swapped.
+            byte[] body = new byte[10];
+            NdEndian.PutBe16(body, 0, (ushort)FaMessageType.SessionFinished);
+            NdEndian.PutBe16(body, 2, _serverConversation);
+            NdEndian.PutBe16(body, 4, _source.LetterEchoWord);
+            NdEndian.PutBe16(body, 6, 0x8000);
+            NdEndian.PutBe16(body, 8, 0x0000);
             return body;
         }
 
@@ -720,13 +852,20 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
         private void AddBodyMessage(
             List<XmsgFrame> frames, IXmsgServerTransport transport, byte[] body)
         {
+            AddBodyMessage(frames, transport, body, (byte)XmsgFrameFlags.DataA, 0x00);
+        }
+
+        private void AddBodyMessage(
+            List<XmsgFrame> frames, IXmsgServerTransport transport, byte[] body,
+            byte frameFlags, byte role)
+        {
             IReadOnlyList<XmsgFrame> built = transport.BuildFragmentedBodyDatagram(
                 _source.ServerNode,
                 _source.ServerSystem,
                 _serverSessionPort,
                 _ourPort,
-                frameFlags: (byte)XmsgFrameFlags.DataA,
-                role: 0x00,
+                frameFlags: frameFlags,
+                role: role,
                 body: body,
                 answeredFlags1: XmsgAnsweredFlags1.None);
 

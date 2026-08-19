@@ -1,6 +1,6 @@
 # Installation-Description — Norsk Data Program Description / Installation Documents
 
-**285 OCR'd Norsk Data "Program Description" (PD), "Product Information" (PI), "Installation Description" and internal delivery-list documents** — the ND Software Library's per-product install/requirements sheets, covering nearly every SINTRAN III product ND ever shipped for ND-100/110/120/500/5000, OWS/PC and Uniline/XENIX systems.
+**289 OCR'd Norsk Data "Program Description" (PD), "Product Information" (PI), "Installation Description" and internal delivery-list documents** — the ND Software Library's per-product install/requirements sheets, covering nearly every SINTRAN III product ND ever shipped for ND-100/110/120/500/5000, OWS/PC and Uniline/XENIX systems.
 
 Each document is a short, standardised form: product name, ND document number, prerequisites (SINTRAN version, computer type, floating format), and referenced manuals. Some are internal-only "Delivery List" / "Product Structure Sheet" documents listing the diskettes and manuals shipped for a release rather than describing the product itself — these are marked accordingly below.
 
@@ -251,6 +251,8 @@ Each document is a short, standardised form: product name, ND document number, p
 | **[NOTIS-MAIL API for ND-500/5000](./ND-895504-1-EN.md)** | ND-895504-1-EN | PI | Application programmer's interface for sending/receiving mail against NOTIS-MAIL on SINTRAN, ND-500/5000 only. |
 | **[XNOTIS TDV2200 Terminal Emulator for X-Windows](./ND-895559-1-EN.md)** | ND-895559-1-EN | PI | X-Window terminal emulator for the Tandberg 2200/9s, letting SINTRAN NOTIS apps run on X terminals. |
 | **[NOTIS-WP for ND-WS](./ND-99122-1-EN.md)** | ND-99122-1-EN | Install | Install steps for NOTIS-WP under DTM version C on Norwegian ND workstations (EGA/VGA/Wyse 700). |
+| **[NOTIS-WP for ND-100 (rev M05)](./10079M05_NOTIS-WP_for_ND-100.md)** | 10079M05-XX-1D | Diskette listing + PD | NORD Software Library diskette sheet for NOTIS-WP M05 on ND-100, with revision notes and INIT-file upgrade steps. Wiki-sourced (NDwiki), not from the standard oracle series. |
+| **[NOTIS-WP for ND-100 (rev M07)](./10079M07_NOTIS-WP_for_ND-100.md)** | 10079M07-XX-1D | Diskette listing + PD | NORD Software Library diskette sheet for NOTIS-WP M07 on ND-100, later revision than M05. Wiki-sourced (NDwiki), not from the standard oracle series. |
 
 ---
 
@@ -447,8 +449,10 @@ Each document is a short, standardised form: product name, ND document number, p
 | Product | Document # | Type | Description |
 |---|---|---|---|
 | **[Test Programs for ND-100/110/120](./ND-895076-1p-EN.md)** | ND-895076-1p-EN | PI | Lists the full TPE-MON-100 test-program suite (cache, memory, disk, HDLC, SCSI, terminal, etc.) for ND-100/110/120. |
-| **[Test Programs for ND-100/110/120](./ND-895076-2A-EN.md)** | ND-895076-2A-EN | PI | Updated test-program suite listing; DISC-TEMA, DISK-MM, SCSI-TV, UNIVERS-DMA modified, DISK-MM/SCSI-TV now run online. |
+| **[Test Programs for ND-100/110/120](./ND-895076-2A-EN.md)** | ND-895076-2A-EN | PI | Updated test-program suite listing; DISC-TEMA, DISK-MM, SCSI-TV, UNIVERS-DMA modified, DISK-MM/SCSI-TV now run online. Confirmed against a real floppy set (`ND-210523I01-XX-01D`/`-02D`): both disks' `TPE-MON-100-B01:BPUN` plus ~30 individual `:TEST`/`:NEXT` module files (CACHE, DISC-TEMA, DISK-MM, SCSI-TV, MEMORY, PAGING, OCTOBUS, PIOC-ETHER, PRINTERS, and more) match this PI sheet's own listing name-for-name — floppy images and full NDFS file listings in the [Norsk Data Software Archive](https://github.com/HackerCorpLabs/norskdata-software-archive) (product `ND-210523`); wiki page [ndwiki.org/wiki/ND-210523I](https://www.ndwiki.org/wiki/ND-210523I). |
 | **[Bridge Test for ND-100](./ND-895446-S1-EN.md)** | ND-895446-S1-EN | Delivery List | Internal product structure sheet for a bridge test program for ND-100. |
+| **[Test Programs No. 1 for NORD-10/NORD-12/ND-100 (ND-10324E)](./ND-10324E.md)** | ND-10324E | Diskette listing + PD | NORD Software Library diskette sheet (dated 1982-11-26) for 15 test/utility BPUN programs (BIG-RAND, DISC-TERM, FLOPPY-RAN, MEMORY, MULTI, TAMB-MAG, TERMINAL-ASYNC, etc.) plus a program description section. Wiki-sourced (NDwiki), not from the standard oracle series. |
+| **[DISC-TEMA version D — release note](./ND-10324E_Disc-Tema_version_D_info_NO.md)** | ND-10324E (companion) | Release note (NO) | One-page Norwegian caveat for DISC-TEMA version D: disk-unit 0 must always be spinning during use; fixed in the next version. Bundled with the ND-10324E diskette sheet above on NDwiki. |
 
 ---
 

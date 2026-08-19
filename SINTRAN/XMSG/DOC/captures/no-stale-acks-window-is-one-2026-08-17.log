@@ -1,0 +1,59 @@
+[runner] topology loaded: self=19999, 4 node(s), file=topology-d19999.json
+[runner] logging to E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\xmsg-d19999.log (level Info, max 2 MB, keep 3).
+2026-08-17 03:58:04.227 | [runner] Xmsg.Live.Runner v1.1.0.0 built 2026-08-17 03:58:03
+2026-08-17 03:58:04.278 | [runner] config folder: 
+2026-08-17 03:58:04.301 | [runner] config file:   topology-d19999.json
+2026-08-17 03:58:04.339 | [runner] log folder:    E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0
+2026-08-17 03:58:04.415 | [runner] log file:      E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\xmsg-d19999.log
+2026-08-17 03:58:04.510 | [runner] path=seam connecting to 127.0.0.1:10364 as node 19999 for 3600s
+2026-08-17 03:58:04.531 | [fa] connection numbers 0x0042..0x0081 (state: E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\fa-connection.state)
+2026-08-17 03:58:04.553 | [fa] file server ON as *FA-SERVER (logical port 4, wire port 0x0257)
+2026-08-17 03:58:04.563 | [fa] serving folder: E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\served-files
+2026-08-17 03:58:04.582 | [fa] files visible now: 7
+2026-08-17 03:58:04.599 | [runner] joining COSMOS segment tcp:127.0.0.1:5010 as node 19999 (MAC 08:00:26:1F:4E:00), peer 100 (MAC 08:00:26:64:00:00)
+2026-08-17 03:58:04.624 | [runner] datagram-sequence state file: E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\xmsg-sequence.state
+2026-08-17 03:58:04.647 | [tad] 2 login account(s) loaded
+2026-08-17 03:58:04.657 | [runner] link-seed state file: E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\xmsg-link-seed.state
+2026-08-17 03:58:04.685 | [link] eth:d100 status Stopped -> Starting (backend started, awaiting peer)
+2026-08-17 03:58:04.699 | [runner] waiting for node 100 to send us a frame (we cannot address it until it does)...
+2026-08-17 03:58:09.741 | [segment] still waiting for 100. Frames from other stations: 0 (+0 in the last 5s). NOTHING at all is arriving - either no ND machine is on this group, or they have not been restarted since the ini change.
+2026-08-17 03:58:14.767 | [segment] still waiting for 100. Frames from other stations: 0 (+0 in the last 5s). NOTHING at all is arriving - either no ND machine is on this group, or they have not been restarted since the ini change.
+2026-08-17 03:58:15.698 | [link] eth:d100 status Starting -> Active (peer learned)
+2026-08-17 03:58:15.706 | [runner] peer 100 heard after 11.0s; link is up
+2026-08-17 03:58:15.716 | [seq] node 100: link created, starting Flags1 0x0026 from the store (the frame that created it carried 0x0006)
+2026-08-17 03:58:15.743 | [fa] connect letter from node 100 (system 100 port 0x04EF); serving E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\served-files; answering from session port 0x0211 with an FA ConnectionConfirm 07D2000C00426400
+2026-08-17 03:58:15.773 | [announce] telling system 100 that our XMSG restarted, so it resets the datagram sequence it expects from us
+2026-08-17 03:58:15.786 | [announce] --resync-hard: also zeroing OUR counter for 100. The next originated frame goes out at 0x0000 - if the peer accepts it, the peer resets on our announce; if it is dropped in silence, it does not.
+2026-08-17 03:58:15.810 | [seq] node 100: ORIGINATE at Flags1 0x0026 (next becomes 0x0027)
+2026-08-17 03:58:15.818 | [TX] *** PARKED *** eth:d100 took a 36B frame but the send window is full; 1 datagram(s) now waiting and NOTHING is leaving this node until the peer acknowledges us
+2026-08-17 03:58:15.839 | [RX] 100->19999 sub=Data answered with 2 frame(s)
+2026-08-17 03:58:15.847 | [TX] *** PARKED *** eth:d100 took a 14B frame but the send window is full; 2 datagram(s) now waiting and NOTHING is leaving this node until the peer acknowledges us
+2026-08-17 03:58:15.867 | [seq] node 100: RESET to 0x0000 (was 0x0027); link KEPT
+2026-08-17 03:58:15.875 | [announce] telling system 102 that our XMSG restarted, so it resets the datagram sequence it expects from us
+2026-08-17 03:58:15.887 | [announce] --resync-hard: also zeroing OUR counter for 102. The next originated frame goes out at 0x0000 - if the peer accepts it, the peer resets on our announce; if it is dropped in silence, it does not.
+2026-08-17 03:58:15.912 | [net] node 100 rejected our frame at Flags1 0x0026 with XENSE (our sequence is AHEAD of what the peer expects) Flags2=0xFFDE (-34)
+2026-08-17 03:58:15.927 | [RX] 100->19999 sub=NetworkError (no reply expected)
+2026-08-17 03:58:15.934 | [RX] 100->19999 sub=ReachabilityReply (no reply expected)
+2026-08-17 03:58:15.942 | [seq] node 102: RESET to 0x0000 (was 0x0000); link KEPT
+2026-08-17 03:58:19.775 | [segment] data=3 acks=3 other-stations=12
+2026-08-17 03:58:24.804 | [segment] data=3 acks=3 other-stations=12
+2026-08-17 03:58:29.816 | [segment] data=3 acks=3 other-stations=12
+2026-08-17 03:58:34.838 | [segment] data=3 acks=3 other-stations=12
+2026-08-17 03:58:39.865 | [segment] data=3 acks=3 other-stations=12
+2026-08-17 03:58:44.883 | [segment] data=3 acks=3 other-stations=12
+2026-08-17 03:58:49.906 | [segment] data=3 acks=3 other-stations=12
+2026-08-17 03:58:54.919 | [segment] data=3 acks=3 other-stations=12
+2026-08-17 03:58:59.933 | [segment] data=3 acks=3 other-stations=12
+2026-08-17 03:59:04.953 | [segment] data=3 acks=3 other-stations=12
+2026-08-17 03:59:09.976 | [segment] data=3 acks=3 other-stations=12
+2026-08-17 03:59:14.980 | [segment] data=3 acks=3 other-stations=12
+2026-08-17 03:59:19.998 | [segment] data=3 acks=3 other-stations=12
+2026-08-17 03:59:25.013 | [segment] data=3 acks=3 other-stations=12
+2026-08-17 03:59:30.031 | [segment] data=3 acks=3 other-stations=12
+2026-08-17 03:59:35.054 | [segment] data=3 acks=3 other-stations=12
+2026-08-17 03:59:40.060 | [segment] data=3 acks=3 other-stations=12
+2026-08-17 03:59:45.079 | [segment] data=3 acks=3 other-stations=12
+2026-08-17 03:59:50.101 | [segment] data=3 acks=3 other-stations=12
+2026-08-17 03:59:55.125 | [segment] data=3 acks=3 other-stations=12
+2026-08-17 04:00:00.149 | [segment] data=3 acks=3 other-stations=12
+2026-08-17 04:00:05.167 | [segment] data=3 acks=3 other-stations=12

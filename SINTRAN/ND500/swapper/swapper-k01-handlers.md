@@ -15,6 +15,14 @@ Evidence tags used below:
 - **INFERRED** - a name or role deduced from the proven shape; not a fact.
 - **UNKNOWN** - the bytes do not establish it; the settling experiment is given.
 
+> **CORRECTION 2026-08-17**: every mention of the slot-table bound cell
+> originally printed its hex address as 0x128A4. The octal data address is
+> 224344B, which is **0x128E4** (2*32768+2*4096+4*512+3*64+4*8+4 = 76004).
+> All occurrences below are now fixed to 0x128E4. Consistent with execution
+> on the microword engine (fn 22B was dispatched through the jumpg with
+> [0x128E4] staged to 100B; the gate-shut branch was not exercised); see
+> `SINTRAN/ND500/CARVE-ANSWER-N5SWAP-FUNCTION-VOCABULARY-2026-08-17.md`.
+
 ---
 
 ## 1. Summary
@@ -88,8 +96,8 @@ actual jump:
 ```
 line 10593  1000101504  w comp2 $1000440270,$5   ; special-case fn 5  -> go $25
 line 10595  1000101515  w comp2 $1000440270,$3   ; special-case fn 3  -> go $14
-line 10597  1000101526  w comp2 $1000224344,$24  ; DIFFERENT var (0x128A4) vs 20
-line 10598  1000101535  if <=  go $1643          ; branch away when [0x128A4] <= 20
+line 10597  1000101526  w comp2 $1000224344,$24  ; DIFFERENT var (0x128E4) vs 20
+line 10598  1000101535  if <=  go $1643          ; branch away when [0x128E4] <= 20
 line 10599  1000101540  w1 := $1000440270        ; index = fn code [0x240B8]
 line 10600  1000101546  jumpg $1000460630+       ; jump via table @ 0x08026198
 ```
@@ -100,8 +108,8 @@ line 10600  1000101546  jumpg $1000460630+       ; jump via table @ 0x08026198
   gate on whether the jumpg is taken at all: only 0 <= fn <= 28 reach it; an
   out-of-range code is rejected at 10578-10579. **This proves all 29 table
   entries (index 0..28) are reachable.**
-- `comp2 [0x128A4],$24` (line 10597) tests a **different** variable
-  ($1000224344 = 0x128A4), not the function code, against 20, and branches to a
+- `comp2 [0x128E4],$24` (line 10597) tests a **different** variable
+  ($1000224344 = 0x128E4), not the function code, against 20, and branches to a
   separate path ($1643). `swapper-k01-deep-analysis.md` mistook this second
   comparison for the function-code bound; the bytes show it is unrelated to the
   index range.
@@ -212,7 +220,7 @@ per-handler analysis meaningful. Addresses are as they appear in the PSEG
 
 | Handle | Base immediate | Stride | Index / bound | Role (INFERRED) |
 |--------|----------------|--------|---------------|------------------|
-| Table A "slot table" | `$1000700000` (0x08038000) | 0o144 = 100 | small id, bound-checked `[7 .. [0x128A4]]` | primary per-segment/per-process descriptor table |
+| Table A "slot table" | `$1000700000` (0x08038000) | 0o144 = 100 | small id, bound-checked `[7 .. [0x128E4]]` | primary per-segment/per-process descriptor table |
 | Table B "seg-4 array" | `$4000004400` (seg 4, off 0x900) | 0o400 = 256 | id, field `.110` masked to 16 bits | large per-segment table; `.110` is a descriptor word |
 | Table C "seg-6 map" | `$6000000000` (seg 6) | 0o10 = 8 | id*8 | page/map entries (getbf state bitfields) |
 | Table D "seg-5" | `$5000204000` (seg 5) | - | - | secondary array (used by idx 10) |
@@ -220,8 +228,8 @@ per-handler analysis meaningful. Addresses are as they appear in the PSEG
 | Hot flags | `$1000436554` / `$1000436560` (0x23D6C / 0x23D70) | - | tested | gate whether MON 377B is emitted / swapper suspended |
 | Stats block | `$1000461014`+ (~0x2620C) | per-code | - | per-request counters; loop bumps `$1000461200` (total msgs) |
 
-Bound variable `[0x128A4]` (`$1000224344`) is the count of valid Table-A slots:
-workers reject ids `< 7` or `> [0x128A4]` with error code 0o2067 (e.g. idx 0
+Bound variable `[0x128E4]` (`$1000224344`) is the count of valid Table-A slots:
+workers reject ids `< 7` or `> [0x128E4]` with error code 0o2067 (e.g. idx 0
 worker, lines 1000053727-1000053753). PROVEN.
 
 The **hot flags** cross-reference is proven: worker 0x0800062F (1000003057)
@@ -247,7 +255,7 @@ MSW* named codes proven on the ND-100 side (from the coordinator carve):
 
 ### idx 0 - entry 0x080083D8 (1000101730), worker 1000053713
 - **PROVEN**: stub loads `[0x240BC]`, sets `r.34 := 1`, calls worker; stores a
-  returned word to `b.24`. Worker bound-checks the id `[7 .. [0x128A4]]`, indexes
+  returned word to `b.24`. Worker bound-checks the id `[7 .. [0x128E4]]`, indexes
   Table A (id*0o144), reads descriptor byte fields, calls 1000006650 and
   1000052116 (the page-release worker). Call-tree reaches MON 377B, dctsb/pctsb,
   zpgu/zwip.
@@ -354,7 +362,7 @@ MSW* named codes proven on the ND-100 side (from the coordinator carve):
 
 ### idx 14 - entry 0x0800848F (1000102217), worker 1000064760
 - **PROVEN**: stub extracts `h2 := r.6` (`wconv`) and `h3 := r.20` - two ids -
-  and passes both. Worker bound-checks the id `[7..[0x128A4]]`, returns 0o2067 if
+  and passes both. Worker bound-checks the id `[7..[0x128E4]]`, returns 0o2067 if
   bad, else calls 1000004562. Call-tree reaches MON 377B, dctsb/pctsb, zpgu/zwip.
 - **INFERRED name**: attach / connect a segment identified by an id pair.
 
@@ -401,7 +409,7 @@ MSW* named codes proven on the ND-100 side (from the coordinator carve):
   handled on the ND-100 side). Correlation only.
 
 ### idx 21 - entry 0x08008567 (1000102547), worker 1000064543
-- **PROVEN**: stub passes `[0x240BC]`. Worker bound-checks the id `[7..[0x128A4]]`
+- **PROVEN**: stub passes `[0x240BC]`. Worker bound-checks the id `[7..[0x128E4]]`
   (0o2067 on error), then writes two fields into the Table B (seg 4) descriptor:
   `h3 -> r2.(12)`, `h4 -> r2.(10)`. No paging, no MON.
 - **INFERRED name**: set two fields of a segment's seg-4 descriptor.
@@ -427,7 +435,7 @@ MSW* named codes proven on the ND-100 side (from the coordinator carve):
 
 ### idx 24 - entry 0x08008602 (1000103002), worker 1000006134
 - **PROVEN**: stub passes `[0x240BC]`, stores a result to `b.24`. Worker
-  bound-checks the id `[7..[0x128A4]]`, allocates the Table A slot (id*0o144),
+  bound-checks the id `[7..[0x128E4]]`, allocates the Table A slot (id*0o144),
   `bmove`s a **0o144-word template** from `[0x437274]` into the slot
   (line 1000006240), then initializes the descriptor's bitfields from the DSEG
   flags `[0x224770]`/`[0x224754]`/`[0x224760]`/`[0x224764]` via `putbi`, and

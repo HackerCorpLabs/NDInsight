@@ -29,9 +29,9 @@ namespace NDInsight.Sintran.Xmsg.Hdlc
     /// <remarks>
     /// Per the ND LAPB spec section 2.2.2 the subtype MUST be decoded via <c>ctrl AND 0x0F</c>;
     /// <c>ctrl AND 0x03</c> alone cannot tell RR, RNR and REJ apart. The low nibble values are:
-    ///  - <c>0x1</c> — Receive Ready (RR).
-    ///  - <c>0x5</c> — Receive Not Ready (RNR).
-    ///  - <c>0x9</c> — Reject (REJ).
+    ///  - <c>0x1</c> - Receive Ready (RR).
+    ///  - <c>0x5</c> - Receive Not Ready (RNR).
+    ///  - <c>0x9</c> - Reject (REJ).
     /// </remarks>
     public enum LapbSupervisoryKind
     {
@@ -62,11 +62,11 @@ namespace NDInsight.Sintran.Xmsg.Hdlc
     /// <remarks>
     /// Per the ND LAPB spec section 2.2.3 the type is the control byte with the P/F bit
     /// (<c>0x10</c>) cleared, giving the base pattern:
-    ///  - <c>0x2F</c> — SABM (Set Asynchronous Balanced Mode).
-    ///  - <c>0x43</c> — DISC (Disconnect).
-    ///  - <c>0x63</c> — UA (Unnumbered Acknowledgement).
-    ///  - <c>0x0F</c> — DM (Disconnected Mode).
-    ///  - <c>0x87</c> — FRMR (Frame Reject).
+    ///  - <c>0x2F</c> - SABM (Set Asynchronous Balanced Mode).
+    ///  - <c>0x43</c> - DISC (Disconnect).
+    ///  - <c>0x63</c> - UA (Unnumbered Acknowledgement).
+    ///  - <c>0x0F</c> - DM (Disconnected Mode).
+    ///  - <c>0x87</c> - FRMR (Frame Reject).
     /// </remarks>
     public enum LapbUnnumberedKind
     {
@@ -103,7 +103,7 @@ namespace NDInsight.Sintran.Xmsg.Hdlc
 
     /// <summary>
     /// A single FCS-valid LAPB frame de-framed from a capture: its address, control
-    /// classification, and — for information frames — the information field.
+    /// classification, and - for information frames - the information field.
     /// </summary>
     /// <remarks>
     /// The information field is the bytes between the control byte and the two-byte FCS.
@@ -250,18 +250,60 @@ namespace NDInsight.Sintran.Xmsg.Hdlc
         }
 
         /// <summary>
-        /// Gets a value indicating whether the information field is a SINTRAN frame,
-        /// that is it starts with marker <c>0x21</c> followed by <c>0x13</c> or <c>0x12</c>.
+        /// Gets a value indicating whether the information field is a SINTRAN frame, that is its
+        /// first word is a plausible <c>XDROU</c>: version/protocol byte <c>0x21</c> followed by a
+        /// hop count no greater than its initial value.
         /// </summary>
+        /// <remarks>
+        /// <para><b>Word 0 is NOT two magic markers</b></para>
+        /// This used to demand <c>0x13</c> or <c>0x12</c> in byte 1, an allow-list of the only two
+        /// values we had ever seen. The L03 kernel tables name the field:
+        ///  - <c>INTEGER XDROU % NETWORK INFO (VERSION, PROTOCOL, HOP COUNT)</c>.
+        ///  - <c>SYMBOL X5VRS=20400 % L.H. BYTE OF XDROU (OP=0, VERSION=2, PROTOCOL=1)</c>.
+        /// <para>
+        /// <c>20400</c> octal is <c>0x2100</c>, so byte 0 is the version/protocol byte and byte 1 is
+        /// a HOP COUNT. That is why a relayed frame reads <c>0x12</c> where a direct one reads
+        /// <c>0x13</c> - they are one hop apart, which is also exactly what
+        /// <c>SintranDatagramRelay</c> already does when it "decrements marker 2".
+        /// </para>
+        /// <para>
+        /// The old allow-list therefore capped us at ONE relay hop: a frame that had been forwarded
+        /// twice carries <c>0x11</c> and was classified as not-SINTRAN, silently. Nothing in the
+        /// captures showed it because nothing has yet been relayed twice.
+        /// </para>
+        /// <para>
+        /// The upper bound is kept deliberately. <c>0x13</c> is the initial value every observed
+        /// sender emits and the count only falls, so a byte above it is not a hop count and this is
+        /// not a SINTRAN frame. Keeping the bound also keeps the test strong enough to be useful
+        /// against X.25, where <c>0x21 0x13</c> is a valid GFI/LCN.
+        /// </para>
+        /// </remarks>
         public bool IsSintranInfo
         {
             get
             {
                 return _info.Length >= 2
-                    && _info[0] == 0x21
-                    && (_info[1] == 0x13 || _info[1] == 0x12);
+                    && _info[0] == SintranVersionProtocol
+                    && _info[1] <= SintranInitialHopCount;
             }
         }
+
+        /// <summary>
+        /// The version/protocol byte of <c>XDROU</c>, the high byte of header word 0.
+        /// </summary>
+        /// <remarks>
+        /// <c>X5VRS = 20400</c> octal = <c>0x2100</c>, whose left-hand byte is this: OP=0,
+        /// VERSION=2, PROTOCOL=1. Carved from <c>XMSG-POFTABS-L03.SYMB</c>.
+        /// </remarks>
+        public const byte SintranVersionProtocol = 0x21;
+
+        /// <summary>
+        /// The hop count a sender puts in the low byte of <c>XDROU</c> before any relay.
+        /// </summary>
+        /// <remarks>
+        /// Every observed direct frame carries <c>0x13</c>; each relay decrements it.
+        /// </remarks>
+        public const byte SintranInitialHopCount = 0x13;
 
         /// <summary>
         /// Decodes a supervisory-frame subtype from its control byte's low nibble.

@@ -8,7 +8,7 @@
 
 ## 📖 Overview
 
-This sub-collection contains **17 manuals** covering the ND-500 and ND-5000 high-performance
+This sub-collection contains **20 manuals** covering the ND-500 and ND-5000 high-performance
 processors: CPU and microprogram documentation, ND-5000 hardware descriptions and maintenance,
 the DOMINO / NUCLEUS software environment, multiport memory, single- and double-precision array
 processing, the ND-500 Monitor operations, and course/other technical material.
@@ -17,28 +17,31 @@ processing, the ND-500 Monitor operations, and course/other technical material.
 
 | Category | Manuals | Total Lines |
 |----------|---------|-------------|
-| ND-500 CPU & Microprogram | 4 | ~16,600 |
+| ND-500 / ND-5000 CPU & Microprogram | 7 | ~22,100 |
 | ND-5000 Hardware | 3 | ~27,400 |
 | DOMINO / NUCLEUS | 4 | ~28,300 |
 | Multiport Memory | 2 | ~4,600 |
 | Array Processing | 2 | ~7,300 |
 | Course & Other | 2 | ~21,800 |
-| **Total** | **17** | **~106,000** |
+| **Total** | **20** | **~111,500** |
 
 ---
 
 ## 🗂️ Manual Index
 
-### ND-500 CPU & Microprogram
+### ND-500 / ND-5000 CPU & Microprogram
 
 | Manual | Document # | Lines | Description |
 |--------|-----------|-------|-------------|
 | **ND-500 Micro Program Guide** | ND-05.012.01 | 3,154 | ND-500 microprogram guide - microcode structure and CPU control |
+| **ND-5000 Microprogram Guide** | ND-05.022.1 EN | 2,999 | ND-5000 (SAMSON) microprogram guide - the 128-bit microword CPU |
 | **Test Micro Program Descriptions for ND-500** | ND-30.013.02 | 5,581 | Descriptions of the ND-500 test/diagnostic microprograms |
+| **ND-5000 Microcode Field Definitions** | - | 1,441 | *Note.* Field-by-field definition of the 128-bit ND-5800 microword and the four-level pipeline (derived from ND-05.022.1 and the SAMSON MICROCODE DEFINITION, 15.05.1987) |
+| **ND-5000 Microcode Mnemonic Reference** | - | 1,094 | *Note.* All mnemonic symbols used in ND-5000/5800 microcode, organized by field group (generated from microcode-5000-def.json) |
 | **ND-500 Addressing Modes Reference** | - | 949 | *Note.* Complete addressing-modes reference with binary encoding for disassembly (derived from ND-60.113.02 and ND-05.009.4) |
 | **ND-500-MON Setup and Operations Guide** | - | 401 | *Note.* How to set up, run and supervise an ND-500/ND-5000 via the ND-500 Monitor (derived from ND-60.136.04A) |
 
-**Key Topics:** ND-500 microprogram, microcode, addressing modes, diagnostic micro programs, ND-500 Monitor operation
+**Key Topics:** ND-500 microprogram, ND-5000/SAMSON microcode, microword fields and mnemonics, addressing modes, diagnostic micro programs, ND-500 Monitor operation
 
 ---
 

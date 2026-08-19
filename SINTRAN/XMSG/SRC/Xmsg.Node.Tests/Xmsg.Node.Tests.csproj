@@ -25,6 +25,10 @@
     <ProjectReference Include="..\Xmsg.Protocol\Xmsg.Protocol.csproj" />
     <ProjectReference Include="..\Xmsg.Node\Xmsg.Node.csproj" />
     <ProjectReference Include="..\Xmsg.Servers\Xmsg.Servers.csproj" />
+    <!-- Referenced so RegistryEnumCompletenessTests can SEE every enum the registry binds.
+         The completeness check is only meaningful where all four assemblies are visible;
+         split across projects it would report a live type as missing. -->
+    <ProjectReference Include="..\Xmsg.Ethernet\Xmsg.Ethernet.csproj" />
     <ProjectReference Include="..\Xmsg.TestSupport\Xmsg.TestSupport.csproj" />
   </ItemGroup>
 

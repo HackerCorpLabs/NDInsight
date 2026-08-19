@@ -170,8 +170,18 @@ namespace NDInsight.Sintran.Xmsg.Chat
                 return false;
             }
 
+            // THE UPPER BOUND IS ChatMessageKinds.Highest, AND IT MUST NOT BE SPELLED OUT HERE.
+            //
+            // It used to name a kind directly, and it was left behind twice. It said Left while
+            // Rename and Renamed existed above it: a rename decoded as a malformed message and was
+            // dropped in silence, so the server never saw the request and the room never heard the
+            // answer. It then said Renamed while Who was added above it, with the same result.
+            // Neither failed loudly anywhere - the message simply stopped existing in transit.
+            //
+            // Highest lives next to the enum and is pinned by a test, so the next kind added above
+            // it fails that test rather than quietly losing its own messages.
             byte kind = source[0];
-            if (kind == (byte)ChatMessageKind.None || kind > (byte)ChatMessageKind.Left)
+            if (kind == (byte)ChatMessageKind.None || kind > ChatMessageKinds.Highest)
             {
                 return false;
             }

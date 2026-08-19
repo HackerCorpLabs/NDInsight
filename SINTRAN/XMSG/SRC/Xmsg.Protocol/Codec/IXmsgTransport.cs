@@ -8,8 +8,8 @@ namespace NDInsight.Sintran.Xmsg.Codec
     /// <remarks>
     /// This is the interface the codec holds and calls down; nothing here knows about
     /// HDLC, LAPB or TCP. In the live composition it is implemented by a link adapter
-    /// (<c>LinkXmsgTransport</c> → <c>ILink.SendData</c>); in tests it is a fake that
-    /// records the bytes. One <see cref="Send"/> call carries exactly one information field —
+    /// (<c>LinkXmsgTransport</c> -> <c>ILink.SendData</c>); in tests it is a fake that
+    /// records the bytes. One <see cref="Send"/> call carries exactly one information field -
     /// framing/byte-stuffing/FCS belong to the layer below the adapter.
     /// </remarks>
     public interface IXmsgTransport

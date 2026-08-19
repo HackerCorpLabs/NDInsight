@@ -48,6 +48,19 @@ Structured programming language with strong typing and modularity.
 - Team development
 - Structured projects
 
+**Companion docs:**
+- [PLANC-MONITOR-CALLS.md](PLANC-MONITOR-CALLS.md) - doing SINTRAN MON calls from PLANC (the
+  named `MONn` routines, why `MONITOR_CALL` fails on D100, error handling, library load order)
+- [COSMOS-XMP-LIBRARY.md](COSMOS-XMP-LIBRARY.md) - XMSG (MON 200B) via the COSMOS XMP library
+- **[PLANC-XMSG-PROGRAMMING-GUIDE.md](PLANC-XMSG-PROGRAMMING-GUIDE.md) - how to WRITE an XMSG
+  client or server: hello world, every call, the patterns, the traps, the error numbers**
+- [PLANC-XMSG-COMMUNICATION.md](PLANC-XMSG-COMMUNICATION.md) - what XMSG the machine has installed,
+  and how to find it
+- **[PLANC-RT-AND-REENTRANT-PROGRAMS.md](PLANC-RT-AND-REENTRANT-PROGRAMS.md) - INSTALLING a program
+  into SINTRAN: as an RT program that holds no terminal and starts at boot, or as a reentrant
+  subsystem every user shares one copy of. Where an RT program's name comes from, the RT-LOADER
+  sequence, and `DUMP-PROGRAM-REENTRANT`**
+
 **Reference Manuals:**
 - `../../../Reference-Manuals/ND-60.117.5 EN PLANC Reference Manual.md`
 - `../../../Reference-Manuals/ND-10309A PLANC FOR ND-100.md`

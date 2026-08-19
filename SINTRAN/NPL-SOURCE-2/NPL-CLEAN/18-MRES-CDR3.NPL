@@ -1,0 +1,1022 @@
+ @DEV 1
+ @DEV (S-S-J)MRES-CDR3
+
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%% M R E S  - C D R 3 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ %==============================================================================
+ %% TABLE FOR CPU-TIME ACCOUNTING FOR RT-PROGRAMS
+ *"8ACC
+" *ACTAB=*
+ **<*+8RTN+8RTN+8RTN
+ *)ZERO
+ **+8RTN+8RTN+8RTN/
+ *"
+" %%
+ %==============================================================================
+ %% TABLE FOR BLOCK-IO ACCOUNTING
+ *"8IOAC
+" *RTPNB=NXRTP+8RTN                 % TOTAL NUMBER OF RT-PROGRAM-DESCRIPTIONS
+ *RTPNB:
+131132   *IOACT=*
+ **+RTPNB+RTPNB/
+ *"
+"
+
+ *"-8LOG; LOG1=TEXIT; LOG2=TEXIT; LGARR=0; LOGFI,0
+" %==============================================================================
+ % 40.3       L O G 1   L O G 2   L G A R R
+ %
+ % ROUTINES TO GATHER SYSTEM AND PROGRAM STATISTICS
+ % CALLED FROM TERMINAL OUTPUT DRIVER (LEVEL 10)
+ % THE INFORMATION IS USED BY THE COMMAND "RT-PROGRAM-LOG"
+
+ INTEGER HHISTART=?,HTESTPROG=?,HFLGHISTO=?
+ INTEGER COMRTP,ALLRTP
+ INTEGER ARRAY LGARR(0)
+ SUBR LOG1,XHISTI
+ INTEGER ACTC1,ACTC2,ACTP1,ACTP2        % NOTE THAT THESE VARIABLES CORRESPOND
+ INTEGER SWC1,SWC2,SWP1,SWP2            % TO SYMBOLS DECLAIRED ON THE OPCOM SEGM
+ INTEGER FILC1,FILC2,FILP1,FILP2        % IN THE RT-PROGRAM-LOG COMMAND
+ INTEGER DIC1,DIC2
+ INTEGER PASP1,PASP2
+ INTEGER IOWP1,IOWP2
+ INTEGER TOTL1,TOTL2
+ INTEGER U1T1,U1T2,U1P1,U1P2
+ INTEGER U2T1,U2T2,U2P1,U2P2
+ INTEGER ADRSWP,ADRU1,ADRU2
+ INTEGER LOGFIELD,TESTPROG
+ INTEGER PTOT1,PTOT2
+ INTEGER INCRL,CINCR
+
+ INTEGER POINTER PTESTPROG=?
+
+ % SUBROUTINE TO GET STATISTICS
+ % B=TERMINAL OUTPUT DATAFIELD
+ % FOR VSX: X=ADDR OF RESIDENT DATAFIELD
+ LOG1:
+ @LIB CXCPU-,
+        IF LOGFIELD><B THEN EXIT FI
+ @ELIB
+ @LIB CXCPU
+        MIN CINCR; EXIT; INCRL=:CINCR  % INTERRUPTS BETWEEN SAMPLES
+        IF COMRTP=0 GO TALLRTP
+ @LIB CXCPU
+ @LIB CXCPU-,
+        IF "F1202".RTRES><RTRES THEN
+ @ELIB
+              IF ALLRTP=0 THEN 0=:LOGFIELD FI; 0=:COMRTP
+              EXIT; *)FILL
+        FI; *TRA PVL
+        IF A SH 11 SHZ -14><0 THEN; *MIN ACTC2; SKP; MIN ACTC1; RAND
+              IF PTESTPROG=CURPROG THEN; *MIN ACTP2; SKP; MIN ACTP1; RAND
+        FI    FI
+        IF "CLFIE".RTRES><0 AND A><"1SWAP" THEN; *MIN SWC2; SKP; MIN SWC1; RAND
+              IF =PTESTPROG THEN; *MIN SWP2; SKP; MIN SWP1; RAND
+        FI    FI; GO L1; *)FILL
+ INTEGER POINTER PTESTPROG:=TESTPROG
+ L1:    IF ADRSWP.RTRES=:D><0 THEN; *MIN DIC2; SKP; MIN DIC1; RAND
+              IF "CLFIE".RTRES=0 OR A="1SWAP" THEN; *MIN FILC2; SKP; MIN FILC1; RAND
+                IF D=PTESTPROG THEN; *MIN FILP2; SKP; MIN FILP1; RAND
+        FI    FI FI
+        IF PTESTPROG.WLINK=0 THEN; *MIN PASP2; SKP; MIN PASP1; RAND
+        FI
+        IF X.STATUS BIT 5WAIT THEN; *MIN IOWP2; SKP; MIN IOWP1
+        FI
+        *MIN TOTL2; SKP; MIN TOTL1; RAND
+        IF ADRU1><0 THEN
+              IF A.RTRES><0 THEN; *MIN I (U1T2; SKP; MIN I (U1T1; RAND
+                 IF A=PTESTPROG THEN; *MIN I (U1P2; SKP; MIN I (U1P1; RAND
+        FI    FI   FI
+        IF ADRU2><0 THEN
+              IF A.RTRES><0 THEN; *MIN I (U2T2; SKP; MIN I (U2T1; RAND
+                 IF A=PTESTPROG THEN; *MIN I (U2P2; SKP; MIN I (U2P1; RAND
+        FI    FI   FI
+ TALLRTP: IF ALLRTP=0 THEN EXIT FI
+ @LIB CXCPU-,
+        IF "F1352".RTRES><RTRES THEN EXIT FI
+ @ELIB
+ @LIB CXCPU
+        CURPROG-RTSTART=:D:=0; T:=5RTSIZE; *RDIV ST
+        A SH 1+"PGARR"=:X; *MIN 1,X; SKP; MIN ,X; RAND
+        *MIN I IPTO2; SKP; MIN I IPTO1; RAND
+ *"8LOG 8HIST
+"        IF HTESTPROG=PTESTPROG AND HFLGHISTO><0 AND HHISTART=0 GO XHISTI
+ *"8LOG
+"        EXIT
+ INTEGER POINTER IPTO1:=PTOT1,IPTO2:=PTOT2
+ RBUS
+ INTEGER ARRAY PGARR(0)
+ * *+NXRTP+NXRTP+8RTN+8RTN+10/
+ INTEGER ARRAY PGAEND(0)
+ INTEGER ARRAY SLVTB(24)
+ INTEGER LOTH1,LOTH2
+
+ *
+ *"8HIST
+"
+
+ %==============================================================================
+ % 40.4       H I S T I   H I S T O
+ %
+ % SUBROUTINE TO MAKE P-REGISTER HISTOGRAM FOR PROGRAMS
+ % CALLED BY ICLK, MONITOR LEVEL
+ % USED BY THE COMMAND "PRINT-HISTOGRAM"
+
+ INTEGER ARRAY HISTO(200)
+ SUBR HISTI,SHISTI,XHISTI
+ DOUBLE POUTSIDE; INTEGER TOTL1,TOTL2,STLT1,STLT2 % NOTE THAT THESE VARIABLES
+ INTEGER TESTPROG,HISTART,FPREG,DELTA,HISTFLAG,CHILEV,FLGHIST % CORRESPOND TO
+ INTEGER XREG                           % SYMBOLS DECLAIRED AT OPSEG IN THE
+ *HHIST=HISTA; HTEST=TESTP; HFLGH=FLGHI % DEFINE-HISTOGRAM COMMAND
+ HISTI: IF HISTART=0 OR HISTFLAG><0 OR CURPROG><TESTPROG THEN EXIT FI; X=:XREG
+        IF BACKGROUND=0 OR CURPROG.ACTPRI/\3=0 THEN
+              *IRR ALEVB DP
+              A-FPREG=:D:=0; T:=DELTA; *RDIV ST
+              IF A<<100 THEN X:="HISTO"+A+A ELSE X:="POUTSIDE" FI
+              *MIN 1 ,X; SKP; MIN 0 ,X; RAND
+        ELSE
+              MIN STLT2; *SKP; MIN STLT1; RAND
+        FI; MIN TOTL2; *SKP; MIN TOTL1; RAND
+        X:=XREG; EXIT
+ XHISTI: *TRA PVL
+        A SHZ -3/\17=:D
+        IF A>=12 THEN
+              MIN LOTH2; *SKP
+              MIN LOTH1; *RAND; EXIT
+        FI
+        A SH 1+"SLVTB"=:X
+        *MIN 1,X; SKP; MIN ,X; RAND
+        IF CHILEV SHZ -3/\17><D THEN EXIT FI
+ SHISTI: CHILEV=:T; A SHZ -3/\17=:X; *EXR ST
+        IF A=PVLAD(X) THEN T.S2 FI      % USE SAVED P-REG ON PVL
+        A-FPREG=:D:=0; T:=DELTA; *RDIV ST
+        IF A<<100 THEN X:="HISTO"+A+A ELSE X:="POUTSIDE" FI
+        *MIN 1,X; SKP; MIN ,X; RAND
+        *MIN TOTL2; SKP; MIN TOTL1; RAND
+        EXIT
+
+ RBUS
+ *"
+" *"7NDDI
+"
+
+ %=======================================================================
+ % 40.9
+ %      H D L C  -  D R I V E R
+ %      SYMBOLS AND DEFENITIONS
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ %
+ %
+ %      COMMON DEFINITIONS
+
+ SYMBOL INTCH = 102164                  % RESPONCE ON INIT
+ SYMBOL SILFO = 100000                  % ILLEGAL TRANSMITTER LIST KEY
+ SYMBOL TXUND =      2                  % TRANSMITTER UNDERRUN
+ SYMBOL OVERR = 100000                  % RECEIVER OVERRUN
+ SYMBOL EMTY  =  4000                   % RECEIVER LIST EMTY
+ SYMBOL BLDON = 10                      % RECEIVER STATUS BLOCK DONE
+ %
+ %
+ %      I O X DEFINITIONS
+
+ @ICR;
+ SYMBOL RRDR=0,                         % READ REC.DATA REG.
+        WPCR,                           % WRITE PARAM. CONTR. REG.
+        RRS,                            % READ REC STATUS
+        WSAR,                           % WRITE SYNC/ADDRESS REG.
+        WCHL,                           % WRITE CHAR. LENGTH
+        WTDR,                           % WRITE TRANSM. DATA REG.
+        RTSR,                           % READ TRANSM. STATUS REG.
+        WTCR,                           % WRITE TRANSM. CONTROLE REG.
+        RRTS,                           % READ REC. TRANSFER STATUS
+        WRTC,                           % WRITE REC. TRANSFER CONTROLE
+        RTTS,                           % READ TRANSM. TRANSFER STATUS
+        WTTC,                           % WRITE TRANSM. TRANSFER CONTROLE
+        RDMA,                           % READ DMA ADDRESS (LEAST)
+        WDMA,                           % WRITE DMA ADDRESS (LEAST)
+        RDCR,                           % READ DMA COMMAND REG
+        WDCR;                           % WRITE DMA COMMAND REG+TRIGGER
+ @CR;
+ %
+
+
+ %      ERROR CODES SENT FOR USER
+
+ SYMBOL ENCLEAR = 100                   % DEV. NOT CLEARED BEFORE INITIATED
+ SYMBOL ENINIT  = 101                   % DEV. NOT INITIATED BEFORE TRANSMITTION
+ SYMBOL EUND    = 102                   % UNDERRUN
+ SYMBOL ETOU1   = 103                   % TRANSFER TIMEOUT
+ SYMBOL ETOU2   = 104                   % COMMAND TIMEOUT (LOCAL IN IOF)
+ SYMBOL EILFNC  = 105                   % ILLEGAL FUNCTION
+ SYMBOL EILLINT = 106                   % HW. FAILURE ININIT.
+ SYMBOL ETOMUCH  = 107                  % RECEIVER LIST OVERFLOW
+ SYMBOL ECLEAR   = 110                  % DEVICE CLEARED, MESSAGE RETURNED
+ SYMBOL EINP     = 111                  % OVERRUN OR CRC ERROR ON INPUT
+ SYMBOL EPAR     = 112                  % ILLEGAL PARAMETER
+ SYMBOL EILSIZ   =113                   % BYTECOUNT (FRAMD DATA PART) > FRAMESIZE
+ SYMBOL ETOSM    =114                   % TOO SMALL MESSAGE FOR EXPECTED INFO
+ SYMBOL EILFZ    =115                   % ATTEMPT TO SEND FRAME < 2 BYTES
+ SYMBOL EX21     =116                   % CONNECTION BROKEN BY X21
+ SYMBOL EDISP    =117                   % ILLEGAL DISPLACEMENT SPESIFICATION
+ SYMBOL ELOCK    =120                   % DRIVER LOCKED (POSSIBLY BY X21)
+ %
+
+
+ %      LIST DECRIPTION
+
+ DISP 0
+        INTEGER LKEY                    % LIST KEY
+        DOUBLE DLSTST=LKEY
+        INTEGER LBYTC                   % BYTECOUNT
+        INTEGER LMEM1                   % MOUST SIGNIFICANT MEMORY ADDRESS
+        INTEGER LMEM2                   % LEAST SIGNIFICANT MEMORY ADDRESS
+        DOUBLE LMEM = LMEM1             % *81F*
+        INTEGER LEOL                    % END OF LIST
+ PSID
+ %
+ SYMBOL LMASK = 60377
+ SYMBOL HX21M = 60000
+ SYMBOL HX21S = 16
+ SYMBOL HX21D = 15
+ %
+ %      LKEY VALUES
+ %
+ SYMBOL FSERM = 2003                    % FULL TRANSMITTER BLOCK
+ SYMBOL FEOL  = 0                       % END OF LIST
+ SYMBOL ERB   = 1000                    % EMTY RECEIVER BLOCK
+ SYMBOL NLP   = 3000                    % NEW LIST POINTER
+ SYMBOL XBLDN  =   10                   % BLOCK DONE
+ %
+
+
+ %      USER MESSAGE DECRIPTION
+
+ SYMBOL CHEAD = 3                       % LENGTH OF USER HEAD
+ SYMBOL BCHEA = CHEAD+CHEAD             % LENGTH OF USER HEAD IN BYTES
+ DISP 0
+        INTEGER XCFUNC                  % FUNCTION
+        INTEGER CRET                    % RETURN STATUS INFO
+        INTEGER ADSTA                   % ADDITIONAL STATUS INFO.
+ %      LOCATIONS USED BY XMSG FUNCTIONS *81F*
+        INTEGER XHBYT                   % BYTECOUNT OF RECEIVER FRAME
+        DOUBLE XHBUF                    % RECEIVER DATA ADDRESS
+        DOUBLE XMLIS = XHBYT            % ADDRESS OF TRANSMITTER LIST
+ PSID
+ %
+ %      XCFUNC VALUES
+ %
+ SYMBOL DATAM = 1                        % DATA TO BE TRANSFERED
+ SYMBOL XRESET= 2                        % RESET THIS PORT
+ SYMBOL MCLEAR=3                        % CLEAR INTERFACE
+ SYMBOL INIT = 4                        % INITIATE INTERFACE
+ SYMBOL PSTAT = 5                       % GET PORT STAUS
+ SYMBOL DTLI = 6                        % DEFINE TRANSMITTER LIST * 81F*
+ SYMBOL DRBI = 7                        % DECLARE RECEIVER BUFFER * 81F*
+ %
+
+ %      MESSAGE DECRIPTIONS
+ %
+
+ %      INIT
+ %
+ SYMBOL MAMOD = 2                       % MAINTENANCE MODUS
+ SYMBOL HALF=1                          % HALF DUPLEX MODUS
+ SYMBOL FDPLX=0                          % FULL DUPLEX MODUS
+ %
+ DISP 3
+        INTEGER IMODUS                  % HALF/FULL - DUPLEX
+        INTEGER IFSIZE                  % MAX REC. FRAMESIZE
+        INTEGER IRTRY                   % # OF RETRYES IF TRANSFER ERROR
+        INTEGER IDISP                   % DISPLACEMENT
+ PSID
+ %
+
+ %      PSTAT
+ %
+ %
+ DISP 0
+        INTEGER ERRNO                   % # OF ERRORS SINCE LASR PSTAT
+        INTEGER ORERR                   % OR FUNCTION OF ALL ERRORS
+        INTEGER LHAST                   % LAST HARDWARE STATUS
+        INTEGER SSTPC                   % # OF RECEIVER STOPPS
+        INTEGER MAXEM                   % MAX # OF EMTY BUFFERS HELD BY RECExIVER
+        INTEGER HHMAX                   % BUFFERSPACE FOR THIS LDN  IN BYTES
+        INTEGER HHEAD                   % SYSTEM PART OF EACH DCB  IN BYTES
+ PSID
+
+ %
+
+ %      LOCATIONS USED BY DRIVER
+
+ DISP DIHDL = HARAL                     % *81F*
+        INTEGER RTDYN                   % DYNAMIC RETRY COUNTER
+        INTEGER HDERC                   % # OF ERROR TRANSFERS
+        INTEGER DSTAT                   % OR FUNCTION OF BAD STATUS
+        INTEGER STPCNT                  % # OF RECEIVER STOP
+        INTEGER POINTER WTADR           % ADDRESS OF WT12 OR WT13
+        INTEGER POINTER SRRES           % ADDRESS OF RESET ROUTINE
+        INTEGER POINTER SRDAT           % ADDRESS OF TRANSFER ROUTINE
+        INTEGER ACTSW                   % SET IF DRIVER RUNNING, INPUT ONLY(ALLWAYS 77 FOR OUTPUT) *81F*
+        INTEGER MAINT                   % MAINTENANCE MODUS
+        INTEGER HASTAT                  % HARDWARE STATUS
+        INTEGER LISTP                   % POINTER TO DMA LIST
+        INTEGER LIINT                   % LIST ELEMENT WAITING FOR INTERRUPT
+        INTEGER LISTF                   % NEXT FREE LIST ELEMENT
+        INTEGER OMSG                    % CURRENT MESSAGE
+        INTEGER INTSTA                  % 1 IF CLEARED, 2 IF INITIATED, ELSE 0
+        INTEGER CMODI                   % 40 IF HALFD, 0 IF FULL DUPLEX
+        INTEGER XRETRY                   % # OF RETRYES WANTED IF TRANS.ERR
+        INTEGER XREENT
+        INTEGER XINITA                  % *+1
+        INTEGER PCREG                   % PARAMETER CONTROLE REG.
+        INTEGER SAREG                   % SYNC/ADDRESS REG
+        INTEGER CLENG                   % CHARACTER LENGTH
+        INTEGER DISP1                   % DISPLACEMENT 1
+        INTEGER DISP2                   % DISPLACEMENT 2
+        INTEGER MAXR                    % MAX RECEIVER BLOC LENGTH
+        INTEGER CHECK                   % CHECKSUM
+        INTEGER LISTL                   % NUMBER OF ENTRIES IN  RECEIVER LIST
+        INTEGER DCBX                    % FIRST ENTRY IN DCB LIST (ONE FOR EACH ENTRY IN THE DMA LIST)
+ PSID
+ %
+
+
+ %=======================================================================
+ % 40.10
+ %      H D S T A    L T O U T    B A C K      S B Y T C
+ %      F A L S E    D R E R R    R B Y T C    R A C T B
+ %
+ %      H D L C - DRIVER.    COMMON PART
+ %
+ %=======================================================================
+
+ %PURPOSE:    TRANSMITT DATA, AND CONTROLE THE OUTPUT PART
+ %            OF THE HDLC DAM-INTERFACE.
+
+ %ENTRY:      B-REG - DATAFIELDPOINTER
+ %            MESSAGE:        FUNCTION
+ %                            STATUS
+ %                            APPROPRIATE ADDITIONAL INFO
+
+ %EXIT:       STAUTS IS GIVEN WITHIN THE MESSAGE SEND
+ %            BACK TO USER.
+
+ %OPERATION:  THIS COMMON PART IS ACTIVATED EVERY TIME A MESSAGE IS
+ %            SENT FOR ANY HDLC-DRIVER. AN ACTION-ROUTINE WILL BE
+ %            ACTIVATED ACCORDING TO THE FUNCTION IN THE MESSAGE.
+ %            THE RESULTS OF DRIVER OPERATIONS IS SENT BACK TO THE
+ %            USER WITHIN THE SAME MESSAGE.
+ %            THE USER WILL GET THE RESULTS BY DOING A RECEIVE-MESSAGE
+ %            COMMAND ON THE SAME PORT AS THE ORIGINAL MESSAGE
+ %            WAS SENT. HOWEVER, THE RESULTS MAY BE RECEIVED ASYNCHRONOUSLY
+ %            WITH RESPECT TO THE SENDING OF MESSAGES.
+ %
+ %
+ %ACTIVATION POINT
+ %
+ SUBR   HDSTA,LTOUT,BACKX,SBYTC,FALSE,DRERR,RBYTC,RACTB,XMPAT,SADTS,SCRET
+ INTEGER ARRAY HDENT:=(SMCLEAR,SIDAT,SIRES,SMCLEAR,HDSIN,SPSTA,XSSND,XSHDR) % *H*
+ HDSTA: CALL DICHAIN;                            %WAIT FOR MESSAGE
+ FALSE: CALL WTADR                                %ENTRY IF FALSE INTERRUPT
+        CALL RBYTC                                %MESSAGE LENGTH IN T-REG
+        IF A>=6 THEN GO MSOK FI
+        IF A>=4 THEN ETOSM =: X.CRET FI           %MSSAGE TOO SMALL
+        CALL OCHAIN; GO HDSTA
+ MSOK:  X + BHEAD =: OMSG                         %CURRENT MESSAGE POINTER
+ %
+ %      GO TO ACTIONROUTINE
+ %
+        IF HXDOK ><X21OP THEN ELOCK; GO BACKX FI   % CHECK IF LOCKED BY X21
+        T:=MASTB; * XCFUN@3 LDATX
+        IF X:=A >> DRBI THEN               % *81F*
+ HDEFR:   EILFNC
+            ELSE
+          HDENT(X); X:=OMSG; A=:P
+        FI
+ %
+ %      EXIT SEQUENCE
+ %
+ %      B-REG - DATAFIELDPOINTER
+ %      OMSG - CURRENT MESSAGE
+ %      A-REG - RETURN STATUS INFO
+ %
+ BACKX:  X:=OMSG; T:=MASTB; * CRET@3 STATX
+        X-BHEAD; T:=6; CALL SBYTC
+        CALL OCHAIN
+        GO HDSTA
+ %
+ %
+ SIDAT: GO SRDAT                                  % JMP THROUGH DATAFIELD
+ SIRES: CALL SRREST; GO BACKX
+
+ %      ENTRY: X POINTS TO DMA LIST ENTRY
+ %             T - FRAME LENGTH+DISP1 (IF XMSG) OR TOTAL DCB LENGTH (IF NOT XMSG)
+ %      THE CORRESPONDING DCB ENTRY IS FOUND IN THE DCBLIST
+ %      THE DCB LENGTH OR FRAME LENGTH IS SAVED IN THE DCB
+ %      EXIT: X POINTS TO THE DCB (USER PART)
+
+ XMPAT: 0=:X.LBYTC; A:=X-LISTP SHZ -2=:X
+        * AAX DCBX; LDX 0,X,B                     % NOW X POINTS TO DCB
+        T=:D:=MASTB; X - BHEAD; * BBID@3 LDATX
+        IF A < 0 THEN                            % IS IT AN XMSG DCB ?
+          A:=D; X + BHEAD; *XHBYT@3 STATX         % YES, SAVE FRAME LENGTH + DISP1
+            ELSE
+          A:=D+BCHEA; * BBYTC@3 STATX            % NO, SAVE TOTAL DCB LENGTH
+          X + BHEAD
+        FI; EXIT
+ %
+ %      INTERNAL TIMOUT
+ %
+ LTOUT: *JPC LOUT; EXIT
+ LOUT:  A:=ETOU2; 0=:OMSG.ADSTA; *ION
+        GO BACKX
+ %
+ %      STORE BYTECOUNT IN MESSAGE
+ %
+ SBYTC: T=:A:=MASTB; * BBYTC@3 STATX
+        EXIT
+ %
+ %      STORE HW STATUS
+ SADTS: T:=MASTB; * ADSTA@3 STATX
+        EXIT
+ %
+ %      STORE STATUS
+ SCRET: T:=MASTB; * CRET@3 STATX
+        EXIT
+ %
+ %
+ %      READ ACTUAL BYTECOUNT OF MESSAGE
+ %
+ RACTB: T:=MASTB; * BBYTC@3 LDATX
+        EXIT
+ %
+ %      READ MAX BYTECOUNT OF MESSAGE
+ %
+ RBYTC: T:=MASTB; * BMBYT@3 LDATX
+        EXIT
+ %
+ %
+ %      XSDATA ERROR ROUTINE
+ %
+ %ENTRY:      A-REG           HARDWARE STATUS
+ %            B-REG           DATAFIELDPOINTER
+ %            X-REG           MESSAGE ADDRESS
+ %
+ DRERR: A\/DSTAT =: DSTAT                         %OR HW-STATUS
+        HDERC+1 =: HDERC                          %ERROR COUNTER
+        MIN RTDYN; GO SRDAT                       %TRY AGAIN
+        XRETRY=:RTDYN; EXIT                        %TO MANY ERRORS, GIVE UP
+ RBUS
+
+ SUBR ZXCHK
+ %
+ %      ZXCHK - CHECK XMSG DCB AND INTERFACE INITIALISED
+ %
+ ZXCHK: T:=MASTB; X-BHEAD; *BBID@3 LDATX
+        X+BHEAD
+        IF A > 0 THEN EILFNC; GO BACKX  FI        % THIS FUNCTION IS ONLY FOR XMSG *H*
+        IF INTSTA >< 2 THEN ENINIT; GO BACKX FI
+        EXIT
+ RBUS
+
+
+ %=======================================================================
+ % 40.11     X S D A T A    H O I N T    O I N I T    P O F T O
+
+ %
+ %PURPOSE: TRANSMITT DATA TO REMOTE MACHINE
+ %
+ %OPERATION:  RECEIVES MESSAGES CONTAINING DATA TO BE SENT TO
+ %            REMOTE MACHINE. THE RESULTS OF THE TRANSFER IS SENT
+ %            BACK TO USER IN THE SAME MESSAGE.
+ %
+ %MESSAGE DECRIPTION:
+ %         - FUNCTION = DATA
+ %         - STATUS   = RET-STATUS
+ %         - ADDSTA   = HARDWARE STATUS
+ %         - DATA     = DATA TO BE TRANSMITTED / DMA LIST POINTER *81F*
+ %
+ SUBR XSDATA,HOINT,OINIT,POFTO,XSSND
+ XSDATA: IF INTSTA >< 2 THEN A:=ENINIT; GO BACKX FI
+        LISTP =: LIINT                            % *81F*
+        X-BHEAD; CALL RACTB; X+BHEAD              %MESSAGE SIZE
+        IF A < 7 THEN A:=EILFZ; GO BACKX FI        %MESSAGE IS TOO SMALL
+        IF A-BCHEA>MAXR THEN A:=EILSIZ; GO BACKX FI  %TOO LONG FRAME
+        A-DISP1=:LIINT.LBYTC                      %BYTECOUNT FOR LIST
+        A:=OMSG+CHEAD=:X.LMEM2                    %SET BUFFER ADDR.
+        MASTB=:X.LMEM1                            % PHYSICAL BANK
+        FSERM=:X.LKEY                             %TRANSMITT ONE BLOCK ONLY
+        0=:D                                      % *81F*
+ %
+ %      START INTERFACE
+ %
+ XHMST: LIINT; T:=HDEV+WDMA; *IOF; EXR ST         %LIST ADDRESS *81F*
+        A:=2000\/D; T+"WDCR-WDMA"; *EXR ST        %START TRANSMITTER  *81F*
+        T+"RDCR-WDCR"; X:=-20;*EXR ST
+        CALL LTOUT; *JAF *-2; ION
+        1134+CMODI; T:=HDEV+WTTC; *EXR ST
+        1 =: ACTSW                                % *H*
+        OMSG =: DCBX
+ %
+ %      ENABLE TIMEOUT
+ %
+ CONT: A:=TTMR=:TMR
+        CALL ID12                                 %WAIT FOR INTERRUPT
+        GO HOINT; *)FILL
+
+ %
+ %      OUTPUT INTERRUPT DETECTED,
+ %      GET STATUS
+ %      LOG STATUS, DEVICE NUMBER AND 1.WORD IN FRAME
+ %      SEND FRAME TO USER
+
+        DISP 0; INTEGER AC; PSID
+        INTEGER TELL:=0
+        INTEGER DUIN:=0                           % INCREMENTED IF DUMMY INTERRUPTS *H*
+        SYMBOL BUFSIZ=20
+        SYMBOL TELMA=BUFSIZ-1
+        INTEGER ARRAY BUFF0(BUFSIZ)               % 1.WORD IN FRAME
+        INTEGER ARRAY BUFF1(BUFSIZ)               % DEVICE NUMBER
+        INTEGER ARRAY BUFF2(BUFSIZ)               % DEVICE STATUS
+
+ %
+ HOINT: 0=:TMR                                    %RESET TIMER
+        T:=HDEV+RTTS; *EXR ST                     %READ STATUS
+        A=:HASTAT                                 %SAVE STATUS
+        IF T:=ACTSW = 0 THEN MIN DUIN; P+0; CALL WT12 FI         % *H*
+        0=: ACTSW                                 % *H*
+        IF CMODI = 40 THEN
+          T:=HDEV+WTTC; *EXR ST   %TURN OFF RQTS
+        FI
+        MIN TELL; P+0
+        TELL /\ TELMA=:TELL
+        LIINT.LMEM2.AC=:BUFF0(TELL)               % LOG 1.WORD IN FRAME  (BANK 0 ONLY) *81F*
+        HDEV=:BUFF1(TELL)                         % LOG DEVICE USED
+        HASTAT=:BUFF2(TELL)                       % LOG DEVICE STATUS
+        X:=OMSG
+        IF A/\ "SILFO+TXUND" = 0 THEN
+              XRETRY=:RTDYN; A:=0; CALL SADTS
+        ELSE
+              A:=HASTAT; CALL SADTS; CALL DRERR
+              A:=EUND
+        FI
+        0=:DCBX; GO FAR BACKX
+ %
+ %
+ %      OUTPUT TIMEOUT ROUTINE
+ %
+ POFTO: X:=OMSG; 0=:DCBX
+        A:=CMODI; T:=HDEV+WTTC; *EXR ST
+        A:=0; CALL SADTS; A:=ETOU1; GO FAR BACKX
+ %
+ %      SPECIAL ENTRY FOR PRIVILEGED USERS (MESSID<0)       *81F*
+ %      THE FIRST TWO DATA WORDS OF THE DCB POINTS TO A
+ %      TRANSMITTER LIST. THE LIST IS USED DIRECTLY BY HARDWARE.
+ %
+ XSSND: CALL ZXCHK                                % CHECK DCB IS FROM XMSG
+        T:=MASTB; *XMLIS@3 LDDTX
+        A:=:D=:LIINT                              % BANK BITS IN D-REG
+        GO FAR XHMST
+ RBUS
+
+
+ %=======================================================================
+ % 40.12     H D R E C    H I I N T    S H D R E
+ %
+ %PURPOSE:    RECEIVE DATA FROM REMOTE MACHINE
+ %
+ %OPERATION:  RECEIVES EMTY (NO DATA) MESSAGES, WHICH WILL BE LINKED
+ %            TO THE HDLC RECEIVER LIST. WHEN DATA (FRAMES) IS RECEIVED
+ %            FROM REMOTE MACHINE, THE MESSAGES ARE FILLED AND SENT
+ %            BACK TO USER.
+ %MESSAGE DECRIPTION:
+ %            - FUNCTION = EDATA
+ %            - STATUS   = RET-STATUS
+ %            - ADDSTA   = HARDWARE STATUS
+ %            - DATA     = RECEIVED DATA
+ %
+ SUBR HDREC,HIINT,XSHDR
+ HDREC: IF INTSTA >< 2 THEN A:=ENINIT; GO FAR BACKX FI
+        X-BHEAD; CALL RBYTC; X+BHEAD; A-BCHEA     % GET MAX BYTECOUNT
+        IF A < MAXR THEN A:=ETOSM; GO FAR BACKX FI
+        CALL HXST                                 %*81F*
+        A:=X+CHEAD=:D:=MASTB                      %BUFFER ADDRESS     *81F*
+ HSPEC: X=:T; AD=:LISTF.LMEM                      % *H*
+        A:=X-LISTP SHZ -2:=:X                     % CALCULATE INDEX IN DCB TABLE *H*
+        * AAX DCBX; STT 0,X,B                     % SAVE DCB ADDR. IN DCB TABLE *H*
+        X:=A                                      % X POINTS TO DMA LIST ENTRY *H*
+        ERB=:X.LKEY                               % *81F*
+        LISTF+4=:LISTF                            %LIST FILLER OF NEXT MESSAGE
+        IF LISTF.LKEY=NLP THEN
+              LISTP=:LISTF                        %REACHED END OF LIST
+        FI
+        IF ACTSW = 1 THEN GO FAR HDSTA FI         % TRANSMITTER ACTIVE
+ HDENA: *TRR 10                                   % CLEAR CASCH
+        IF LIINT.LKEY/\"3777"><"ERB" THEN
+              GO FAR HDSTA                        % DO NOT START EMPTY LIST
+        FI
+ STARC: IF ACTSW = 0 THEN
+               HXDOK/\MAINT; T:=HDEV+WRTC; *EXR ST  % CLEAR OLD GARBAGE
+               LIINT; T:=HDEV+WDMA; *EXR ST       % START RECEIVER
+               A:=1000; T+"WDCR-WDMA"; *EXR ST
+               T+"RDCR-WDCR"; X:=-10; *EXR ST
+               CALL LTOUT; *JAF *-2
+               1=:ACTSW
+        FI
+ OUT1:  A:="1734"\/MAINT/\HXDOK
+        T:=HDEV+WRTC; * EXR ST
+        GO FAR HDSTA                              %ANY MORE MESSAGES ?
+        *)FILL
+ %
+ %
+ %      INPUT INTERRUPT DETECTED:
+ %            GET STATUS
+ %            LOG STATUS, USER DEVICE NUMBER AND 1.WORD IN FRAME
+ %            SEND MESSAGE BACK TO USER.
+ %
+ %
+
+        DISP 0; INTEGER AC; PSID
+        SYMBOL BUFSIZ=20
+        SYMBOL TELMA=BUFSIZ-1
+        INTEGER ARRAY BUFF0(BUFSIZ)               % 1.WORD IN FRAME
+        INTEGER ARRAY BUFF1(BUFSIZ)               % DEVICE NUMBER
+        INTEGER ARRAY BUFF2(BUFSIZ)               % DEVICE STATUS
+        INTEGER ARRAY BUFF3(11)                   % LIST KEYS WHEN DEVICE STOPPED
+        INTEGER T1:=0
+        INTEGER T2:=0
+        INTEGER TELL:=0
+        INTEGER T9:=0                             % DUMMY INTERRUPTS
+        INTEGER POINTER ARRAY P0BUFF:=BUFF0
+ HIINT: T:=HDEV+RRTS; *EXR ST                     % READ RECEIVER STATUS
+        A=:HASTAT
+        IF T:=ACTSW = 0 THEN MIN T9; P+0; GO OUT1 FI % EXPECTING NOTHING *81F*
+        IF A/\ HX21M >< 0 THEN                    % X21-ERROR?
+           *TRR 10                                %*80B*
+           A\/ LIINT.LKEY=:X.LKEY                 % YES, SAVE IT *H*
+           IF A BIT HX21S THEN                    % X21 CLEAR INDICATION?
+              HASTAT BONE BLDON=:HASTAT           % YES, SET BLOCK DONE TO
+              LIINT.LKEY BONE XBLDN=:X.LKEY       % TO TERMINATE
+           FI
+        FI
+        IF HASTAT/\"EMTY" >< 0 THEN
+              0=:ACTSW                            % DEVICE STOPPED
+              MIN STPCNT                          % LACK OF BUFFER, INC COUNTER
+              P+0                                 % IN CASE OF SKIP
+              LISTP=:T1; 0=:T2
+              DO WHILE T1.LKEY >< "NLP"           % MAKE COPY OF DMA LIST
+                 A=:BUFF3(T2)                     % WHEN DEVICE STOPPED
+                 MIN T2; 0/\0; T1+4=:T1
+              OD
+        FI
+ %
+ %      LOOK AT RECEIVER MESSAGE
+ %
+ MORE:  *TRR 10                                   % CLEAR CACH
+        A:=LIINT.LKEY=:D
+        IF A NBIT XBLDN THEN                       % ANY MORE FILLED BLOCKS ?
+              IF A = "ERB" THEN GO FAR STARC FI   % NO, ENABLE RECEIVER
+              GO FAR OUT1
+        FI
+        MIN TELL; P+0
+        TELL /\ TELMA=:TELL
+        HDEV=:BUFF1(TELL)                         % LOG USER DEVICE NUMBER
+        HASTAT=:BUFF2(TELL)                       % LOG DEVICE STATUS
+        LIINT.LMEM2.AC=:P0BUFF(TELL)              % LOG 1.WORD IN FRAME
+        A:=LIINT.LBYTC+DISP1=:T                   % RECEIVED MESSAGE SIZE
+        CALL XMPAT                                % *H* GET DCB FROM DCB LIST
+        X=:D; A:=LIINT.LKEY; 0=:X.LKEY; 0=:X.LMEM2;  X:=D
+        IF A /\ "LMASK" = 3 THEN
+              A:=0; CALL SCRET; CALL SADTS
+        ELSE
+              IF A BIT HX21S THEN EX21 ELSE EINP FI
+              CALL SCRET
+              D=:A; CALL SADTS; A\/DSTAT=:DSTAT
+              HDERC+1=:HDERC
+        FI
+        X-BHEAD; CALL OCHAIN                               % SEN MESSAGE BACK TO USER
+        LIINT+4=:LIINT
+        IF LIINT.LKEY=NLP THEN
+              LISTP=:LIINT
+        FI
+        GO MORE
+        *)FILL
+ %      ARE WE RUNNING ?
+ HXST:  IF ACTSW = 0 THEN
+          LISTP=:LISTF=:LIINT
+            ELSE
+          IF LISTF=LIINT THEN A:=ETOMUCH; GO FAR BACKX FI
+        FI
+        EXIT
+ %
+ %      SPECIAL ENTRY FOR PRIVILEGED USERS (MESSID<0)
+ %      FIRST TWO DATA WORDS OF DCB POINTS TO RECEIVER BUFFER.
+
+ XSHDR: CALL ZXCHK                                % CHECK DCB IS FROM XMSG
+        CALL HXST
+        T:=MASTB; * XHBUF@3 LDDTX
+        GO FAR HSPEC
+        RBUS
+
+
+ %=======================================================================
+ % 40.13     S M C L E A R
+
+ %
+ %PURPOSE:    TOTAL CLEAR OF INTERFACE
+ %
+ %OPERATION:  PERFORMS A DEVICE CLEAR. UNTREATED MESSAGES
+ %            ARE SENT BACKX TO USER.
+ %MESSAGE DECRIPTION:
+ %         - FUNCTION = MCLEAR
+ %         - NOT APPLICABLE
+ %
+ %ENTRY:   B-REG DATAFIELDPOINTER
+ SUBR SMCLEAR
+ SMCLEAR: T:=HDEV+WTCR; A:=2; *EXR ST; IOF       % SEND EOM TO AVOID YELLOW LIGTH
+        A:=100; T:=HDEV+WRTC; *EXR  ST            %*80B*
+        A:=40; *EXR ST                            %*80B*
+        T+"WDCR-WRTC";*EXR ST; ION
+        X:=OMSG; T:=MASTB; * XCFUN@3 LDATX
+        IF A = 0 THEN                             % SPECIAL CLEAR (SUPER) *H*
+          0=: HINIF =: OQUEU =: IQUEU =: WAKEF    % CLEAR EVERYTHING
+          1=:INTSTA; DFOPP =: B                   % TAKE OPPOSITE DATAFILED
+          0=: HINIF =: OQUEU =: IQUEU =: WAKEF    % CLEAR EVERYTHING
+          1=:INTSTA; DFOPP =: B
+          GO FAR HDSTA                            % GIVE NO RESPONCE TO USER
+        ELSE
+          1=:INTSTA; CALL SRRES                     %RESET THIS SIDE
+          DFOPP=:B; 1=:INTSTA; CALL SRRES           %RESET OTHER SIDE
+          DFOPP=:B; X:=OMSG
+          A:=0 CALL SADTS GO FAR BACKX
+        FI
+ RBUS
+
+
+ %=======================================================================
+ % 40.14     H D S I N
+ %
+ %PURPOSE: INITIATE INTERFACE AND SET MODUS
+ %
+ %MESAGE DECRIPTION:
+ %         - FUNCTION = INIT
+ %         - STATUS   = RETURN STATUS
+ %         - ADDSTA   = HARDWARE STATUS
+ %         - MODUS    = 0 - FULL DUPLEX
+ %                      1 - HALF DUPLEX
+ %                      2 - MAINTENANCE MODUS
+ %         - CFSIZE   = MAX FRAMESIZE
+ %         - IRTRY    = # OF RETRIES WANTED IF ERROR. NOT APPLICABLE FOR INPUT
+ %         - IDISP    = DISPLACEMENT IN # OF BYTES
+ %
+ %ENTRY:   B-REG DATAFIELDPOINTER
+ %         X-REG MESSAGE POINTER
+ %
+ %EXIT:    AS ENTRY
+ %
+ SUBR HDSIN
+ HDSIN: IF INTSTA><1 THEN A:=ENCLEAR; GO FAR BACKX FI
+        T:=MASTB; * IMODU@3 LDATX
+        IF A=:D >> MAMOD THEN A:=EPAR; GO FAR BACKX FI
+        IF A:=D = HALF THEN T:=40 ELSE T:=0 FI
+        T=:CMODI                                  %SET HALF OR FULL DUPLEX
+        IF A = MAMOD THEN A:=140 ELSE A:=100 FI   %*80B*
+        A=:MAINT
+        T:=HDEV+WRTC; *EXR ST                     %SET POSSIBLE MAINTENANCE MODE
+        T:=MASTB; * IFSIZ@3 LDATX
+        A=:MAXR                                    %MAX RECEIVER FRAMESIZE
+        IF A < 1 THEN A:=EILFZ; GO FAR BACKX FI    % TOO SMALL MESSAGE
+        0=:CHECK
+        T:=MASTB; * IRTRY@3 LDATX
+        A-=:XRETRY                                 %NUMBER OF RETRYES WANTED
+        X-BHEAD; CALL RACTB; X+BHEAD
+        IF A>15 THEN
+          T:=MASTB; * IDISP@3 LDATX
+            ELSE
+          A:=0
+        FI
+        A=:DISP1+MAXR=:MAXR
+        A:=XINITA; T:=HDEV+WDMA; *IOF; EXR ST
+        400; T+"WDCR-WDMA";*EXR ST
+        T+"RDCR-WDCR"; X:=-10;*EXR ST
+        CALL LTOUT; * JAF *-2
+        *ION; TRR 10                              %CLEAR CASCH
+        A:=CHECK                                  %CHECKSUM FROM INTERFACE
+        IF A><INTCH THEN
+              A=:OMSG.ADSTA
+              A:=EILLINT; GO FAR BACKX
+        FI
+        X:=DFOPP                                  %UPPDATE OPPOSITE DATAFIELD
+        XRETRY=:X.XRETRY
+        MAXR=:X.MAXR
+        MAINT=:X.MAINT; DISP1=:X.DISP1
+        2=:X.INTSTA
+        2=:INTSTA; A:=0; X:=OMSG; CALL SADTS; GO FAR BACKX
+ RBUS
+
+
+ %========================================================================
+ % 40.15     T R A S E T    R E C S E T
+
+ %PURPOSE:    RESET TRANSMITTER
+ %CHANGES FOR H VERSION: THE DCB FOR XMSG MAY CONTAIN A POINTER TO A DMA LIST,
+ %                       THUS THE DCB LIST MUST BE USED FOR TAPPING
+ SUBR TRASET,RECSET
+ TRASET:      A:=0
+        T:=HDEV+WTTC; *EXR ST
+        A:=L=:XREENT; 0=:WAKEF
+        IF X:=DCBX >< 0 THEN                      % ANY CURRENT DCB ?
+          0=:DCBX; ECLEAR; CALL SCRET             % YES, SEND IT BACK
+          A:=0; CALL SADTS; X-BHEAD; T:=6; CALL SBYTC; CALL OCHAIN
+        FI
+        0=:TMR
+        A:=XREENT=:P
+ %
+ %      RECSET
+ %
+ %PURPOSE:    RESET RECEIVER
+ %
+ RECSET:      A:=MAINT\/100                       %*80B*
+        T:=HDEV+WRTC; *EXR ST
+        0=:TMR; GO SENDB
+        GO SENDB
+ %
+ %      SENDB
+
+ %PURPOSE:    SEND BACK (TO USER) UNTREATED MESSAGES
+ %
+ SENDB: LISTP=:LIINT
+        A:=L=:XREENT                               % TEMP SAVE OF L-REG
+        DO WHILE LIINT.LKEY >< "NLP"
+              IF A >< 0 THEN                       % *H*
+                   IF X.LMEM2 >< 0 THEN            % WE DO NOT TRUST THE KEY
+                              0=:X.LMEM2
+                              0=:X.LKEY=:X.LBYTC   % X POINTS TO DMA ENTRY
+                              T:=0; CALL XMPAT     % FIND DCB ENTRY AND SET LENGTH
+                              ECLEAR; CALL SCRET   % X POINTS TO DCB
+                              A:=0; CALL SADTS
+                              X-BHEAD; T:=6; CALL SBYTC
+                              CALL OCHAIN
+                    FI
+              FI
+              LIINT+4=:LIINT
+        OD
+        A:=XREENT=:L
+        A:=0=:ACTSW
+        EXIT
+ RBUS
+
+
+ %=======================================================================
+ % 40.16     S P S T A
+ %
+ %PURPOSE:    GIVE PORT STATUS
+ %
+ %MESSAGE DECRIPTION:
+ %      - FUNCTION  = PSTAT
+ %      - STATUS    = NOT APPLICABLE
+ %      - ADDSTA    = NOT APPLICABLE
+ %      - ERRNO     = TOTALE # OF ERRORS (RELATED TO ADSTA)
+ %      - ORERR     = OR FUNCTION OF ALL ERRORS (RELATED TO ADSTA)
+ %      - LHAST     = LAST HARDWARE STATUS (RRTS OR RTTS)
+ %      - SSTPC     = RECEIVER STOPP COUNTER
+ %      - MAXEM     = MAX NUMBER OF EMTY BUFFERS HELD BY RECEIVER. (LIST LENGTH
+ %      - HHMAX     = BUFFER SIZE IN BYTES FOR THIS LDN
+ %      - HHEAD     = SYSTEM PART (REDUNDENCE) OF EACH DCB
+ %
+ %
+ SUBR SPSTA
+ SPSTA: X-BHEAD; CALL RBYTC; X+BHEAD              % GET BYTECOUNT
+        IF A<20 THEN
+              ETOSM; CALL SCRET                       % MESSAGE TOO SMALL
+              A:=0; CALL SADTS; GO SP1
+        FI
+        X+CHEAD =: OMSG                           % POINT TO USER INFORMATION
+        IF A >=24 THEN
+              T:=MASTB; MAX; * HHMAX@3 STATX      % IN BYTES
+              "BHEAD"+2 SH 1; * HHEAD@3 STATX     % IN BYTES
+        FI
+        T:=MASTB
+        A:=HDERC; * ERRNO@3 STATX
+        A:=DSTAT; * ORERR@3 STATX
+        A:=HASTAT; * LHAST@3 STATX
+        A:=STPCNT; * SSTPC@3 STATX
+        A:=LISTL; * MAXEM@3 STATX
+        0=:HDERC=:DSTAT=:STPCNT
+        X-CHEAD; A:=0; CALL SCRET; CALL SADTS
+        X-BHEAD; T:=24; CALL SBYTC
+ SP1:   CALL OCHAIN; GO HDSTA
+ RBUS
+
+ *"8PACL
+" %========================================================================
+ %            3 S E T C L O C K
+ %
+ % SUBROUTINE TO THE SETCLOCK ROUTINE
+ % (PLACED IN POF-AREA TO SAVE SPACE IN RESIDENT)
+ %
+ SUBR 3SETCLOCK
+ INTEGER POINTER LREG
+ 3SETCLOCK:
+        A:=L=:"LREG"
+        IF CPSTA BIT 5N100 THEN
+           A:=0; CALL PANEL
+           IF A BIT 17 THEN          % PANEL PRESENT
+              X:=-1; ACL7(X)-TBASE(X)=:ADDYEAR; 0=:DAYES
+              DO WHILE ADDYEAR>0
+                 0=:PERIOD
+                 FOR PERIOD TO 3 DO WHILE ADDYEAR>0
+                    DAYEAR(PERIOD)+DAYES=:DAYES
+                    ADDYEAR-1=:ADDYEAR
+                 OD
+              OD
+              IF PERIOD=1 THEN 35 ELSE 34 FI A=:DAMONTH(1)
+              X:=-2; ACL7(X)-TBASE(X)-1=:ADDMONTH
+              FOR X:=0 TO ADDMONTH DO
+                 DAMONTH(X)+DAYES=:DAYES
+              OD
+              X:=-3; ACL7(X)-TBASE(X)+DAYES=:DAYES SHZ 1=:HDAYES
+              X:=-4; A:=ACL7(X)=:HOURS=:D:=0; T:=14; *RDIV ST
+              A+HDAYES=:HDAYES; A:=D=:HOURS*7020=:SECOND; X:=-5
+              ACL7(X)*74+SECOND=:SECOND; X:=-6; ACL7(X)+SECOND=:SECOND
+              GO PANUP; *)FILL
+
+ PANUP:       SECOND; A=:D/\377\/2000; CALL PANEL
+              A:=D; A SHZ -10\/2400; CALL PANEL
+              HDAYES; A=:D/\377\/3000; CALL PANEL
+              A:=D; A SHZ -10\/3400; CALL PANEL
+           FI
+        FI; GO LREG
+ RBUS
+
+
+ %===============================================================================
+ %            3 R C L O C K
+ %
+ % SUBROUTINE TO THE READCLOCK ROUTINE IN RESIDENT
+ %
+ SUBR 3RCLOCK
+ INTEGER POINTER LREG=?
+ 3RCLOCK: A:=L=:"LREG"
+        A:=0; CALL PANEL
+        IF A NBIT 17 THEN GO LREG FI               % PANEL NOT PRESENT
+        A:="22000"; CALL PANEL                     % READ LOW SECONDS
+        A/\377=:D; A:="22400"; CALL PANEL          % READ HIGH SECONDS
+        A SHZ 10\/D=:SECOND; A:="23000"; CALL PANEL% READ LOW HDAYS
+        A/\377=:D; A:="23400"; CALL PANEL          % READ HIGH HDAYS
+        A SHZ 10\/D=:HDAYES
+        "PX9CL"; CALL EX113M                       % READ SINTRAN CLOCK
+        0=:DAYES; GO L1; *)FILL
+
+ INTEGER POINTER LREG
+
+ %  UPDATE CALENDER
+
+ L1:    X:=-1; PXCLX(X)-TBASE(X)=:ADDYEAR
+        DO WHILE ADDYEAR>0
+           0=:PERIOD
+           FOR PERIOD TO 3 DO WHILE ADDYEAR>0
+              DAYEAR(PERIOD)+DAYES=:DAYES
+              ADDYEAR-1=:ADDYEAR
+           OD
+        OD
+        IF PERIOD=1 THEN 35 ELSE 34 FI; A=:DAMONTH(1)
+        X:=-2; PXCLX(X)-TBASE(X)-1=:ADDMONTH
+        FOR X:=0 TO ADDMONTH DO
+           DAMONTH(X)+DAYES=:DAYES
+        OD
+        X:=-3; PXCLX(X)-TBASE(X)+DAYES=:DAYES SHZ 1=:T
+        IF HDAYES-T=:HDAY2 < 0 THEN               % PANEL CLOCK SHOULD
+ ERR:      ER205=:ERUCL                           % BE GREATER THAN
+           GO OUT; *)FILL                         % SINTRAN CLOCK
+        FI
+        X:=-4; PXCLX(X)=:D:=0; T:=14; *RDIV ST
+        T:=HDAY2-A=:HDAY2; A:=D*7020=:SEC2
+        X:=-5; PXCLX(X)*74+SEC2=:SEC2
+        X:=-6; PXCLX(X)+SEC2=:T; GO LABL1; *)FILL
+
+ OUT:   GO LREG
+
+ LABL1: IF SECOND>>=T THEN
+           A-T
+        ELSE
+           X:=HDAY2-1=:HDAY2; X:=124300-T; A+X
+        FI; D:=0; AD SHZ -1; A=:XCLNUN
+        IF HDAY2<0 GO ERR
+        2=:XCLUN; "PLXCL"; CALL EX112M
+        IF D><0 THEN XCLNUN+1=:XCLNUN FI; "PLXCL"; CALL EX112M
+        T:=14; A:=HDAY2; *RMPY SA DT
+        AD=:DXCLUN; 4=:XCLUN; T:=30=:XCLNUN
+        DO
+           AD:=DXCLUN
+        WHILE A><0 OR D>>30
+           D-T; A:=A+C-1; AD=:DXCLUN; "PLXCL"; CALL EX112M
+        OD; A:=D=:XCLNUN; "PLXCL"; CALL EX112M
+        GO OUT
+ RBUS
+
+ *"
+"
+ *"8GPI0+8GPI1+8GPI2+8GPI3+8GPI4+8GPI5+8GPI6+8GPI7 8XMSG
+" *"8OCTO
+"
+

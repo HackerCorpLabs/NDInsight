@@ -57,8 +57,14 @@ so the old duplicate `*Headless.java` copies are obsolete.
 
 ### DONE - findings so far
 
-- `set DIX mode` = AIP request-block type **12**, handler at **0x7096**, 6-byte argument at
-  `RB+0x08`. Only **bit 0 of byte 0** is read. It calls `STOPMA` then `STARTMA`.
+- ~~`set DIX mode` = AIP request-block type **12**, handler at **0x7096**~~ **CORRECTED
+  2026-08-08: opcode 12 @0x7096 is DEFINE/ADD MULTICAST ADDRESS, not "set DIX mode".** The 6-byte
+  argument at `RB+0x08` is a full MAC address; the "bit 0 of byte 0" that is tested is the Ethernet
+  I/G (group) bit (a non-multicast address is rejected -18), and the other 5 bytes ARE used. The
+  `STOPMA`/`STARTMA` pair reprograms the LANCE multicast filter, which is what made the original
+  reader guess "DIX mode". Sibling opcode 14 @0x7162 = REMOVE MULTICAST. The real DIX-vs-802.3 gate
+  is the 0x1888A mode word, a separate mechanism. See
+  `SINTRAN\XMSG\DOC\NDIX-XMSG-VS-SINTRAN-ETHII-CROSSCHECK-FINDINGS-2026-08-08.md` section 4b.
 - The host seam is **`*TCP`** - a 4-character PIOC-OS port name at `0x7B90A`, copied by
   `TCPNETINIT` into `TCPPORTNAM`.
 - ND shipped **TCP on the ND-100, IP on the card**, DIX 2.0 only (quoted from ND-860284-1 sec 1.3).
@@ -69,7 +75,8 @@ so the old duplicate `*Headless.java` copies are obsolete.
 - ~20 functions are pinned with one-byte bodies (the stale-body trap - see phase 1).
 - The ND-100 side of the `*TCP` seam is undetermined: does the ND-100 **register** the port or only
   **look it up**? `PO100PORTS` / `POMS100POO` are the next targets.
-- Five of the six `set DIX mode` argument bytes are undecoded.
+- ~~Five of the six `set DIX mode` argument bytes are undecoded.~~ RESOLVED 2026-08-08: opcode 12
+  is define-multicast; all 6 argument bytes are the MAC address (see the corrected finding above).
 - AIP request blocks attach / start / stop are only partly decoded (ops 22/24/26).
 
 ---
@@ -129,13 +136,28 @@ This belongs in `EXTRACTING-SEGMENTS.md` and is not yet written there. See phase
 
 ## 4. Plan - phases and todos
 
-### Phase 1 - finish the Ghidra symbol pass (BLOCKED on Ronny)
+### Phase 1 - finish the Ghidra symbol pass (DONE 2026-08-08)
 
-- [ ] **Ronny**: close the program in Ghidra (headless cannot take the project lock while it is open)
-- [ ] Run `PlancApplyNdSymbols.java` headless as a **dry run** first
-- [ ] Read the dry-run failure list before applying anything
-- [ ] Re-run with the `apply` argument - repairs the ~20 pinned functions, names all 463 symbols
+- [x] **Ronny**: close the program in Ghidra (headless cannot take the project lock while it is open)
+- [x] Run `PlancApplyNdSymbols.java` headless as a **dry run** first
+- [x] Read the dry-run failure list before applying anything
+- [x] Re-run with the `apply` argument
 - [ ] **Ronny**: reopen Ghidra so the RE agent can resume
+
+**Result (2026-08-08)**: 436 defined records parsed (317 CODE + 119 DRAM), **0 failures**.
+143 stale bodies removed and recreated, 94 entry points newly disassembled, 119 DRAM labels
+placed. Function count 230 -> 404. Verified persisted with a fresh `-readOnly` dry run.
+
+**Correction found on the way**: the script's default table base `0x7C3A4` was WRONG - at that
+base the name-length byte reads 0 and the parser rejects every record (first dry run parsed 0).
+The real base is **`0x7C3A0`**, pinned unambiguously by the +0 pointer field incrementing by
+0x20 across records. 463 slots, of which 27 are `kind=0xFF` undefined/marker records (`NIL`,
+`NONE_x`) and are correctly skipped - so "463 symbols" in this doc means 436 placeable ones.
+The script default and its header comment are fixed
+(`C:\Users\ronny\ghidra_scripts\PlancApplyNdSymbols.java`).
+
+Ghidra project: `E:\Dev\Repos\Ronny\RetroGhidra\ETH_II\ND_ETH_II.gpr`, program
+`tcp-ser-all-banks-b05-68k.bin`.
 
 ```
 C:\Utils\Ghidra\ghidra_12.0.4_PUBLIC\support\analyzeHeadless.bat <project> <name> ^
@@ -150,11 +172,25 @@ previous session deleted the `osgi` folder, which de-registers every script dire
 
 ### Phase 2 - finish the firmware RE (needs phase 1)
 
-- [ ] `PO100PORTS` / `POMS100POO` - settle register-vs-lookup for `*TCP`. This is the host seam and
-      everything else hangs off it.
-- [ ] Decode the remaining AIP request blocks: attach, start, stop.
-- [ ] The other 5 bytes of the `set DIX mode` argument.
+- [x] `PO100PORTS` / `POMS100POO` - **SETTLED 2026-08-08: the CARD registers `*TCP`, the ND-100
+      only looks it up.** `TCPNETINIT` -> `SKPOPENPOR` (net flag) -> `PORTOPEN` -> `PORTCREATE`
+      (port type 2 -> `PO100PORTS`, the ND-100-facing pool) -> `PONAREGIST`. Port type 0/1 goes to
+      `POPIOCPORT` (on-card only). Plate comments set on `TCPNETINIT`, `PO100PORTS` @0x2692C.
+- [x] The MA command-port dispatch enumerated - `MACMDPORTH` @0x6D2E, table
+      `tbl_maCommandDispatch` @0x24A86 (27 entries, only EVEN opcodes populated; odd -> error
+      0x727C). Opcodes 0,2,4,6,8,10,12,14,22,24,26. **Opcode 12 @0x7096 = DEFINE/ADD MULTICAST
+      ADDRESS** (verified, corrects the old "set DIX mode" label - see the strike-through above),
+      opcode 14 @0x7162 = REMOVE MULTICAST. This is the on-card AIP(IP)->MA seam, a 6-bit opcode
+      space, NOT the XMSG EXMTY 128..132 family and NOT the `*ENUM` XMSG server (which is a separate
+      product, absent from both images - explains the no-ENUM-string scan).
+- [ ] Decode the remaining AIP request blocks: attach, start, stop = opcodes 22/24/26 @0x71EA /
+      0x6FF2 / 0x7050 (partly decoded).
 - [ ] Fold the results into `WRITING-A-TCPIP-STACK-ON-SINTRAN.md` part 4.
+
+Full cross-check against the NDIX (ND-500 Unix, 1988) source is in
+`SINTRAN\XMSG\DOC\NDIX-XMSG-VS-SINTRAN-ETHII-CROSSCHECK-FINDINGS-2026-08-08.md` (sections 4a, 4b);
+the RetroCore decoder `MON_200_XMSG.cs` now carries the func 45/48 version-gate and `XFRMR`
+annotations.
 
 ### Phase 3 - D02 bank 0 (independent, needs only the emulator)
 

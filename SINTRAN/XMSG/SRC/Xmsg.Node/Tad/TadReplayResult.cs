@@ -7,7 +7,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
     /// The result deliberately separates the two things a server does: the VERIFIED secure
     /// delivery ACK (always producible for a data frame) and the application-level RESPONSE
     /// (only known when the exact input was recorded from the capture). When
-    /// <see cref="HasRecordedResponse"/> is <c>false</c> the server did not fabricate a reply —
+    /// <see cref="HasRecordedResponse"/> is <c>false</c> the server did not fabricate a reply -
     /// <see cref="Note"/> explains that the input was never observed.
     /// </remarks>
     public sealed class TadReplayResult

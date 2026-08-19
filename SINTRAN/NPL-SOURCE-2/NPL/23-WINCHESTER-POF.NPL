@@ -1,0 +1,1534 @@
+032447  % 
+032447  % *"8WDIS+8WDIM+8ZWDI
+032447  "8WDIS+8WDIM+8ZWDI
+032447  % 
+
+032447  % *)9SLPL
+032447  )9SLPL
+032447   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+032447   %                                                                                 %
+032447   %   FILE NAME   : WINCHESTER:NPL                                                  %
+032447   %   PROGRAM NO. : HUT-2475 A.6                                                    %
+032447   %   ISSUED      : 82.02.18             BY: DG AND TP                              %
+032447   %                                                                                 %
+032447   %   LAST CHANGED: 83.10.03             BY: MJH                                    %
+032447   %   LAST CHANGED: 85.09.04             BY: KGT USE AD-REG FOR SECTOR ADDRESS      %
+032447   %                                                                                 %
+032447   % T R A N S F E R   R O U T I N E   F O R    8"   W I N C H E S T E R    D I S K  %
+032447   %                                                                                 %
+032447   % INCLUDING BAD TRACK REALLOCATION, BUT NO ERROR CORRECTION                       %
+032447   %                                                                                 %
+032447   %                                                                                 %
+032447   %                                                                                 %
+032447   % CALLING SEQUENCE:                                                               %
+032447   %      JPL I (WIDIS          % OR  JPL I (ZWDIS  IF SWAP DRIVER                   %
+032447   %      JMP   ERROR           % ERROR    EXIT                                      %
+032447   %      JMP   BUSY            % BUSY     EXIT                                      %
+032447   %      JMP   FINIS           % FINISHED EXIT                                      %
+032447   %                                                                                 %
+032447   % CALLING PARAMETERS:                                                             %
+032447   %      X-REG = NUMBER OF SECTORS TO TRANSFER                                      %
+032447   %      T-REG (BIT 0-5)  = FUNCTION CODE:                                          %
+032447   %                          0 - READ                                               %
+032447   %                          1 - WRITE                                              %
+032447   %                          2 - READ PARITY                                        %
+032447   %                          3 - COMPARE                                            %
+032447   %                         20 - READ STATUS                                        %
+032447   %             BIT  6-7  = UNIT NUMBER                                             %
+032447   %             BIT     8 = TRACK TEST                                              %
+032447   %             BIT     9 = NOT USED                                                %
+032447   %             BIT    10 = LATE DATA STROBE 
+032447   %             BIT 11-13 = NOT USED                                                %
+032447   %             BIT    14 = EARLY DATA STROBE                                      %
+032447   %             BIT    15 = BAD TRACK                                               %
+032447   %      AD-REG = SECTOR ADDRESS (LOGICAL)                                           %
+032447   %                                                                                 %
+032447   %      THE MEMORY ADDRESS (24 BITS) IS FOUND IN THE DATAFIELD DOUBLE WORD CMAD1   %
+032447   %                                                                     AND CMAD2   %
+032447   %                                                                                 %
+032447   %                                                                                 %
+032447   % RETURN INFORMATION:                                                             %
+032447   %      ERROR    EXIT: X = HARDWARE STATUS                                         %
+032447   %      BUSY     EXIT: THE ROUTINE MUST BE CALLED AFTER INTERRUPT                  %
+032447   %      FINISHED EXIT: X = HARDWARE STATUS                                         %
+032447   %                                                                                 %
+032447   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+032447   
+032447   *"8ZWDI -8WDIS
+"032447   
+032447   *ZWDIS, JMP   WISTA
+032450   
+032450   *"8WDIS+8WDIM
+"032450   
+032450   SYMBOL ACTIV=2 , ICERR=4 , ADDMI=10 , ONCYL=16 , TEST=10
+032450   
+032450   % LOCAL VARIABLES IN DRIVER ------------------------------------------ 
+032450   
+032450   INTEGER IRETR:=-4
+032451   INTEGER 9TREG     % SAVED T-REG IN CALL
+032452   INTEGER 9AREG     % SAVED A-REG IN CALL
+032453   INTEGER 9DREG     % SAVED D-REG IN CALL
+032454   INTEGER 9XREG     % SAVED X-REG IN CALL
+032455   INTEGER SSTAT     % SAVED HARDWARE STATUS
+032456   TRIPLE SATAD=9TREG
+032456   
+032456   
+032456   % DATA FIELD VARIABLES USED BY THE DRIVER:
+032456   %
+032456   % ADMIA      SAVED ADDR MISMATCH BLOCK ADDR
+032456   % ADMIS      SAVED ADDR MISMATCH STATUS
+032456   % ALTPO      ADDRESS OF ALTERNATIVE TRACK POINTER
+032456   % BADDR      BAD ADDR
+032456   % BADIP      BAD ADDR IN PROCESS (EXTRA ADDRESS BIT)
+032456   % BADTR      BAD TRACK FLAG
+032456   % BUSFL      BUSY FLAG
+032456   % CMAD1      MEM ADDR
+032456   % CMAD2       "   "
+032456   % ERRC1      RETRY COUNTER
+032456   % HDEV       DEVICE NUMBER (0500,0510)
+032456   % HTABL(2)   DISK DESCRIPTOR TABLE
+032456   % LCYLI(2)   LAST CYLINDER
+032456   % NOSEC      NO. OF SECTORS IN TRANSFER
+032456   % RTZFL      RETURN-TO-ZERO FLAG
+032456   % SEEKF      SEEK FLAG
+032456   % SHEAD      HEAD NO.
+032456   % SSEC       NO. OF SECTORS IN LAST TRANSFER
+032456   % SSTEP      SAVED LAST STEP COUNT
+032456   % SVLBB      SAVED DISK ADDR (CYLINDER AND SECTOR)
+032456   % SVLCA      SAVED LEAST MEM ADDR
+032456   % SVLCO      SAVED CONTROL WORD
+032456   % SVLWC      SAVED WORD COUNT
+032456   % TRTZ       RETURN-TO-ZERO FLAG
+032456   % WANKN      SAVED MOST MEM ADDR
+032456   
+
+032456   % DISK TYPE SPECIFICATION:   -------------------------------------------
+032456   
+032456   INTEGER WSECW        % WORDS/SECTOR
+032457   INTEGER WSECT        % SECTORS/TRACK
+032460   INTEGER WSECY        % SECTORS/CYLINDER
+032461   INTEGER WMXCY        % MAX CYL. VALUE
+032462   TRIPLE  DISDE=WSECW
+032462   DISP 0 ; TRIPLE CDISD ; INTEGER CMAXC ; PSID
+032462   INTEGER STAT1=?
+032462   INTEGER STAT3=?
+032462   
+032462   *"8ZWDI -8WDIS
+"032462   
+032462   *)KILL WSECW WSECT WSECY WMXCY
+032462   
+032462   *"2W1U0+2W2U0 8ZWDI -8WDIS
+"032462   
+032462   *WSECW, 01000
+032463   *WSECT, 011
+032464   *WSECY, 110      
+032465   *WMXCY, 01775
+032466   
+032466   *"3M1U0+3M2U0 8ZWDI -8WDIS
+"032466   
+032466   % DRIVER INITIALIZE ------------------------------------------------
+032466   
+032466   SUBR WIDIS
+032466   
+032466   % IOX DISPLACEMENTS:
+032466   
+032466   SYMBOL RMAR=0       % READ MEMORY ADDRESS REGISTER
+032466   SYMBOL LMAR=1       % LOAD MEMORY ADDRESS REGISTER
+032466   SYMBOL RSEEK=2      % READ SEEK CONDITION         
+032466   SYMBOL LDAD=3       % LOAD DISK   ADDRESS REGISTER
+032466   SYMBOL RSTAT=4      % READ HARDWARE STATUS
+032466   SYMBOL LCONT=5      % LOAD CONTROL WORD
+032466   SYMBOL RDAD=6       % READ DISK ADDRESS REGISTER
+032466   SYMBOL LWORD=7      % LOAD WORDCOUNT
+032466   SYMBOL IOXIN=164500 % IOX 500 DISC SYSTEM 1
+032466   SYMBOL IOXRS=164004
+032466   
+032466   *"8WDIM
+"032466   
+
+032466   %        WDISC:
+032466   %  >>>>>>>>>>>>V
+032466   %              V
+032466   %              V
+032466   %   -----------V----------------- YES
+032466   %   * IS IOX STAT1 OR IOX CONT4 >>>>>>>>>>>>>>>>>>>V
+032466   %   * WRONG                     *                  V
+032466   %   -----------V-----------------          --------V------------
+032466   %              V NO                        * GENERATE AL IOX'S *
+032466   %              V                           --------V------------
+032466   %              V                                   V
+032466   %              V<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+032466   %              V
+032466   %   -----------V---------------------
+032466   %   * READ STATUS. SAVE IT IN SSTAT *
+032466   %   -----------V---------------------
+032466   %              V
+032466   %         -----V---- YES 
+032466   %         * BUSY ? >>>>>>>> WBUSY:
+032466   %         -----V----
+032466   %              V NO
+032466   %         -----V--------- YES 
+032466   %         * ON CYLINDER ? >>>>>>>> RETZ:
+032466   %         -----V---------
+032466   %              V NO
+032466   %     NO  -----V-------- YES
+032466   %    <<<<<< BUSFL><0 ? >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+032466   %    V    --------------                                  V
+032466   %    V                                                    V
+032466   %  --V-------------------------------------   ------------V------------
+032466   %  * SELECT UNIT AND READ STATUS AND SAVE *   * INCLUSIVE OR OF ERROR * YES
+032466   %  * RESET SEEKF, BADTR, RTZFL AND TRTZ   *   * IN STATUS ?           >>>>>>>> IERR:
+032466   %  --V-------------------------------------   ------------V------------
+032466   %    V                                                    V NO
+032466   %    V                                             -------V----- YES
+032466   %  --V-------------                                * TRTZ><0 ? >>>>>>>> DSEEK:
+032466   %  * IS OPERATION *                                -------V-----
+032466   %  * READ STATUS  * YES                                   V NO
+032466   %  * (20) ?       >>>>>>>>>> DFIN:                 -------V------ YES 
+032466   %  --V-------------                                * SEEKF><O ? >>>>>>> RWDIS:
+032466   %    V NO                                          -------V------
+032466   %  --V-------------                                       V NO
+032466   %  * IS OPERATION * YES                         ----------V-------------- NO 
+032466   %  * >=4 ?        >>>>>>> DILLC:                * MAR=OLDMAR+OLDWORDC ? >>>>>>> MEMER:
+032466   %  --V-------------                             ----------V--------------
+032466   %    V NO                                                 V YES
+032466   %    V                                                ----V--------- YES
+032466   %    V                                                * BADTR><0 ? >>>>>>>> DBAD:
+032466   %    V                                                ----V---------
+032466   %    V                                                    V NO
+032466   %    V>>>>>>>>>>>>>>>>V<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<V
+032466   %                     V 
+032466   %                 ----V---- YES 
+032466   %                 * X=0 ? >>>>>>> DFIN:
+032466   %                 ----V----
+032466   %                     V NO
+032466   %                     V>>>>>>>>>> DSEEK:
+032466   
+
+032466   WISTA: TAD=:SATAD ; X=:9XREG           % SAVE T,A,D,X
+032470   
+032470   *"8WDIS+8WDIM
+"032470   
+032470          IF A:=HDEV+IOXRS-STAT1><0 OR A+STAT1-STAT3><0    % TEST FIRST & LAST IOX  
+032476             THEN                                                        % IF NOT INITIALIZED THEN DO SO
+032477               A:=HDEV+IOXRS  ; * STA    STAT1; STA    STAT2; STA I (STAT3
+032504               A+"LDAD-RSTAT" ; * STA I (DAD1 ; STA I (DAD3
+032507               A+"RDAD-LDAD"  ; * STA I (DAD2
+032511               A+"LMAR-RDAD"  ; * STA I (LMAR1; STA I (LMAR2; STA I (LMAR3; STA I (LMAR4
+032516               A+"LCONT-LMAR" ; * STA    CONT1; STA    CONT2; STA I (CONT3; STA    CONT4; STA I (CONT5; STA I (CONT6
+032525               A+"LWORD-LCONT"; * STA I (WORD1; STA I (WORD2; STA I (WORD3; STA I (WORD4
+032532               A+"RMAR-LWORD" ; * STA    RMAR1; STA    RMAR2
+032535          FI
+032535   
+032535   % DRIVER MAIN ENTRY -----------------------------------------------
+032535   
+032535   *STAT1, IOXIN RSTAT                              % READ STATUS
+032536           A=:SSTAT
+032537           IF A BIT ACTIV  GO FAR WBUSY             % GO IF CONTROLLER BUSY
+032541           IF A NBIT ONCYL GO FAR RETZ              % IF NOT ON CYLINDER, ERROR, RECALIBRATE
+032543           IF T:=BUSFL><0                           % IF LAST LEAVE WAS A BUSY RETURN
+032544              THEN                                  % THEN  OLD TRANSFER IS TO BE CHECKED
+032546                IF A BIT ICERR GO     IERR          % GO IF INCLUSIVE OR OF ERRORS SET
+032550                IF A:=TRTZ><0  GO FAR DSEEK         % NEW SEEK IF LAST COMMAND WAS RECALIBRATE
+032553                IF A:=SEEKF><0 GO FAR RWDIS         % GO TO READ/WRITE ROUTINE IF SEEK FLAG SET
+032556   *RMAR1,      IOXIN RMAR                          % READ MEMORY ADDRESS REG. LOWER 16 BITS
+032557                T:=A
+032560   *RMAR2,      IOXIN RMAR                          % READ MEMORY ADDRESS REG. UPPER 8 BITS
+032561                A/\377:=:T-SVLCA
+032564                T:=T+C-1
+032566                A-SVLWC
+032567                T:=T+C-1
+032571                A:=:T-WANKN
+032573                IF A><0 OR T><0 GO FAR MEMER        % MEMORY ADDRESS ERROR
+032576                IF A:=BADTR><0  GO FAR DBAD         % GO TO BAD TRACK ROUTINE          
+032601              ELSE                                  % ELSE NEW TRANSFER
+032602                A:=9TREG/\300 SHZ 3 BONE 4
+032606   *CONT1,      IOXIN LCONT                         % SELECT UNIT, CLEAR DISC UNIT
+032607   *CONT2,      IOXIN LCONT                         % CLEAR DISC INTERFACE
+032610   *STAT2,      IOXIN RSTAT                         % READ STATUS
+032611                A=:SSTAT
+032612                0=:SEEKF=:BADTR
+032614                0=:RTZFL=:TRTZ=:NOSEC
+032617                IF A:=77/\9TREG-20=0 GO FAR DFIN    % GO IF READ STATUS COMMAND
+032624                IF A+14>=0           GO FAR DILLC   % GO IF ILLEGAL COMMAND
+032627          FI
+032627          IF X=0 GO FAR DFIN                        % GO IF ALL WORDS TRANSFERRED, FINISHED  !!!!!!!!
+032631          0=:BADIP
+032632          GO FAR DSEEK                              % EXECUTE SEEK
+032633   
+032633   *)FILL
+032672   
+
+032672   % ROUTINE TO HANDLE DISK STATUS ERROR -------------------------------
+032672   %
+032672   %      >>>>>>>>>>>>>>>>V
+032672   %                IERR: V
+032672   %            ----------V----------
+032672   %            * CLEAR DEVICE      *
+032672   %            ----------V----------
+032672   %                      V
+032672   %            ----------V---------- YES
+032672   %            * 9TREG BIT TEST    >>>>>>>> HDERR:
+032672   %            ----------V----------
+032672   %                      V NO
+032672   %            ----------V---------- YES
+032672   %            * SEEKF><0 ?        >>>>>>>> RETZ:
+032672   %            ----------V----------
+032672   %                      V NO
+032672   %            ----------V---------- YES
+032672   %            * TRTZ><0 ?         >>>>>>>> HDERR:
+032672   %            ----------V----------
+032672   %                      V NO
+032672   %         NO ----------V---------- YES
+032672   %       V<<<<< BADTR><0 ?        >>>>>>>>>>>>>>>>>>
+032672   %       V    ---------------------                V
+032672   %       V                                         V
+032672   %  -----V-----------------   ---------------------V--------------------
+032672   %  * CALCULATE THE VALUE *   * STEP THE BLOCK ADDRESS TO POINT TO THE *
+032672   %  * OF 9XREG PRIOR TO   *   * NEXT SECTOR ON THE BAD TRACK. DID THAT * YES
+032672   %  * LAST TRANSFER       *   * GIVE A TO BIG SECTOR NO. ?             >>>>>>>V 
+032672   %  -----V-----------------   ---------------------V--------------------      V
+032672   %       V                                         V NO                       V
+032672   %  -----V--------------                           V           ---------------V----------------
+032672   %  * HAS AL RETRYS    * NO                        V           * RESTORE BLOCK ADD AND STATUS *
+032672   %  * BEEN DONE (ERRC1)>>>>>>> RWDIS:              V           * OF THE ORIGINAL ERROR        *
+032672   %  -----V--------------                           V           ---------------V----------------
+032672   %       V YES                                     V                          V
+032672   %  -----V------------                             V                          V
+032672   %  * RESET RETRIES  *                             V                          V>>>>>> RETZ:
+032672   %  * (IRETR=:ERRC1) *                             V           
+032672   %  -----V------------                             V           
+032672   %       V                                         V           
+032672   %  -----V----------------                         V           
+032672   %  * WAS THE ERROR      * NO                      V           
+032672   %  * ADDRESS MISMATCH ? >>>>> RETZ:               V
+032672   %  -----V----------------                         V
+032672   %       V YES                                     V
+032672   %  -----V-----------------------------------      V
+032672   %  * SSTAT=:ADMIS. READ FAILING BLOCK ADD. *      V
+032672   %  * FROM THE INTERFACE. SAVE IT IN ADMIA. *      V
+032672   %  * CALCULATE BLOCK ADDRESS FOR THE FIRST.*      V
+032672   %  * SECTOR ON THAT TRACK.                 *      V
+032672   %  * SET AND BADIP BADTR><0.               *      V
+032672   %  -----V-----------------------------------      V
+032672   %       V                                         V
+032672   %       >>>>>>>>>>>>>>>>>>>V<<<<<<<<<<<<<<<<<<<<<<<
+032672   %                          V
+032672   %               -----------V----------------------
+032672   %               * LOAD BLOCK ADDRESS             *
+032672   %               * LOAD MAR WITH ADDRESS OF ALTPO *
+032672   %               * LOAD WORDC WITH 1.             *
+032672   %               * SET BIT 15 IN T (SEEK)         >>>>>>> WDACT:
+032672   %               ----------------------------------
+032672   
+
+032672   
+032672   IERR:   A:=20
+032673   *CONT4, IOXIN LCONT                           % DEVICE CLEAR
+032674           IF A:=9TREG BIT TEST GO FAR HDERR     % IF TEST SPECIFIED, NO ERROR HANDLING
+032677           IF A:=SEEKF><0       GO RETZ          % IF THE ERROR OCCURED DURING SEEK DO RETURN TO ZERO ZEEK
+032701           IF A:=TRTZ ><0       GO FAR HDERR     % IF RETURN TO ZERO SEEK ALREADY HAS BEEN DONE, ERROR RETURN
+032704           IF A:=BADTR><0                        % IF BAD TRACK FLAG SET THEN
+032705              THEN                               % TRY NEXT SECTOR ON THE TRACK
+032706                T:=BADDR+1                       % ERROR IN ALTERNATIVE ADDRESS FETCH INCR. SECT. ADDR. TO FIND A GOOD SECTOR
+032710                IF A:=37/\T-WSECT>=0             % TEST LEGAL SEC. COUNT
+032713                   THEN                          % THEN ALL SECTORS ON THE TRACK TRIED
+032714                     A:=ADMIA=:SVLBB             % REPORT THE ORIGINAL ERROR
+032716                     A:=ADMIS=:SSTAT
+032720                     GO RETZ
+032721                FI
+032721                A:=T                             % BLOCK ADDRESS OF NEXT SECTOR IN A
+032722              ELSE
+032723                A:=9XREG+NOSEC=:9XREG=:X         % RESTORE X AND 9XREG 
+032727                MIN ERRC1 ; GO FAR RWDIS         % DO AL RETRIES FIRST
+032731                A:=IRETR=:ERRC1                  % RESTORE RETRY COUNTER
+032733                IF A:=SSTAT NBIT ADDMI GO RETZ   % NOT ADDRESS MISMATCH,  RECALIBRATE  !    
+032736                A=:ADMIS                         % SAVE ADDRESS MISMATCH STATUS IN CASE OF REAL ADDRESS MISMATCH
+032737                A:=100000=:BADTR=:BADIP          % SET BAD TRACK FLAG
+032742   *DAD2,       IOXIN RDAD                       % READ LAST DISK ADDRESS
+032743                A-1=:ADMIA                       % SAVE FAILING BLOCK ADDRESS REG IN CASE OF REAL ADDRESS MISMATCH
+032745                A/\177740                        % BACK TO FIRST SECTOR ON THE TRACK
+032746                                                 % IT IS AN ADDRESS MISMATCH, TRY BAD TRACK BIT
+032746           FI
+032746   *DAD3,  IOXIN LDAD                            % LOAD FAILING ADDRESS
+032747           A=:BADDR 
+032750           A:=0=:WANKN
+032752   *LMAR3, IOXIN LMAR                            % LOAD UPPER MEM. ADDR.
+032753           A:="ALTPO"+B=:SVLCA
+032756   *LMAR4, IOXIN LMAR                            % LOAD LOWER MEM. ADDR.
+032757           A:=1=:SVLWC
+032761   *WORD4, IOXIN LWORD                           % LOAD WORD COUNT = 1 SECTOR
+032762           T:=100000                             % SET BAD TRACK BIT IN COMMAND
+032763           GO FAR WDACT                          % TRY TO READ FAILING SECTOR WITH BAD TRACK BIT SET
+032764   
+
+032764   % ROUTINE TO DO RETURN TO ZERO SEEK       ------------------------------      
+032764   
+032764   RETZ:   IF A:=RTZFL><0 GO FAR HDERR      % RECALIBRATE ALREADY DONE ?
+032767           0=:BADTR=:SEEKF=:SHEAD=:BADIP    % RESET BAD TRACK FLAG
+032773           A:=9TREG SHZ 10 SHZ -16 =:X      % UNIT INTO X
+032777           0=:LCYLI(X)                      % CLEAR CYLINDER NO IN BASE FIELD
+033000           A:=IRETR=:ERRC1                  % RESET RETRY COUNT
+033002           T:=34000                         % RETURN TO ZERO SEEK, RECALIBRATE
+033003           T=:RTZFL=:TRTZ                   % SET RECALIBRATE AND FLAG
+033005           GO FAR WDACT                     % ACTIVATE
+033006   
+
+033006   % ROUTINE TO GET ALTERNATIVE DISK ADDRESS ------------------------------      
+033006   
+033006   % ENTER HERE WHEN A SECTOR CONTAINING POINTERS TO THE ALTERNATIVE TRACK
+033006   % IS READ CORRECT
+033006   % PICK UP THE POINTER TO THE ALTERNATIVE TRACK FROM THE FIRST WORD IN THE MEMORY BUFFER
+033006   % FIND THE CYLINDER PART OF THE POINTER. SUBTRACT IT FROM THE CURRENT CYLINDER (LCYLI)
+033006   % THE DIFFERENCE (NO. CYLINDERS TO SEEK) IS WRITTEN OUT AS WORD COUNT.
+033006   % STORE THE NEW CYLINDER NO. IN LCYLI.
+033006   % FIND THE ALTERNATIVE TRACK'S HEAD NO., AND STORE IT IN SHEAD.
+033006   
+033006   DBAD:   T:=ALTPO                       % T <== ALTERNATIVE DISK CYL. ADDR.            
+033007           A:=9TREG SHZ 10 SHZ -16=:X     % UNIT NO. IN X
+033013           A:=T ; AD SHZ -5               % HEAD INTO UPPER 5 BITS OF D, CYLINDER IN A
+033015           A-LCYLI(X)                     % A <== NO. OF CYL'S TO GO
+033016   *WORD3, IOXIN LWORD
+033017           T SHZ -5 =:LCYLI(X)            % NEW CYL. ADDR. AFTER THIS SEEK
+033021           A:=0 ; AD SHZ 5 ; A=:SHEAD     % HEAD TO USE ON ALT TRACK
+033024           A:=-1=:SEEKF                   % SET SEEK FLAG
+033026           0=:BADTR                       % RESET BAD TRACK FLAG
+033027           T:=60000                       % SEEK COMMAND
+033030           GO WDACT                       % ACTIVATE
+033031   
+033031   *)FILL
+033046   
+
+033046   % ROUTINE TO SEEK ON DISK ---------------------------------------------          
+033046   
+033046   INTEGER TEMPX
+033047   
+033047   DSEEK:  0=:TRTZ                        % RESET RECALIBRATE FLAG
+033050           A:=9DREG=:D
+033052           A:=9TREG/\300 SHZ 3 BONE 4
+033056   *CONT5, IOXIN LCONT                    % DEVICE CLEAR
+033057   *CONT6, IOXIN LCONT                    % DEVICE CLEAR
+033060           A:=9AREG 
+033061           X-1;D+X;IF C THEN A+1;FI; X+1  % AD= LAST LOGICAL DISK ADDR.
+033067           T:=WSECY ; * RDIV ST % A<= CYL. NO.    D<= NO. OF SEC'S IN LAST CYL
+033071           IF A>>T:=WMXCY GO LAOUR        % GO IF WANTED LOGICAL ADDRES>MAX LOGICAL ADDRESS
+033074           X=:TEMPX
+033075           T:=9TREG SHZ 10 SHZ-16=:X      % UNIT NO. IN X
+033101           T:=LCYLI(X)
+033102           A=:LCYLI(X)
+033103           X:=TEMPX
+033104           A-T ; * BLDC 170 DA            % SAVE SEEK DIRECTION IN K
+033106           IF A<0 THEN A:=A- FI           % NEGATIVE STEP COUNT
+033110   *WORD1, IOXIN LWORD                    % LOAD WORD COUNT WITH TRACK DIFFERENCE
+033111           A=:SSTEP
+033112           A:=0 ; T:=WSECT ; * RDIV ST    % A<= HEAD NO.     D<= NO. OF SEC'S ON LAST TRACK
+033115           A=:SHEAD
+033116           A:=D+1=:SSEC
+033120           IF A:=SSTEP><0
+033121              THEN                        % IF NOT ON CORR. CYL
+033122                A=:SEEKF                  % SET SEEK FLAG
+033123                T:=20000 ; * BSTA 160 DT  % STEP COMMAND INCLUDE DIRECTION
+033125                GO WDACT                  % ACTIVATE
+033126          FI
+033126   
+
+033126   % ROUTINE TO READ OR WRITE ON DISK -----------------------------------      
+033126   
+033126   
+033126   RWDIS:  0=:SEEKF                                 % RESET SEEK FLAG
+033127           T:=SSEC=:D
+033131           IF X<<T THEN T:=X FI                     % IF WHOLE TRANSFER WITHIN THIS TRACK THEN T<= NO. OF SEC'S TO TRANSFER
+033134           T=:NOSEC
+033135           X-T=:9XREG                               % X<= REMAINING SECTORS
+033137           D-T                                      % D<= FIRST SECTOR
+033140           A:=9TREG SHZ 10 SHZ -16=:X               % UNIT NO. IN X
+033144           A:=LCYLI(X) SHZ 5 \/D                    % SHIFT CYLINDER ADDR. TO CORR. POSITION COMBINE CYL. & SEC. ADDRESS
+033147   *DAD1,  IOXIN LDAD
+033150           A=:SVLBB
+033151           A:=WSECW ; X:=9XREG ; * RMPY SA DX       % AD<= REMAINING WORDCOUNT
+033154           A:=:D+CMAD2:=:D
+033157           A:=A+C+CMAD1
+033161   *LMAR1, IOXIN LMAR                               % LOAD MEMORY ADDRESS, UPPER PART
+033162           A=:WANKN
+033163           IF A-400>=0 GO MORER                     % MEMORY OUT OF RANGE
+033165           A:=D
+033166   *LMAR2, IOXIN LMAR                               % LOAD MEMORY ADDRESS, LOWER PART
+033167           A=:SVLCA
+033170           A:=T*WSECW                               % A<= WORDCOUNT
+033172   *WORD2, IOXIN LWORD
+033173           A=:SVLWC
+033174           A:=3/\9TREG SHZ 13 =:T                   % FUNCTION CODE IN T
+033200   
+033200   
+033200   % ROUTINE TO CREATE CONTROLWORD FOR ACTIVATION -----------------------  
+033200   
+033200   WDACT:  A:=SHEAD SHZ 5   ; T\/A        % SHIFT HEAD NO. TO CORR. POSITION
+033203           A:=9TREG/\142000
+033205           A\/BADIP ; T\/A         
+033207           A:=9TREG SHZ 3/\3000\/T+5      % + UNIT NO. + ACTIVATE & INT. ENABLE
+033214   *CONT3, IOXIN LCONT
+033215           A=:SVLCO
+033216   *STAT3, IOXIN RSTAT
+033217           IF A NBIT ACTIV GO CNACT       % ERROR, NOT BUSY
+033221           A=:BUSFL
+033222   WBUSY:  TAD:=SATAD ; X:=9XREG
+033224           GO RETUR                       % BUSY EXIT
+033225   *)FILL
+033242   
+
+033242   % FINISHED & ERROR EXITS ----------------------------------------------
+033242   
+033242   DFIN:   T:=9TREG
+033243           L+1 ; GO WFINI                       % FINISHED EXIT
+033245   
+033245   MORER:  T:=1   ; GO DERR                     % ATTEMPT TO USE BANK NO. >>377.         BIT  8
+033247   MEMER:  T:=4   ; GO DERR                     % CORE ADDRESS REGISTER NOT AS EXPECTED  BIT 10
+033251   LAOUR:  T:=10  ; GO DERR                     % LOGICAL ADDRESS OUTSIDE DICE DEVICE    BIT 11
+033253   DILLC:  T:=100 ; GO DERR                     % ILLEGAL CODE                           BIT 14
+033255   CNACT:  T:=200 ; GO DERR                     % CONTROLLER NOT ACTIVE AFTER ACTIVATE   BIT 15
+033257   HDERR:  T:=0                                 % HARDWARE ERROR NO ADDITIONAL STATUS
+033260   
+033260   DERR:   L-1                                  % ERROR RETURN
+033261           T SHZ 10                             % GET THE ADDITIONAL STATUS
+033262           A:=9TREG/\377 ; T\/A
+033265   WFINI:  X:=SSTAT
+033266           A:=IRETR=:ERRC1
+033270           0=:BUSFL
+033271   RETUR:  EXITA                                % GENERAL EXIT
+033272   RBUS
+033277   
+033277   *)KILL LDAD  RSTAT LCONT LWORD 9TREG 9AREG 9DREG 9XREG
+033277   *)KILL SSTAT SATAD WSECW WSECY ACTIV ICERR ADDMI ONCYL TEST
+033277   *)KILL IRETR
+033277   *)KILL WSECT WMXCY STAT1 RMAR1 RMAR2 CONT1 STAT2 CONT4
+033277   *)KILL DAD2  DAD3  LMAR3 LMAR4 WORD4 WORD3 WORD1 DAD1  LMAR1 LMAR2
+033277   *)KILL WORD2 CONT3 STAT3 DISDE CDISD CMAXC CONT2
+033277   *)KILL CONT5 CONT6
+033277   
+033277   *"8ZWDI -8WDIS
+"033277   *)KILL 9ESWP; 9ESWP=*
+033277   
+033277   *"8WDIS; 8WDIS=0
+"033277   
+033277   @EOF
+033277  
+033277   @LIB OLDX
+033277             
+033277   
+033277   %==============================================================================
+033277   % 36.22      S T A R T
+033277   %
+033277   % RT-PROGRAM FOR STARTING SINTRAN
+033277   %
+033277   
+033277   INTEGER FPS41                          % FIRST PHYSICAL PAGE FOR SEGMENT 41
+033300   
+033300   DOUBLE DSBANK=SBANK
+033300   SUBR START
+033300   INTEGER PARTIMER:=("TIMRT","1","2")
+033303   
+033303   CRWTR:       FOR X DO
+033303                  X=:D; MASSUNIT(0) SH 6\/DSKTYP+60=:XFUNC
+033312                  T:=MASSNO(X); "RPAR"; *MON 2ABST
+033315                  IF <0 THEN CALL ERRFATAL FI
+033317                  XFUNC+1=:XFUNC; "WPAR"; *MON 2ABST
+033324                  IF <0 THEN CALL ERRFATAL FI; X:=D
+033327                  AD:=DTBLCK; T:=NBLCK; D+T; A:=A+C; AD=:DTBLCK
+033334                  AD:=DFBLCK; T:=NBLCK; D+T; A:=A+C; AD=:DFBLCK
+033341                OD; EXIT
+033343   *)FILL
+033357   
+033357   INTEGER CDFADDR=?,CDBPCOLDSTART=?,CCHDEV=?
+033357   START: "DT01R"=:CDFADDR
+033361          IF HENTFLAG=0 AND LGCOLDSTART><1 THEN
+033367             CALL LOGPH
+033370             IF A=0 OR A.TYPRING NBIT 5TERM THEN 1=:LGCOLDSTART; GO L1 FI
+033400             X=:CDFADDR
+033401             T:="DBPROG"; CALL XGTDFADDR; A=:CDBPCOLDSTART
+033404             T:="DBPROG"; A:=0; CALL XSTDFADDR
+033407             X:="DT01R"; A:=0; T:="DBPROG"; CALL XSTDFADDR
+033413             T:="HDEV"; X:=CDFADDR; CALL XGTDFADDR; A=:CCHDEV
+033417             T:="CNTREG"; CALL XGTDFADDR; T:=CCHDEV+DCONT; *IOXT
+033424             GO L1; *)FILL
+033436          FI
+033436   L1:    "PARTIMER"; *MON 2INTV
+033440          "PARTIMER"; *MON 2RT
+033442   
+033442   % MAKE STSIN A BACKGROUND PROGRAM
+033442          *PIOF
+033443          1=:BACKGROUND; RTREF.ACTPRI BONE 5BACKGR=:X.ACTPRI
+033451   
+033451   % FIND BUFFER PAGE FOR MOVING OP.COM SEGMENT
+033451          T:=CORMBANK; X:=BPAG1; *LDATX DPAGP
+033454          IF A-"5BFPAGE"=0 THEN
+033456             *LDXTX DPAGL; LDATX DPAGP
+033460          ELSE
+033461             *LDATX DPAGP
+033462          FI; *PION
+033463          0=:D; A:=:D
+033465          AD SH 12=:DSBANK      % USE FIRST OR SECOND SWAP-PAGE
+033467          ABLPAGE(0)=:NBLCK
+033472          MASSNO(X); CALL LOGPH; A.TYPRING/\177774+3=:X.TYPRING
+033501          IF X."TRNSF"="BDISK" THEN                 % READ FORMAT CALL TO DRIVER
+033505             42=:XFUNC; T:=MASSNO(0); "RPAR"; *MON 2ABST
+033513          FI; GO OVER; *)FILL
+033533   
+033533   INTEGER CDFADDR,CDBPCOLDSTART,CCHDEV
+033536   INTEGER POINTER TTIF:=TTIFIELD,PTTNO:=TTNO
+033540   
+033540   OVER:
+033540   % MOVE OP.COM SEGMENT
+033540          IF HENTFLAG=0 THEN    % START AFTER ")HENT"
+033542   % MOVE PIT3 SEGMENT FROM THE SAVE SEGMENT (17) TO SEGMENT 41
+033542                "SG17".MADR*NBLCK=:T; DDBLST; D+T; A:=A+C; AD=:DFBLCK
+033552                "SG41".MADR*NBLCK=:T; DDBLST; D+T; A:=A+C; AD=:DTBLCK
+033562                X.LOGADR SHZ -10-=:X
+033566                CALL FAR CRWTR
+033567   % MOVE COMMAND SEGMENT FROM SAVE-AREA TO SEGMENT 3
+033567                "5OPSEG*5SEGSIZE+XSEGS"=:X=:L
+033572                "5FYOP"*NBLCK=:T; DDASA; D+T; A:=A+C; AD=:DFBLCK
+033601                X.MADR*NBLCK=:T; DDBLST; D+T; A:=A+C; AD=:DTBLCK
+033610                L.LOGADR SHZ -10-=:X
+033615                CALL FAR CRWTR
+033616                "SYSST"*NBLCK=:T; DDASA; D+T; A:=A+C; AD=:DFBLCK
+033625                "SG5".MADR*NBLCK=:T; DDBLST; D+T; A:=A+C; AD=:DTBLCK
+033635                "SG5".LOGADR SHZ -10 -=:X
+033642                CALL FAR CRWTR
+033643                IF LGCOLDFLAG><1 THEN
+033647                   A=:PTTNO; CDFADDR=:TTIF; CDBPCOLDSTART=:DBPCOLDSTART
+033654                FI
+033654          FI
+033654   @LIB CXCPU
+033654          GO OVFILL; *)FILL
+033674   
+033674   OVFILL:
+033674   % COPY PIT3 SEGMENT INTO MEMORY
+033674          "SG41".MADR*NBLCK=:T; DDBLST; D+T; A:=A+C; AD=:DFBLCK
+033704          X.LOGADR SHZ -10*NBLCK=:NBLCK
+033710          MASSUNIT(0) SH 6\/DSKTYP+60=:XFUNC
+033716          A:=FPS41=:D:=0; AD SH 12=:DSBANK
+033723          T:=MASSNO(X); "RPAR"; *MON 2ABST
+033726          IF A<0 THEN CALL ERRFATAL FI
+033730          ABLPAGE(0)=:NBLCK
+033733   % SET UP PAGE LINK FOR PIT3 SEGMENT
+033733          "SG41".LOGADR SHZ -10=:L
+033737          FPS41 SH 2+CORMSTART=:X.BPAGLINK
+033743          X.LOGADR/\377=:D; X:=X.BPAGLINK; T:=CORMBANK
+033750          DO WHILE L><0
+033752             A:=X+4; *STDTX DPAGL
+033755             A:=162041; *STATX DPGPR
+033757             L-1; D+1; X+4
+033762          OD; X-4; *STZTX
+033765          "SG41".FLAG BONE 5FIX=:X.FLAG
+033771   % SET UP PAGE TABLE FOR PIT3 SEGMENT
+033771          T:=CORMBANK; X.LOGADR/\77 SH 1+177600=:B; X:=X.BPAGLINK; CALL SS41IPIT
+034001          GO IOBHDLC; *)FILL
+034025   
+034025   INTEGER CLOGU,NPAGES,CPNTR,CFPAG,CLPG
+034032   INTEGER PMO61:=("5",NPAGES,CFPAG,CLPG,0,0)
+034040   INTEGER POINTER LREG
+034041   
+034041   CSUBR: A:=L=:"LREG"; X:=0
+034044          DO WHILE X<<"CUMSIZE*2"
+034047             X=:L
+034050             A:="CUMTABLE"; X+A; T:=0; *LDDTX
+034054             IF A<<=CFPAG AND D+1>>T THEN T:=D=:CFPAG FI
+034064             IF X:=CFPAG>>=CLPG GO LREG
+034070             IF A<<=CLPG AND A>>=CFPAG THEN A-1=:CLPG FI
+034100             X:=L+2
+034102          OD; MIN "LREG"; GO LREG
+034105   
+034105   IOBHDLC: "IOBUTAB"=:CPNTR
+034107          DO WHILE CPNTR.S0><-1
+034114             IF A BIT BIHDLC AND X.S1/\77777>>1777 THEN
+034123                A+1777 SHZ -12=:NPAGES
+034126                CPNTR.S0/\37777; CALL LOGPH
+034132                IF T:=X.S0 BIT 17 THEN A:=D FI; IF A=0 THEN CALL ERRFATAL FI
+034140                A=:CLOGU; -1=:CLPG
+034143   DOLOOP:      DO CLPG+1=:CFPAG WHILE CFPAG<<ENDPAGE
+034152                   CFPAG+77=:CLPG; CALL CSUBR; GO DOLOOP; "PMO61"; *MON 61
+034161                   GO DOLOOP; GO FOUND
+034163                OD; CALL ERRFATAL
+034165   FOUND:       T=:CLOGU.FIXID; A=:X.LWPHY=:D:=0; AD SH 12
+034173                A=:X.MASTB:=D=:X.BUFST; 1=:X.SWBUF; 0=:X.HINIF
+034201                NPAGES SH 13=:X.MAX
+034204             FI; CPNTR+2=:CPNTR
+034207          OD
+034210         GO OLDSTART       % ON OP. SEGMENT
+034211   RBUS
+034224   
+034224   %=============================================================================
+034224   %  38.10     S Y S E V A L
+034224   %
+034224   %  ROUTINE TO DEDUCT CPU/SYSTEM INFORMATION AND UPDATE THE GLOBAL
+034224   %  SINTRAN VARIABLES WITH THIS INFORMATION
+034224   %
+034224   %  A 12 WORD (14 OCTAL) ARRAY CONTAIN VARIOUS INFORMATION ABOUT THE SYSTEM.
+034224   %  THE ARRAY IS SUBDIVIDED INTO SEVERAL FIELDS FOR VARIOUS TYPE OF INFORMATION.
+034224   %  THE FOLLOWING GIVES A DETAILED DESCRIPTION OF THE INFORMATION PRESENT IN
+034224   %  THE VARIOUS ENTRIES
+034224   %
+034224   %-----------------------------------------------------------------------------
+034224   %
+034224   %  DISP  NAME            DESCRIPTION
+034224   %   
+034224   %   0    SYSNO           SYSTEM NUMBER (NORMALLY CPU NUMBER), 16 BIT INTEGER
+034224   %
+034224   %   1    HWINFI(0)       HARWARE INFORMATION
+034224   %                        LEFT BYTE = CPU TYPE
+034224   %                                    0 = NORD-10  48 BIT FLOATING
+034224   %                                    1 = NORD-10  32 BIT FLOATING
+034224   %                                    2 = ND-100   48 BIT FLOATING
+034224   %                                    3 = ND-100   32 BIT FLOATING
+034224   %                                    4 - 255  NOT USED
+034224   %                        RIGHT BYTE = INSTRUCTION SET
+034224   %                                    0 = STANDARD (NORD-10 OR ND-100)
+034224   %                                    1 = NORD-10 COMMERCIAL, ND-100/CE
+034224   %                                    2 - ND-100/CE WITH "MICRO-SEGADM"
+034224   %                                    3 - 255 NOT USED
+034224   %
+034224   %   2    HWINFO(1)       NOT USED
+034224   %
+034224   %   3    HWINFO(2)       NOT USED
+034224   %
+034224   %   4    SINVER(0)       OPERATING SYSTEM
+034224   %                        LEFT BYTE = OPERATING SYSTEM
+034224   %                                    0 = SINTRAN III VS
+034224   %                                    1 = SINTRAN III VSE
+034224   %                                    2 = SINTRAN III VSE/500
+034224   %                                    3 = SINTRAN III RTP
+034224   %                                    4 = SINTRAN III VSX
+034224   %                                    5 = SINTRAN III VSX/500
+034224   %                                    6 - 255 NOT USED
+034224   %                        RIGHT BYTE = VERSION LETTER
+034224   %                                     ASCII CHARACTER WITHOUT PARITY (A-Z)
+034224   %
+034224   %   5    SINVER(1)       NOT USED
+034224   %
+034224   %   6    REVLEV          PATCH/CORRECTION LEVEL INDICATIOR, 16 BIT INTEGER
+034224   %                        (SYSTEM DEPENDANT CODING)
+034224   %
+034224   %   7    GENDAT(0)       SYSTEM GENERATION TIME  (MINUTES)
+034224   %   8    GENDAT(1)       SYSTEM GENERATION TIME  (HOURS)
+034224   %   9    GENDAT(2)       SYSTEM GENERATION TIME  (DAY)
+034224   %  10    GENDAT(3)       SYSTEM GENERATION TIME  (MONTH)
+034224   %  11    GENDAT(4)       SYSTEM GENERATION TIME  (YEAR)
+034224   %
+034224   %-----------------------------------------------------------------------------
+034224   
+034224   SUBR SYSEVAL
+034224   
+034224   INTEGER SXREG,SBREG,STREG,AREG,SDREG
+034231   TRIPLE TADR=STREG
+034231   INTEGER POINTER SLREG
+034232   
+034232   SYSEVAL: TAD=:TADR; X=:SXREG:=B=:SBREG:=L=:"SLREG"
+034240   %  32/48 BIT FLOATING?
+034240          T:=0; A:=1; *NLZ 20
+034243          IF T=0 THEN T:=1 ELSE T:=0 FI
+034250   
+034250   %  NORD-10 OR ND-100?
+034250          A:=CPSTA/\10000 SHZ -13+T SH 10=:HWINFO(0)
+034257   
+034257   %  INSTRUCTION SET
+034257   %  COMMERCIAL INSTRUCTION SET?
+034257          *TRA IIC
+034260          A:=20; *TRR IIE
+034262          A:=0; *TRR PIE; TRR PID
+034265          A:=40000; *MST PIE
+034267          A:="CLEV14"; *IRW 160 DP; ION
+034272          T:="L1"=:L:=0; *140130; JMP *+1; TRA IIC            % BFILL
+034300   L1:    IF A=0 THEN
+034301             "L2"=:L
+034303             B:=0; D:=0; A:=0; X:=0; *142700; TRA IIC         % GECO
+034311   L2:       IF A><0 GO OUT
+034312          FI
+034312          *143500                                             % SLWCS
+034313          MIN HWINFO(0)
+034315          T:="L3"=:L; X:=0; *ICLEP; TRA IIC
+034322   L3:    IF A=0 THEN MIN HWINFO(0) FI
+034325   OUT:
+034325   *"-CXCPU
+"034325          A:=1
+034326   *"CXCPU
+"034326          IF T:=PN500D><0 THEN A+1 FI                         % ND-500 INCLUDED
+034332          A SH 10+##J                                         % VERSION LETTER
+034334          A=:SINVER(0)
+034336          *IOF; TRA IIC
+034340          A:=0; *TRR PIE; TRR PID; TRR IIC
+034344          TAD:=TADR; X:=SBREG=:B:=SXREG; GO SLREG
+034351   
+034351   % ROUTINE ON LEVEL 14 TO CHECK FOR ILLEGAL INSTRUCTION
+034351   CLEV14: *TRA IIC
+034352          IF A><4 THEN CALL ERRFATAL FI
+034356          *IRW DA; IRR DL; IRW DP
+034361          *WAIT
+034362          GO CLEV14
+034363   
+034363   RBUS
+034376   @LIB OLDX
+034376   %============================================================================
+034376   %      I N T D F I E L D S
+034376   %
+034376   % INITIALIZE THE TERMINAL DATAFIELDS
+034376   %
+034376   
+034376   INTEGER 77CBU                          % END OF "POF-RTDESC"+1
+034377   
+034377   SUBR INTDFIELDS
+034377   
+034377   INTEGER ARRAY DAMO(0)
+034377          *37
+034400   INTEGER FEB
+034401          *37;36;37;36;37;37;36;37;36;37
+034413   
+034413   @LIB CXCPU
+034413   
+034413   % COMPUTE THE NUMBER OF DAYS IN FEBRUARY THE YEAR THE SYSTEM
+034413   % IS GENERATED
+034413   INTDFIELDS:
+034413          GENDA(4)-PTBASE(X); D:=0
+034417          DO WHILE A>0
+034421             A-1; IF D+1>3 THEN D:=0 FI
+034427          OD; IF D=1 THEN 35 ELSE 34 FI; A=:FEB
+034437          X:=GENDA(3)-1; A:=DAMO(X)+1-=:MND
+034446          *PIOF
+034447          CALL CH5CPUPRESENT              % CHECK IF ND-500 CPU IS PRESENT
+034450          A:=200; *TRR IIE; TRR IIC
+034453          A:=10; *TRR ECCR; TRA IIC
+034456          IF A><0 THEN
+034457             0=:TCNTI
+034460          ELSE
+034461             A:=4; *TRR ECCR
+034463          FI; A:=0; *TRR IIE; TRA PGS; TRA PEA; TRA IIC
+034470   *"8BACS
+"034470          GO L0; *)FILL
+034500   
+034500   @LIB CXCPU
+034500   
+034500   L0:
+034500   
+034500   @LIB CXCPU
+034500   RETU:  7RTDLGADDR=:D
+034502          FOR X:=RTSTART STEP 5RTSIZE TO SEGSTART-5RTSIZE DO
+034507             A:=D=:X.RTDLGADDR+5XRTDSIZE=:D
+034513          OD
+034515          FOR X:=7RTDLGADDR TO 77CBUF-1 DO 0=:X.S0 OD
+034525          "DUMMY".STADR=:X.RTDLGADDR.DPREG
+034531          "STSIN".STADR=:X.RTDLGADDR.DPREG
+034535          "1SWAP".STADR=:X.RTDLGADDR.DPREG
+034541          GO SETPTABL
+034542   RBUS
+034552   
+034552   @LIB OLDX
+034552   
+034552   @EOF
+034552  
+
+075707   %
+
+075707   %==============================================================================
+075707   %      P I T 3 - S E G M E N T
+075707   %==============================================================================
+075707   
+075707   
+075707   *9EPT3+1777@-12@12/
+114000   *XSPT3=*
+114000   *XSPT3;XLPT3;XEPT3
+114003   *S41FP=XSPT3@-12+100
+114003   
+114003   
+114003   %============================================================================
+114003   %            P F I X C
+114003   %
+114003   % RESERVE MEMORY FOR SPECIAL USE
+114003   %
+114003   SUBR PFIXC
+114003   
+114003   DISP -200
+114003   INTEGER SGADR,FPHYS,SG1ADR,OLDFLAG
+114003   INTEGER CMMENTRY,CSEGN,STEPINCR,CCORMSTART,CECORMAP,BREG
+114003   INTEGER COLDFLAG,CINDX
+114003   INTEGER PGFOUND,PREVPGFOUND
+114003   INTEGER CFPHYS,CT,CA,CD,CLOGPAGE,CCECORMAP
+114003   INTEGER POINTER LINK
+114003   TRIPLE CTAD=CT; DOUBLE CTA=CT
+114003   INTEGER FIXFLAG
+114003   INTEGER NPAGES; INTEGER CCTINDX=NPAGES
+114003   INTEGER AFPHYS,NPARTS=AFPHYS
+114003   INTEGER ALPHYS,CPHPAGE=ALPHYS; DOUBLE ARRAY POINTER DPARTADDR=ALPHYS
+114003   INTEGER NSHARED; INTEGER POINTER RNPARTS=NSHARED; INTEGER MXMININTERVAL=NSHARED
+114003   INTEGER ARRAY POINTER ARRPNT; DOUBLE ARRAY POINTER DRETADDR=ARRPNT
+114003   DOUBLE ARRAY POINTER DARRPNT=ARRPNT
+114003   TRIPLE ARRAY POINTER FARRPNT=ARRPNT
+114003   INTEGER ARRAY POINTER PCCTAB
+114003   DOUBLE ARRAY POINTER DPCCTAB=PCCTAB
+114003   DOUBLE POINTER DCCFPA
+114003   INTEGER PREVT,PREVX
+114003   TRIPLE T5D1=NPAGES; DOUBLE D5DD4=NSHARED
+114003   INTEGER CURPAGE,CPEND; DOUBLE CCAREA=CURPAGE
+114003   INTEGER CNPAGES=CPEND, CSGNO=CPEND, CTINDX=CPEND
+114003   INTEGER CBPGLINK
+114003   INTEGER PARTINDX,RETINDX,CCPRG=PARTINDX
+114003   INTEGER POINTER RINDXADDR
+114003   INTEGER SVFLAGB
+114003   PSID
+114003   
+114003   INTEGER CBRG
+114004   
+114004   PFIXC: A:=BREG:=:B=:CBRG
+114007          CALL XTOPOFF(SRESER)                       % RESERVE "SWAPPING SYSTEM"
+114011          0=:CINDX=:PAGPN; CBRG=:B
+114015          CALL XTOPOFF(XCSEGS)
+114017          RTREF; X:="FIXCRT"; T:=0; *STATX          % CURRENT PROGRAM EXECUTING FIXC
+114023   @ICR
+114023          FIXFLAG GOSW 0F500,FAR 1F500,FAR 2F500,FAR 3F500,FAR 4F500,
+114032          FAR 5F500,FAR 6F500,FAR 7F500,FAR 10F500;
+114036   @CR;
+114036   0F500: CALL MBSREMOVE                  % REMOVE SEGMENT FROM MEMORY
+114037          NPAGES-1+FPHYS=:CURPAGE
+114043          ECORMAP=:CECORMAP
+114045          CALL SGFIXC                     % FIX SEGMENT CONTIGUOUSLY
+114046          FIXPAGES+NPAGES=:FIXPAGES
+114051          CALL XRELES
+114052          BREG=:B; IF D0 BIT 17 THEN 0=:ZAREG FI; GO RETSTUPR
+114061   *)FILL
+114103   
+114103   INTEGER CB,XINDX
+114105   INTEGER POINTER LREG
+114106   
+114106   % RELEASE ALL SWAPPING-DEVICES AND THE SWAPPING-SYSTEM
+114106   XRELES: A:=L=:"LREG"
+114110          CALL XTOPOFF(SRELES)
+114112          X:="FIXCRT"; T:=0; *STZTX
+114115          IF BACKGROUND><0 AND SVFLAGB BIT 5ESCON THEN CALL ESCON FI
+114123          GO LREG
+114124   
+114124   % REMOVE ALL PAGES OF A SEGMENT FROM MEMORY
+114124   MBSREMOVE: A:=L=:"LREG"
+114126          IF SGADR.SEGLINK><0 THEN CALL XTOPOFF(SREMOVE) FI
+114133          X.FLAG=:OLDFLAG BZERO 5OK=:X.FLAG
+114137   % REMOVE ALL PAGES CURRENTLY IN SEGMENT
+114137          DO WHILE X:=SGADR.BPAGLINK><0
+114142             T:=CORMBANK; *LDATX DPGPR
+114144             IF A BIT 5WIP THEN A:=1=:D; T:=SGADR; CALL XTOPOFF(ATRNSEG) FI
+114153             T:=SG1ADR; SGADR; CALL XLINKOVER
+114156          OD; GO LREG
+114160   *)FILL
+114166   
+114166   %      ALLOCATE MEMORY FOR NORD-500
+114166   1F500:
+114166   500FIXC: CORMSTART=:CCORMSTART; AFPHYS=:CURPAGE
+114172   %      FIND POSSIBLE AREA FOR NORD-500 SEGMENT
+114172   XLOOP: X:=CCORMSTART; CURPAGE=:FPHYS; 0=:PGFOUND
+114176   % SEARCH ALL PAGES IN MEMORY-MAP
+114176          DO
+114176             T:=CORMBANK; *LDDTX DPGPR
+114200             X=:CMMENTRY
+114201             IF D=CURPAGE THEN
+114204                IF A/\377=0 OR A>>SGMAX GO NEWSTART
+114211                A=:CSEGN*5SEGSIZE+SEGSTART=:SGADR
+114215                IF A.FLAG BIT 5FIX THEN
+114221                   CALL TSTSHARED; GO 5ERR; GO NEWSTART
+114224                FI; GO PGOK
+114225             ELSE
+114226                IF D>>T GO CHRTC
+114230             FI
+114230   INLOOP: WHILE X:=CMMENTRY<<ECORMAP
+114234             X+4
+114235          OD
+114236   CHRTC: X:=0=:CSEGN
+114240   % CHECK RT-COMMON
+114240          DO AD:=DPCCTAB(X) WHILE A><-1
+114244             IF D=CURPAGE THEN
+114247                A/\377=:T; AD:=DCCFPA
+114252                IF A-100=0 GO NEWSTART; A+200; D BONE 6
+114256                IF T<A OR T>D GO NEWSTART
+114262                CALL TSTSHARED; GO 5ERR; GO NEWSTART; CMMENTRY-4=:CMMENTRY; GO PGOK
+114271             FI; X+2
+114272          OD; GO NEWSTART
+114274   
+114274   5ERR:  A=:BREG.ZAREG; CALL XRELES; BREG=:B; GO RETSTUPR
+114302   *)FILL
+114315   
+114315   % CURRENT AREA NOT AVAILABLE, START AFTER LAST CHECKED PAGE IF POSSIBLE
+114315   NEWSTART: MIN CURPAGE
+114316          IF CURPAGE-1+NPAGES>>ALPHYS THEN   % NO AREA AVAILABLE FOR NORD-500
+114324                A:=0; GO 5ERR FI
+114326          CMMENTRY=:CCORMSTART; GO XLOOP
+114331   
+114331   % THIS PAGE IS AVAILABLE
+114331   PGOK:  MIN PGFOUND; MIN CURPAGE
+114333          IF PGFOUND><NPAGES GO INLOOP   % ALL NEEDED PAGES NOT YET FOUND
+114337   % AREA FOR NORD-500 SEGMENT IS FOUND
+114337          IF CMMENTRY><ECORMAP THEN A+4 FI; A=:CCECORMAP
+114345          FPHYS=:AFPHYS+NPAGES-1=:ALPHYS  % PHYSICAL ADDRESSES OF NORD-500 AREA
+114352          IF FIXFLAG=4 THEN
+114356             AFPHYS=:FPHYS+NPAGES-1=:CURPAGE
+114363             CSGNO*5SEGSIZE+SEGSTART=:SGADR
+114367             CALL 5SGFIXC; FIXPAGES+NPAGES=:FIXPAGES
+114373             AFPHYS; GO FAR OKRET; *)FILL
+114403          ELSE
+114404             IF A=5 THEN
+114407                AFPHYS=:FPHYS+NPAGES-1=:CURPAGE
+114414                CTINDX+1=:SGADR; CALL 5SGFIXC
+114420                CTINDX=:BREG.ZTREG; X:=CTINDX+1; RTREF=:FXCTAB(X)
+114427                AFPHYS; GO FAR OKRET
+114431             FI
+114431          FI; 0=:CINDX
+114432   %  TEST IF THE SHARED AREAS ARE OF CORRECT SIZE AND IF THEY ARE PLACED
+114432   %  IN CORRECT PHYSICAL ADDRESSES
+114432   LOOP2: IF CINDX=NSHARED GO FAR FINEX   % FOR CINDX DO WHILE CINDX><NSHARED
+114436             CINDX*3=:X                   % ; TAD:=FARRPNT(X)=:CTAD
+114441             T:=0; A:="FARRPNT"; X+A; *LDDTX 
+114445             AD=:CTA; *LDATX 20
+114447             A=:CD
+114450             IF SGMAX<<CT THEN 311; GO 5ERR FI      % ILL. SEGM. NO.
+114456             IF T=0 THEN                  % RT-COMMON
+114460                IF CCFPA=100 THEN 302; GO 5ERR FI   % NO RT-COMMON
+114466                A+100=:CLOGPAGE
+114470                IF CCLPA-CCFPA+1><CD THEN 312; GO FAR 5ERR FI % RT-C SIZE DOES NOT MATCH
+114500                AFPHYS+CA=:CURPAGE; 0=:PGFOUND
+114504   LOOP1:       X:=0; PGFOUND=:PREVPGFOUND
+114507                DO AD:=DPCCTAB(X) WHILE A><-1
+114513                   IF A/\377=CLOGPAGE THEN
+114517                      IF D><CURPAGE THEN 303; GO FAR 5ERR FI  % RT-C IN ILL. PHYS ADDRESS
+114524                      MIN PGFOUND
+114525                      IF CLOGPAGE=CCLPA+100 THEN
+114532                         IF PGFOUND><CD THEN 314; GO FAR 5ERR FI % RT-C NOT CONTIGOUS
+114540                         GO FAR NEXT
+114541                      FI; MIN CURPAGE; MIN CLOGPAGE
+114543                   FI; X+2
+114544                OD; IF PGFOUND><PREVPGFOUND GO LOOP1
+114551                304; GO FAR 5ERR; *)FILL      % ERROR IN LINKING TO RT-COMMON
+114575             ELSE
+114576                A:=T*5SEGSIZE+SEGSTART=:X
+114602                IF X.FLAG BIT 5DEMAND THEN A:=T SH 10+313; GO FAR 5ERR FI
+114611                IF X.LOGADR SHZ -10><CD THEN CT SH 10+316; GO FAR 5ERR FI
+114622                IF X.FLAG BIT 5FIX THEN
+114625                   AFPHYS+CA=:CURPAGE
+114630                   IF X:=X.BPAGLINK=0 THEN CT SH 10+305; GO FAR 5ERR FI
+114637                   DO
+114637                      T:=CORMBANK; *LDATX DPAGP
+114641                      IF A><CURPAGE THEN CT SH 10+307; GO FAR 5ERR FI
+114650                      MIN CURPAGE; T:=CORMBANK; *LDXTX DPAGL
+114653                   WHILE X><0
+114654                   OD
+114655                FI
+114655             FI
+114655   NEXT:  CINDX+1=:CINDX; GO FAR LOOP2
+114661   FINEX: 0=:CINDX
+114662   % MOVE ALL SHARED SINTRAN III SEGMENTS, NOT YET FIXED, FROM MEMORY
+114662          FOR CINDX DO WHILE CINDX><NSHARED
+114666             A*3=:X
+114670             "ARRPNT"; X+A; T:=0; *LDATX            % IF ARRPNT(X)><0 THEN
+114674             IF A><0 THEN
+114675                A*5SEGSIZE+SEGSTART=:SGADR; CALL MBSREMOVE
+114701             FI
+114701          OD
+114703          0=:CINDX=:CLOGPAGE
+114705          IF NSHARED><0 THEN
+114707             A*3=:X; "ARRPNT"; X+A; T:=0; *STZTX    % 0=:ARRPNT(X) FI
+114715          FI; GO RM500; *)FILL
+114731   % RESERVE THE MEMORY AREA FOR NORD-500 SEGMENT
+114731   RM500: FOR CINDX DO WHILE CINDX><NSHARED
+114735             CINDX*3=:X; T:=0; "FARRPNT"; X+A; *LDDTX   % TAD:=FARRPNT(X)=:CTAD
+114744             AD=:CTA; *LDATX 20
+114746             A=:CD; TAD:=CTAD
+114750             IF A><CLOGPAGE THEN
+114753   % NOT SHARED AREA, LINK TO NORD-500 PAGELINK
+114753                A-T=:CNPAGES-1+CLOGPAGE+AFPHYS=:CURPAGE
+114761                CLOGPAGE+AFPHYS=:FPHYS; 0=:SGADR
+114765                CALL 5SGFIXC; CLOGPAGE+CNPAGES=:CLOGPAGE
+114771             FI
+114771             IF CT=0 THEN                 % RT-COMMON
+114773                CLOGPAGE+CD=:CLOGPAGE
+114776             ELSE
+114777                A*5SEGSIZE+SEGSTART=:SGADR=:X
+115003                IF X.FLAG NBIT 5FIX THEN  % SHARED SEGMENT NOT YET FIXED
+115006                   CA+AFPHYS=:FPHYS+CD-1=:CURPAGE
+115014                   CALL 5SGFIXC            % FIX SEGMENT
+115015                   CD+FIXPAGES=:FIXPAGES
+115020                   NSHARED*3=:X=:D; T:=0; "ARRPNT"; X+A       % MIN ARRPNT(X); ARRPNT(X); X+A
+115027                   *LDATX; AAA 1; STATX
+115032                   X:=A+D                                     % =ARRPNT(X)
+115034                   "ARRPNT"; X+A; CT; *STATX                  % CT=:ARRPNT(X)
+115040                FI; CLOGPAGE+CD=:CLOGPAGE
+115043             FI
+115043          OD
+115045          IF NPAGES-CLOGPAGE><0 THEN
+115050   % NOT SHARED AREA, LINK TO NORD-500 PAGLINK
+115050             A=:NPAGES; CLOGPAGE+AFPHYS=:FPHYS+NPAGES-1=:CURPAGE
+115057             0=:SGADR; CALL 5SGFIXC; PAGPN=:BREG.ZTREG; 0=:PAGPN
+115065          FI; AFPHYS
+115066   OKRET: A=:BREG.ZAREG; MIN X.ZPREG; 0/\0; CALL FAR XRELES; BREG=:B
+115075          GO RETSTUPR
+115076   
+115076   *)FILL
+115106   
+115106   
+115106   % FIND WANTED PAGES IN MEMORY-MAP, REMOVE THEM FROM THEIR CURRENT SEGMENT
+115106   % AND INSERT PAGES INTO FIXC-SEGMENT
+115106   5SGFIXC: CCECORMAP=:CECORMAP
+115110   SGFIXC: A:=L=:"LINK"
+115112          4=:STEPINCR; CORMSTART=:CCORMSTART
+115116   LOOP:  X:=CCORMSTART
+115117          DO
+115117             T:=CORMBANK; *LDDTX DPGPR
+115121             IF D=CURPAGE THEN
+115124                IF A/\377=0 GO ERR                  % PAGE NOT IN SWAPPING AREA
+115126                A*5SEGSIZE+SEGSTART=:CSEGN; X=:CMMENTRY
+115132                IF A.FLAG BIT 5FIX GO ERR           % PAGE BELONGS TO FIXED SEGM.
+115136                X:=CMMENTRY; CSEGN; CALL OUTLINK
+115141                T:=CORMBANK; *LDATX DPGPR
+115143                IF A BIT 5WIP THEN
+115145                   CSEGN.FLAG=:COLDFLAG BZERO 5OK=:X.FLAG; X:=CMMENTRY
+115153                   T:=CSEGN; A:=1=:D; CALL XTOPOFF(ATRNSEG)
+115160                   IF CSEGN.FLAG BIT 5DEMAND THEN COLDFLAG=:X.FLAG FI
+115166                FI; GO FORBI; *)FILL
+115176   FORBI:       X:=CMMENTRY; T:=SGADR; CSEGN; CALL XLINKOVER
+115202                IF CURPAGE=FPHYS GO L1
+115206                A-1=:CURPAGE
+115210                IF STEPINCR>0 THEN
+115213                   -4=:STEPINCR; CMMENTRY-4=:CCORMSTART
+115220                   T:=NPAGES-2 SH 2; A-T; A=:CECORMAP
+115225                FI; GO LOOP
+115226             FI
+115226          WHILE X><CECORMAP
+115231             A:=X+STEPINCR=:X
+115234          OD
+115235   % AREA NOT AVAILABLE
+115235   ERR:   IF FIXFLAG><0 THEN -1; GO FAR 5ERR FI
+115241          IF X:=SGADR.BPAGLINK><0 THEN
+115244             T:=CORMBANK; A:=1
+115246             DO WHILE X><0
+115247                X=:D; *STATX DPGPR; STZTX DALOG; LDXTX DPAGL
+115253             OD; "XSGRT".BPAGLINK; X:=D; *STATX DPAGL
+115260             SGADR.BPAGLINK; 0=:X.BPAGLINK; A=:"XSGRT".BPAGLINK
+115265          FI
+115265          CALL XRELES; BREG=:B
+115270          IF D0 BIT 17 THEN A:=-1; A=:ZAREG; GO RETSTUPR FI
+115276          CALL 9ERRA(#28); GO RETXIT
+115301   
+115301   L1:    IF X:=SGADR>>SEGSTART THEN
+115305             X.FLAG BONE 5FIX BONE 5OK=:X.FLAG; X.LOGADR/\377=:CURPAGE
+115314             A:=X-SEGSTART; A=:D:=0; T:=5SEGSIZE; *RDIV ST
+115322             A=:D; X.FLAG/\177400\/D=:D; X:=X.BPAGLINK
+115330             T:=CORMBANK; A:=CURPAGE
+115332   % SET CORRECT LOGICAL PAGE NUMBERS AND SEGMENT NUMBER IN CORMAP ENTRIES
+115332             DO
+115332                *STDTX DALOG
+115333                A+1; *LDXTX DPAGL
+115335             WHILE X><0
+115336             OD
+115337   % TRANSFER SEGMENT TO MEMORY
+115337             A:=SGADR.LOGADR SHZ -10
+115342             X:=X.BPAGLINK; D:=0; T:=SGADR; CALL XTOPOFF(ATRNSEG)
+115347          FI; GO LINK; *)FILL
+115364   
+115364   % TEST IF THE SHARED SINTRAN III/NORD-500 AREA ARE PLACED IN CORRECT
+115364   % PLACE IN PHYSICAL MEMORY, AND TEST IF THE AREA SIZES ARE CORRECT
+115364   TSTSHARED: 0=:CINDX
+115365          FOR CINDX DO WHILE CINDX><NSHARED
+115371             CINDX*3=:X; "FARRPNT"; X+A; T:=0; *LDATX   % TAD:=FARRPNT(X)=:CTAD
+115400             AD=:CTA; *LDATX 20
+115402             A=:CD; TAD:=CTAD
+115404             IF CSEGN=T THEN
+115407                IF A=0 THEN               % RT-COMMON
+115410                   IF CCFPA=100 THEN EXIT FI        % ERROR, NO RT-COMMON
+115415                   A+100=:CLOGPAGE; X:=0
+115420                   DO AD:=DPCCTAB(X) WHILE A><-1
+115424                      IF A/\377=CLOGPAGE THEN
+115430                         IF FPHYS+CA><D THEN EXITA FI   % WRONG SIZE
+115435                         L+1; EXITA                 % OK
+115437                      FI; X+2
+115440                   OD; 304; EXIT                    % ERROR
+115443                ELSE                                % SEGMENT
+115444                   IF X:=SGADR.BPAGLINK=0 THEN CSEGN SH 10+305; EXIT FI  % ERROR, SEG. NOT IN MEMORY
+115454                   T:=CORMBANK; *LDATX DPAGP
+115456                   A=:CLOGPAGE=:CT
+115460                   DO
+115460                      *LDATX DPAGP
+115461                      IF A><CLOGPAGE THEN CSEGN SH 10+306; EXIT FI   % ERROR, SEG. NOT CONTINUOUS
+115470                      MIN CLOGPAGE; T:=CORMBANK; *LDXTX DPAGL
+115473                   WHILE X><0
+115474                   OD
+115475                   IF CA+FPHYS><CT THEN CSEGN SH 10+307; EXIT FI   % WRONG PHYSICAL ADDRESS
+115506                   L+1; EXITA                       % OK
+115510                FI
+115510             FI
+115510          OD; EXITA                                 % NOT SHARED AREA
+115513   2F500: 0=:PARTINDX=:RETINDX=:PGFOUND; GO DO1; *)FILL
+115527   DO1:   IF PARTINDX>=NPARTS SH 1 THEN GO FAR 55ERR FI
+115535             "DPARTADDR"; X:=PARTINDX+A; T:=0; *LDDTX     % AD:=DPARTADDR(PARTINDX)
+115542             A=:FPHYS:=D=:CURPAGE; X:=ECORMAP; 0=:CPEND
+115547             T:=CORMBANK; *LDATX DPAGP
+115551             IF A<<FPHYS GO IO1ND
+115554             IF A<<CURPAGE THEN A=:CURPAGE FI
+115560   DO2:      IF X<<CORMSTART GO FAR EDO2
+115563                T:=CORMBANK; *LDDTX DPGPR
+115565                X=:CMMENTRY
+115566                IF D=CURPAGE THEN
+115571                   IF A/\377=0 OR A>>SGMAX GO NUSEPAGE
+115576                   A=:CSEGN*5SEGSIZE+SEGSTART=:SGADR
+115602                   IF A.FLAG BIT 5FIX GO NUSEPAGE
+115606                   IF CPEND=0 THEN CURPAGE=:CPEND FI
+115612                   X:=CMMENTRY; SGADR; CALL OUTLINK
+115615                   T:=CORMBANK; *LDATX DPGPR
+115617                   IF A BIT 5WIP THEN
+115621                      SGADR.FLAG=:COLDFLAG BZERO 5OK=:X.FLAG
+115626                      X:=CMMENTRY; T:=SGADR; A:=1=:D; CALL XTOPOFF(ATRNSEG)
+115634                      IF SGADR.FLAG BIT 5DEMAND THEN COLDFLAG=:X.FLAG FI
+115642                   FI; X:=CMMENTRY; T:=0; SGADR; CALL XLINKOVER
+115646                   X:=CMMENTRY; T:=CORMBANK; 160377; *STATX DPGPR
+115652                   MIN PGFOUND
+115653                   IF PGFOUND=NPAGES THEN
+115657                      AD:=CCAREA; T:="DRETADDR"; X:=RETINDX+T; T:=0; *STDTX  %=:DRETADDR(RETINDX)
+115665                      X:=PAGPN; A:=160000; T:=CORMBANK
+115670                      DO WHILE X><0
+115671                         *STATX DPGPR; LDXTX DPAGL
+115673                      OD
+115674                      PAGPN=:BREG.ZTREG; 0=:PAGPN
+115700                      A:=RETINDX SHZ -1+1; GO FAR OKRET; *)FILL
+115724                   FI
+115724                   IF CURPAGE=FPHYS THEN
+115730   TODO1:             AD:=CCAREA; T:="DRETADDR"; X:=RETINDX+T; T:=0; *STDTX  %=:DRETADDR(RETINDX)
+115736                      X:=RETINDX+2=:RETINDX
+115741                      IF A:=X SHZ -1>=MXMININTERVAL GO 55ERR
+115746   IO1ND:             PARTINDX+2=:PARTINDX
+115751                      GO FAR DO1
+115752                   FI
+115752   IO2ND:          CURPAGE-1=:CURPAGE
+115755   IO3ND:          X:=CMMENTRY-4
+115757                   GO FAR DO2
+115760                FI
+115760   NUSEPAGE:    IF CPEND><0 THEN
+115762                   AD:=CCAREA; A+1; T:="DRETADDR"; X:=RETINDX+T; T:=0; *STDTX  %AD=:DRETADDR(RETINDX)
+115771                   X:=RETINDX+2=:RETINDX
+115774                   IF A:=X SHZ -1>=MXMININTERVAL GO 55ERR
+116001                   0=:CPEND
+116002                FI
+116002                IF CURPAGE=FPHYS GO IO1ND
+116006                X:=CMMENTRY; T:=CORMBANK; *LDATX DPAGP
+116011                IF A=CURPAGE GO IO2ND
+116014                IF A>FPHYS GO IO3ND
+116017                GO IO1ND
+116020   EDO2:     IF CPEND><0 THEN CURPAGE+1=:CURPAGE; GO TODO1 FI
+116026             GO FAR IO1ND
+116027   *)FILL
+116033   
+116033   55ERR: X:="PAGPN"; T:=0
+116035          DO
+116035             X=:D; T=:L; *LDXTX DPAGL
+116040          WHILE X><0
+116041             T:=CORMBANK; *LDATX DPGPR
+116043             IF A/\377-377=0 THEN
+116046                A:=1; *STATX DPGPR; LDATX DPAGL
+116051                X:=:D; T:=L; *STATX DPAGL
+116054                X=:CMMENTRY; "XSGRT".BPAGLINK; A:=:D; A=:X.BPAGLINK
+116061                X:=A; T:=CORMBANK; A:=D; *STATX DPAGL
+116065                X:=CMMENTRY; T:=L
+116067             FI
+116067          OD
+116070          IF "XSGRT".SEGLINK=0 AND X.BPAGLINK><0 THEN
+116075             X:="BSEGLINK"; DO WHILE X.SEGLINK><-1; X:=A; OD
+116104             "XSGRT"=:X.SEGLINK; -1=:"XSGRT".SEGLINK
+116111          FI; GO FAR 5ERR
+116112   *)FILL
+116120   
+116120   
+116120   3F500: 0=:PARTINDX
+116121          DO WHILE PARTINDX<NPARTS SH 1
+116126             "DPARTADDR"; X:=PARTINDX+A; T:=0; *LDDTX      %AD:=DPARTADDR(PARTINDX)
+116133             A=:FPHYS:=D=:CURPAGE
+116136             X:="PAGPN"; T:=0
+116140             DO
+116140                X=:PREVX; T=:PREVT; *LDXTX DPAGL
+116143                IF X=0 THEN CALL ERRFATAL FI
+116146                T:=CORMBANK; *LDATX DPAGP
+116150             WHILE A><FPHYS
+116153                T:=CORMBANK
+116154             OD
+116155             X=:CBPGLINK
+116156             DO
+116156                T:=CORMBANK; *LDATX DPAGP
+116160             WHILE A><CURPAGE
+116163                T:=CORMBANK; *LDATX DPAGL
+116165                IF A=0 THEN CALL ERRFATAL FI
+116167                A=:X
+116170             OD; T:=CORMBANK; *LDATX DPAGL; STZTX DPAGL
+116174             T:=PREVT; X:=PREVX; *STATX DPAGL
+116177             T:=CORMBANK; X:=CBPGLINK
+116201             DO
+116201                A:=1; *STATX DPGPR; LDXTX DPAGL
+116204             WHILE X><0
+116205             OD; X=:D; "XSGRT".BPAGLINK; X:=:D; *STATX DPAGL
+116213             CBPGLINK=:D.BPAGLINK
+116216          OD; GO FAR OKRET;*)FILL
+116225   
+116225   4F500: T:=CORMBANK; X:=ECORMAP; *LDDTX DPGPR
+116230          IF ALPHYS>>D THEN A:=D=:ALPHYS FI
+116235          NPAGES=:CSGNO
+116237          IF A<=0 OR A>SGMAX GO 2ERR
+116244          A*5SEGSIZE+SEGSTART=:SGADR; A.LOGADR SHZ -10=:NPAGES
+116253          IF A=0 GO 2ERR
+116254          IF X.FLAG=0 OR A BIT 5INHB OR A BIT 5DEMAND GO 2ERR
+116262          IF A BIT 5FIX THEN
+116264                X:=X.BPAGLINK; D:=0
+116266                DO
+116266                   T:=CORMBANK; *LDATX DPAGP
+116270                   IF A<AFPHYS OR A>ALPHYS GO 2ERR
+116276                   IF D=0 THEN
+116300                      A=:D=:FPHYS
+116302                   ELSE
+116303                      IF A><D+1 GO 2ERR
+116306                   FI; T:=CORMBANK; *LDXTX DPAGL
+116310                WHILE X><0
+116311                OD; A:=FPHYS; GO FAR OKRET
+116314          FI; T:=CORMBANK; X:=ECORMAP; *LDDTX DPGPR
+116317          IF AFPHYS+NPAGES>>D THEN 1; GO FAR 5ERR FI
+116325          IF ALPHYS<<AFPHYS OR A-T+1<<NPAGES THEN 3; GO FAR 5ERR FI
+116340          IF FIXPAGES+NPAGES>>FIXMAX THEN 3; GO FAR 5ERR FI
+116347          CALL MBSREMOVE; 0=:NSHARED; GO FAR 500FIXC
+116352   2ERR:  2; GO FAR 5ERR; *)FILL
+116367   
+116367   5F500: T:=CORMBANK; X:=ECORMAP; *LDDTX DPGPR
+116372          IF ALPHYS>>D THEN A:=D=:ALPHYS FI
+116377          X:=0
+116400          DO WHILE X><"NALME+NALME"
+116403                IF FXCTAB(X)=0 GO INDXFOUND
+116405                X+2
+116406          OD; A:=2; GO FAR 5ERR
+116411   INDXFOUND: X=:CTINDX; T:=CORMBANK; X:=ECORMAP; *LDDTX DPGPR
+116415          IF AFPHYS+NPAGES-1>>D THEN 1; GO FAR 5ERR FI
+116424          IF ALPHYS<<AFPHYS OR A-T+1<<NPAGES THEN 3; GO FAR 5ERR FI
+116437          0=:NSHARED; GO FAR 500FIXC
+116441   *)FILL
+116447   
+116447   CSUBR: A:=1; T:=CORMBANK
+116451          DO WHILE X><0
+116452             X=:D; *STATX DPGPR; LDXTX DPAGL
+116455          OD; "XSGRT".BPAGLINK; X:=D; *STATX DPAGL
+116462          FXCTAB(CCTINDX); 0=:FXCTAB(X); X+1; 0=:FXCTAB(X); A=:"XSGRT".BPAGLINK
+116471          IF X.SEGLINK=0 THEN
+116473             BSEGLINK
+116474             DO WHILE A.SEGLINK><-1 OD
+116502             "XSGRT"=:X.SEGLINK; T=:"XSGRT".SEGLINK
+116506          FI; EXIT
+116507   
+116507   6F500: IF X:=CCTINDX>>="NALME+NALME" OR X BIT "0" THEN 3; GO FAR 5ERR FI
+116517          T:=CORMBANK; X:=FXCTAB(X); *LDATX DPAGP
+116522          IF A><AFPHYS THEN 3; GO FAR 5ERR FI
+116527          CALL CSUBR; A:=0; GO FAR OKRET
+116532   
+116532   7F500: IF NPAGES=0 THEN RTREF FI; A=:CCPRG
+116536          A:=A-RTSTART=:D:=0; T:=5RTSIZE; *RDIV ST
+116543          IF D><0 THEN 3; GO FAR 5ERR FI            % ILLEGAL RT-PROG.
+116547          0=:CCTINDX
+116550          DO WHILE X:=CCTINDX<<"NALME+NALME"
+116554             X+1
+116555             IF FXCTAB(X)=CCPRG THEN 
+116561                X-1; X:=FXCTAB(X); T:=CORMBANK; CALL CSUBR
+116565             FI; CCTINDX+2=:CCTINDX
+116570          OD; A:=0; GO FAR OKRET
+116573   *)FILL
+116604   
+116604   10F500: AFPHYS=:CLOGPAGE
+116606          IF NPAGES>>SGMAX THEN 174; GO FAR 5ERR FI          % ILLEGAL SEGMENT NUMBER
+116614          A*5SEGSIZE+SEGSTART=:SGADR                          % ADDR. OF SEG.TABLE ELEMENT
+116617          IF A.FLAG=0 OR A BIT 5INHB THEN 2; GO FAR 5ERR FI   % SEGMENT NOT LOADED
+116626          IF X.LOGADR SHZ -10<<CLOGPAGE THEN 174; GO FAR 5ERR FI % ILLEGAL PAGE NUMBER IN PAR.LISTE
+116635          0=:CINDX; BREG.ZAREG=:CPHPAGE
+116641          IF SGADR.FLAG NBIT 5FIX GO COKRET                   % SEGMENT NOT FIXED
+116645          X.LOGADR/\377+CLOGPAGE=:CLOGPAGE; 0=:CCTINDX; 2=:CINDX
+116654          T:=CORMBANK; IF X:=X.BPAGLINK=0 THEN 174; GO FAR 5ERR FI
+116662          DO
+116662             *LDATX DPAGP
+116663             IF A=:D><CCTINDX+1 AND T:=CCTINDX><0 THEN 1=:CINDX ELSE A=:CCTINDX FI
+116677             T:=CORMBANK; *LDATX DALOG
+116701             IF A=CLOGPAGE THEN A:=D=:CPHPAGE FI
+116706             T:=CORMBANK; *LDXTX DPAGL
+116710          WHILE X><0
+116711          OD
+116712   COKRET: SGADR.FLAG=:BREG.ZDREG; CINDX=:X.ZTREG; CPHPAGE; GO FAR OKRET
+116722   RBUS
+116731   
+116731   
+116731   %============================================================================
+116731   % 37.19      O U T L I N K
+116731   %
+116731   % SUBROUTINE TO REMOVE PAGES FROM A NON-DEMAND SEGMENT
+116731   %
+116731   % ENTRY:     X=CORMAP ADDRESS OF FIRST PAGE NOT TO REMOVE
+116731   %            A=SEGMENT ADDRESS
+116731   %
+116731   SUBR OUTLINK
+116731   INTEGER XREG,SGADR,SG1ADR:=XSGRT
+116734   INTEGER POINTER LREG
+116735   
+116735   OUTLINK: X=:XREG:=L=:"LREG"; A=:SGADR
+116741          IF A.BPAGLINK=XREG OR X.FLAG BIT 5DEMAND OR X="XSGRT" GO OUT
+116754          X.FLAG BZERO 5OK=:X.FLAG
+116757          DO WHILE X:=SGADR.BPAGLINK><XREG
+116764             T:=CORMBANK; *LDATX DPGPR
+116766             IF A BIT 5WIP THEN
+116770                A:=1=:D; T:=SGADR; CALL XTOPOFF(ATRNSEG)
+116775             FI; T:=SG1ADR;; SGADR; CALL XLINKOVER
+117000          OD
+117001   OUT:   X:=XREG; GO LREG
+117003   
+117003   RBUS
+117007   
+117007   
+117007   %============================================================================
+117007   % 37.20      X L I N K O V E R
+117007   %
+117007   % SUBROUTINE TO MOVE A PAGE FROM ONE SEGMENT INTO ANOTHER SEGMENT
+117007   %
+117007   % ENTRY:     T=ADDRESS OF SEGMENT TO LINK PAGE INTO
+117007   %            T=0 LINK TO N500
+117007   %            T>0 AND T<SEGSTART THEN T-1=INDEX IN FXCTABLE
+117007   %            T>=SEGSTART THEN T=ADDRESS OF ORDINARY SEGMENT
+117007   %            X=ADDRESS OF CORMAP ENTRY
+117007   %            A=ADDRESS OF SEGMENT TO LINK PAGE FROM
+117007   %
+117007   SUBR XLINKOVER
+117007   
+117007   
+117007   INTEGER BREG,XREG,AREG,LSSEG,CURPAGE
+117014   INTEGER POINTER LREG
+117015   
+117015   XLINKOVER: T=:LSSEG; T:=:B; T=:BREG:=L=:"LREG"; A=:AREG; X=:XREG
+117024          T:=0; X:=AREG+1
+117027          DO T=:D; X=:L; *LDXTX DPAGL
+117032          WHILE X><XREG
+117035             T:=CORMBANK
+117036          OD; A:=L=:AREG; T:=CORMBANK; *LDATX DPGPR
+117043          A/\377*5SEGSIZE+SEGSTART=:LSSEG; AREG; *LDXTX DPAGL
+117051          A:=:X; T:=D; *STATX DPAGL
+117054          IF B>>SEGSTART THEN
+117057             T:=5SEGSIZE; A:=B-SEGSTART; A=:D:=0; *RDIV ST
+117065             A=:D:=FLAG/\177400+D; X:=XREG; T:=CORMBANK; *STATX DPGPR
+117074             BPAGLINK; X=:BPAGLINK; *STATX DPAGL
+117077          ELSE                            % ALLOCATE NORD-500 MEMORY
+117100             X:=XREG; T:=CORMBANK; *LDATX DPAGP
+117103             A=:CURPAGE
+117104             IF B=0 THEN "PAGPN" ELSE A:=B+"FXCTAB-1" FI
+117112             X:=A; T:=0
+117114             DO
+117114                X=:D; T=:L; *LDXTX DPAGL
+117117             WHILE X><0
+117120                T:=CORMBANK; *LDATX DPAGP
+117122                IF A-CURPAGE>=0 THEN
+117124                   X:=D; T:=L; *LDATX DPAGL
+117127                   A=:D:=XREG; *STATX DPAGL
+117132                   X:=A; T:=CORMBANK; A:=D; *STATX DPAGL
+117136                   GO XOUT
+117137                FI
+117137             OD; X:=D; T:=L; XREG; *STATX DPAGL
+117144             X:=A; T:=CORMBANK; *STZTX DPAGL
+117147   XOUT:     160000; *STATX DPGPR
+117151          FI; IF LSSEG.BPAGLINK=0 AND X.SEGLINK><0 THEN CALL XTOPOFF(SREMOVE) FI
+117160   OUT:   IF X:=LSSEG>=SEGSTART THEN
+117164             IF X.FLAG NBIT 5DEMAND THEN A BZERO 5OK=:X.FLAG FI
+117171          FI; BREG=:B; X:=XREG; GO LREG
+117175   
+117175   RBUS
+117206   
+117206   *"8SIBA+8SIBX+8SIBM
+"117206   %==============================================================================
+117206   %            M A P S I B   -   M S I B B
+117206   %
+117206   % SIBAS COMMUNICATION MONITOR CALL
+117206   %
+117206   SUBR 3MAPSIB,3MSIBB
+117206   
+117206   INTEGER ARRAY POINTER ACCTAB:=CCTAB
+117207   DOUBLE ARRAY POINTER DACCTAB=ACCTAB
+117207   DOUBLE ARRAY CRTCADDR(0)
+117207           *0;0;0;0;0;0
+117215   *"8SIBX+8SIBM
+"117215   
+117215   INTEGER IMAPSIB:=0           % ><0 AFTER FIRST MAPSIB
+117216   
+117216   3MAPSIB: IF BACKGROUND><0 THEN CALL ESCOFF FI
+117221          IF SRTCSTAT><0 GO FAR M2ERR
+117224          X:=SIBBDEVS(ZTREG)
+117226          IF X:=X.RTRES=0 GO FAR M1ERR; IF X.STATUS NBIT 5WAIT GO FAR M2ERR
+117234          IF IMAPSIB=0 THEN
+117236             0=:SICCOUNT
+117237             FOR SICCOUNT TO MXSIBAS DO
+117243                T:=SICCOUNT SH 11; A:=177000-T SHZ -12+100=:L
+117252                X:=0
+117253                DO ACCTAB(X) WHILE A><-1
+117257                   IF A/\377=L THEN
+117262                      AD:=DACCTAB(X); A:=0; AD SH 12
+117265                      IF T:=SICCOUNT NBIT "0" THEN T:=1000; D+T FI
+117272   INDO1:             X:=SICCOUNT+X; AD=:CRTCADDR(X); GO EFOR
+117276                   FI; X+2
+117277                OD; A:=0=:D; GO INDO1
+117303   EFOR:     OD
+117307   OKINIT:   1=:IMAPSIB
+117311          FI; X:=ZTREG+X; AD:=CRTCADDR(X); IF A=0 AND D=0 GO FAR EE174
+117317          AD=:SIDRTC
+117320          X:=ZXREG; OLDPAGE=:D; CALL DALTON; *BSET ZRO
+117325          MLEV; *MST PIE
+117327          *BSET ONE; LDA 1,X; BSET ZRO
+117332          IF A=0 OR A>>177 GO FAR EE174; A=:SICCOUNT; GO L1; *)FILL
+117354   L1:
+117354   @LIB CXCPU
+117354   @LIB CXCPU-,
+117354          T:=SIAD1; SIAD2+777=:X; A:=B; *STATX
+117362          X:=SIAD2; SICCOUNT=:L; ZXREG=:B; *BSET ONE
+117370          DO WHILE L><0
+117372             *LDD ,B; STDTX; LDD 2,B; STDTX 20
+117376             B+4; X+4; L-1
+117401          OD; A:=X/\177000+777=:X; *LDATX; COPY SA DB
+117410   @ELIB
+117410          *BSET ZRO
+117411   TOSIBAS:                     % LET'S ACTIVATE SIBAS AND WAIT FOR REPLY
+117411          *IOF
+117412          X:=SIBBDEVS(ZTREG)
+117414          IF X.SIB500=0 THEN
+117416             IF X:=X.RTRES=0 GO M1ERR; IF X.STATUS NBIT 5WAIT GO M1ERR
+117423             A BZERO 5WAIT=:X.STATUS
+117425          ELSE
+117426             IF X.RTRES=0 GO M1ERR
+117430             A=:D; *IOF
+117432             CALL TOPOFF(FSEMA); GO M1ERR; CALL TOPOFF(MMBREACTIVATE); GO M1ERR
+117440          FI; GO OVER; *)FILL
+117445   OVER:  RTREF.STATUS BONE 5WAIT=:X.STATUS; -1=:SRTCSTAT
+117453          "STUPR"; *IRW MLEVB DP
+117455          MLEV; *MST PID; PION
+117460          X:=SIAD2; T:=SIAD1; *LDATX 10
+117463          IF A=0 OR A>>177 GO EE174; A=:SICCOUNT
+117470   
+117470   @LIB CXCPU
+117470   @LIB CXCPU-,
+117470          T:=SIAD1; SIAD2+777=:X; A:=B; *STATX
+117476          X:=SIAD2; SICCOUNT=:L; ZDREG=:B; *BSET ONE
+117504          DO WHILE L><0
+117506             *LDDTX; STD ,B; LDDTX 20; STD 2,B
+117512             B+4; X+4; L-1
+117515          OD; A:=X/\177000+777=:X; *LDATX; COPY SA DB
+117524   @ELIB
+117524          *BSET ZRO
+117525   OKRET: 0=:ZAREG; MIN ZPREG; 0/\0; GO MXRET
+117531   *)FILL
+117536   EE174: 174; GO CERET
+117540   M2ERR: A:=-2; GO CERET
+117542   M1ERR: A:=-1
+117543   CERET: A=:ZAREG; *PION
+117545          GO MXRET
+117546   
+117546   3MSIBB: X:=SIBAPDEVS(ZTREG)=:D; 0=:SIB500
+117552          *IOF
+117553          IF X:=X.RTRES><0 AND X.STATUS BIT 5WAIT THEN A BZERO 5WAIT=:X.STATUS FI
+117562          IF ZAREG=0 THEN RTREF.STATUS BONE 5WAIT=:X.STATUS; A:=0 ELSE A:=1 FI
+117573          A=:D.SRTCSTAT; MIN ZPREG; 0/\0
+117577          "STUPR"; *IRW MLEVB DP
+117601          MLEV; *MST PIE; MST PID; ION
+117605          GO RET
+117606   
+117606   RBUS
+117613   

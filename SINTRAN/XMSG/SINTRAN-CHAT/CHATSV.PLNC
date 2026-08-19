@@ -1,0 +1,1395 @@
+% ---------------------------------------------------------------------------
+% CHATSV - the chat room server, as a SINTRAN RT program.
+%
+% COMPILED AND RUN ON D100, 2026-08-18. It served a real room to two real
+% clients on two terminals, and the round trip both ways is in the log:
+%
+%     routed letter    rcv st= 0  t= 2  len= 25   hdr ends= 16   parse k=1 nlen=5
+%     ordinary msg     rcv st= 0  t= 1  len= 14   parse k=4 nlen=5   slot now= 1
+%
+% Those two lines came from diagnostics that have since been taken out; what
+% each of them proved is written beside the code it proved it about.
+%
+% Every XMSG routine below, and the way it is CALLED, is taken from the routine
+% reference and worked examples in
+%     Operations/Cosmos/ND-60164-3-EN COSMOS Programmer Guide.md
+% rather than from analogy. Four things that reference corrected, each of which
+% would have cost a compile or worse:
+%
+%   XMPOPNM -> XMPOPCN   a room has SEATS, and the free-connection counter
+%                        belongs to a CONNECTION port. With XMPOPNM the limit is
+%                        silently absent while the C# side still enforces it.
+%   XMPFFRE -> XMPFREL   XMPFFRE does not exist.
+%   XMPFREA/XMPFWRI      take NO message identifier - they act on the CURRENT
+%                        message, as XMPFSND sends it.
+%   ADDR(buf)            is not enough. The guide's own examples write
+%                        addr(buf(0)) FORCE XMUSERADDRESS.
+%
+% And every call RETURNS its status - the examples all end "=: returnStatus".
+% That is how the statuses below are checked; XMOK is zero, from XMP-B02:DEFS.
+%
+% THE MESSAGE FORMAT IS OURS. We chose it; no ND ever sent one, so no capture
+% will ever confirm it and Xmsg.Chat/ChatMessage.cs plus its tests are its only
+% specification. The rules below are a transcription of Xmsg.Chat/ChatRoom.cs,
+% which has the tests that say what "correct" means.
+%
+%     byte 0      kind          1 Join 2 Welcome 3 Reject 4 Say 5 Said
+%                               6 Leave 7 Joined 8 Left 9 Rename 10 Renamed
+%     byte 1      nickname length
+%     bytes 2..   nickname
+%     then        2 bytes text length, big endian
+%     then        the text
+%
+% THE BYTE LAYOUT IS PINNED IN C#, and this file must agree with it by hand.
+% SRC/Xmsg.Chat.Tests/ChatMessageGoldenBytesTests.cs holds the exact bytes of a
+% Said, a Renamed, a Join and a 300-character line. There is no shared code
+% between that and this - only those goldens - so if the layout ever changes,
+% both sides change in the SAME commit or they disagree in silence.
+%
+%
+% THREE CORRECTIONS FROM APPENDIX G, the guide's own sample CLIENT and SERVER:
+%
+%   flags are 2**BIT      XFWTF is a BIT POSITION (15), not a flags word. The
+%                         samples both write "2**XFWTF =: FLAGS". Passing 15
+%                         would set bits 0,1,2,3 - four unrelated options - and
+%                         the wait would simply not happen.
+%   XMMSGIDENTIFIER       the message-identifier type, with two M's. Written
+%                         "XMMSGIDENTIFIER: MSGIDENT" in the sample.
+%   XMUSERADDRESS         and the address idiom is
+%                         ADDR(BUF(0)) FORCE XMUSERADDRESS. ROUND brackets -
+%                         the guide prints square ones and PLANC F rejects
+%                         them with EXPECTS ")" ILLEGAL SYNTAX "[".
+%
+% ---------------------------------------------------------------------------
+
+MODULE chatsv
+
+% THE REAL COSMOS BINDING, from ND-10609, and INSIDE the module. Above MODULE
+% the declarations land in the outer scope, the body cannot see them, and every
+% call fails NOT PREVIOUSLY DECLARED while the include's own lines draw no
+% diagnostic at all - so they look accepted and simply are not there.
+%
+% Do NOT also include XMSG-PL-VALUES-L:INCL: it shares 184 constant names with
+% XMP-B02:DEFS. DEFS is the authority for this library layer, VALUES-L for the
+% raw MON 200B interface underneath it.
+$INCLUDE XMP-B02:DEFS
+$INCLUDE XMP-B02:IMPT
+
+    % ----- message kinds, mirroring ChatMessageKind.cs ----------------------
+    INTEGER : kJoin    := 1
+    INTEGER : kWelcome := 2
+    INTEGER : kReject  := 3
+    INTEGER : kSay     := 4
+    INTEGER : kSaid    := 5
+    INTEGER : kLeave   := 6
+    INTEGER : kJoined  := 7
+    INTEGER : kLeft    := 8
+    INTEGER : kRename  := 9
+    INTEGER : kRenamed := 10
+
+    % ONE KIND, BOTH DIRECTIONS: the member asks with an empty text, the room
+    % answers with the same kind and the names in the text. See buildWho.
+    INTEGER : kWho     := 11
+
+    % THERE IS NO ELEVENTH KIND, and the reason is worth keeping.
+    %
+    % A kHello was invented here on 2026-08-18 to answer the connect on its own,
+    % on the belief that a connection port is handed "4 bytes with byte 0 = 0"
+    % and that the joiner's nickname could only follow as a second, ordinary
+    % message. That belief was wrong, and it was wrong because this program was
+    % reading the WRONG BYTES: the connect arrives with the XSLET letter header
+    % still in front of it, and byte 0 of that header is the serial number.
+    %
+    % The nickname was in the very first arrival all along. See the header skip
+    % in the receive loop for the layout and the manual reference. The join is
+    % ONE step, exactly as the Programmer Guide describes it: the letter carries
+    % the user data, the server answers it, and "thereby gives away its own
+    % magic number" - the welcome IS the answer, so no extra kind is needed.
+
+    % XFWTF is the BIT POSITION (15). The flags word is 2 to that power - the
+    % sample programs in Appendix G both write "2**XFWTF =: FLAGS". Passing 15
+    % itself would set bits 0 to 3, four unrelated options, and the wait would
+    % not happen at all.
+    % XFWTF COMES FROM XMP-B02:DEFS - do NOT declare it here. Declaring our own
+    % drew IDENTIFIER ALREADY SPECIFIED/DECLARED "XFWTF", and the compiler then
+    % fell over with ASSERT VIOLATION AT 136747B and took the batch job with it.
+    % A redeclaration is not a warning you can carry on past in this compiler.
+    INTEGER : waitFlags := 0       % 2**XFWTF, computed at start
+
+    % 2**XFSEC, computed at start. SECURE, and the reason is a measurement.
+    %
+    % These sends used to carry flags ZERO, and the guide is explicit about what
+    % that costs: "Non-secure messages are discarded and released by XMSG if they
+    % cannot be delivered." So a member whose terminal died was written to for
+    % ever, in silence.
+    %
+    % THE OBVIOUS ALTERNATIVE WAS TRIED FIRST AND IS REFUTED. XMPSEND is handed a
+    % magic number, and a magic carries a generation, so it looked as though XMSG
+    % would refuse one naming a closed port on the spot - XMXEIMA, "Invalid magic
+    % number". MEASURED 2026-08-18 on D100: two clients in the room, one killed
+    % with ESC ("USER BREAK AT 17202B"), the other spoke. The broadcast to the
+    % dead port returned XMOK. Not one status printed, the seat stayed spent, and
+    % LIST-NAMES held at 14. XMPSEND DOES NOT VALIDATE THE DESTINATION.
+    %
+    % So the return has to come back as a MESSAGE, which is what XFSEC buys:
+    % "The message will be returned to the sending port if it cannot be
+    % delivered, or if the receiving port is closed (e.g., if the receiving task
+    % terminates)". It arrives as msgType XMTRE and is handled in the receive
+    % loop.
+    %
+    % MEASURED WITH THE FLAG SET, same two clients, same kill: the bounce came
+    % back carrying reason 16915 - which is XMXEIMA, the very code the refuted
+    % attempt was watching for. It was never the send's status; it is the reason
+    % on the return. CHAT-LOBBY went 16 free, 14 with both joined, back to 15
+    % once the dead one was reaped.
+    INTEGER : sendFlags := 0
+
+    % ----- the room ---------------------------------------------------------
+    % maxSeats is what XMPOPCN is given, so XROUT turns the SEVENTEENTH joiner
+    % away before this program sees them. The array bounds and that argument are
+    % the same number on purpose.
+    %
+    % THE CLIENT DOES NOT KNOW THIS NUMBER AND MUST NOT. Neither CHAT.PLNC nor
+    % ChatClient.cs mentions it anywhere - XROUT does the admission itself, before
+    % this program is woken, so a client that is turned away simply gets a refusal
+    % it has to handle in any case. The room's size is the room's business, and
+    % raising it is this file alone. The C# ChatRoom has no seat limit at all.
+    %
+    % Raised from 8 to 16 on 2026-08-18. Nothing else has to move with it: the
+    % four arrays below and every FOR loop are written in terms of maxSeats, and
+    % the only literal bounds are the array declarations, which are next to it.
+    INTEGER : maxSeats := 16
+    INTEGER : nameLen  := 16
+
+    INTEGER4 ARRAY : memberMagic(1:16)
+
+    % A two-dimensional BYTES array: sixteen names of sixteen bytes. Legal PLANC -
+    % the reference gives BYTES ARRAY : b1(1:2,0:3) directly.
+    %
+    % Note that memberName(slot) with the LAST subscript omitted refers to the
+    % WHOLE string, which is tempting for copying a name in one statement. It is
+    % NOT used here, because a name is variable length and a whole-row copy would
+    % carry the sixteen bytes including whatever follows the name. The explicit
+    % loops are longer and right.
+    % SIXTEEN BYTES PER NAME, and the number is named because the wire decides
+    % how many bytes arrive. A nickname length is one byte, so a peer can ask for
+    % up to 255 - and PLANC checks no array bound. Copying an unchecked length in
+    % here writes straight through the other seven members' names and out the far
+    % side of the array. See the guard at the top of handleMessage.
+    INTEGER        : maxNameLen := 16
+    % NAMES ARE UNIQUE IN THEIR FIRST TEN CHARACTERS, and that is not a style
+    % note - it is what the compiler enforces. memberName and memberNameLen both
+    % start MEMBERNAME, so the second silently became a redeclaration of the
+    % first: IDENTIFIER ALREADY SPECIFIED/DECLARED "MEMBERNAME", and then every
+    % memberName(slot, i) drew MORE SUBSCRIPTS THAN IN THE ARRAY DECLARATION,
+    % because the name now referred to the one-dimensional array. Four errors,
+    % one cause, and none of them mention the length. The listing gives it away:
+    % it prints the TRUNCATED names - BUILDRENAM, BUILDFROMS, REASONNICK.
+    BYTES ARRAY    : memberName(1:16, 1:16)
+    INTEGER ARRAY  : memberLen(1:16)
+    INTEGER ARRAY  : memberUsed(1:16)
+
+    % Seats whose member has VANISHED - the terminal was killed, the client was
+    % aborted with ESC, the task died. Marked by sendTo when a send comes back
+    % saying the port is gone, and cleared by reapDead.
+    %
+    % A MARK IS NOT AN EVICTION, and the separation is the whole point of this
+    % array rather than a nicety. sendTo is called from inside broadcast's loop,
+    % and evicting there would have to announce the departure - which means
+    % building a message into outBuf while broadcast is still part way through
+    % sending the outBuf it built. One shared buffer, so the message everybody
+    % else is waiting for would be overwritten mid-broadcast and the room would
+    % receive the departure notice instead of what was said. Marking is the only
+    % thing safe to do at that depth; the acting happens back at the top.
+    INTEGER ARRAY  : memberDead(1:16)
+
+    % Is there anything to reap? Kept so the common case - nothing died - costs
+    % one compare per message instead of a walk of the whole room.
+    INTEGER        : deadFound := 0
+
+    % ----- knowing when to give up ------------------------------------------
+    % How many receives in a ROW have failed. Cleared by any good one, so this
+    % counts a run of trouble rather than trouble over a lifetime.
+    INTEGER        : badRuns := 0
+
+    % Twenty in a row is not a bad moment, it is a broken machine. Small enough
+    % that a spin is caught in under a second, large enough that a burst of
+    % something transient is ridden out rather than treated as fatal.
+    INTEGER        : maxBadRuns := 20
+
+    % Print at most this many of them. The fault that made all this necessary
+    % was ONE message repeated as fast as the terminal could take it, and a
+    % diagnostic with no limit buries the line that says what happened.
+    INTEGER        : maxNoisy := 5
+
+    INTEGER ARRAY : stack(0:1000)
+
+    % SIZE OF inBuf, named because the read must clamp against it. XMSG reports
+    % the SENDER'S message size; nothing stops that being larger than this
+    % array, and PLANC checks no bound.
+    INTEGER : inBufSize := 256
+    BYTES : inBuf(0:255)
+    BYTES : outBuf(0:255)
+
+    % ONE SPACE, AS A BYTE. buildWho puts a separator between names, and
+    % "' ' =: outBuf(at)" does not compile: 'x' is a STRING and an element of a
+    % BYTES array is a BYTE. Held as a one-element BYTES so the copy is
+    % byte-to-byte.
+    BYTES : spaceByte := ' '
+
+    INTEGER  : myPort
+    INTEGER  : msgType
+
+    % XMROU, "routed message (via XROUT)", is what msgType carries when a letter
+    % arrives. It is the ONLY thing that says a SEAT was spent: XROUT takes one
+    % free connection to forward a letter, before this program has seen a byte
+    % of it.
+    %
+    % SETTLED FROM ND'S OWN SAMPLE SERVERS, both of them, in the COSMOS
+    % Programmer Guide (ND-60.164.3) appendix of sample programs. Each waits for
+    % the forwarded letter and then refuses anything else:
+    %
+    %   PLANC     IF MSGTYPE >< XMROU THEN
+    %                 OUTPUT(1, 'A', 'WRONG MESSAGE TYPE ')
+    %
+    %   FORTRAN   IF (MSGTYPE .NE. XMROU) THEN
+    %                 WRITE(1,*)'WRONG MESSAGE TYPE'
+    %
+    % Both then read the CLIENT's magic number out of the arrived message to
+    % answer it directly - which is the other half of the same fact, and the
+    % reason the sender field is the client rather than XROUT.
+    %
+    % The name is used bare here, not declared as a literal, because the PLANC
+    % sample uses it bare under the same two includes this file has.
+
+    % Was the sender in the room BEFORE this message was handled? The seat
+    % accounting below needs the answer from before, so it is taken early.
+    INTEGER  : wasMember
+    % Is the sender a member AFTER the letter was handled? That single question
+    % decides whether the seat XROUT spent on the arrival goes back.
+    INTEGER  : nowMember
+    % Byte 1 of a routed arrival, kept BEFORE the payload is shifted down. 65
+    % (XSLET) means a client sent it and a seat was spent; anything else is
+    % XROUT answering one of our own calls, which spent nothing.
+    INTEGER  : letterService
+
+    % XSLET (65) IS NOT DECLARED HERE. It is already a CONSTANT in XMP-B02:DEFS
+    % - "CONSTANT XSLET=65  % Send a letter" - and declaring our own would be a
+    % redeclaration, which in this compiler is not a warning: it drew
+    % IDENTIFIER ALREADY SPECIFIED and then ASSERT VIOLATION AT 136747B and took
+    % the whole batch job with it. Checked against the listing before writing
+    % this, not assumed.
+    INTEGER  : remotePortHash
+    INTEGER  : nBytes
+    % What XMPFRCV put in nBytes, kept before XMPFMST overwrites it. It is the
+    % message length normally and the REASON FOR RETURN on an XMTRE.
+    INTEGER  : receiveStat
+    INTEGER  : readLength
+    INTEGER  : readAmount
+    % An INTEGER dumpAmount clamped the 48-byte arrival dump. Both are gone;
+    % see the note in the receive loop for what that dump found.
+    % Where the chat message starts inside a letter that came via XROUT - that
+    % is, the first byte after the XSLET header. Derived from the header's own
+    % length word on every arrival, never assumed.
+    INTEGER  : payloadAt
+    INTEGER  : writtenLength
+    INTEGER  : returnStatus
+    INTEGER4 : senderMagic
+
+    % OUR OWN port's magic number, read once with XMPFP2M after the port opens.
+    % Kept only so an arrival can be tested against it, because the thing that
+    % actually happened - our own answer arriving back at this very port - is not
+    % something any amount of reading the guide would have suggested, and without
+    % this comparison it cannot be told apart from a real peer's message.
+    INTEGER4 : myMagic := 0
+    BOOLEAN  : uniqueName := TRUE
+
+    % -----------------------------------------------------------------------
+    % Compare a name in the room against one in a buffer, ignoring case.
+    %
+    % ChatRoom.cs compares ignoring case, so this does too - the two doors into
+    % one room must not disagree about whether ANNA and anna are the same
+    % person.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER, INTEGER) : sameName(slot, at, length)
+        INTEGER : j, a, b
+        IF memberLen(slot) >< length THEN
+            0 RETURN
+        ENDIF
+        FOR j IN 1:length DO
+            memberName(slot, j) =: a
+            inBuf(at + j - 1) =: b
+            IF a > 96 THEN a - 32 =: a ENDIF        % fold lower case to upper
+            IF b > 96 THEN b - 32 =: b ENDIF
+            IF a >< b THEN
+                0 RETURN
+            ENDIF
+        ENDFOR
+        1 RETURN
+    ENDROUTINE
+
+    ROUTINE VOID, INTEGER (INTEGER4) : findByMagic(magic)
+        INTEGER : i
+        FOR i IN 1:maxSeats DO
+            IF memberUsed(i) >< 0 THEN
+                IF memberMagic(i) = magic THEN
+                    i RETURN
+                ENDIF
+            ENDIF
+        ENDFOR
+        0 RETURN
+    ENDROUTINE
+
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER) : findByName(at, length)
+        INTEGER : i
+        FOR i IN 1:maxSeats DO
+            IF memberUsed(i) >< 0 THEN
+                IF sameName(i, at, length) = 1 THEN
+                    i RETURN
+                ENDIF
+            ENDIF
+        ENDFOR
+        0 RETURN
+    ENDROUTINE
+
+    ROUTINE VOID, INTEGER : freeSlot
+        INTEGER : i
+        FOR i IN 1:maxSeats DO
+            IF memberUsed(i) = 0 THEN
+                i RETURN
+            ENDIF
+        ENDFOR
+        0 RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Build a message into outBuf. Returns its total length.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER, INTEGER, INTEGER, INTEGER) : &
+            buildMessage(kind, nameAt, nameLength, textAt, textLength)
+        INTEGER : i, at
+        kind =: outBuf(0)
+        nameLength =: outBuf(1)
+        2 =: at
+        FOR i IN 1:nameLength DO
+            inBuf(nameAt + i - 1) =: outBuf(at)
+            at + 1 =: at
+        ENDFOR
+        0 =: outBuf(at)                       % text length, high byte
+        textLength =: outBuf(at + 1)          % text length, low byte
+        at + 2 =: at
+        FOR i IN 1:textLength DO
+            inBuf(textAt + i - 1) =: outBuf(at)
+            at + 1 =: at
+        ENDFOR
+        at RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Build the answer to /who: every seated member's name, one space between.
+    %
+    % The name field is EMPTY - the room is answering, not a member - and the
+    % names all go in the text. One message, not one per member: a message each
+    % would multiply the scarcest thing XMSG has by the size of the room. The
+    % measurement is in DOC/BRINGUP-ORDER-AND-TRAPS-2026-08-18.md: "Data
+    % transmit blocks" has a limit of TEN and a 20-user burst hits it.
+    %
+    % BOUNDED, AND THE BOUND IS NOT DECORATION. outBuf holds 256 bytes and the
+    % header eats four, so 252 are left; sixteen seats of sixteen characters
+    % plus separators come to 271. A full room of long names would therefore
+    % write past the end of outBuf, and PLANC checks no array bound - it would
+    % simply corrupt whatever the loader put next. Names that do not fit are
+    % dropped, which is a worse answer than a longer buffer would give and a
+    % far better one than a corrupted program.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER : buildWho
+        INTEGER : i, j, at, textAt, textLen, room
+
+        kWho =: outBuf(0)
+        0 =: outBuf(1)                        % no name: the ROOM is answering
+        2 =: at
+        0 =: outBuf(at)                       % text length, high byte
+        0 =: outBuf(at + 1)                   % text length, low byte, filled in below
+        at + 2 =: textAt
+        textAt =: at
+        0 =: textLen
+
+        FOR i IN 1:maxSeats DO
+            IF memberUsed(i) = 1 THEN
+                % What this name needs: a separator if it is not the first,
+                % then the name itself.
+                memberLen(i) =: room
+                IF textLen > 0 THEN
+                    room + 1 =: room
+                ENDIF
+
+                IF textLen + room <= 250 THEN
+                    IF textLen > 0 THEN
+                        % A BYTE FROM A BYTES ARRAY, not a string literal.
+                        % "' ' =: outBuf(at)" is what stood here and the
+                        % compiler answered
+                        %   1082 (422)/BUILDWHO *** ERROR
+                        %        - ILLEGAL DATA TYPE "OUTBUF"
+                        % because 'x' is a STRING and outBuf(at) is a BYTE.
+                        % Copying out of a one-byte BYTES gives the element the
+                        % type it wants - the same move oneChar uses on the
+                        % client side for printing.
+                        spaceByte(0) =: outBuf(at)
+                        at + 1 =: at
+                        textLen + 1 =: textLen
+                    ENDIF
+                    FOR j IN 1:memberLen(i) DO
+                        memberName(i, j) =: outBuf(at)
+                        at + 1 =: at
+                    ENDFOR
+                    textLen + memberLen(i) =: textLen
+                ENDIF
+            ENDIF
+        ENDFOR
+
+        % Now the length is known. It cannot exceed 250, so the high byte the
+        % format carries stays zero.
+        textLen =: outBuf(3)
+        at RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Build a message whose name comes from a member slot rather than from the
+    % incoming buffer - used for Said, where the speaker is named by the room
+    % and NOT by whatever the sender claimed.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER, INTEGER, INTEGER) : &
+            buildFromSlot(kind, slot, textAt, textLength)
+        INTEGER : i, at
+        kind =: outBuf(0)
+        memberLen(slot) =: outBuf(1)
+        2 =: at
+        FOR i IN 1:memberLen(slot) DO
+            memberName(slot, i) =: outBuf(at)
+            at + 1 =: at
+        ENDFOR
+        0 =: outBuf(at)
+        textLength =: outBuf(at + 1)
+        at + 2 =: at
+        FOR i IN 1:textLength DO
+            inBuf(textAt + i - 1) =: outBuf(at)
+            at + 1 =: at
+        ENDFOR
+        at RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Copy a name out of the incoming buffer into a member slot.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER) : copyNameIn(slot, at, length)
+        INTEGER : i
+        FOR i IN 1:length DO
+            inBuf(at + i - 1) =: memberName(slot, i)
+        ENDFOR
+        length =: memberLen(slot)
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Build the Renamed announcement. Returns its total length.
+    %
+    % The NEW name goes in the name field and the OLD one in the text. That is
+    % not a choice made here - ChatMessageKind.cs states it, and the reason is
+    % that everybody has a transcript on screen under the old name and no way to
+    % connect the two without it. CALL THIS BEFORE the slot is changed, while
+    % the old name is still in it.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER, INTEGER) : &
+            buildRenamed(slot, newAt, newLength)
+        INTEGER : i, at
+        kRenamed =: outBuf(0)
+        newLength =: outBuf(1)
+        2 =: at
+        FOR i IN 1:newLength DO
+            inBuf(newAt + i - 1) =: outBuf(at)
+            at + 1 =: at
+        ENDFOR
+
+        % The old name as the text.
+        0 =: outBuf(at)
+        memberLen(slot) =: outBuf(at + 1)
+        at + 2 =: at
+        FOR i IN 1:memberLen(slot) DO
+            memberName(slot, i) =: outBuf(at)
+            at + 1 =: at
+        ENDFOR
+        at RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Send outBuf to one magic number.
+    %
+    % XMPFGET reserves a buffer and makes it CURRENT; XMPFWRI writes into the
+    % current message; XMPFSND sends it. Note the userAddress coercion - the
+    % guide's own examples write ADDR(buf(0)) FORCE XMUSERADDRESS.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID (INTEGER4, INTEGER) : sendTo(magic, length)
+        XMMSGIDENTIFIER : ident
+        INTEGER : deadSlot
+        % Each of the three steps below printed its status on EVERY send while
+        % the room was being brought up - three lines per message, per member.
+        % They now speak only when a step fails, which is the case that was
+        % actually worth seeing: a send that half-succeeds is how a member ends
+        % up in the room and hearing nothing.
+        xmpfget(0, length, ident) =: returnStatus
+        IF returnStatus >< XMOK THEN
+            OUTPUT(1, 'AL18', 'SV: get failed st=')
+            OUTPUT(1, 'I6', returnStatus)
+            OUTPUT(1, 'AL1', '$')
+            RETURN
+        ENDIF
+        xmpfwri(0, 0, &
+            ADDR(outBuf(0)) FORCE XMUSERADDRESS, &
+            0, length, writtenLength) =: returnStatus
+        IF returnStatus >< XMOK THEN
+            OUTPUT(1, 'AL18', 'SV: wri failed st=')
+            OUTPUT(1, 'I6', returnStatus)
+            OUTPUT(1, 'AL1', '$')
+        ENDIF
+        IF returnStatus >< XMOK THEN
+            xmpfrel(0, ident) =: returnStatus
+            RETURN
+        ENDIF
+        % XMPSEND, NOT XMPFSND - and this is the whole bug, not a tidy-up.
+        %
+        % XMPFSND takes no message parameter. The guide says which one it picks:
+        % "the current (default) message buffer is assumed, namely the 'port
+        % current' message if one exists, or, if none, the 'task current'
+        % message" (ND-60.164.3, XMPFSND, EXPLANATION). XMPFGET above only makes
+        % the new buffer TASK current - it has no port parameter and cannot make
+        % it port current. This port has just received a message, so a 'port
+        % current' message may well still exist, and XMPFSND would send THAT
+        % instead of the reply we just built. The guide never says whether
+        % XMPFREL clears the port-current pointer, so relying on it would be a
+        % guess.
+        %
+        % XMPSEND("Send message, not necessarily current") removes the question:
+        % "The message specified by msgIdentifier is set as 'task current'
+        % message and as 'port current' message for localPort. Then the message
+        % will be sent as described under routine XMPFSND."
+        %
+        % Appendix G's SERVER gets away with XMPFSND only because it never calls
+        % XMPFGET - it replies in the very buffer that arrived, which is already
+        % both port and task current. We cannot copy that: a broadcast needs one
+        % fresh buffer per member.
+        xmpsend(sendFlags, ident, myPort, magic) =: returnStatus
+        IF returnStatus >< XMOK THEN
+            OUTPUT(1, 'AL18', 'SV: snd failed st=')
+            OUTPUT(1, 'I6', returnStatus)
+            OUTPUT(1, 'AL1', '$')
+
+            % ---- A MEMBER WHO IS NO LONGER THERE, IF WE ARE EVER TOLD HERE --
+            % Two statuses would mean the seat is holding somebody who has gone.
+            % Both are read off XMP-B02:DEFS rather than guessed:
+            %
+            %   XMXEIMA 16915  Invalid magic number
+            %   XMXEPCL 16932  Remote port closed while message queued
+            %
+            % NEITHER OF THEM ACTUALLY TURNS UP for a client killed on this
+            % machine - measured, see the note on sendFlags. XMPSEND took the
+            % message for a closed port and answered XMOK. This test is kept
+            % rather than deleted because it costs one compare and it is right
+            % if a status ever does arrive - a remote member across a link is
+            % the obvious untested case - but it is NOT what fixes the leak.
+            % The XMTRE branch in the receive loop is.
+            %
+            % ONLY THESE TWO, and deliberately not "any failure". XMXEMFL
+            % (message space full) is a bad moment, not a dead member, and
+            % throwing somebody out of the room because the machine was briefly
+            % short of buffers would be worse than the bug being fixed. Every
+            % other status still prints above.
+            IF returnStatus = XMXEIMA OR returnStatus = XMXEPCL THEN
+                findByMagic(magic) =: deadSlot
+                IF deadSlot >< 0 THEN
+                    1 =: memberDead(deadSlot)
+                    1 =: deadFound
+                ENDIF
+            ENDIF
+        ENDIF
+    ENDROUTINE
+
+    ROUTINE VOID, VOID (INTEGER, INTEGER) : broadcast(length, exceptSlot)
+        INTEGER : i
+        FOR i IN 1:maxSeats DO
+            IF memberUsed(i) >< 0 THEN
+                IF i >< exceptSlot THEN
+                    sendTo(memberMagic(i), length)
+                ENDIF
+            ENDIF
+        ENDFOR
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Empty the seats of members who have vanished, and give each seat back.
+    %
+    % CALLED FROM THE TOP OF THE RECEIVE LOOP, never from inside a broadcast -
+    % see the note on memberDead for why that is not a style choice.
+    %
+    % A vanished member costs TWO things and they are not the same thing:
+    %
+    %   the seat in this program  memberUsed, which decides who is in the room;
+    %   the seat in XROUT         the free-connection counter, which decides
+    %                             whether a new joiner's letter is forwarded at
+    %                             all. XROUT decremented it to deliver the join
+    %                             and only the port's owner - this program -
+    %                             ever puts one back, with XMPINFC.
+    %
+    % Clearing only the first leaves the room looking empty in LIST-NAMES while
+    % it refuses everybody. MEASURED 2026-08-18, before this routine existed:
+    % CHAT-LOBBY went 16 free to 15 when a client was aborted with ESC
+    % ("USER BREAK AT 16665B") and stayed at 15 for good.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID : reapDead
+        INTEGER : round, i, length
+
+        % Cleared FIRST, not last. A broadcast below can discover another dead
+        % member - telling the room somebody left is exactly when the next dead
+        % port gets found - and clearing at the end would throw that mark away.
+        % Cleared here, a mark raised during our own broadcasts simply re-arms
+        % this routine for the next message.
+        0 =: deadFound
+
+        % Bounded rather than a WHILE. Each pass empties at least one seat and a
+        % pass can only mark members still in the room, so maxSeats passes empty
+        % the worst room there is. An unbounded loop here would be taking on
+        % trust that a broadcast to a dying room always terminates, and this
+        % program has no way to recover if it does not.
+        FOR round IN 1:maxSeats DO
+            FOR i IN 1:maxSeats DO
+                IF memberDead(i) >< 0 THEN
+                    0 =: memberDead(i)
+                    IF memberUsed(i) >< 0 THEN
+                        % Same order as the kLeave path: build the announcement
+                        % while the name is still in the slot, empty the seat,
+                        % THEN tell the room - so the departing member is not
+                        % sent their own Left notice at a port already gone,
+                        % which would only mark them dead all over again.
+                        buildFromSlot(kLeft, i, 0, 0) =: length
+                        0 =: memberUsed(i)
+                        broadcast(length, 0)
+
+                        xmpinfc(0, myPort, 1, 0) =: returnStatus
+                        IF returnStatus >< XMOK THEN
+                            OUTPUT(1, 'AL18', 'SV: infc failed st')
+                            OUTPUT(1, 'I6', returnStatus)
+                            OUTPUT(1, 'AL1', '$')
+                        ENDIF
+
+                        % Worth one line: an operator watching the room needs to
+                        % be able to tell "they left" from "they died", because
+                        % only the second is evidence of anything.
+                        OUTPUT(1, 'AL21', 'SV: reaped dead slot ')
+                        OUTPUT(1, 'I6', i)
+                        OUTPUT(1, 'AL1', '$')
+                    ENDIF
+                ENDIF
+            ENDFOR
+        ENDFOR
+    ENDROUTINE
+
+    % ----- the refusal reasons, worded exactly as ChatRoom.cs words them ----
+    % Carried on the wire so a client shows the same sentence whichever door it
+    % came in by. If these and ChatRoom ever diverge, one of the two is wrong.
+    %
+    % EACH LENGTH IS WRITTEN OUT beside its string, and that is deliberate. An
+    % earlier version called LENGTH(reason) - PLANC has no such routine. The one
+    % it does have is SIZE, whose syntax is "SIZE ident =: var" with no
+    % parentheses, and which returns the STORAGE size; what that means for a
+    % BYTES value passed as a routine parameter is not established. Passing the
+    % count removes the question rather than trading one guess for another.
+    %
+    % The cost is that a string and its number must be changed together. That is
+    % a real risk and it is why they are on adjacent lines.
+    BYTES : reasonNeedNick := 'a nickname is required'
+    INTEGER : lenNeedNick := 22
+    BYTES : reasonNickTaken    := 'that nickname is taken'
+    INTEGER : lenNickTaken := 22
+    BYTES : reasonAlreadyIn    := 'already joined'
+    INTEGER : lenAlreadyIn := 14
+    BYTES : reasonRoomFull     := 'the room is full'
+    INTEGER : lenRoomFull := 16
+
+    % -----------------------------------------------------------------------
+    % Refuse the sender, echoing the name they asked for and naming the reason.
+    %
+    % The name is echoed so the asker can tell WHICH request failed when it has
+    % more than one outstanding; the reason is carried so the wording is the
+    % same on both doors.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID (INTEGER, INTEGER, BYTES, INTEGER) : &
+            refuse(nameAt, nameLength, reason, reasonLength)
+        INTEGER : i, at
+        kReject =: outBuf(0)
+        nameLength =: outBuf(1)
+        2 =: at
+        FOR i IN 1:nameLength DO
+            inBuf(nameAt + i - 1) =: outBuf(at)
+            at + 1 =: at
+        ENDFOR
+
+        0 =: outBuf(at)
+        reasonLength =: outBuf(at + 1)
+        at + 2 =: at
+        % SUBSCRIPT FROM ZERO. A BYTES declared from a literal - which is what
+        % every reason string above is - has its first character at index 0, so
+        % "reason(i)" for i in 1:len silently drops the first letter and reads
+        % one byte past the end. Same defect, same day, in CHAT.PLNC's buildOwn,
+        % where it turned RONNY into ONNY on the wire and was only visible
+        % because the raw bytes were dumped. Nothing warns; PLANC checks no
+        % bound. Compare cmdIs in CHAT.PLNC, which has always used word(i - 1).
+        FOR i IN 1:reasonLength DO
+            reason(i - 1) =: outBuf(at)
+            at + 1 =: at
+        ENDFOR
+
+        sendTo(senderMagic, at)
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Decode one arrived message and apply the room rules.
+    %
+    % A transcription of Xmsg.Chat/ChatRoom.cs. Where that file refuses, this
+    % refuses for the same reason and in the same order, because the two doors
+    % lead into one room.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID : handleMessage
+        INTEGER : kind, nameLength, nameAt, textLength, textAt
+        INTEGER : slot, taken, length
+
+        inBuf(0) =: kind
+        inBuf(1) =: nameLength
+        2 =: nameAt
+
+        % A "parse k= nlen= rlen=" line printed here on EVERY message while the
+        % join was being brought up. It said "remove once the join works", and
+        % the join works - it was what showed the kind arriving as the XSLET
+        % serial number instead of kJoin, which is how the missing header skip
+        % was found.
+        %
+        % THE THREE "DROP" MESSAGES BELOW STAY. They are not the same thing: a
+        % silent drop is right for a stranger on the wire but leaves the operator
+        % unable to tell a refused message from a lost one, and each prints only
+        % when something is actually wrong rather than once per message.
+
+        % ---- TRUST NOTHING THAT ARRIVED ------------------------------------
+        % Every field below is a byte a stranger chose. Two things have to hold
+        % before any of them is used, and neither is checked by the language:
+        %
+        %   the name must FIT      memberName has maxNameLen bytes per seat, and
+        %                          a length byte can say 255.
+        %   the fields must be IN  the message actually read is readLength
+        %   THE MESSAGE            bytes; a length that points past it would read
+        %                          whatever the previous, longer message left in
+        %                          inBuf and answer with it.
+        %
+        % Dropped in silence rather than refused: a refusal would need a name to
+        % echo, and the name is the part that is not trustworthy. The seat is
+        % settled by the receive loop either way, which is exactly why that
+        % accounting does not live in here.
+        %
+        % The sixteen is a rule of the ROOM, not a detail of this program:
+        % ChatRoom.MaxNicknameLength says the same number, so a name this side
+        % must drop is one the other side refuses rather than admits. Otherwise
+        % the two rooms would disagree about who is in them.
+        IF nameLength > maxNameLen THEN
+            OUTPUT(1, 'AL21', 'SV: DROP name too big')
+            OUTPUT(1, 'AL1', '$')
+            RETURN
+        ENDIF
+        IF nameAt + nameLength + 1 > readLength THEN
+            OUTPUT(1, 'AL22', 'SV: DROP name past end')
+            OUTPUT(1, 'AL1', '$')
+            RETURN
+        ENDIF
+
+        nameAt + nameLength =: textAt
+        inBuf(textAt) * 256 + inBuf(textAt + 1) =: textLength
+        textAt + 2 =: textAt
+
+        IF textAt + textLength > readLength THEN
+            OUTPUT(1, 'AL22', 'SV: DROP text past end')
+            OUTPUT(1, 'AL1', '$')
+            RETURN
+        ENDIF
+
+        % The seat this sender already holds, or -1 if none. A "slot now=" line
+        % used to print here on every message; it was part of the same bring-up
+        % as the parse line above and went with it.
+        findByMagic(senderMagic) =: slot
+
+        IF kind = kJoin THEN
+            % Order matches ChatRoom.TryJoin: empty name, then taken name, then
+            % already joined.
+            IF nameLength = 0 THEN
+                refuse(nameAt, nameLength, reasonNeedNick, lenNeedNick)
+                RETURN
+            ENDIF
+            findByName(nameAt, nameLength) =: taken
+            IF taken >< 0 THEN
+                refuse(nameAt, nameLength, reasonNickTaken, lenNickTaken)
+                RETURN
+            ENDIF
+            IF slot >< 0 THEN
+                refuse(nameAt, nameLength, reasonAlreadyIn, lenAlreadyIn)
+                RETURN
+            ENDIF
+
+            freeSlot =: slot
+            IF slot = 0 THEN
+                % XROUT should have stopped this - the seat count it holds and
+                % maxSeats here are the same number. If it ever happens, the
+                % two have drifted apart and that is worth refusing loudly
+                % rather than overwriting a member.
+                refuse(nameAt, nameLength, reasonRoomFull, lenRoomFull)
+                RETURN
+            ENDIF
+
+            1 =: memberUsed(slot)
+            senderMagic =: memberMagic(slot)
+            copyNameIn(slot, nameAt, nameLength)
+
+            % The welcome goes only to the joiner; the room hears Joined.
+            buildMessage(kWelcome, nameAt, nameLength, 0, 0) =: length
+            sendTo(senderMagic, length)
+
+            buildMessage(kJoined, nameAt, nameLength, 0, 0) =: length
+            broadcast(length, slot)
+            RETURN
+        ENDIF
+
+        % Everything below requires membership. Silence for a stranger, exactly
+        % as ChatRoom does: answering would confirm the port is a chat server to
+        % something that never joined.
+        IF slot = 0 THEN
+            RETURN
+        ENDIF
+
+        IF kind = kSay THEN
+            % The speaker is named by the ROOM, never by what the sender put in
+            % the message - otherwise anyone could speak as anyone.
+            buildFromSlot(kSaid, slot, textAt, textLength) =: length
+            broadcast(length, 0)                  % 0 = everybody, speaker too
+            RETURN
+        ENDIF
+
+        IF kind = kRename THEN
+            IF nameLength = 0 THEN
+                refuse(nameAt, nameLength, reasonNeedNick, lenNeedNick)
+                RETURN
+            ENDIF
+            IF sameName(slot, nameAt, nameLength) = 1 THEN
+                RETURN                            % already your name: not news
+            ENDIF
+            findByName(nameAt, nameLength) =: taken
+            IF taken >< 0 THEN
+                refuse(nameAt, nameLength, reasonNickTaken, lenNickTaken)
+                RETURN
+            ENDIF
+
+            % Renamed carries the NEW name and the OLD one as its text, so a
+            % transcript on somebody's screen can be connected up. Built before
+            % the slot changes, while the old name is still there.
+            buildRenamed(slot, nameAt, nameLength) =: length
+            copyNameIn(slot, nameAt, nameLength)
+            broadcast(length, 0)                  % including the asker
+            RETURN
+        ENDIF
+
+        % /who - answered to the ASKER ALONE, never broadcast. Everybody else
+        % asking would then get a list they did not want, and the room would
+        % spend a message on each of them.
+        IF kind = kWho THEN
+            buildWho =: length
+            sendTo(senderMagic, length)
+            RETURN
+        ENDIF
+
+        IF kind = kLeave THEN
+            buildFromSlot(kLeft, slot, 0, 0) =: length
+            0 =: memberUsed(slot)
+            broadcast(length, 0)
+
+            % Give the seat back to XROUT, or the room fills up permanently and
+            % XROUT stops forwarding joins long after anybody left.
+            xmpinfc(0, myPort, 1, 0) =: returnStatus
+            RETURN
+        ENDIF
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % The program.
+    % -----------------------------------------------------------------------
+    PROGRAM : chatServer
+        XMMSGIDENTIFIER : msgIdent
+        INTEGER : i
+
+        INISTACK stack
+
+        % The flags WORDS from their bit positions - see the note at the top.
+        2**XFWTF =: waitFlags
+        2**XFSEC =: sendFlags
+
+        FOR i IN 1:maxSeats DO
+            0 =: memberUsed(i)
+            0 =: memberDead(i)
+        ENDFOR
+
+        % A CONNECTION port: XROUT holds the free-connection counter and turns
+        % the joiner past maxSeats away for us, before this program is woken.
+        % That is the whole reason no client knows the number.
+        xmpopcn(0, 'CHAT-LOBBY', uniqueName, maxSeats, myPort) =: returnStatus
+        IF returnStatus >< XMOK THEN
+            OUTPUT(1, 'AL29', 'CHATSV: cannot open the room$')
+            OUTPUT(1, 'AL11', 'SV: opn st=')
+            OUTPUT(1, 'I6', returnStatus)
+            OUTPUT(1, 'AL1', '$')
+            RETURN
+        ENDIF
+
+        % Our own magic number, so an arrival can be tested against it.
+        xmpfp2m(0, myPort, myMagic) =: returnStatus
+        IF returnStatus >< XMOK THEN
+            OUTPUT(1, 'AL18', 'SV: p2m failed st=')
+            OUTPUT(1, 'I6', returnStatus)
+            OUTPUT(1, 'AL1', '$')
+        ENDIF
+
+        % ONE BANNER, AND IT STAYS. An operator has to be able to tell a server
+        % that is waiting from one that never got its room, and the port number
+        % is what LIST-PORTS is matched against when it does not.
+        OUTPUT(1, 'AL24', 'CHATSV: room open, port ')
+        OUTPUT(1, 'I6', myPort)
+        OUTPUT(1, 'AL1', '$')
+
+        DO
+            % WAIT. XFWTF is what makes this block rather than spin; an RT
+            % program that polls burns the machine for nothing. Without the
+            % flag the status would come back MXNEXTM when nothing is waiting.
+            xmpfrcv(waitFlags, myPort, msgType, remotePortHash, msgIdent, nBytes) &
+                =: returnStatus
+            % A RECEIVE IS A MESSAGE ONLY WHEN THE STATUS IS A MESSAGE TYPE.
+            % Not "= XMOK" and not "> 0". The library remaps statuses: 0 is OK
+            % for other calls but is NOT a message type, so comparing to it
+            % here discards every message; and 16896 (XMXENTM, nothing there)
+            % and every error are positive, so "> 0" accepts an empty port.
+            % The constants file settles it - "Message types: Returned as
+            % successfull status from XFRCV", XMTNO=1 through XMTPS=6.
+            % PRINT THE STATUS OF EVERY RECEIVE, OUTSIDE THE TEST.
+            %
+            % This line is here because the test below threw the message away
+            % and every diagnostic was INSIDE it, so the server looked as if it
+            % had never woken at all. MEASURED 2026-08-18: CHAT-LOBBY went from
+            % 8 free seats to 6 across two joins, which proves XROUT accepted
+            % both letters and forwarded them here - "XROUT will decrement the
+            % counter and forward the whole message to portName" - while this
+            % program printed nothing and went straight back to waiting.
+            %
+            % A gate must never be the only thing that can tell you it closed.
+            % This printed on EVERY receive during bring-up. It now prints only
+            % when the receive is NOT one this server accepts - which is the case
+            % the original comment was really about. A message that arrives and is
+            % handled says so by what it does; a message thrown away by the test
+            % below still has nothing else to speak for it.
+            % ---- KNOW WHEN TO STOP -------------------------------------
+            % MEASURED 2026-08-18, and it is why this block exists at all.
+            % XMSG went down under a running server. XMPFRCV then stopped
+            % blocking - there is nothing to wait ON - and returned 16933,
+            % XMXENRU, "XMSG not running", instantly, for ever. This loop
+            % printed that line as fast as the terminal could take it and
+            % burned the machine until somebody pressed ESC.
+            %
+            % A WAIT THAT CANNOT WAIT IS A SPIN. The XFWTF flag is what makes
+            % this loop cheap, and it quietly stops meaning anything the moment
+            % the thing it waits on is gone. Any program built around a
+            % blocking call needs an answer for that, and "print and go round
+            % again" is not one.
+            %
+            % Two ways out, and they are different on purpose:
+            %
+            %   XMXENRU        STOP. Nothing this program can do brings XMSG
+            %                  back - an operator has to restart it - so
+            %                  retrying is not persistence, it is a busy loop
+            %                  with no end. Say so plainly and leave.
+            %
+            %   anything else  RETRY, but not for ever. An unknown status may
+            %                  well clear; the same one arriving maxBadRuns
+            %                  times running has not cleared and will not.
+            %
+            % A GOOD RECEIVE CLEARS THE COUNT, so the limit is on a RUN of
+            % failures rather than on failures for the life of the program. A
+            % server that has been up for a week and sees twenty scattered odd
+            % statuses is healthy; one that sees twenty in a row is not.
+            IF returnStatus = XMOK OR &
+               (returnStatus >= XMTNO AND returnStatus <= XMTPS) THEN
+                0 =: badRuns
+            ELSE
+                IF returnStatus >< XMXENTM THEN
+                    badRuns + 1 =: badRuns
+
+                    % Print the first few and then stop shouting. The whole
+                    % fault above was a message repeated without limit, and a
+                    % diagnostic that fills the screen hides the one line that
+                    % matters.
+                    IF badRuns <= maxNoisy THEN
+                        OUTPUT(1, 'AL23', 'SV: receive refused st=')
+                        OUTPUT(1, 'I6', returnStatus)
+                        OUTPUT(1, 'AL1', '$')
+                    ENDIF
+
+                    IF returnStatus = XMXENRU THEN
+                        OUTPUT(1, 'AL31', 'CHATSV: XMSG is not running - $')
+                        OUTPUT(1, 'AL31', 'CHATSV: stopping, restart XMSG$')
+                        RETURN
+                    ENDIF
+
+                    IF badRuns > maxBadRuns THEN
+                        OUTPUT(1, 'AL30', 'CHATSV: too many bad receives$')
+                        OUTPUT(1, 'I6', returnStatus)
+                        OUTPUT(1, 'AL1', '$')
+                        RETURN
+                    ENDIF
+                ENDIF
+            ENDIF
+
+            % ACCEPT XMOK TOO - Appendix G's SERVER does exactly this.
+            %
+            % The old test was the range XMTNO..XMTPS alone, defended by a
+            % comment claiming 0 "is NOT a message type, so comparing to it here
+            % discards every message". The vendor sample says otherwise: after
+            % XMPFRCV it tests "IF RETURNSTATUS >< XMOK THEN ... bad status" and
+            % only THEN looks at the MSGTYPE out-parameter to check for XMROU.
+            % So XMOK is a successful receive, and the message type belongs in
+            % msgType, not in the status.
+            %
+            % Both forms are accepted here rather than one being swapped for the
+            % other, because the print above will say which one actually turns up
+            % and guessing is what put the range test here in the first place.
+            IF returnStatus = XMOK OR &
+               (returnStatus >= XMTNO AND returnStatus <= XMTPS) THEN
+                % The FULL magic number of the sender - XMPFRCV hands back only
+                % a hashed port, and we must be able to answer.
+                % A "got t= len=" line printed here to separate "never woke"
+                % from "woke, replied, reply lost". It said to remove it once the
+                % join works, and the join works.
+                % THE RECEIVE'S OWN nBytes, KEPT BEFORE ANYTHING OVERWRITES IT.
+                % For an ordinary message it is the length; for a RETURNED one
+                % the guide says it is something else entirely - "If msgType is
+                % XMTRE, msgLengthOrStat contains the error status" - and
+                % xmpfmst below writes over it either way.
+                nBytes =: receiveStat
+
+                xmpfmst(0, msgIdent, msgType, senderMagic, nBytes) =: returnStatus
+
+                % CLAMP BEFORE READING. nBytes is the sender's message size,
+                % handed back by XMSG - not a size this program chose. Passing
+                % it straight in lets any peer that sends more than inBufSize
+                % bytes write past the end of inBuf. That is a WRITE overflow
+                % and it happens before a single field is parsed, so none of
+                % the careful field checks in handleMessage can save it.
+                nBytes =: readAmount
+                IF readAmount > inBufSize THEN
+                    inBufSize =: readAmount
+                ENDIF
+
+                xmpfrea(0, 0, &
+                    ADDR(inBuf(0)) FORCE XMUSERADDRESS, &
+                    0, readAmount, readLength) =: returnStatus
+
+                xmpfrel(0, msgIdent) =: returnStatus
+
+                % A 48-BYTE RAW DUMP OF EVERY ARRIVAL STOOD HERE, and it is the
+                % single diagnostic that solved this program. It is worth saying
+                % what it did before it goes, because the lesson outlives it.
+                %
+                % It began at 8 bytes and printed nothing useful for the arrival
+                % that mattered. Widened to 48 it showed the join in full:
+                %
+                %   123  65  0 12 | 255 10 'CHAT-LOBBY' | 1 5 'RONNY' 0 0
+                %
+                % Byte 0 was 123 - the SERIAL NUMBER this program's own client
+                % hands to XMPBLET. So what arrives starts with the XSLET LETTER
+                % HEADER, and handleMessage had been reading that header as if it
+                % were a chat message all along. The header skip below is the fix,
+                % and the layout under it is read off those bytes.
+                %
+                % The general form: a dump of what actually arrived beat every
+                % re-reading of the code, and it beat the manual too - the manual
+                % was right and was being applied to the wrong offset.
+
+                % A "fromSelf YES/no" line printed here. It earned its place once:
+                % the answer came back YES, the server's own reply arriving
+                % straight back at this port, which no amount of reading the guide
+                % would have suggested. That is recorded rather than printed now.
+                % THE SENDER'S MAGIC NUMBER AND OUR OWN were printed side by side
+                % here, to answer one suspicion: the welcome was being sent with
+                % status 0 and never arriving, so was senderMagic - taken from
+                % XMPFMST on a letter that came via XROUT - an address we could
+                % actually send BACK to?
+                %
+                % IT WAS. The two numbers were consistent and the reply address
+                % was never the bug. What that ruled out is what sent the search
+                % to the CLIENT's receive test, where XMPFRCV was returning XMOK,
+                % a "1..6 only" test was rejecting it, and the welcome was being
+                % dequeued and dropped in silence.
+                %
+                % A diagnostic that clears a suspicion is worth as much as one
+                % that confirms it, and this one cost a push-and-compile round
+                % trip to add. That is why it is written down instead of deleted.
+
+                % ---- A LETTER ARRIVES WEARING ITS XROUT HEADER --------------
+                % XROUT forwards THE WHOLE MESSAGE, header included. So a letter
+                % that came via XROUT has the XSLET header in front of the chat
+                % message, and the chat message has to be found behind it.
+                %
+                % ND-60.164.3 EN COSMOS Programmer Guide, appendix B, "XROUT
+                % Message Format", states the layout - this is read from the
+                % manual, not inferred from one capture:
+                %
+                %   byte 0     serial number, echoed back unchanged by XROUT
+                %   byte 1     the service number (XSLET = 65); XROUT overwrites
+                %              it with the return status on a reply
+                %   bytes 2-3  LENGTH OF THE REMAINDER OF THE MESSAGE in bytes,
+                %              "followed by a sequence of parameter blocks"
+                %
+                % So the parameter blocks occupy exactly the bytes that length
+                % counts, and OUR data starts right after them:
+                %
+                %   payloadAt = 4 + the length word
+                %
+                % The manual is explicit that the user data is untouched: "The
+                % remainder of the message will not be looked at by XROUT ... thus
+                % the user data can be coded in any format legible to the
+                % receiving (server) task."
+                %
+                % MEASURED 2026-08-18, the 25-byte join, which agrees:
+                %   123  65  0 12 | 255 10 'CHAT-LOBBY' | 1 5 'RONNY' 0 0
+                %    ^serial ^len=12   ^param 1: string, 10 bytes  ^payload at 16
+                %
+                % DERIVED, NEVER HARD-CODED. 16 is only right for a ten-character
+                % room name; the parameter block moves with the name, and a
+                % constant here would break the moment /join names a longer room.
+                %
+                % The alternative reading - 6 + the name length - fits this one
+                % capture just as well and is WRONG in general: it cannot see a
+                % second parameter block, and XSLET has an optional third.
+                %
+                % The payload is slid down to offset 0 so that handleMessage
+                % parses one layout and one only. Every other route into it -
+                % an ordinary XMTNO message straight from a magic number - has no
+                % header at all, and this is the single place that knows that.
+                % ---- A MESSAGE OF OURS THAT COULD NOT BE DELIVERED ----------
+                % This is what XFSEC bought, and it has to be caught BEFORE
+                % handleMessage: the bytes in inBuf are our own outgoing Said or
+                % Joined coming home, so parsing them as an arrival would have
+                % the room answering itself.
+                %
+                % THE QUESTION THIS BRANCH WAS BUILT TO ANSWER, AND THE ANSWER.
+                %
+                % A returned message carries what WE wrote, and what we wrote
+                % names the SPEAKER, not the member it could not reach - so it
+                % was not obvious that anything here identifies the destination.
+                % XMPFMST hands back a magic number for an ordinary arrival; the
+                % guide never says what that field holds on a returned one.
+                %
+                % MEASURED 2026-08-18 on D100, and it IS the destination:
+                %
+                %   SV: returned msg, st=  16915
+                %   SV: it names slot          2
+                %   SV: reaped dead slot       2
+                %
+                % 16915 is XMXEIMA, "Invalid magic number" - the reason the
+                % message came home. Note where that code turned up: as the
+                % REASON ON A RETURN, not as the status of the send. The first
+                % attempt at this fix tested XMPSEND's own status for exactly
+                % that number and never fired, because XMPSEND answered XMOK and
+                % handed the message to a port that was already gone.
+                %
+                % The slot print stays. It costs nothing - a member has to die
+                % before it runs - and it separates "one of ours bounced" from
+                % "something bounced", which is the first thing an operator
+                % needs to know and the one thing the reap line cannot say.
+                IF msgType = XMTRE THEN
+                    OUTPUT(1, 'AL22', 'SV: returned msg, st= ')
+                    OUTPUT(1, 'I6', receiveStat)
+                    OUTPUT(1, 'AL1', '$')
+
+                    findByMagic(senderMagic) =: wasMember
+                    OUTPUT(1, 'AL22', 'SV: it names slot     ')
+                    OUTPUT(1, 'I6', wasMember)
+                    OUTPUT(1, 'AL1', '$')
+
+                    IF wasMember >< 0 THEN
+                        1 =: memberDead(wasMember)
+                        1 =: deadFound
+                    ENDIF
+                ELSE
+                IF msgType = XMROU THEN
+                    % THE SERVICE BYTE, TAKEN BEFORE ANYTHING MOVES. The payload
+                    % is slid down to offset 0 below, so by the time the seat
+                    % rule runs inBuf(1) is chat data, not the header. Reading
+                    % it there is how the feedback loop went unnoticed in
+                    % review - the test looked right and was inspecting the
+                    % wrong bytes.
+                    inBuf(1) =: letterService
+
+                    4 + inBuf(2) * 256 + inBuf(3) =: payloadAt
+
+                    % A letter with nothing behind the header is a connect this
+                    % program has no answer for. Dropping it says so; the seat is
+                    % already spent either way. Note this is >=, not >: a payload
+                    % that starts exactly AT the end is an empty payload.
+                    IF payloadAt >= readLength THEN
+                        OUTPUT(1, 'AL24', 'SV: DROP empty letter   ')
+                        OUTPUT(1, 'AL1', '$')
+                    ELSE
+                        % (the seat for this arrival is settled after
+                        %  handleMessage, by the one rule below)
+                        readLength - payloadAt =: readLength
+                        FOR i IN 1:readLength DO
+                            inBuf(payloadAt + i - 1) =: inBuf(i - 1)
+                        ENDFOR
+
+                        % ---- SEAT ACCOUNTING, and it belongs HERE ----------
+                        % The seat is spent by the ARRIVAL of a routed message,
+                        % not by any particular kind of message inside it. Doing
+                        % it per kind is what the C# side got wrong: a letter
+                        % carrying anything but a join, or a letter too damaged
+                        % to decode at all, never reaches a handler - so no
+                        % handler can give its seat back, and the room silently
+                        % loses a seat for good.
+                        %
+                        % XROUT decremented its free-connection counter to get
+                        % this letter here, so a seat is already spent by the
+                        % time this line runs. There are now exactly two places
+                        % that give one back, and between them they cover both
+                        % ways a member can stop being one:
+                        %
+                        %   handleMessage, kLeave   they said goodbye;
+                        %   reapDead                they did not, and a send to
+                        %                           them came back saying the
+                        %                           port is gone.
+                        findByMagic(senderMagic) =: wasMember
+
+                        handleMessage
+                    ENDIF
+
+                    % ---- THE SEAT BELONGS TO THE ARRIVAL, SO SETTLE IT HERE ----
+                    % MEASURED 2026-08-18 by a load run: twenty C# clients joined
+                    % at once and CHAT-LOBBY went from 16 free seats to 2 and
+                    % stayed there, even though every welcomed member left again
+                    % cleanly. Fourteen seats gone.
+                    %
+                    % The comment a few lines up has described this hole all
+                    % along - "a letter carrying anything but a join, or a letter
+                    % too damaged to decode at all, never reaches a handler - so
+                    % no handler can give its seat back" - and named it as
+                    % something the C# side got wrong. It was wrong HERE too. The
+                    % code only ever returned a seat on a clean /leave or a reap,
+                    % so an empty letter, a join refused because the name was
+                    % taken, and a letter from a stranger each cost a seat for
+                    % good. Under a burst that is most of them.
+                    %
+                    % ONE RULE, APPLIED TO EVERY LETTER: XROUT spent a seat to
+                    % deliver this, so if the sender is not sitting in the room
+                    % once we have finished with it, nobody is holding that seat
+                    % and it must go straight back.
+                    %
+                    % This does NOT double-count with the /leave and reapDead
+                    % paths. A leave arrives as an ORDINARY message, port to
+                    % port, and never comes through this branch at all - only the
+                    % JOIN is a letter. So each member's seat is returned exactly
+                    % once, by whichever of the three applies.
+                    %
+                    % KNOWN GAP, said plainly rather than left to be discovered:
+                    % a letter from somebody who IS already a member keeps its
+                    % seat and should not. Clients send port to port after
+                    % joining, so it does not arise in normal use, and guessing a
+                    % fix for a case never seen would be worse than naming it.
+                    % ---- ONLY A REAL LETTER SPENT A SEAT --------------------
+                    % MEASURED, and it is the worst kind of bug: a FEEDBACK
+                    % LOOP that this very block created. Four users joined and
+                    % left, and CHAT-LOBBY went from 16 free seats to 3470 while
+                    % the terminal filled with "DROP empty letter" for ever.
+                    %
+                    % Here is the loop. Returning a seat means sending XMPINFC
+                    % to XROUT. XROUT ANSWERS, and its answer arrives back on
+                    % this very port as a routed message with no chat payload -
+                    % which the code above drops as an empty letter, and which
+                    % this rule then read as "a letter whose sender is not a
+                    % member", so it returned ANOTHER seat, which produced
+                    % ANOTHER answer. The note at the foot of this file has
+                    % warned since the first version that the XMPINFC reply
+                    % "comes back later on our own port as an ordinary message"
+                    % and that ignoring it was "safe by accident until somebody
+                    % says so". It stopped being safe the moment this rule
+                    % started acting on every routed arrival.
+                    %
+                    % THE DISCRIMINATOR IS BYTE 1. A client's letter carries the
+                    % XSLET service number, 65. XROUT OVERWRITES that byte with
+                    % a return status when it answers - the header comment in
+                    % the receive loop says so, and it is the same test the C#
+                    % load client uses to spot a refused letter. So a letter
+                    % with 65 in byte 1 came from a client and spent a seat;
+                    % anything else is XROUT talking to us and spent nothing.
+                    IF letterService = XSLET THEN
+                        findByMagic(senderMagic) =: nowMember
+                        IF nowMember = 0 THEN
+                            xmpinfc(0, myPort, 1, 0) =: returnStatus
+                            IF returnStatus >< XMOK THEN
+                                OUTPUT(1, 'AL22', 'SV: seat return failed')
+                                OUTPUT(1, 'I6', returnStatus)
+                                OUTPUT(1, 'AL1', '$')
+                            ENDIF
+                        ENDIF
+                    ENDIF
+                ELSE
+                    % No header on this path: an ordinary message sent straight
+                    % to our magic number is exactly the bytes the peer wrote.
+                    handleMessage
+                ENDIF
+                ENDIF
+
+                % ---- AND NOW BURY ANYBODY WHO TURNED OUT TO BE GONE ---------
+                % One place, after everything the arrival caused has finished,
+                % because that is the only depth at which outBuf is free. Both
+                % branches above lead here on purpose: a member can be found
+                % dead by any broadcast, and the routed and direct paths both
+                % broadcast.
+                IF deadFound >< 0 THEN
+                    reapDead
+                ENDIF
+            ENDIF
+        ENDDO
+    ENDROUTINE
+
+ENDMODULE
+
+% ---------------------------------------------------------------------------
+% STILL NOT DONE, and worth saying rather than leaving to be met:
+%
+%  1. THIS ITEM USED TO READ "Nothing has been compiled", and it is kept here
+%     in corrected form rather than deleted, because everything it worried about
+%     has now been settled by the compiler itself rather than by argument:
+%     INTEGER4, two-dimensional BYTES ARRAY, the implicit extra ARRAY keyword on
+%     a BYTES declaration, BOOLEAN := TRUE, and the XMMSGIDENTIFIER and
+%     XMUSERADDRESS names out of XMP-B02:IMPT. All of it compiles and runs.
+%
+%     The one thing the list did NOT anticipate is the one that cost the most:
+%     a letter arrives with its XSLET header still in front of it. No amount of
+%     checking declarations against a manual would have found that - only the
+%     raw dump did.
+%
+%  2. The seat returned on Leave uses XMPINFC(flags, portNumber, extraConn,
+%     serialNumber). Its reply comes back later on our own port as an ordinary
+%     message, which handleMessage will see and not understand. Decide what to
+%     do with it - ignoring an unknown kind is already the behaviour, so this
+%     is safe, but it is safe by accident until somebody says so.
+%
+%  3. Each reason string carries its length as a separate constant, because
+%     PLANC has no LENGTH routine and SIZE's meaning for a BYTES parameter is
+%     not established. A string and its number must be changed together.
+% ---------------------------------------------------------------------------

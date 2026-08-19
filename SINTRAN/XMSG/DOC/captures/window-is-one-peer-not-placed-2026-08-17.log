@@ -1,0 +1,97 @@
+[runner] topology loaded: self=19999, 4 node(s), file=topology-d19999.json
+[runner] logging to E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\xmsg-d19999.log (level Info, max 2 MB, keep 3).
+2026-08-17 04:01:04.795 | [runner] Xmsg.Live.Runner v1.1.0.0 built 2026-08-17 04:00:54
+2026-08-17 04:01:04.842 | [runner] config folder: 
+2026-08-17 04:01:04.861 | [runner] config file:   topology-d19999.json
+2026-08-17 04:01:04.896 | [runner] log folder:    E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0
+2026-08-17 04:01:04.961 | [runner] log file:      E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\xmsg-d19999.log
+2026-08-17 04:01:05.052 | [runner] path=seam connecting to 127.0.0.1:10364 as node 19999 for 3600s
+2026-08-17 04:01:05.076 | [fa] connection numbers 0x0082..0x00C1 (state: E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\fa-connection.state)
+2026-08-17 04:01:05.093 | [fa] file server ON as *FA-SERVER (logical port 4, wire port 0x0257)
+2026-08-17 04:01:05.101 | [fa] serving folder: E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\served-files
+2026-08-17 04:01:05.119 | [fa] files visible now: 7
+2026-08-17 04:01:05.129 | [runner] joining COSMOS segment tcp:127.0.0.1:5010 as node 19999 (MAC 08:00:26:1F:4E:00), peer 100 (MAC 08:00:26:64:00:00)
+2026-08-17 04:01:05.146 | [runner] datagram-sequence state file: E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\xmsg-sequence.state
+2026-08-17 04:01:05.163 | [tad] 2 login account(s) loaded
+2026-08-17 04:01:05.171 | [runner] link-seed state file: E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\xmsg-link-seed.state
+2026-08-17 04:01:05.188 | [link] eth:d100 status Stopped -> Starting (backend started, awaiting peer)
+2026-08-17 04:01:05.198 | [runner] waiting for node 100 to send us a frame (we cannot address it until it does)...
+2026-08-17 04:01:10.220 | [segment] still waiting for 100. Frames from other stations: 0 (+0 in the last 5s). NOTHING at all is arriving - either no ND machine is on this group, or they have not been restarted since the ini change.
+2026-08-17 04:01:10.400 | [link] eth:d100 status Starting -> Active (peer learned)
+2026-08-17 04:01:10.415 | [seq] node 100: link created, starting Flags1 0x0000 from the store (the frame that created it carried 0x0000)
+2026-08-17 04:01:10.428 | [announce] telling system 100 that our XMSG restarted, so it resets the datagram sequence it expects from us
+2026-08-17 04:01:10.441 | [fa] connect letter from node 100 (system 100 port 0x04EF); serving E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\served-files; answering from session port 0x0211 with an FA ConnectionConfirm 07D2000E00826400
+2026-08-17 04:01:10.468 | [announce] --resync-hard: also zeroing OUR counter for 100. The next originated frame goes out at 0x0000 - if the peer accepts it, the peer resets on our announce; if it is dropped in silence, it does not.
+2026-08-17 04:01:10.493 | [seq] node 100: ORIGINATE at Flags1 0x0000 (next becomes 0x0001)
+2026-08-17 04:01:10.503 | [TX] *** PARKED *** eth:d100 took a 36B frame but the send window is full; 1 datagram(s) now waiting and NOTHING is leaving this node until the peer acknowledges us. 
+2026-08-17 04:01:10.524 | [RX] 100->19999 sub=Data answered with 2 frame(s)
+2026-08-17 04:01:10.531 | [TX] *** PARKED *** eth:d100 took a 14B frame but the send window is full; 2 datagram(s) now waiting and NOTHING is leaving this node until the peer acknowledges us. window 1, outstanding 1, peer placed us: False
+2026-08-17 04:01:10.557 | [seq] node 100: RESET to 0x0000 (was 0x0001); link KEPT
+2026-08-17 04:01:10.565 | [announce] telling system 102 that our XMSG restarted, so it resets the datagram sequence it expects from us
+2026-08-17 04:01:10.579 | [seq] node 100: ACK 0x0000 PERSISTED next 0x0001 (was 0x0000)
+2026-08-17 04:01:10.587 | [announce] --resync-hard: also zeroing OUR counter for 102. The next originated frame goes out at 0x0000 - if the peer accepts it, the peer resets on our announce; if it is dropped in silence, it does not.
+2026-08-17 04:01:10.611 | [RX] 100->19999 sub=Ack (no reply expected)
+2026-08-17 04:01:10.617 | [RX] 100->19999 sub=ReachabilityReply (no reply expected)
+2026-08-17 04:01:10.624 | [seq] node 102: RESET to 0x0000 (was 0x0000); link KEPT
+2026-08-17 04:01:10.631 | [fa] request ReserveFileEntry seq 1 from system 100: accepted
+2026-08-17 04:01:10.639 | [runner] peer 100 heard after 5.4s; link is up
+2026-08-17 04:01:10.645 | [seq] node 100: ORIGINATE at Flags1 0x0000 (next becomes 0x0001)
+2026-08-17 04:01:10.652 | [fa] short acknowledgement 1 to system 100 at Flags1 0x0000
+2026-08-17 04:01:10.660 | [seq] node 100: ORIGINATE at Flags1 0x0001 (next becomes 0x0002)
+2026-08-17 04:01:10.675 | [fa] reply to system 100: 18 byte(s), FA body 07F0000E80009081920002920001F200...
+2026-08-17 04:01:10.691 | [RX] 100->19999 sub=Data answered with 3 frame(s)
+2026-08-17 04:01:10.724 | [seq] node 100: ACK 0x0000 did NOT advance the store (still 0x0002)
+2026-08-17 04:01:10.732 | [RX] 100->19999 sub=Ack (no reply expected)
+2026-08-17 04:01:10.738 | [seq] node 100: ACK 0x0001 did NOT advance the store (still 0x0002)
+2026-08-17 04:01:10.746 | [RX] 100->19999 sub=Ack (no reply expected)
+2026-08-17 04:01:10.752 | [fa] short acknowledgement from system 100, conversation 0x0082
+2026-08-17 04:01:10.760 | [RX] 100->19999 sub=Data answered with 1 frame(s)
+2026-08-17 04:01:10.768 | [fa] DeleteFile 'DELME:TXT' for system 100: deleted
+2026-08-17 04:01:10.775 | [seq] node 100: ORIGINATE at Flags1 0x0002 (next becomes 0x0003)
+2026-08-17 04:01:10.783 | [fa] short acknowledgement 2 to system 100 at Flags1 0x0002
+2026-08-17 04:01:10.791 | [seq] node 100: ORIGINATE at Flags1 0x0003 (next becomes 0x0004)
+2026-08-17 04:01:10.799 | [fa] reply to system 100: 18 byte(s), FA body 07F0000E8100908192000B920002F200...
+2026-08-17 04:01:10.809 | [RX] 100->19999 sub=Data answered with 3 frame(s)
+2026-08-17 04:01:10.845 | [seq] node 100: ACK 0x0002 did NOT advance the store (still 0x0004)
+2026-08-17 04:01:10.853 | [RX] 100->19999 sub=Ack (no reply expected)
+2026-08-17 04:01:10.859 | [seq] node 100: ACK 0x0003 did NOT advance the store (still 0x0004)
+2026-08-17 04:01:10.866 | [RX] 100->19999 sub=Ack (no reply expected)
+2026-08-17 04:01:10.873 | [fa] short acknowledgement from system 100, conversation 0x0082
+2026-08-17 04:01:10.881 | [RX] 100->19999 sub=Data answered with 1 frame(s)
+2026-08-17 04:01:10.888 | [fa] request ReleaseFileEntry seq 3 from system 100: accepted
+2026-08-17 04:01:10.897 | [seq] node 100: ORIGINATE at Flags1 0x0004 (next becomes 0x0005)
+2026-08-17 04:01:10.907 | [fa] short acknowledgement 3 to system 100 at Flags1 0x0004
+2026-08-17 04:01:10.916 | [seq] node 100: ORIGINATE at Flags1 0x0005 (next becomes 0x0006)
+2026-08-17 04:01:10.925 | [fa] reply to system 100: 18 byte(s), FA body 07F0000E82009081920003920003F200...
+2026-08-17 04:01:10.935 | [RX] 100->19999 sub=Data answered with 3 frame(s)
+2026-08-17 04:01:10.968 | [seq] node 100: ACK 0x0004 did NOT advance the store (still 0x0006)
+2026-08-17 04:01:10.976 | [RX] 100->19999 sub=Ack (no reply expected)
+2026-08-17 04:01:10.983 | [seq] node 100: ACK 0x0005 did NOT advance the store (still 0x0006)
+2026-08-17 04:01:10.991 | [RX] 100->19999 sub=Ack (no reply expected)
+2026-08-17 04:01:10.997 | [fa] short acknowledgement from system 100, conversation 0x0082
+2026-08-17 04:01:11.005 | [RX] 100->19999 sub=Data answered with 1 frame(s)
+2026-08-17 04:01:11.011 | [fa] system 100 has finished with conversation 0x0082 (0x0782); answering with a close
+2026-08-17 04:01:11.022 | [seq] node 100: ORIGINATE at Flags1 0x0006 (next becomes 0x0007)
+2026-08-17 04:01:11.030 | [fa] reply to system 100: 8 byte(s), FA body 07C0000E00820000...
+2026-08-17 04:01:11.039 | [RX] 100->19999 sub=Data answered with 2 frame(s)
+2026-08-17 04:01:11.084 | [seq] node 100: ACK 0x0006 did NOT advance the store (still 0x0007)
+2026-08-17 04:01:11.092 | [RX] 100->19999 sub=Ack (no reply expected)
+2026-08-17 04:01:15.221 | [segment] data=17 acks=10 other-stations=12
+2026-08-17 04:01:20.242 | [segment] data=17 acks=10 other-stations=12
+2026-08-17 04:01:25.271 | [segment] data=17 acks=10 other-stations=12
+2026-08-17 04:01:30.294 | [segment] data=17 acks=10 other-stations=12
+2026-08-17 04:01:35.304 | [segment] data=17 acks=10 other-stations=12
+2026-08-17 04:01:40.320 | [segment] data=17 acks=10 other-stations=12
+2026-08-17 04:01:45.344 | [segment] data=17 acks=10 other-stations=12
+2026-08-17 04:01:50.358 | [segment] data=17 acks=10 other-stations=12
+2026-08-17 04:01:55.373 | [segment] data=17 acks=10 other-stations=12
+2026-08-17 04:02:00.397 | [segment] data=17 acks=10 other-stations=12
+2026-08-17 04:02:05.422 | [segment] data=17 acks=10 other-stations=12
+2026-08-17 04:02:10.427 | [segment] data=17 acks=10 other-stations=12
+2026-08-17 04:02:15.440 | [segment] data=17 acks=10 other-stations=12
+2026-08-17 04:02:20.462 | [segment] data=17 acks=10 other-stations=12
+2026-08-17 04:02:25.489 | [segment] data=17 acks=10 other-stations=12
+2026-08-17 04:02:30.513 | [segment] data=17 acks=10 other-stations=12
+2026-08-17 04:02:35.529 | [segment] data=17 acks=10 other-stations=12
+2026-08-17 04:02:40.544 | [segment] data=17 acks=10 other-stations=12
+2026-08-17 04:02:45.568 | [segment] data=17 acks=10 other-stations=12

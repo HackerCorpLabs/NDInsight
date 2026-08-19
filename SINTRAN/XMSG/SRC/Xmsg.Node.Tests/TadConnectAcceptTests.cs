@@ -14,6 +14,23 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
     /// captured from machine 100, byte-comparing it to the structure of the known-good responder
     /// accept from the conn-to-102-from103-via100 capture (the DA connect matching our role).
     /// </summary>
+    /// <remarks>
+    /// <para><b>Read this before treating a failure here as "the protocol changed"</b></para>
+    /// <para>
+    /// The INPUTS are real: every <c>reqBytes</c> string below is a live connect request captured off
+    /// the wire. The EXPECTED strings are not all real in the same way - the header and addressing
+    /// are held against the capture, but the parameter trailers were written down from our own
+    /// builder's output at the time, because no capture of a real accept in OUR role exists.
+    /// </para>
+    /// <para>
+    /// So these are regression tests over our own bytes, not statements of protocol truth. A failure
+    /// means "the accept changed", which is worth knowing; it does not by itself mean the new bytes
+    /// are wrong. The accept parameter trailer is still open question B3 in
+    /// <c>DOC/protocols/tad-wire.json</c>, and it stays open because TADADM - the program that builds
+    /// it - lives on segment SG36 and is absent from the version J source listing. The rule-shaped
+    /// tests in <c>TwoNodeTerminalTests</c> are the better pattern where a rule exists to state.
+    /// </para>
+    /// </remarks>
     public sealed class TadConnectAcceptTests
     {
         private readonly ITestOutputHelper _output;
@@ -38,7 +55,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
             byte[] accept = frames[0].ToArray();
             _output.WriteLine("accept: " + Convert.ToHexString(accept));
 
-            // The accept ECHOES the connect's channel (DA), Flags1 (0x0000) and counter (0x13) — the
+            // The accept ECHOES the connect's channel (DA), Flags1 (0x0000) and counter (0x13) - the
             // form 100 accepts. A high own-sequence D8 accept was REFUTED live (100 replied XENSE).
             // Addressing: from our TADADM 0x0156 to 100's port 0x02F7; params 01020000 0202000A.
             byte[] expected = Convert.FromHexString(
@@ -114,7 +131,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         public void SessionBringup_BuildsDummOnDerivedDdChannel()
         {
             // The DUMM is now computed by the VERIFIED seed model (XmsgEnvelope). A fresh responder at
-            // epoch 0 sends terminal data on 0xDD (NOT DB — DB was an epoch-2 artifact). This connect's
+            // epoch 0 sends terminal data on 0xDD (NOT DB - DB was an epoch-2 artifact). This connect's
             // seed = Counter(0x13) + Flags1(0x0000) + (Flags2&0xFF=0x00) = 0x13.
             byte[] connectBytes = Convert.FromHexString(
                 "2113000E0067006400000400DA13210086E400670000006402F7040000410010FF072A54414441444D00FE0444313033");

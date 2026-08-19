@@ -54,6 +54,16 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
         private readonly FaClientWriteSession _session;
 
         /// <summary>
+        /// The SINTRAN error number the server refused with, or zero.
+        /// </summary>
+        private ushort _sintranError;
+
+        /// <summary>
+        /// Set when a refusal has ended the transfer but the goodbye has not gone out yet.
+        /// </summary>
+        private bool _releaseOwed;
+
+        /// <summary>
         /// The conversation state: the number in use, the exchange sequence and the message counter.
         /// </summary>
         /// <remarks>
@@ -223,8 +233,101 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
         }
 
         /// <summary>
+        /// Gets the SINTRAN error number the server refused with, or zero when it did not.
+        /// </summary>
+        /// <remarks>
+        /// Kept as a number beside the words, because one caller has to decide on it rather than
+        /// print it: the sync daemon treats 62, "File already exists", as the answer to a question
+        /// it could not otherwise ask, and reading that out of a sentence would break the first time
+        /// somebody improved the sentence.
+        /// </remarks>
+        public ushort SintranError
+        {
+            get { return _sintranError; }
+        }
+
+        /// <summary>
+        /// Gets whether a goodbye is still owed to the server.
+        /// </summary>
+        /// <remarks>
+        /// A caller that stops the moment the transfer reports failure would cut the conversation
+        /// off before its Release reached the wire. The server would then never conclude the
+        /// session, never close its session port, and the <c>5PKOC</c> bit XROUT set on that port
+        /// would never fire - so XROUT is never kicked and the seat is gone for the life of the
+        /// server. A refusal ends the TRANSFER; only the Release ends the CONVERSATION, and the
+        /// seat belongs to the conversation. See <see cref="BuildReleaseBody"/>.
+        /// </remarks>
+        public bool ReleasePending
+        {
+            get { return _releaseOwed; }
+        }
+
+        /// <summary>
+        /// Ends the transfer as failed, for a reason the caller worked out rather than the peer.
+        /// </summary>
+        /// <param name="reason">
+        /// What went wrong, in words that will be shown to a person.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="reason"/> is null.
+        /// </exception>
+        /// <remarks>
+        /// <para><b>Why the driver needs this at all</b></para>
+        /// Some ways a transfer dies are not visible from inside the ladder. The commonest is
+        /// silence: the caller sends its connect letter four times, nothing ever answers, and it
+        /// stops. That decision is made ABOVE the driver, so the driver has no idea the transfer is
+        /// over and goes on reporting itself unfinished.
+        /// <para><b>What that cost, measured 2026-08-18</b></para>
+        /// A push to a user that does not exist printed "GIVING UP" after 25 seconds and the process
+        /// then sat there until the wall-clock timeout fired at 45 - because nothing had marked the
+        /// transfer finished. The run had known the answer for twenty seconds and could not say so.
+        /// </remarks>
+        public void Abandon(string reason)
+        {
+            if (reason == null) { throw new ArgumentNullException(nameof(reason)); }
+
+            _session.OnRejected(reason);
+        }
+
+        /// <summary>
         /// Gets whether the push has finished successfully.
         /// </summary>
+        /// <summary>
+        /// Whether the peer is holding the target file open on our behalf.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> between the answered OpenFile and the answered CloseFile.
+        /// </value>
+        public bool FileOpenOnPeer
+        {
+            get { return _session.FileOpenOnPeer; }
+        }
+
+        /// <summary>
+        /// Gives up on the content but keeps going far enough to close the file on the peer.
+        /// </summary>
+        /// <returns>
+        /// <c>true</c> when there was an open file and the driver now has epilogue frames to
+        /// send; <c>false</c> when there was nothing to put down.
+        /// </returns>
+        /// <remarks>
+        /// A caller that abandons a push MUST call this and then keep pumping until
+        /// <see cref="Done"/>. Walking away instead leaves the file open on the machine for good:
+        /// it cannot be rewritten and cannot be deleted - SINTRAN answers FILE ALREADY OPEN - and
+        /// it does not appear in LIST-OPEN-FILES either, because the file server's RT program owns
+        /// it rather than any terminal. Clearing that needed a file-server restart on D100.
+        /// </remarks>
+        public bool AbandonButCloseFile()
+        {
+            return _session.AbandonAfterOpenFile();
+        }
+
+        /// <summary>
+        /// Gets whether the whole write has finished and the conversation is closed.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> once the close has been sent.
+        /// </value>
         public bool Done
         {
             get { return _session.NextAction() == FaClientAction.Done; }
@@ -258,6 +361,18 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
             }
 
             List<XmsgFrame> frames = new List<XmsgFrame>(4);
+
+            // The owed Release goes out FIRST and outside the ladder, because the ladder is over:
+            // NextAction answers Failed and would send nothing at all. See where _releaseOwed is
+            // set - the transfer has failed, the conversation has not, and the seat belongs to the
+            // conversation.
+            if (_releaseOwed)
+            {
+                _releaseOwed = false;
+                AddBodyMessage(frames, transport, BuildReleaseBody(), originated: true,
+                    frameFlags: (byte)XmsgFrameFlags.ControlBare, role: 0x84);
+                return frames;
+            }
 
             switch (_session.NextAction())
             {
@@ -302,9 +417,12 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
                     _session.OnShortAckSent();
                     break;
 
-                case FaClientAction.SendClose:
-                    AddBodyMessage(frames, transport, BuildCloseBody(), originated: true);
-                    _session.OnCloseSent();
+                case FaClientAction.SendRelease:
+                    // The flags travel with the body: a real ND sends every FA message with
+                    // frameFlags 0x82 / role 0x84.
+                    AddBodyMessage(frames, transport, BuildReleaseBody(), originated: true,
+                        frameFlags: (byte)XmsgFrameFlags.ControlBare, role: 0x84);
+                    _session.OnReleaseSent();
                     break;
 
                 default:
@@ -443,6 +561,47 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
                 ushort sequence;
                 if (FaExchangeCodec.TryReadOperation(body, out operation, out sequence))
                 {
+                    // A REFUSAL HERE USED TO BE REPORTED AS A SUCCESSFUL PUSH, and that is the
+                    // worst outcome this driver had.
+                    //
+                    // The server says no with QFORM selector 1 carrying a SINTRAN error number; a
+                    // success omits it. Nothing read it, so every refusal was taken for an ordinary
+                    // reply and the ladder ran to the end. MEASURED 2026-08-18: a push to a user
+                    // that does not exist was refused on the OPEN -
+                    //
+                    //     OpenFile reply  ... F2 0001  A2 0027 ...
+                    //
+                    // 0x27 is 39, which is 047 octal, "No such user name in main directory" in
+                    // SINTRAN's own table - exactly right for the "(NOUSR)" it was given. The push
+                    // then printed
+                    //
+                    //     [push] finished: 10 bytes written to "(NOUSR)A:T"
+                    //
+                    // and exited 0. Nothing was written. A transfer that reports bytes it did not
+                    // write is worse than one that hangs: the hang is noticed.
+                    //
+                    // The read driver had the same blind spot and is fixed the same way. See
+                    // DOC\CARVE-FA-READ-REFUSAL-2026-08-18.md.
+                    ushort refusal;
+                    if (FaRefusalCodec.TryReadStatus(body, out refusal))
+                    {
+                        _sintranError = refusal;
+
+                        // STILL SAY GOODBYE. A refusal ends the TRANSFER but not the CONVERSATION,
+                        // and the conversation is what holds the server's connection seat. The
+                        // session goes straight to Failed and never reaches SendRelease, so without
+                        // this a refused transfer strands a seat exactly as every transfer used to.
+                        //
+                        // MEASURED 2026-08-18: three refused creates took *FA-SERVER from 30 free
+                        // to 27, while every SUCCESSFUL transfer in the same runs returned its own.
+                        _releaseOwed = true;
+
+                    _session.OnRejected(
+                            operation + " was refused: SINTRAN error " + refusal
+                            + FaSintranError.Describe(refusal));
+                        return;
+                    }
+
                     _session.OnReplyReceived(operation, sequence);
                 }
 
@@ -591,18 +750,64 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
         }
 
         /// <summary>
-        /// Builds the close that ends the conversation.
+        /// Builds the client's Release, the ten-byte message that ends the conversation.
         /// </summary>
         /// <returns>
-        /// The eight-byte body.
+        /// The ten-byte body.
         /// </returns>
-        private byte[] BuildCloseBody()
+        /// <remarks>
+        /// <para><b>This message is what gives the file server's connection seat back</b></para>
+        /// <para>
+        /// Not directly - it cannot be, because nothing a client sends can touch XROUT's counter.
+        /// The chain, carved end to end on 2026-08-18 and written up in
+        /// <c>DOC\COSMOS-RE\CARVE-ANSWER-FA-SEAT-RETURN-2026-08-18.md</c>:
+        /// </para>
+        /// <list type="number">
+        /// <item>our connect letter goes to the name <c>*FA-SERVER</c>;</item>
+        /// <item>XROUT decrements that port's free-connection count and forwards the letter - the
+        /// seat is spent here, before the server has seen a byte of the body;</item>
+        /// <item>XROUT marks the port with <c>5PKOC</c>, bit 0 of the port status word, which
+        /// <c>XMSG-POFTABS-L03.SYMB</c> documents in ND's own words as
+        /// "KICK XROUT ON CLOSE (SET BY XROUT)";</item>
+        /// <item>the server serves the session on that port;</item>
+        /// <item><b>this Release</b> makes the server conclude the session: it answers Close
+        /// (<c>0x07C0</c>) and CLOSES the port;</item>
+        /// <item>the kernel's port-close routine <c>YCLOS</c> (131306) tests <c>5PKOC</c> at
+        /// <c>ram:b30e</c> and, when set, calls <c>131460 = YKROU</c> - it kicks XROUT;</item>
+        /// <item>XROUT restores the count.</item>
+        /// </list>
+        /// <para>
+        /// So the seat is released by ending the conversation properly, and by nothing else. There
+        /// is no seat-shaped message to send: the file server itself only ever calls
+        /// <c>XMPINFC</c>/<c>XSNSP</c> on its initialisation path, never per session.
+        /// </para>
+        /// <para><b>Three things were wrong here at once, and only all three together work</b></para>
+        /// <para>
+        /// The TYPE: we sent <c>0x07C0</c>, which is the SERVER's Close. A client that sends it
+        /// answers its own question - the server never hears "I am finished", never closes the port,
+        /// <c>5PKOC</c> never fires, and the seat is stranded. The client's message is Release
+        /// (<c>0x0782</c>). The OPERANDS: sender's conversation first, then the peer's, which is
+        /// what our own server writes in <c>FaServerConversation</c> and what a real ND accepts;
+        /// this code had them swapped, because <c>LetterEchoWord</c> is the number the SERVER stamps
+        /// on its messages, not ours. The FLAGS: every real FA message carries frame flags
+        /// <c>0x82</c> and role <c>0x84</c>; ours carried <c>0x96</c>/<c>0x00</c>.
+        /// </para>
+        /// <para>
+        /// The swap is why the earlier attempts were destructive rather than merely useless. As a
+        /// Close the wrong operands are survivable. As a Release the server ACTS on them and frees
+        /// the session named in the first word - named one it does not hold, it took the whole file
+        /// server down with it, twice. See <c>DOC\CARVE-FA-SEAT-LEAK-2026-08-18.md</c> for how each
+        /// side's conversation number was measured.
+        /// </para>
+        /// </remarks>
+        private byte[] BuildReleaseBody()
         {
-            byte[] body = new byte[8];
-            NdEndian.PutBe16(body, 0, (ushort)FaMessageType.Close);
-            NdEndian.PutBe16(body, 2, _target.LetterEchoWord);
-            NdEndian.PutBe16(body, 4, _serverConversation);
-            NdEndian.PutBe16(body, 6, 0x0000);
+            byte[] body = new byte[10];
+            NdEndian.PutBe16(body, 0, (ushort)FaMessageType.SessionFinished);
+            NdEndian.PutBe16(body, 2, _serverConversation);
+            NdEndian.PutBe16(body, 4, _target.LetterEchoWord);
+            NdEndian.PutBe16(body, 6, 0x8000);
+            NdEndian.PutBe16(body, 8, 0x0000);
             return body;
         }
 
@@ -666,13 +871,21 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
         private void AddBodyMessage(
             List<XmsgFrame> frames, IXmsgServerTransport transport, byte[] body, bool originated)
         {
+            AddBodyMessage(frames, transport, body, originated,
+                (byte)XmsgFrameFlags.DataA, 0x00);
+        }
+
+        private void AddBodyMessage(
+            List<XmsgFrame> frames, IXmsgServerTransport transport, byte[] body, bool originated,
+            byte frameFlags, byte role)
+        {
             IReadOnlyList<XmsgFrame> built = transport.BuildFragmentedBodyDatagram(
                 _target.ServerNode,
                 _target.ServerSystem,
                 _serverSessionPort,
                 _ourPort,
-                frameFlags: (byte)XmsgFrameFlags.DataA,
-                role: 0x00,
+                frameFlags: frameFlags,
+                role: role,
                 body: body,
                 answeredFlags1: originated ? XmsgAnsweredFlags1.None : _answerFlags1);
 

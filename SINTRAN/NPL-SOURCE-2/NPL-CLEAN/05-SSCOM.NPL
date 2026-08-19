@@ -1,0 +1,46 @@
+
+       )MCDEF SDATA
+       A=6; ]
+
+       )MCDEF DATA $PAR
+       )KILL A; A=$PAR +1; ]
+
+       )MCDEF FENTR
+       STD I (ASTCK; COPY SL DA; COPY SB DD; SAB A; JPL I (SPUSH; ]
+
+       )MCDEF FLEAV
+       SAA -A; JMP I (SPOP; )KILL A; ]
+
+       )MCDEF ISTCK
+       STA I (ASTCK; LDA (STACK; STA I (CSTCK
+       SAA 1; STA I (TDVN; LDA I (ASTCK; ]
+
+       )MCDEF MINBT
+       JPL I (SINBT; ]
+
+       )MCDEF MOUTB
+       JPL I (SOUTB; ]
+)LINE
+ %
+
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  S S C O M  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ %      N O R D - N E T     R E S I D E N T   R O U T I N E S                  %
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ *COSTA=*
+ *"CASY1+CASY2+CASY3+CASY4+CASY5+CASY6+CASY7+CASY8+CASY9
+" @LIB 8S3C-,
+ *8CUX=*
+ *150000/
+ *SNETS=*
+ * SNETS;0;0                  % SEGMENT LIMITS
+ @ELIB
+ *"8CLI1+8CLI2+8CLI3+8CLI4+8CLI5+8CLI6+8CLI7+8CLI8+8CLI9
+" *ENETS=*
+ *"8CLI1+8CLI2+8CLI3+8CLI4+8CLI5+8CLI6+8CLI7+8CLI8+8CLI9
+" @LIB 8S3C-,
+ *8CUX/)KILL 8CUX
+ @ELIB

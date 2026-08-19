@@ -1,0 +1,10 @@
+ @DEV 1
+ @DEV (S-S-J)ND500-DRIVER-1
+ %
+
+ *"8N500
+" * CH5CP=TEXIT
+ * RL5PD=TEXIT
+ * 1RL5P=TEXIT
+ *"
+"

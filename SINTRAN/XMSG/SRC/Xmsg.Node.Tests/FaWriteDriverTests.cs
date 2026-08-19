@@ -769,10 +769,19 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
                     continue;
                 }
 
-                if (type == (int)FaMessageType.Close)
+                if (type == (int)FaMessageType.Close
+                    || ((FaMessageType)type).IsSessionFinished())
                 {
-                    // The close carries no session counter at all - its word at that offset is the
-                    // conversation number. So it is neither counted nor checked here.
+                    // The teardown carries no session counter at all - its word at that offset is
+                    // the conversation number. So it is neither counted nor checked here.
+                    //
+                    // BOTH types are skipped because the message this driver sends CHANGED on
+                    // 2026-08-18: it used to send a Close (0x07C0), which is the SERVER's message,
+                    // and now sends a Release (0x0782) as a real ND client does. The old test named
+                    // only Close, so it started counting the Release as an ordinary message and
+                    // failed on the counter. The property being asserted did not change - the
+                    // teardown has a conversation number where a counter would be - so the test is
+                    // widened to the family rather than the exact value.
                     continue;
                 }
 

@@ -115,10 +115,10 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
                     continue;
                 }
 
-                if (action == FaClientAction.SendClose)
+                if (action == FaClientAction.SendRelease)
                 {
                     trace.Add("-> Close");
-                    session.OnCloseSent();
+                    session.OnReleaseSent();
                     continue;
                 }
 

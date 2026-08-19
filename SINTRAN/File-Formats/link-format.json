@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "formatName": "LINK",
+  "fullName": ":LINK segment file (old ND-500(0) domain format)",
+  "description": "NLL's in-memory loader table (label names and values, plus other loader-table node types), serialized to file at CLOSE-SEGMENT. Read back by NLL when loading resumes / linking against the segment, and by the symbolic debugger. Not opened at program execution.",
+  "docFile": "LINK-FILE-FORMAT.md",
+  "byteOrder": "big-endian",
+  "verification": {
+    "status": "DECODED 2026-08-17. Writer carved in LINKAGE-LOAD-H02.PSEG (ND-500 code, 210319H02 media): serializer at virtual B001166C called from the CLOSE-SEGMENT worker B00068CC; record copy 'by bmove ...,$0x20' at B0011769, next-pointer rewrite at B0011771, zero end-word at B0011783, size to SMAX at B0006D6D. Layout verified by parsing all 11 real sample files: 10/11 fully conform with 100% ascending values; SL202-FO-L27 (L-era) partially. MON-DEBUG:PROG (nd-500-mon-j04) is NOT a reader - its file-type tables hold only PSEG/DSEG/DATA/PROG.",
+    "codeSource": "../ND500/nll-re/LINKAGE-LOAD-H02.PSEG (disassemble per ../ND500/nll-re/README.md) and ../ND500/nd-500-mon/CARVE-ANSWER-FOUR-OPEN-QUESTIONS-2026-08-17.md",
+    "fileSources": [
+      "11 non-empty :LINK files from the 13-floppy corpus in samples/ (1982-1989, twelve products)"
+    ],
+    "date": "2026-08-17"
+  },
+  "structure": {
+    "kind": "cell-heap-dump",
+    "cellSizeBytes": 32,
+    "fileLengthLaw": "always 32*k + 1 bytes for k cells: NLL writes k cells plus a zero end-word, then calls SMAX(32*k); SINTRAN byte count = max byte pointer + 1. The final 0x00 is the first byte of the zero end-word, not a counted terminator.",
+    "headerPage": "K-era and later: one 2048-byte page at offset 0, all zero except word 0 = 0xFFFFFFFF; records start at offset 2048. 1982/H-era files have no header page. The 2048 quantum is the serializer's page rounding ((cursor+0x7FF) & ~0x7FF).",
+    "recordOrder": "records are emitted in ascending order of the value word at +8 (selection sort in the serializer - the manual's 'numerically sorted order')",
+    "emptyFileLegal": "a zero-byte :LINK is legal and common (segment closed with no retained entries, or system-delivered products)"
+  },
+  "symbolRecord": {
+    "sizeBytes": 32,
+    "verified": true,
+    "fields": [
+      {
+        "name": "link",
+        "offset": 0,
+        "size": 4,
+        "type": "uint32",
+        "description": "Era-dependent. 1982 (J-era): constant 0xFFFFFFFF. ~1985 (H00): the old in-memory packed elink values. K-era and later: 0x18000000 + byte position of the NEXT record (the record's address in NLL's D-space segment 3; value & 0x7FFFFFF = file position). 8 of 11 samples show exactly 0x18000820 in the record at file offset 0x800.",
+        "verified": true
+      },
+      {
+        "name": "sl",
+        "offset": 4,
+        "size": 1,
+        "type": "uint8",
+        "description": "Symbol name length. Matches the name at +16 in every conforming record of every sample.",
+        "verified": true
+      },
+      {
+        "name": "nleOper",
+        "offset": 5,
+        "size": 1,
+        "type": "bitfield",
+        "description": "NLE (numeric length) / operator bits; 0 in all sampled label records.",
+        "verified": "offset proven; non-zero values unobserved"
+      },
+      {
+        "name": "ident",
+        "offset": 6,
+        "size": 1,
+        "type": "uint8",
+        "description": "Language/ident code; 2 in all sampled label records.",
+        "verified": "offset proven; only value 2 observed"
+      },
+      {
+        "name": "cw",
+        "offset": 7,
+        "size": 1,
+        "type": "bitfield",
+        "description": "Flag byte, same bit layout as desc-format.json cwBits: bit0 UDEF, bit1 DREF, bit2 DSYM, bit3 CLAB, bit4 DMPF, bit5 GLOB, bit6 SELECT, bit7 OMIT. The serializer's dump filters test bits 0/4/5 of this byte (B001170A-B0011731). Observed 0x10/0x14/0x16.",
+        "verified": true
+      },
+      {
+        "name": "val",
+        "offset": 8,
+        "size": 4,
+        "type": "uint32",
+        "description": "Symbol value (ND-500 address). The sort key - strictly ascending across records in every conforming sample.",
+        "verified": true
+      },
+      {
+        "name": "size",
+        "offset": 12,
+        "size": 4,
+        "type": "uint32",
+        "description": "Common-block size; 0 for plain labels.",
+        "verified": "offset proven; only 0 observed"
+      },
+      {
+        "name": "name",
+        "offset": 16,
+        "size": 16,
+        "type": "ascii",
+        "description": "Symbol name, sl bytes; the rest of the 16-byte area is heap slack (this is why bytes past the name looked like shifted fields). Names longer than 16 chars span cells (manual: 20-char truncation).",
+        "verified": true
+      }
+    ]
+  },
+  "openQuestions": [
+    {
+      "id": "sl202-string-regions",
+      "description": "SL202-FO-L27 (L-era NLL) interleaves large length-prefixed string/module regions (auto-load file specifications) with the symbol cells. The node layout of those regions is undecoded - needs the L-series NLL binary.",
+      "status": "open"
+    },
+    {
+      "id": "non-symbol-node-types",
+      "description": "Tail cells in several samples hold other loader-table node types (trap-handler names like '#FATAL...', code addresses). Their layouts are undecoded.",
+      "status": "open"
+    }
+  ]
+}

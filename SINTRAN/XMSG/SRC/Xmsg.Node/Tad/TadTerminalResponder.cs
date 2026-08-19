@@ -14,7 +14,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
     /// client-oriented <see cref="TadSession"/>.
     /// </summary>
     /// <remarks>
-    /// <para><b>Provenance — what is VERIFIED vs INFERRED.</b></para>
+    /// <para><b>Provenance - what is VERIFIED vs INFERRED.</b></para>
     /// The frame shapes are modelled on the captured <c>102 -> 100</c> responder side of
     /// <c>conn-to-d102-from-100.pcapng</c> (connect-accept: proto <c>0xD8</c>, role <c>0x40</c>,
     /// <c>XMCSM 0x04000041</c>, param trailer <c>01 02 0000 02 02 000A</c>, replying from the
@@ -102,7 +102,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// </param>
         /// <param name="sequenceStore">
         /// Persists our outgoing datagram sequence per remote node across restarts. When null, a
-        /// non-persisting store is used (every remote starts at 0x0000) — correct for tests and for
+        /// non-persisting store is used (every remote starts at 0x0000) - correct for tests and for
         /// a first-ever contact, but a live node against a long-running peer should pass a
         /// <see cref="FileResponderSequenceStore"/> so it does not fall behind the peer's XSRSQ.
         /// </param>
@@ -123,7 +123,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         }
 
         /// <summary>
-        /// Returns true when a frame carries a DCON (disconnect indication, TAD opcode 0x09) — 100's
+        /// Returns true when a frame carries a DCON (disconnect indication, TAD opcode 0x09) - 100's
         /// graceful teardown, e.g. its 1-minute "TAD not logged in" idle timeout.
         /// </summary>
         /// <param name="frame">
@@ -162,8 +162,8 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
 
         /// <summary>
         /// Records that 100 ACKed one of our frames (its subtype-0x03 ACK echoes the Flags1 it
-        /// received), so the persisted next-sequence is <c>ackedFlags1 + 1</c>. Persisting on ACK —
-        /// rather than on send — guarantees the saved value never runs ahead of what 100 actually
+        /// received), so the persisted next-sequence is <c>ackedFlags1 + 1</c>. Persisting on ACK -
+        /// rather than on send - guarantees the saved value never runs ahead of what 100 actually
         /// received; the previous drift (saving on send, over-counting an un-received reply) is what
         /// made a later connect XENSE-reject our accept.
         /// </summary>
@@ -175,7 +175,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// </param>
         public void ConfirmDelivered(ushort remoteNode, ushort ackedFlags1)
         {
-            // 0xFFFF is the reachability broadcast marker, never a real data sequence — ignore it.
+            // 0xFFFF is the reachability broadcast marker, never a real data sequence - ignore it.
             if (ackedFlags1 == 0xFFFF)
             {
                 return;
@@ -192,7 +192,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
 
         /// <summary>
         /// Resets our persisted outgoing datagram sequence for a remote node back to 0x0000. Called
-        /// when that node signals an XMSG (re)start — a <b>ReachabilityRequest</b> — which zeroes its
+        /// when that node signals an XMSG (re)start - a <b>ReachabilityRequest</b> - which zeroes its
         /// per-node-pair expected-from-us. LIVE-VERIFIED signal: after an XMSG restart 100 sends a
         /// ReachabilityRequest and its subsequent connect arrives at Flags1 0x0000; a bare HDLC link
         /// restart does NOT send one and 100 continues its sequence. Resetting here keeps our sequence
@@ -210,7 +210,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         }
 
         /// <summary>
-        /// True while we have sent the accept but not yet seen the session-setup — i.e. we can still
+        /// True while we have sent the accept but not yet seen the session-setup - i.e. we can still
         /// resync the accept's sequence in response to a XENSE reject.
         /// </summary>
         public bool CanResyncAccept
@@ -327,11 +327,11 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
             _pendingUsername = string.Empty;
 
             // LEARN the per-link seed from 100's connect frame: seed = (Counter + Flags1 + (Flags2 &
-            // 0xFF)) & 0xFF (100<->102 = 0x14). Every frame we originate is then fully determined by
+            // 0xFF)) & 0xFF (100-102 = 0x14). Every frame we originate is then fully determined by
             // seed + our own Flags1 via the VERIFIED envelope arithmetic (XmsgEnvelope): the Counter
             // is (seed - (Flags2&0xFF) - Flags1) and the channel is 0xDE - (XMCSM>>24) - epoch. Our
             // OWN outgoing datagram sequence starts at 0x0000 (a fresh direction) and advances +1 per
-            // frame across accept, port-assign and all terminal-data — one sequence, epoch 0, so
+            // frame across accept, port-assign and all terminal-data - one sequence, epoch 0, so
             // terminal data rides 0xDD (NOT DB: DB was an epoch-2 artifact of a high running sequence).
             _seed = XmsgEnvelope.LearnSeed(
                 request.Header.Flags1, request.Header.Counter, request.Header.Flags2);
@@ -363,7 +363,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
             //   1. connect-accept  (proto D8, role 40, XMCSM 04000041, param trailer)
             //   2. port-assign     (proto D8, role 40, XMCSM 04000000, TAD 0x07 = our session
             //                       endpoint, so 100 learns where to send terminal data)
-            // Only AFTER these does 100 drive terminal negotiation (TMOD/TTYP/…). Sending the
+            // Only AFTER these does 100 drive terminal negotiation (TMOD/TTYP/...). Sending the
             // greeting immediately (on a port 100 has not been told about) makes the emulator drop
             // the link, so the greeting is deferred until negotiation is observed. [Learned live.]
             // ISOLATION STEP: send ONLY the byte-verified connect-accept for now. The port-assign
@@ -398,7 +398,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// </summary>
         /// <remarks>
         /// The frame ECHOES the session-setup's proto / Flags1 / counter (the same reply pattern
-        /// the accept uses — VERIFIED from conn-to-102-from103-via100, where the responder's
+        /// the accept uses - VERIFIED from conn-to-102-from103-via100, where the responder's
         /// port-assign echoed the asker's session-setup transport fields). The 24-byte trailer is
         /// the captured 102 trailer with the system byte and session-port bytes substituted for
         /// ours; the remaining option bytes are copied verbatim (not yet decoded).
@@ -447,7 +447,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
             // 100 waits for our session-data burst before it drives TMOD/TTYP -> MOTD (the beep). The
             // channel and Counter are COMPUTED from the verified seed model (XmsgEnvelope): for a fresh
             // responder (epoch 0) a terminal-data frame (XMCSM 0x01080000) rides 0xDD with Counter
-            // (seed - 8 - Flags1). NOT DB — DB was an epoch-2 artifact of a high running sequence, and
+            // (seed - 8 - Flags1). NOT DB - DB was an epoch-2 artifact of a high running sequence, and
             // the earlier DC/DD crashes were a wrong COUNTER (fixed-Base), not a wrong channel.
             if (SendTerminalBringup)
             {
@@ -480,7 +480,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
 
         /// <summary>
         /// The responder's own outgoing datagram sequence to 100, starting at 0x0000 (a fresh
-        /// direction) and advancing +1 per frame across accept, port-assign and terminal-data — one
+        /// direction) and advancing +1 per frame across accept, port-assign and terminal-data - one
         /// sequence, which is what 100 validates for in-order delivery (out-of-order = XENSE).
         /// </summary>
         private ushort _respFlags1;
@@ -496,7 +496,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         private ushort _acceptFlags1;
 
         /// <summary>
-        /// True once 100 sent the session-setup (accept confirmed) — resync stops here.
+        /// True once 100 sent the session-setup (accept confirmed) - resync stops here.
         /// </summary>
         private bool _sessionSetupSeen;
 
@@ -659,7 +659,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
             ushort frameClass = (ushort)(controlService >> 16);
 
             ushort f1 = _respFlags1;
-            // Counter and channel from the verified seed model — NOT a fixed Base (that fixed-Base
+            // Counter and channel from the verified seed model - NOT a fixed Base (that fixed-Base
             // Counter was the cause of the XXPER crashes on the terminal-data frames).
             byte ctr = XmsgEnvelope.ComputeCounter(_seed, f1, frameClass);
             SintranProtocolId channel = XmsgEnvelope.DeriveChannel(_seed, f1, frameClass, controlService);
@@ -732,7 +732,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
                 case LoginPhase.Username:
                     // Remember the username and ALWAYS ask for the password next, with echo OFF
                     // (ECKM FF) so the password is not shown while typed. We never reveal whether the
-                    // username was valid — the verdict comes only after the password (spec 21). No
+                    // username was valid - the verdict comes only after the password (spec 21). No
                     // logged-in state is asserted here.
                     _pendingUsername = line;
                     outgoing.Add(BuildTerminalChain(frame, new TadMessageBuilder()
@@ -1123,14 +1123,33 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// </summary>
         private XmsgFrame BuildConnectAccept(XmsgFrame request)
         {
-            // Param trailer VERIFIED from the 102 capture connect-accept: two parameter blocks
-            // 01 02 0000 (param 1 = 0) and 02 02 000A (param 2 = 0x000A). Meaning of 0x000A is not
-            // yet decoded; copied verbatim from the captured accept. [VERIFIED bytes; semantics TBD]
+            // Param trailer: two parameter blocks, 01 02 <p1> and 02 02 <p2>.
+            //
+            // IT IS NOT A CONSTANT. Measured 2026-08-17 across nine archived connect captures, two
+            // values occur:
+            //
+            //     01 02 0000  02 02 000A     (p1=0,  p2=10)
+            //     01 02 0001  02 02 0009     (p1=1,  p2=9)
+            //
+            // The first guess - that it identifies the responding machine - is REFUTED: D100 sends
+            // BOTH. It answers 0/10 in test1, li-syst-tad-103 and li-rout-102-tree, and 1/9 in
+            // ethernet-conn-to-D100-from-102-WORKING and ALLTEST-fa-connectto. So it tracks live
+            // state, not identity.
+            //
+            // BOTH OBSERVED PAIRS SUM TO TEN, which fits a resource count - sessions in use against
+            // sessions free, out of ten. That is an inference from two distinct samples, NOT a
+            // decode: a third value would settle it, and 10 may just as easily be a coincidence of
+            // these captures.
+            //
+            // We emit 0/10 unconditionally. If the sum-to-ten reading is right, that is a lie the
+            // moment we hold one session - which is exactly the state D100 saw when it re-sent its
+            // connect and refused us on 2026-08-17. UNPROVEN as the cause, and the next thing to
+            // test on the machine.
             byte[] trailer = new byte[] { 0x01, 0x02, 0x00, 0x00, 0x02, 0x02, 0x00, 0x0A };
 
             // The accept is the FIRST frame of our own sequence (Flags1 0x0000), a CONTROL-class frame
             // (Flags2 0x0400): the seed model gives Counter = seed - 0x0000 = 0x14 and channel DA
-            // (0xDE - 4 - epoch0). This equals the value 100 accepts — the old echo scheme produced
+            // (0xDE - 4 - epoch0). This equals the value 100 accepts - the old echo scheme produced
             // the SAME bytes for the accept because 100's connect was itself Flags1 0x0000 / Counter
             // seed; the model just makes accept, port-assign and terminal-data one coherent sequence.
             return BuildResponderFrame(
@@ -1144,7 +1163,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
 
         /// <summary>
         /// Wraps a pre-built TAD chain in a terminal-data frame (class <c>0x0108</c>, XMCSM
-        /// <c>0x01080000</c>) on the session port — the carrier for the login / prompt bursts.
+        /// <c>0x01080000</c>) on the session port - the carrier for the login / prompt bursts.
         /// </summary>
         /// <param name="request">
         /// The triggering frame (its source is 100's session endpoint).
@@ -1217,7 +1236,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
             // CONTINUE our own Flags1 (not echo the incoming BDAT's), and derive Counter and channel.
             // The old echo scheme here reused 100's Flags1 (e.g. the MOTD's 0x0006), producing a
             // DUPLICATE datagram that crashed 100's XMSG (XXPER) on the first keystroke. This is not a
-            // new format — it is the identical BuildResponderFrame path that got the MOTD accepted.
+            // new format - it is the identical BuildResponderFrame path that got the MOTD accepted.
             return BuildResponderFrame(
                 request,
                 controlService: TerminalDataControlService,
@@ -1228,7 +1247,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         }
 
         /// <summary>
-        /// Returns true when the frame's TAD chain carries at least one BDAT (terminal-data) message —
+        /// Returns true when the frame's TAD chain carries at least one BDAT (terminal-data) message -
         /// i.e. it is a typed line rather than a bare control frame (CERS / DUMM).
         /// </summary>
         /// <param name="frame">

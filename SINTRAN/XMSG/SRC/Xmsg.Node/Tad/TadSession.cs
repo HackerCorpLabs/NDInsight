@@ -13,7 +13,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
     /// as frames are observed, and (client side) builds the frames that DRIVE the connect-to.
     /// </summary>
     /// <remarks>
-    /// <para><b>Provenance — read this first</b></para>
+    /// <para><b>Provenance - read this first</b></para>
     /// This layer is the most inference-heavy in the stack: it is reconstructed almost
     /// entirely from ONE captured connect-to scenario
     /// (<c>new-conn-to-102-from-100.pcapng</c>, cross-checked with
@@ -51,7 +51,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         // the target remote name. Bytes: serial 0xFF, service 0x07, then 0x2A and the ASCII
         // service name "TADADM" and a 0x00. The trailing target name is appended as a string
         // parameter (see BuildDirectoryLetterBody). This whole prefix is a template lifted
-        // from the single capture — its internal structure is only partly understood (the
+        // from the single capture - its internal structure is only partly understood (the
         // 0xFF/0x07 header and the 0x2A separator are not decoded), which is why it is treated
         // as an opaque OBSERVED template rather than synthesised field by field.
         private static readonly byte[] DirectoryLetterPrefix =
@@ -60,7 +60,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         };
 
         // OBSERVED (single capture): the target remote name is carried as ND standard-message
-        // string parameter number 2 — type byte 0xFE (= -2, string param 2), then a 1-byte
+        // string parameter number 2 - type byte 0xFE (= -2, string param 2), then a 1-byte
         // length, then the ASCII name (e.g. "D102" -> FE 04 44 31 30 32).
         private const byte DirectoryNameParameterType = 0xFE;
 
@@ -194,7 +194,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
         /// Thrown when <paramref name="context"/> or <paramref name="remoteName"/> is null.
         /// </exception>
         /// <exception cref="InvalidOperationException">
-        /// Thrown when called on a <see cref="TadSessionRole.Server"/> session — only the
+        /// Thrown when called on a <see cref="TadSessionRole.Server"/> session - only the
         /// client drives the setup letter.
         /// </exception>
         public XmsgFrame BuildXroutSetupFrame(TadFrameContext context, string remoteName)
@@ -247,7 +247,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tad
                 throw new ArgumentException("Remote name must be 1-255 ASCII bytes.", nameof(remoteName));
             }
 
-            // Layout: [prefix][0xFE][len][name]. OBSERVED (single capture) — see the prefix
+            // Layout: [prefix][0xFE][len][name]. OBSERVED (single capture) - see the prefix
             // and parameter-type field notes above.
             byte[] body = new byte[DirectoryLetterPrefix.Length + 2 + nameBytes.Length];
             int cursor = 0;

@@ -10,12 +10,12 @@ namespace NDInsight.Sintran.Xmsg.Tests
     /// <summary>
     /// Verifies the universal envelope channel derivation (<see cref="XmsgEnvelope.DeriveChannel"/>)
     /// against the captured <c>conn-to-d102-from-100</c> responder frames and our own live-accepted
-    /// accept. The channel is DERIVED from Flags1 + Counter + XMCSM, not allocated — this is the
+    /// accept. The channel is DERIVED from Flags1 + Counter + XMCSM, not allocated - this is the
     /// primitive that lets the responder build session-data frames on the correct channel.
     /// </summary>
     public sealed class EnvelopeChannelTests
     {
-        // Each row: Flags1, Counter, XMCSM, expected Protocol ID — taken directly from the capture
+        // Each row: Flags1, Counter, XMCSM, expected Protocol ID - taken directly from the capture
         // (102 -> 100 responder frames) and from our live accept.
         [Theory]
         // Capture conn-to-d102-from-100, 102's responder side:
@@ -25,7 +25,7 @@ namespace NDInsight.Sintran.Xmsg.Tests
         [InlineData(0x0132, 0xDA, 0x00080000u, (byte)SintranProtocolId.Dc)]    // frame 57 control 0x20
         [InlineData(0x0135, 0xD7, 0x01080000u, (byte)SintranProtocolId.Db)]    // frame 62 MOTD
         [InlineData(0x0137, 0xD5, 0x01080000u, (byte)SintranProtocolId.Db)]    // frame 66 PASSWORD prompt
-        // Our own live session accept (Base 0x0014) — 100 accepted this exact channel:
+        // Our own live session accept (Base 0x0014) - 100 accepted this exact channel:
         [InlineData(0x0004, 0x10, 0x04000041u, (byte)SintranProtocolId.Pad)]   // live accept -> DA
         public void DeriveChannel_MatchesCapturedResponderFrames(int flags1, int counter, uint xmcsm, byte expected)
         {
@@ -39,11 +39,11 @@ namespace NDInsight.Sintran.Xmsg.Tests
         [Fact]
         public void LearnSeed_RecoversTheLinkSeed()
         {
-            // Live 100 connect (100<->102): Flags1 0x0000, Counter 0x14, Flags2 0x0400 -> seed 0x14.
+            // Live 100 connect (100-102): Flags1 0x0000, Counter 0x14, Flags2 0x0400 -> seed 0x14.
             Assert.Equal(0x14, XmsgEnvelope.LearnSeed(0x0000, 0x14, 0x0400));
             // Captured conn-to-d102 DUMM (frame 54): Flags1 0x0131, Counter 0xDB, Flags2 0x0108 -> 0x14.
             Assert.Equal(0x14, XmsgEnvelope.LearnSeed(0x0131, 0xDB, 0x0108));
-            // 100<->103 connect: Counter 0x13, Flags1 0x0000 -> seed 0x13.
+            // 100-103 connect: Counter 0x13, Flags1 0x0000 -> seed 0x13.
             Assert.Equal(0x13, XmsgEnvelope.LearnSeed(0x0000, 0x13, 0x0400));
         }
 
@@ -53,7 +53,7 @@ namespace NDInsight.Sintran.Xmsg.Tests
         /// Flags1, Flags2, XMCSM, expected Counter, expected channel.
         /// </summary>
         [Theory]
-        // Predicted live bring-up (seed 0x14) — the analysis result table:
+        // Predicted live bring-up (seed 0x14) - the analysis result table:
         [InlineData(0x14, 0x0000, 0x0400, 0x04000041u, 0x14, (byte)SintranProtocolId.Pad)]  // accept  -> DA
         [InlineData(0x14, 0x0001, 0x0400, 0x04000000u, 0x13, (byte)SintranProtocolId.Pad)]  // port-assign -> DA
         [InlineData(0x14, 0x0002, 0x0108, 0x01080000u, 0x0A, (byte)SintranProtocolId.Tad)]  // DUMM    -> DD
@@ -71,7 +71,7 @@ namespace NDInsight.Sintran.Xmsg.Tests
         }
 
         /// <summary>
-        /// Base is Flags1 + Counter, and within one stream Flags1↑ / Counter↓ keep it constant.
+        /// Base is Flags1 + Counter, and within one stream Flags1up / Counterdown keep it constant.
         /// </summary>
         [Fact]
         public void ComputeBase_IsConstantAcrossAStream()
@@ -84,7 +84,7 @@ namespace NDInsight.Sintran.Xmsg.Tests
 
         /// <summary>
         /// The session-data builder derives the channel and reproduces the captured DUMM (frame 54)
-        /// and MOTD (frame 62) responder frames byte-for-byte — proof the builder can emit the real
+        /// and MOTD (frame 62) responder frames byte-for-byte - proof the builder can emit the real
         /// bring-up frames once the session's Flags1/Counter stream is chosen.
         /// </summary>
         [Fact]

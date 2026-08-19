@@ -427,11 +427,48 @@ namespace NDInsight.Sintran.Xmsg.Ethernet
         /// <remarks>
         /// The plus one is the observed convention - the acknowledgement carries the NEXT EXPECTED
         /// sequence, not the one being acknowledged. Verified on every data frame in the capture.
+        /// It wraps inside <see cref="SequenceModulus"/>, so <c>0x7F</c> is acknowledged with
+        /// <c>0x00</c>.
         /// </remarks>
         public static NdLinkHeader AcknowledgeFor(byte receivedSequence, ushort senderLinkId, ushort receiverLinkId)
         {
-            byte next = unchecked((byte)(receivedSequence + 1));
-            return new NdLinkHeader((byte)NdLinkFrameKind.Acknowledge, next, senderLinkId, receiverLinkId, 0);
+            return new NdLinkHeader(
+                (byte)NdLinkFrameKind.Acknowledge, NextSequence(receivedSequence), senderLinkId, receiverLinkId, 0);
+        }
+
+        /// <summary>
+        /// The number of values the frame sequence counts through before wrapping back to zero.
+        /// </summary>
+        /// <remarks>
+        /// <para><b>SEVEN BITS, not eight - MEASURED 2026-08-11</b></para>
+        /// <para>
+        /// Counted over every ND frame in the three real machine-to-machine captures in
+        /// <c>DOC\captures\FA-READ-WRITE-2026-08-04\</c>: <c>capture-list-files.txt</c> (887
+        /// frames), <c>capture-read.txt</c> and <c>capture-write.txt</c>. The highest sequence any
+        /// of them carries is <c>0x7F</c>, and not one frame in any of them has bit 7 set. The wrap
+        /// is visible in <c>capture-list-files.txt</c> at 02:20:10.52, where D102 sends sequence
+        /// <c>0x7F</c> and its next data frame is <c>0x00</c>.
+        /// </para>
+        /// <para>
+        /// This wrapped at 256 until 2026-08-11, so after 128 frames it would have emitted
+        /// sequences no real machine ever sends. The live run on 2026-08-10 reached 124 and stopped
+        /// four frames short of finding out what D100 does with <c>0x80</c>.
+        /// </para>
+        /// </remarks>
+        public const int SequenceModulus = 128;
+
+        /// <summary>
+        /// Steps a frame sequence on by one, wrapping inside the seven-bit space the wire uses.
+        /// </summary>
+        /// <param name="sequence">
+        /// The sequence to step.
+        /// </param>
+        /// <returns>
+        /// The next sequence value.
+        /// </returns>
+        public static byte NextSequence(byte sequence)
+        {
+            return (byte)((sequence + 1) % SequenceModulus);
         }
 
         /// <summary>

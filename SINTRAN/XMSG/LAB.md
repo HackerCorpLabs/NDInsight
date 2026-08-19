@@ -46,6 +46,29 @@ DEF-NETWORK-CONN D200 ENNS0,,0,0,0,0
 
 **Another agent owns this node.** Do not reconfigure or restart it.
 
+## 1b. D103 has NO ENNS0 - it cannot use the Ethernet segment at all [MEASURED 2026-08-11]
+
+`LIST-RT-DESCRIPTION ENNS0` on D103 answers `ILLEGAL PARAMETER`. The same command on D100
+returns a real descriptor (`PASSIVE`, segment `101B`, start address `32241B`). The RT program is
+simply not installed on D103, so `START-NET-SERVER,ENNS0` and every `DEF-NETWORK-CONN` there
+fail with "Error in communicating with XROUT" - there is nothing to communicate with.
+
+D103 is therefore an HDLC-only machine in practice, whatever its `RetroCore.ini` says about
+`ETH 0`. Do not read those failures as a routing or naming problem; they are a missing install.
+
+**And a second, separate trap on the same machine:** its XMSG kernel table area can be
+uninitialised. `LIST-SYSTEMS` in X-C printed `XMSG kernel table area initialised.` - creating
+the tables at that moment. Every `DEF-REMOTE` run before that had landed on a table that did not
+exist and silently did nothing, which is what makes XROUT answer "Unknown name (of server or
+system)" for a name you just defined. If you see that, run a listing command in X-C first, then
+define again and check for `Ok`.
+
+**Bringing D103 in over HDLC works** (verified: it listed D19999's files). It needs the relay
+listening on 10366 before D103 dials, and `START-LINK,1360,,,-1,,` on BOTH ends - LU 1360, not
+the 1362 the restart script starts by default, because 1360 is controller 1 and that is the port
+the relay uses. `START-LINK,1360` alone is refused: the command prompts for a timeout, so the
+full parameter list is required.
+
 ## 2. The trap that costs the most time: LU 1360 is ONE controller
 
 **SINTRAN on D100 runs an XMSG link on exactly one HDLC controller, number 1, and calls it LU

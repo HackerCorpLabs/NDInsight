@@ -5,7 +5,8 @@
 //  table near the top of the image: 32-byte records giving ND's own name and address for every
 //  CODE and DRAM symbol. Mining it first is what makes the rest of the disassembly readable.
 //
-//  Record layout (VERIFIED by hexdump of tcp-ser-all-banks-b05-68k.bin at 0x7C3A4):
+//  Record layout (VERIFIED by hexdump of tcp-ser-all-banks-b05-68k.bin at 0x7C3A0 - the +0
+//  pointer field increments by 0x20 across records, which pins the base unambiguously):
 //      +0x00  4  self/next pointer, increments by 0x20
 //      +0x04  1  name length (1..12)
 //      +0x06  1  0x02 = defined, 0xFF = undefined / marker
@@ -13,8 +14,11 @@
 //      +0x08  4  address, big-endian
 //      +0x10 12  name (10 characters in practice)
 //
-//  NOTE this sits 4 bytes later than the layout recorded for the ENCOS table. If a table does not
-//  parse, try shifting the record base by -4.
+//  NOTE an earlier revision of this header claimed the base was 0x7C3A4 ("4 bytes later than the
+//  ENCOS table"). That was wrong: at +4 the name length reads 0 and EVERY record is rejected
+//  (dry run 2026-08-08 parsed 0 records). 0x7C3A0 parses 436 defined records of 463 slots; the
+//  27 skipped slots are kind=0xFF undefined/marker records (NIL, NONE_x). If a table does not
+//  parse, check the +0 pointer stride first.
 //
 //WHY THIS SCRIPT EXISTS - the stale-body trap
 //  Ghidra does NOT recompute an existing function's body when control flow changes underneath it.
@@ -63,7 +67,7 @@ import java.util.List;
 public class PlancApplyNdSymbols extends GhidraScript {
 
     /** Default extent of the embedded table in tcp-ser-all-banks-b05-68k.bin. */
-    private long tableStart = 0x7C3A4L;
+    private long tableStart = 0x7C3A0L;
     private long tableEnd   = 0x7FD88L;
 
     private static final int REC = 0x20;

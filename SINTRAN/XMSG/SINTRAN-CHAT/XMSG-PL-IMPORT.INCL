@@ -1,0 +1,138 @@
+% ---------------------------------------------------------------------------
+% XMSG-PL-IMPORT:INCL - the declarations the shipped kit does NOT provide.
+%
+% WHY THIS FILE EXISTS
+%
+% The COSMOS Programmer Guide tells you to write
+%
+%     $INCLUDE XMP:DEFS      the constants
+%     $INCLUDE XMP:IMPT      the types and routine declarations
+%
+% Neither name exists on D100. The constants ARE installed, as
+% (UTILITY)XMSG-PL-VALUES-L:INCL, but there is no :IMPT file under any name -
+% the whole UTILITY user was listed, files 0 to 25, and it is not there. So the
+% routine declarations have to be written, and this is them.
+%
+% EVERY SIGNATURE BELOW IS TRANSCRIBED from the reference section of
+% ND-60.164.3 EN COSMOS Programmer Guide - the per-routine parameter tables,
+% cross-checked against the worked calls the same manual prints. Nothing here
+% is invented. Where the manual contradicts itself it is marked.
+%
+% THE DECLARATION SYNTAX is from ND-60.117.5 EN PLANC Reference Manual, not
+% guessed:
+%
+%     ROUTINE <in-value>, <out-value> (<params>) : name(<names>)
+%     IMPORT ( ROUTINE VOID,VOID (INTEGER) : doit )        page 9193
+%     ROUTINE VOID,VOID (INTEGER WRITE) : simple(intpara)  page 2987
+%
+% so WRITE marks a parameter the routine writes back, and every XMSG routine
+% returns its status as the out-value - which is why each is ROUTINE VOID,
+% INTEGER.
+% ---------------------------------------------------------------------------
+
+% ----- the success status ---------------------------------------------------
+% XMOK IS NOT SHIPPED. The COSMOS guide's samples compare every return status
+% against XMOK, but (UTILITY)XMSG-PL-VALUES-L:INCL does not define it - the
+% whole file was searched, and the name does not appear once. Left as the guide
+% writes it, every one of those comparisons fails with ILLEGAL SYNTAX "XMOK".
+%
+% Zero is the right value and the shipped file is what says so, twice over:
+% every symbol under "XMSG USER ERROR SYMBOLS" is NEGATIVE (XENOT=-1 down to
+% XERNA=-25 and beyond), and the XROUT section spells its own success out as
+% CONSTANT XRSOK=0 with the comment "OK - not an error!".
+%
+% CAREFUL: this does NOT apply to XMPFRCV. There the successful status is the
+% MESSAGE TYPE - "Message types: Returned as successfull status from XFRCV",
+% XMTNO=1 through XMTPS=6 - so a receive is tested with > 0, never against
+% XMOK. Comparing that one against zero throws away every message.
+CONSTANT XMOK=0
+
+% ----- the two special types ------------------------------------------------
+% :IMPT would have declared these. The manual's own parameter tables write them
+% as "Xmuseraddress Integer" and "Xmmsgidentifier Integer" in several places
+% (guide lines 1519, 1657, 2223), so both are integer-based here.
+%
+% UNVERIFIED against a compiler: if the kit declared either as INTEGER4 this is
+% wrong, and the compiler is the thing that will say so. It is written this way
+% because the manual says Integer in the only places it says anything.
+TYPE XMUSERADDRESS = INTEGER
+TYPE XMMSGIDENTIFIER = INTEGER
+
+% ----- ports ----------------------------------------------------------------
+% xmpfopn(0, portNumber) =: returnStatus
+IMPORT ( ROUTINE VOID, INTEGER (INTEGER, INTEGER WRITE) : xmpfopn )
+
+% Open a port that ACCEPTS CONNECTIONS, by name. maxConnections is the seat
+% count XROUT enforces - it turns the extra joiner away before this program
+% sees them.
+IMPORT ( ROUTINE VOID, INTEGER &
+    (INTEGER, BYTES, BOOLEAN, INTEGER, INTEGER WRITE) : xmpopcn )
+
+% Add connections to a port already opened by xmpopcn.
+IMPORT ( ROUTINE VOID, INTEGER &
+    (INTEGER, INTEGER, INTEGER, INTEGER) : xmpinfc )
+
+% ----- message space --------------------------------------------------------
+% xmpfget(0, sizeBuffer, msgIdent) =: returnStatus
+IMPORT ( ROUTINE VOID, INTEGER &
+    (INTEGER, INTEGER, XMMSGIDENTIFIER WRITE) : xmpfget )
+
+% xmpfrel(0, msgIdentifier) =: returnStatus
+IMPORT ( ROUTINE VOID, INTEGER (INTEGER, XMMSGIDENTIFIER) : xmpfrel )
+
+% ----- moving bytes in and out of a message ---------------------------------
+% Both take a user buffer address made with ADDR(buf[0]) FORCE XMUSERADDRESS.
+%
+% NOTE on xmpfrea: the guide's table types its third parameter plain "Integer"
+% while xmpfwri's is "Xmuseraddress", yet both are the same user-buffer
+% address and the appendix G samples pass the same FORCE expression to each.
+% Declared alike here; if the compiler disagrees, believe the compiler.
+IMPORT ( ROUTINE VOID, INTEGER &
+    (INTEGER, INTEGER, XMUSERADDRESS, INTEGER, INTEGER, INTEGER WRITE) : xmpfwri )
+
+IMPORT ( ROUTINE VOID, INTEGER &
+    (INTEGER, INTEGER, XMUSERADDRESS, INTEGER, INTEGER, INTEGER WRITE) : xmpfrea )
+
+% ----- sending --------------------------------------------------------------
+% xmpfsnd(flags, localPort, remoteMagicNum) =: returnStatus
+% The magic number is the FULL address of a port and does not fit one word.
+IMPORT ( ROUTINE VOID, INTEGER (INTEGER, INTEGER, INTEGER4) : xmpfsnd )
+
+% xmprout(0, msgIdentifier, myPort) =: returnStatus - send via XROUT, which
+% looks the destination up BY NAME. This is the call that spends a seat.
+IMPORT ( ROUTINE VOID, INTEGER &
+    (INTEGER, XMMSGIDENTIFIER, INTEGER) : xmprout )
+
+% Format an XSLET letter header into a local buffer, ready for xmprout.
+%
+% NOTE on lengthBuffer: the guide's type column reads "Bytes" while its own
+% explanation for the same parameter says "Total length of the buffer in
+% bytes", which describes an integer. Declared INTEGER; a typesetting slip in
+% the table is likelier than a length being a byte string.
+IMPORT ( ROUTINE VOID, INTEGER &
+    (BYTES, INTEGER, INTEGER WRITE, INTEGER, BYTES, BYTES) : xmpblet )
+
+% ----- receiving ------------------------------------------------------------
+% Without the XFWTF option this returns AT ONCE, with status MXNEXTM when the
+% port is empty. That is what lets one loop watch a port and a keyboard.
+%
+% REMEMBER XFWTF IS A BIT POSITION (15): write 2**XFWTF, never 15.
+IMPORT ( ROUTINE VOID, INTEGER &
+    (INTEGER, INTEGER, INTEGER WRITE, INTEGER WRITE, &
+     XMMSGIDENTIFIER WRITE, INTEGER WRITE) : xmpfrcv )
+
+% XMPFMST(FLAGS, MSGIDENT, MSGTYPE, REMOTEMAGIC, LENGTH) =: RETURNSTATUS
+% xmpfrcv hands back only a HASHED port; this is what yields the full magic
+% number, which is the only way to answer the sender port to port.
+IMPORT ( ROUTINE VOID, INTEGER &
+    (INTEGER, XMMSGIDENTIFIER, INTEGER WRITE, INTEGER4 WRITE, &
+     INTEGER WRITE) : xmpfmst )
+
+% $EOF ends an INCLUDED source. It is NOT decoration: without it the compiler
+% runs off the end of this file and takes that as the end of the WHOLE
+% compilation - and it says so with 0 DIAGNOSTICS, so it reads as a clean
+% build that silently skipped the entire program. Proved on D100: the compile
+% stopped at exactly the line of this $INCLUDE, never reached MODULE chat, and
+% the next command answered COMMAND NOT PERMITTED WITHIN MODULES.
+% (UTILITY)XMSG-PL-VALUES-L:INCL ends the same way.
+$EOF

@@ -46,7 +46,10 @@ namespace NDInsight.Sintran.Xmsg.Api.Tests
         /// The port the message is sent from.
         /// </param>
         /// <param name="flags">
-        /// Send flags; <c>Route</c> produces an <c>XMROU</c> message.
+        /// Send flags. NOTE that <c>Route</c> does NOT produce an <c>XMROU</c>: XFROU means "send
+        /// this TO XROUT", and the type is decided by <c>ChooseType</c>, where the routed type
+        /// comes from <c>Forward</c> (XFFWD) - what XROUT itself uses passing a letter on. This
+        /// line claimed the opposite for as long as no test could tell the difference.
         /// </param>
         private static void QueueOne(
             XmsgKernel kernel, XmsgPortNumber target, XmsgPortNumber sender, XmsgSendFlags flags)
@@ -124,17 +127,14 @@ namespace NDInsight.Sintran.Xmsg.Api.Tests
         /// <remarks>
         /// <para>
         /// ND's own example uses three ports holding an ordinary message, a router message and a
-        /// returned one. Two of those cannot be made through this kernel's public surface, and
-        /// finding that out is worth more than the example:
+        /// returned one. This test stages only the ordinary arm, which is what it was written for;
+        /// all three together are now in <see cref="NdsWorkedExampleReproducedInFull"/>.
         /// </para>
-        ///  - <c>XMROU</c> is what XROUT sends. A local <c>Send</c> never produces one whatever
-        ///    flags are passed, so there is no way to stage that arm here.
-        ///  - <c>XMTRE</c> comes from closing a port, which returns its secure messages - see
-        ///    <see cref="ReturnedMessageShowsAsXmtre"/>.
         /// <para>
-        /// So this test keeps the part that CAN be staged honestly - reverse bit order, several
-        /// ports, ordinary messages reporting as neither type - and the returned case is covered
-        /// separately by the path that genuinely produces one.
+        /// It used to say here that the router arm could not be staged at all - that a local send
+        /// never produces an <c>XMROU</c> whatever flags are passed. That was true when it was
+        /// written and is not any more: nothing in the kernel set that type until XFFWD was made to
+        /// produce it, which is what letters arriving from XROUT actually are.
         /// </para>
         /// </remarks>
         [Fact]
@@ -292,6 +292,75 @@ namespace NDInsight.Sintran.Xmsg.Api.Tests
 
             Assert.False(snapshot.HasMessage(bit));
             Assert.Equal(XmsgMessageType.XMTNO, snapshot.FirstMessageType(bit));
+        }
+
+        /// <summary>
+        /// ND's worked example, all three arms, with their arithmetic.
+        /// </summary>
+        /// <remarks>
+        /// <para><b>A=7, D=2, X=1 - their numbers, not ours</b></para>
+        /// <para>
+        /// <c>X-MESSAGE 210373L</c> section 6.3 opens three ports and puts one message on each: an
+        /// ordinary one, a router one and a returned one. Until XFFWD was made to produce an
+        /// <c>XMROU</c>, the middle arm could not be staged through this kernel at all and the
+        /// example could only be reproduced in part.
+        /// </para>
+        /// <para>
+        /// Reproducing it whole is worth more than the sum of the three separate tests, because the
+        /// three answers are computed from ONE walk of the port list. A bit-order mistake that
+        /// happens to look right with a single flagged port shows up here as the wrong word.
+        /// </para>
+        /// <para><b>The staging order is deliberate</b></para>
+        /// <para>
+        /// Bit 0 is the port opened MOST RECENTLY, so the ports are opened oldest-first and the
+        /// temporary port used to produce the returned message is opened LAST and then closed -
+        /// which takes it back out of the list and leaves the other three on the bits this example
+        /// needs. Closing it is not tidying: closing is what returns its secure message.
+        /// </para>
+        /// </remarks>
+        [Fact]
+        public void NdsWorkedExampleReproducedInFull()
+        {
+            XmsgKernel kernel = NewKernel();
+
+            XmsgPortNumber ordinary;      // opened first  -> bit 2
+            XmsgPortNumber routed;        // opened second -> bit 1
+            XmsgPortNumber returned;      // opened third  -> bit 0
+            XmsgPortNumber temporary;     // opened last, then closed
+
+            kernel.OpenPort(out ordinary);
+            kernel.OpenPort(out routed);
+            kernel.OpenPort(out returned);
+            kernel.OpenPort(out temporary);
+
+            // ---- the RETURNED arm: a secure message comes back when its target closes ----------
+            QueueOne(kernel, temporary, returned, XmsgSendFlags.Secure);
+            kernel.ClosePort(temporary);
+
+            // ---- the ORDINARY arm --------------------------------------------------------------
+            QueueOne(kernel, ordinary, returned, XmsgSendFlags.None);
+
+            // ---- the ROUTER arm: a letter, as XROUT forwards one --------------------------------
+            XmsgMagicNumber routedMagic;
+            Assert.False(kernel.ConvertPortToMagic(routed, out routedMagic).IsError);
+            Assert.True(kernel.Deliver(
+                routedMagic,
+                new XmsgMagicNumber(0x2222),
+                new byte[] { 0x01, 0x02 },
+                XmsgSendFlags.Forward).IsSuccess);
+
+            XmsgQueueSnapshot snapshot = kernel.GetGeneralStatusMultiple();
+
+            // Each arm is on the bit its open order gives it.
+            Assert.Equal(XmsgMessageType.XMTNO, snapshot.FirstMessageType(2));
+            Assert.Equal(XmsgMessageType.XMROU, snapshot.FirstMessageType(1));
+            Assert.Equal(XmsgMessageType.XMTRE, snapshot.FirstMessageType(0));
+
+            // ND'S OWN ANSWER. A=7 all three queued, D=2 the router arm on bit 1, X=1 the returned
+            // arm on bit 0.
+            Assert.Equal(7, snapshot.Queued);
+            Assert.Equal(2, snapshot.RouterFirst);
+            Assert.Equal(1, snapshot.ReturnedFirst);
         }
     }
 }

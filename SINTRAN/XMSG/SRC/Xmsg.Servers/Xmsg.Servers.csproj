@@ -29,6 +29,8 @@
       goes through it rather than growing its own copy of the layout.
     -->
     <ProjectReference Include="..\Xmsg.Ndfs\Xmsg.Ndfs.csproj" />
+    <!-- ChatRoom: the room rules, shared with the port-to-port chat server. -->
+    <ProjectReference Include="..\Xmsg.Chat\Xmsg.Chat.csproj" />
   </ItemGroup>
 
 </Project>

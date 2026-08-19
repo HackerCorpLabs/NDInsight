@@ -98,7 +98,7 @@ namespace NDInsight.Sintran.Xmsg.Tests
                 SourceNode = 0x0067,        // from us (103)
                 Flags1 = 0x0000,            // echo connect datagram sequence
                 Flags2 = 0x0400,            // setup-frame class word
-                ProtocolId = SintranProtocolId.Pad,   // 0xDA — echo the connect channel
+                ProtocolId = SintranProtocolId.Pad,   // 0xDA - echo the connect channel
                 Counter = 0x13,             // echo connect counter
                 FrameFlags = 0x86,
                 Role = 0x40,                // responder role

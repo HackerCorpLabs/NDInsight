@@ -117,6 +117,42 @@ for ($i = 0; $i -lt $Systems.Count; $i++) {
     $xcSteps.Add("DEF-REMOTE,,$($Systems[$i])")
 }
 
+# DEF-REMOTE IS ONLY HALF OF IT. It puts the name in the local table - which is why LIST-NAMES
+# lists the system afterwards and why a second DEF-REMOTE says the name is taken - but it grants
+# no ACCESS, and an XMSG restart clears the friend entries along with everything else. A peer
+# without access is refused with XRUNN, "unknown name (of server or system)", and it means the
+# SYSTEM half of that phrase, not the server half.
+#
+# The machine states it plainly if you ask. X-C -> LIST-ROUTING-INFO:
+#
+#   19999  L: *->19999
+#          T: *, but no access to system 19999
+#          A: *, but no route to system 19999
+#
+# DEFINE-FRIEND-SYSTEM removes the "no access" line. Measured on D100 2026-08-17, twice: after a
+# restart every transfer went unanswered - no XRUNN, no reply at all - with the link showing
+# State Run and thousands of frames received, and this is what was missing. Leaving it out costs
+# an evening of blaming the wire, so it is part of the bring-up now.
+# ONE LINE, not command-then-answer. The step driver waits for the "X-C:" prompt after
+# every line it sends, and DEFINE-FRIEND-SYSTEM on its own leaves "System?" instead - so
+# the two-line form works but stalls thirty seconds per system and logs a timeout that
+# reads like a failure. The command takes the number inline, same as LIST-SYSTEMS.
+# THE FRIEND ENTRIES ARE NOT GRANTED HERE ANY MORE - SEE STEP 6.
+#
+# They used to be, right after the DEF-REMOTE lines, and every one of them answered "Ok". They were
+# still gone by the time the script finished. MEASURED 2026-08-18: after a full clean run of this
+# script, X-C -> LIST-ROUTING-INFO said
+#
+#   19999  T: *, but no access to system 19999
+#
+# and every transfer was refused in total silence. Granting the SAME entry by hand at that point,
+# changing nothing else, made D100 answer the very next connect letter.
+#
+# What clears them is COSMOS: step 5 runs COS-START-E04, which makes its own system definitions, and
+# a DEF-REMOTE wipes the friend flag of the system it names (see DOC/FRIEND-SYSTEMS.md - "THE ORDER
+# MATTERS"). So granting access before COSMOS starts is granting it to something that is about to be
+# overwritten. The grant has to be the LAST thing that touches the routing tables.
+
 # The Ethernet network server on the 68000 card. Takes about 10 seconds to come up.
 #
 # ONLY when -WithEthernet is given. On 2026-08-04 this command KILLED XMSG on one restart in
@@ -152,6 +188,38 @@ Invoke-Steps $xcSteps.ToArray() "X-C:" 8000 "4. XMSG configuration (X-C)"
 # connections and you lock yourself out - TERM 5/6/7 have no port and terminal 1 is the RetroCore
 # window, so the only way back is typing SET-AVAILABLE on the GUI console.
 Invoke-Steps @("MODE (PACK-ONE:COSMOS-BASIC)COS-START-E04:MODE,,", "SET-AVAIL") "" 45000 "5. COSMOS, then set available"
+
+# --- 6. Friend systems - LAST, because COSMOS wipes them --------------------------------------
+# This is the step that has to come after everything else that touches the routing tables.
+#
+# MEASURED 2026-08-18. Granted in step 4 (before COSMOS) every DEFINE-FRIEND-SYSTEM answered "Ok"
+# and every one of them was GONE by the end of the run:
+#
+#   X-C -> LIST-ROUTING-INFO
+#     19999  L: *->19999
+#            T: *, but no access to system 19999
+#
+# with the link up, the name defined, the FA server registered with 30 free seats - and every
+# transfer refused in TOTAL SILENCE, no error frame of any kind. Granting the same entry by hand at
+# that point, changing nothing else, made D100 answer the very next connect letter and the FA ladder
+# started climbing. That is the whole difference.
+#
+# DEF-REMOTE clears the friend flag of the system it names (DOC/FRIEND-SYSTEMS.md, "THE ORDER
+# MATTERS"), and COS-START-E04 makes its own system definitions. So the grant must be last or it is
+# granted to something that is about to be overwritten.
+#
+# Read the routing line to check it, NOT LIST-FRIEND-SYSTEMS: that command still listed 19999 while
+# routing said "no access", so the two tables disagree and only the routing one predicts behaviour.
+$friendSteps = New-Object System.Collections.Generic.List[string]
+$friendSteps.Add("X-C")
+foreach ($s in $Systems) {
+    $number = ($s -split '\s+')[-1]
+    if ($number -eq $LocalSystem -or $s -like "$LocalSystem *") { continue }
+    $friendSteps.Add("DEFINE-FRIEND-SYSTEM $number")
+}
+$friendSteps.Add("EXIT")
+
+Invoke-Steps $friendSteps.ToArray() "X-C:" 8000 "6. friend systems (AFTER COSMOS - it wipes them)"
 
 Write-Host ""
 Write-Host "Done. Expect these and ignore them:" -ForegroundColor Green

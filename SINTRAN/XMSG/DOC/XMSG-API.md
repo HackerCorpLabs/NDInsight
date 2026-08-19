@@ -374,7 +374,7 @@ XMPBLET(OUTBUFFER, MESSLENGTH, OFFSET, SERIALNUMBER, SYSTEMNAME, PORTNAME)  % bu
 XMPFOPN(FLAGS, PORTNUMBER)                                                  % open a port
 XMPFGET(FLAGS, SIZEBUFFER, MSGIDENT)                                        % reserve a buffer
 XMPFWRI(FLAGS, BUFOFFSET, ADDR(OUTBUFFER), MESOFFSET, MESSLENGTH, WRITTEN)  % copy letter into buffer
-XMROUT(FLAGS, MSGIDENT, PORTNUMBER)                                         % send via XROUT (secure)
+XMPROUT(FLAGS, MSGIDENT, PORTNUMBER)                                        % send via XROUT (secure)
 XMPFRCV(FLAGS + XFWTF, PORTNUMBER, ...)                                     % wait for the reply
 ```
 
@@ -383,6 +383,10 @@ Server side: `XMPOPNM` (open + name "s-port") → `XMPFRCV` (wait) → `XMPFMST`
 client. The `XMPB*` helpers build the standard-message bytes of Section 4.
 
 ---
+
+> **Corrected 2026-08-11:** this section previously wrote `XMROUT`. The routine is **`XMPROUT`**
+> - the guide's own routine reference and its worked example on page 99 both give it with the P.
+> Section 8 already lists `XR0UT`->XROUT as an OCR mangling in the same guide; this was another.
 
 ## 8. OCR caveats (COSMOS guide)
 

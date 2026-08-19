@@ -1,0 +1,781 @@
+C=============================================================================C
+C                                                                             C
+C                             X M S G                                         C
+C                                                                             C
+C                      D E F I N I T I O N S                                  C
+C                                                                             C
+C                              F O R                                          C
+C                                                                             C
+C                 F O R T R A N    I N T E R F A C E                          C
+C                                                                             C
+C                                                                             C
+C          NOTE: the FORTRAN XMSG library returns STANDARD errors             C
+C                the STANDARD value symbols are the normal XMSG               C
+C                symbols prefixed by XM-                                      C
+C                                                                             C
+C                                                                             C
+C  VERSION/REVISION:  -B02  02.06.86   TNHN                                   C
+C                                                                             C
+C                                                                             C
+C=============================================================================C
+
+C-----------------------------------------------------------------------------C
+C                                                                             C
+C                         XMSG FUNCTION VALUES                                C
+C                                                                             C
+C-----------------------------------------------------------------------------C
+
+      INTEGER XFDUM,XFDCT,XFGET,XFREL,XFRHD,XFWHD,XFREA,
+     +        XFWRI,XFSCM,XFMST,XFOPN,XFCLS,XFSND,XFRCV,
+     +        XFPST,XFGST,XFSIN,XFSRL,XFABR,XFABW,XFMLK,
+     +        XFMUL,XFM2P,XFP2M,XFRIN,XFCRD,XFSTD,XFDIB,
+     +        XFRIB,XFWIB,XFPRV,XFRTN,XFRRH,XFDUB,XFWDF,
+     +        XFDBK,XFSMC,XFDMM,XFALM,XFFRM,XFCPV,X5FUN
+
+C Dummy function
+      PARAMETER (XFDUM=0,
+C Disconnect from message system
+     +           XFDCT=1,
+C Get message space
+     +           XFGET=2,
+C Release message space
+     +           XFREL=3,
+C Read header from a message (6 bytes)
+     +           XFRHD=4,
+C Write header to a message (6 bytes)
+     +           XFWHD=5,
+C Read from message to user buffer
+     +           XFREA=6,
+C Write from user to message
+     +           XFWRI=7,
+C Set current message
+     +           XFSCM=8,
+C Get message status
+     +           XFMST=9,
+C Open port
+     +           XFOPN=10,
+C Close port
+     +           XFCLS=11,
+C Send message to a remote port
+     +           XFSND=12,
+C Receive a message on a given port
+     +           XFRCV=13,
+C Get local port status
+     +           XFPST=14,
+C General status or wait
+     +           XFGST=15)
+C Service initialisation function
+      PARAMETER (XFSIN=16,
+C Service release function (obsolete)
+C                XFSRL=17,
+C Absolute read block from POF area
+     +           XFABR=18,
+C Absolute write block to POF area (obsolete)
+C                XFABW=19,
+C Lock message system (obsolete)
+C                XFMLK=20,
+C Unlock message system (obsolete)
+C                XFMUL=21,
+C Magic number to port id.
+     +           XFM2P=22,
+C Port to magic number
+     +           XFP2M=23,
+C Routing initialise (obsolete)
+C                XFRIN=24,
+C Create driver with context
+     +           XFCRD=25,
+C Start driver
+     +           XFSTD=26)
+C Define indirect buffer (obsolete)
+C                XFDIB=27,
+C Read from indirect buffer (obsolete)
+C                XFRIB=28,
+C Write to indirect buffer (obsolete)
+C                XFWIB=29)
+C Request privilege
+      PARAMETER (XFPRV=30,
+C Write word 0 and return message
+     +           XFRTN=31,
+C Receive message and read word 0
+     +           XFRRH=32,
+C Define user buffer area for current message
+     +           XFDUB=33,
+C Define wake-up context (drivers only!)
+     +           XFWDF=34,
+C Define bank number (drivers only)
+     +           XFDBK=35,
+C Start multi-function call
+     +           XFSMC=36,
+C Define max memory for a task
+     +           XFDMM=37,
+C Allocate messages to a task
+     +           XFALM=38,
+C Free allocated messages
+     +           XFFRM=39,
+C List messages and ports
+     +           XFLMP=40,
+C receive and read message
+     +           XFRRE=41,
+C check system and/or user privileges
+     +           XFCPV=42,
+C == END MARKER == LEAVE ME HERE PLEASE
+     +           X5FUN=43)
+
+C------------------------------------------------------------------------------C
+C                                                                              C
+C                       XMSG OPTION BITS (FLAGS)                               C
+C                                                                              C
+C------------------------------------------------------------------------------C
+
+      INTEGER XFWTF,XFWAK,XFOPS,XFPON,XFWOK,XFUSG,XFHIP,
+     +        XFRRO,XFEXC,XFRES,XFBNC,XFFWD,XFROU,XFSEC,
+     +        XFSYS
+
+C If set then wait if operation not terminated
+      PARAMETER (XFWTF=15,
+C Wake up task on status change
+     +           XFWAK=14,
+C (Obsolete)
+C                XFPRM=13   
+C Driver to run with paging on
+     +           XFPON=13,
+C (Obsolete)
+C                XFWOK=13,  
+C (Not jet implemented)
+     +           XFUSG=13,
+C High-priority message
+     +           XFHIP=13,
+C If XFROU then non-local XROUT 
+     +           XFRRO=13,
+C Allocate/reserve/release exclusive message buffer(s)
+     +           XFEXC=13,
+C (Not jet implemented)
+     +           XFOPS=12,
+C Reset message length to zero
+     +           XFRES=12,
+C Bounce message
+     +           XFBNC=12,
+C Forward message
+     +           XFFWD=11,
+C Message to be sent to XROUT (see XFRRO)
+     +           XFROU=10,
+C Secure message (Return if not delivered)
+     +           XFSEC=9,
+C Bit set to indicate system mode call (system domain)
+     +           XFSYS=7)
+
+
+C------------------------------------------------------------------------------C
+C                                                                              C
+C        MESSAGE TYPES: RETURNED AS SUCCESSFULL STATUS FROM A                  C
+C                       RECEIVE MESSAGE CALL                                   C
+C                                                                              C
+C------------------------------------------------------------------------------C
+
+      INTEGER XMTNO,XMROU,XMTHI,XMTRE,XMKIK,XMTPS
+
+C Normal message
+      PARAMETER (XMTNO=1,
+C Routed message (Via XROUT)
+     +           XMROU=2,
+C High priority message
+     +           XMTHI=3,
+C Return message (Abnormal condition)
+     +           XMTRE=4,
+C XROUT has been kicked (no message)
+     +           XMKIK=5,
+C Pseudo message (not used)
+     +           XMTPS=6)
+
+C-----------------------------------------------------------------------------C
+C                                                                             C
+C              U S E R    E R R O R    S Y M B O L S                          C
+C                                                                             C
+C                                                                             C
+C               base value = XKXXX = 16896 = 41000B                           C
+C                                                                             C
+C     Error values returned in the T-register                                 C
+C     NOTE that the FORTRAN XMSG library returns the STANDARD                 C
+C     values (see later)                                                      C
+C                                                                             C
+C-----------------------------------------------------------------------------C
+
+      INTEGER XKXXX,XENOT,XEIRM,XETMM,XENIM,XEIBP,
+     +        XEBNY,XEIRT,XENOP,XEIDR,XENDM,XEMCH,
+     +        XEBFC,XEAIN,XEBNC,XEWNA,XENVI,XEILF,
+     +        XEIMA,XEMFL,XEILM,XEIPN,XEPRV,XEPVR,
+     +        XERNA,XEROV,XEXBF,XEDRI,XENDP,XEITL,
+     +        XEIDP,XEILR,XENOS,XENSE,XERND,XEPCL,
+     +        XENRU,XENTO,XENUS,XEREJ,XEIXT,XETMU,XECRA
+
+C BASE for STANDARD ERROR system (41000B)
+      PARAMETER (XKXXX= 16896,
+C No more XT-blocks free
+     +           XENOT= -1,
+C Non-local remote port illegal here
+     +           XEIRM= -2,
+C Task is not allowed any more memory
+     +           XETMM= -4,
+C Facility not yet implemented
+     +           XENIM= -5,
+C Illegal message buffer address
+     +           XEIBP= -6,
+C Message buffer not yours
+     +           XEBNY= -7,
+C Illegal function for RT-programs (only drivers)
+     +           XEIRT= -8,
+C No more ports available
+     +           XENOP= -9,
+C Function not available to drivers
+     +           XEIDR= -10,
+C No default message
+     +           XENDM= -11,
+C Message is already chained
+     +           XEMCH= -12,
+C Message is in a queue.
+     +           XEBFC= -13,
+C XMSG Kernel already initialised
+     +           XEAIN= -14,
+C Return of a bounce message
+     +           XEBNC= -15)
+C Write Not Allowed into Indirect buffer
+      PARAMETER (XEWNA= -16,
+C No Valid Indirect buffer defined
+     +           XENVI= -17,
+C Illegal function code in monitor call
+     +           XEILF= -18,
+C Invalid magic number
+     +           XEIMA= -19,
+C Message space full
+     +           XEMFL= -20,
+C Illegal message size or not enough space left
+     +           XEILM= -21,
+C Illegal port number
+     +           XEIPN= -22,
+C Privileged function called without privilege.
+     +           XEPRV= -23,
+C Privilege request refused
+     +           XEPVR= -24,
+C Remote system not available
+     +           XERNA= -25,
+C Remote task space overflow
+     +           XEROV= -26,
+C Message already has XMSG buffer (XFDUB)
+     +           XEXBF= -27,
+C Driver called XMSG before return from previous
+     +           XEDRI= -28,
+C  No port open (so 'default port' param invalid)
+     +           XENDP= -29,
+C Illegal transfer length for read/write
+     +           XEITL= -30,
+C  Illegal displacement in read/write
+     +           XEIDP= -31,
+C Illegal use of reentrant segment in XFDIB
+     +           XEILR= -32,
+C Indirect Buffer not on valid segment
+     +           XENOS= -33,
+C Network sequencing error
+     +           XENSE= -34,
+C Remote system not defined
+     +           XERND= -35,
+C Remote port closed while message queued
+     +           XEPCL= -36,
+C XMSG not running
+     +           XENRU= -37,
+C Timeout detected by network layer
+     +           XENTO= -38,
+C No user segment info defined (XFUSG option)
+     +           XENUS= -39,
+C Network remote reject (request retransmit)
+     +           XEREJ= -40,
+C Driver called XMSG with illegal XT block  
+     +           XEIXT= -41,
+C Too many calls in multi-call              
+     +           XETMU= -42,
+
+C XMSG crash (Info in Basefield)
+     +           XECRA= -63)
+
+
+C-----------------------------------------------------------------------------C
+C                                                                             C
+C              U S E R    E R R O R    S Y M B O L S                          C
+C                                                                             C
+C                              A S                                            C
+C                                                                             C
+C                  S T A N D A R D    V A L U E S                             C
+C                                                                             C
+C                 base value = XKXXX = 16896 = 41000B                         C
+C                                                                             C
+C     NB!! note in particular that the STANDARD value for                     C
+C          "not terminated" is NOT zero                                       C
+C          and the standard OK is now zero                                    C
+C                                                                             C
+C-----------------------------------------------------------------------------C
+
+      INTEGER XMOK,XMXENTM,XMXENOT,XMXEIRM,XMXETMM,XMXENIM,
+     +        XMXEIBP,XMXEBNY,XMXEIRT,XMXENOP,XMXEIDR,XMXENDM,
+     +        XMXEMCH,XMXEBFC,XMXEAIN,XMXEBNC,XMXEWNA,XMXENVI,
+     +        XMXEILF,XMXEIMA,XMXEMFL,XMXEILM,XMXEIPN,XMXEPRV,
+     +        XMXEPVR,XMXERNA,XMXEROV,XMXEXBF,XMXEDRI,XMXENDP,
+     +        XMXEITL,XMXEIDP,XMXEILR,XMXENOS,XMXENSE,XMXERND,
+     +        XMXEPCL,XMXENRU,XMXENTO,XMXENUS,XMXEREJ,
+     +        XMXEIXT,XMXETMU,XMXECRA
+
+C NOTE change from XMSG OK=1
+      PARAMETER (XMOK   = 0,
+
+C NOT an error - simply "not terminated"
+C ie same as  XMSG status=0
+     +           XMXENTM= 16896,
+
+C No more XT-blocks free
+     +           XMXENOT= 16897,
+C Non-local remote port illegal here
+     +           XMXEIRM= 16898,
+C Task is not allowed any more memory
+     +           XMXETMM= 16900,
+C Facility not yet implemented
+     +           XMXENIM= 16901,
+C Illegal message buffer address
+     +           XMXEIBP= 16902,
+C Message buffer not yours
+     +           XMXEBNY= 16903,
+C Illegal function for RT-programs (only drivers)
+     +           XMXEIRT= 16904,
+C No more ports available
+     +           XMXENOP= 16905,
+C Function not available to drivers
+     +           XMXEIDR= 16906,
+C No default message
+     +           XMXENDM= 16907,
+C Message is already chained
+     +           XMXEMCH= 16908,
+C Message is in a queue.
+     +           XMXEBFC= 16909,
+C XMSG Kernel already initialised
+     +           XMXEAIN= 16910,
+C Return of a bounce message
+     +           XMXEBNC= 16911)
+C Write Not Allowed into Indirect buffer
+      PARAMETER (XMXEWNA= 16912,
+C No Valid Indirect buffer defined
+     +           XMXENVI= 16913,
+C Illegal function code in monitor call
+     +           XMXEILF= 16914,
+C Invalid magic number
+     +           XMXEIMA= 16915,
+C Message space full
+     +           XMXEMFL= 16916,
+C Illegal message size or not enough space left
+     +           XMXEILM= 16917,
+C Illegal port number
+     +           XMXEIPN= 16918,
+C Privileged function called without privilege.
+     +           XMXEPRV= 16919,
+C Privilege request refused
+     +           XMXEPVR= 16920,
+C Remote system not available
+     +           XMXERNA= 16921,
+C Remote task space overflow
+     +           XMXEROV= 16922,
+C Message already has XMSG buffer (XFDUB)
+     +           XMXEXBF= 16923,
+C Driver called XMSG before return from previous
+     +           XMXEDRI= 16924,
+C  No port open (so 'default port' param invalid)
+     +           XMXENDP= 16925,
+C Illegal transfer length for read/write
+     +           XMXEITL= 16926,
+C  Illegal displacement in read/write
+     +           XMXEIDP= 16927,
+C Illegal use of reentrant segment in XFDIB
+     +           XMXEILR= 16928,
+C Indirect Buffer not on valid segment
+     +           XMXENOS= 16929,
+C Network sequencing error
+     +           XMXENSE= 16930,
+C Remote system not defined
+     +           XMXERND= 16931,
+C Remote port closed while message queued
+     +           XMXEPCL= 16932,
+C XMSG not running
+     +           XMXENRU= 16933,
+C Timeout detected by network layer
+     +           XMXENTO= 16934,
+C No user segment info defined (XFUSG option)
+     +           XMXENUS= 16935,
+C Network remote reject (request retransmit)
+     +           XMXEREJ= 16936,
+C Driver called XMSG with illegal XT block  
+     +           XMXEIXT= 16937,
+C Too many calls in multi-call              
+     +           XMXETMU= 16938,
+
+C XMSG crash (Info in Basefield)
+     +           XMXECRA= 16959)
+
+C-----------------------------------------------------------------------------C
+C                                                                             C
+C           X R O U T   -   S E R V I C E    V A L U E S                      C
+C                                                                             C
+C                  Values in byte 1 of message                                C
+C                                                                             C
+C-----------------------------------------------------------------------------C
+
+      INTEGER XSNUL,XSLET,XSNAM,XSCNM,XSGNM,XSGNI,XSGMG,XSDRN,
+     +        XSDSY,XSDMC,XSGSY,XSGMC,XSLKI,XSTIN,XSTCL,XSTDC,
+     +        XSCRS,XSNSP,XSGIN,XSDLO,XSLEK,XSNET,XSSCI,XSGAT,
+     +        XSDAT,XSSNI,XSMAX
+
+C Null command returns 0 status to sender
+      PARAMETER (XSNUL=64,
+C Send a letter
+     +           XSLET=65,
+C Give name to this port
+     +           XSNAM=66,
+C Clear name of this port
+     +           XSCNM=67,
+C Get name of port (param: MAGNO)
+     +           XSGNM=68,
+C Get name (param: MC/PORTNO)
+     +           XSGNI=69,
+C Get magic number from name (PRIV)
+     +           XSGMG=71,
+C Define remote name
+     +           XSDRN=73,
+C Define routing for system N (PRIV)
+     +           XSDSY=74,
+C Define routing for system N (PRIV) - old
+     +           XSDMC=XSDSY,
+C Get routing info for system N
+     +           XSGSY=75,
+C Get routing info for system N - old                
+     +           XSGMC=XSGSY,
+C Start up specified link
+     +           XSLKI=76,
+C Initialise tracing (open file, ..)
+     +           XSTIN=77,
+C Close tracing
+     +           XSTCL=78,
+C Define tracing conditions
+     +           XSTDC=79,
+C Create service (name, init no of SP's)
+     +           XSCRS=80,
+C New service point(s) (increment/decrement in SP's)
+     +           XSNSP=81,
+C Get information about name
+     +           XSGIN=82,
+C Define local system
+     +           XSDLO=83,
+C Send letter and kick if unavailable
+     +           XSLEK=84,
+C Start/stop gateway (network server) (PRIV)
+     +           XSNET=85,
+C Set crash information
+     +           XSSCI=86,
+C Get/check attribute
+     +           XSGAT=87,
+C Define/remove attribute (PRIV)
+     +           XSDAT=88,
+C Get network server information 
+     +           XSNSI=89,
+C Maximum legal service value
+     +           XSMAX=XSNSI)
+
+C-----------------------------------------------------------------------------C
+C                                                                             C
+C           X R O U T  -  S U B - S E R V I C E  V A L U E S                  C
+C                                                                             C
+C                Values in parameter 1 of message                             C
+C                                                                             C
+C-----------------------------------------------------------------------------C
+
+C Sub-service definitions fo XSSCI
+       INTEGER XSDAR,XSDRF,XSDDF,XSGDF,XSDUX,XSGRF,XSGAR
+
+C Enable/disable auto-restart of XMSG
+       PARAMETER(XSDAR=1,
+C Define/remove restart-files
+     +           XSDRF=2,
+C Define/remove dump-files
+     +           XSDDF=3,
+C Get defined dump-files
+     +           XSGDF=4,
+C Dump XMSG onto files
+     +           XSDUX=5,
+C Get defined restart-files
+     +           XSGRF=6,
+C Get auto-restart definitions
+     +           XSGAR=7)
+
+C Sub-service definitions for XSGAT
+      INTEGER XSGXV,XSCMG,XSGCN,XSGFR
+
+C Get XMSG version and revision
+       PARAMETER(XSGXV=1,
+C Check magic number
+     +           XSCMG=2,
+C Get complete system or port name (deabbreviate name)
+     +           XSGCN=3,
+C Get friend information (PRIV)
+     +           XSGFR=4)
+
+C Sub-service definitions for XSDAT (PRIV)
+      INTEGER XSDFR,XSRFR
+
+C Define friend system
+       PARAMETER(XSDFR=1,
+C Remove friend system
+     +           XSRFR=2)
+
+C-----------------------------------------------------------------------------C
+C                                                                             C
+C          X R O U T  /  F I L E   S E R V E R   -    E R R O R S             C
+C                                                                             C
+C             Error values returned in byte 1 of return message               C
+C                                                                             C
+C                                                                             C
+C      These are the values in the message header itself seen by              C
+C      the user when the XROUT header is manipulated directly by              C
+C      the user.                                                              C
+C      The FORTRAN XMSG library returns the STANDARD values below             C
+C                                                                             C
+C-----------------------------------------------------------------------------C
+
+      INTEGER XRISN,XRUNN,XRDDF,XRNSP,XRIPT,XRMMP,XRUNM,
+     +        XRMTL,XRSMF,XRPRV,XRISY,XRNRO,XRIIV,XRNEI,
+     +        XRNXM,XRILN,XRNXL,XRNXD,XRNTR,XRTRA,XRTRP,
+     +        XRTFE,XRTRT,XRTIS,XRBLK,XRSYD,XRNLS,XRTRE,
+     +        XRRNA,XRBUS,XRNSE,XRRPN,XRUKS,XRMFL,XRROV,
+     +        XRRFU,XRNRB,XRURT,XRSNR,XRRND,XRNNA,XRISE
+     +        XRIRQ,XRNGA,XRRNL,XRNCO
+
+C Base for XROUT errors: 41100B
+      PARAMETER (XRXXX=16960,
+C OK - not an error!
+     +           XRSOK=0,
+C Illegal service number
+     +           XRISN=1,
+C Unknown name (of server or system)
+     +           XRUNN=2,
+C Another port already has this name
+     +           XRDDF=3,
+C No space left for names
+     +           XRNSP=4,
+C Illegal parameter type
+     +           XRIPT=5,
+C Missing mandatory parameter
+     +           XRMMP=6,
+C Unknown magic number
+     +           XRUNM=7,
+C Too short message (or message buffer)
+     +           XRMTL=8,
+C Standard message format not handled
+     +           XRSMF=9,
+C Caller was not privileged
+     +           XRPRV=10,
+C Illegal system number parameter
+     +           XRISY=11,
+C No access to remote system
+     +           XRNRO=12,
+C Illegal integer value
+     +           XRIIV=13,
+C Cannot define route to a neighbour
+     +           XRNEI=14,
+C Invalid service request - no intersystem XMSG
+     +           XRNXM=15,
+C Illegal/Reserved Log. unit no. for link
+     +           XRILN=16,
+C No more XL-Blocks (Link Descriptors)
+     +           XRNXL=17,
+C Not enough XD-Blocks for LKINI
+     +           XRNXD=18,
+C No trace generated
+     +           XRNTR=19,
+C Trace already active
+     +           XRTRA=20)
+C Trace passive
+      PARAMETER (XRTRP=21,
+C Trace/dump file open error (see param 1)
+     +           XRTFE=22,
+C Trace RT-prog (XTRACE) not found
+     +           XRTRT=23,
+C Illegal trace system number
+     +           XRTIS=24,
+C Bad link - open unsuccessful
+     +           XRBLK=25,
+C Local system number already defined
+     +           XRSYD=26,
+C No local system number defined yet
+     +           XRNLS=27,
+C Too many remote names to this system
+     +           XRTRE=28,
+C Old service calls (<64) cannot go remote
+     +           XRRNA=29,
+C Service busy - try later!
+     +           XRBUS=30,
+C This is not a service port
+     +           XRNSE=31,
+C Remote port statically declared
+     +           XRRPN=32,
+C Unknown remote system name
+     +           XRUKS=33,
+C Not enough message table space in remote system
+     +           XRMFL=34,
+C Remote task space overflow when forwarding
+     +           XRROV=35,
+C Routing table space full (too many systems def.)
+     +           XRRFU=36,
+C No remote batch service available here
+     +           XRNRB=37,
+C Unknown RT program name
+     +           XRURT=38)
+C This server is not running
+      PARAMETER (XRSNR=39,
+C Netserver: remote system is not defined
+     +           XRRND=40,
+C Netserver: network not available
+     +           XRNNA=41,
+C Netserver: internal server error
+     +           XRISE=42,
+C Netserver: invalid request
+     +           XRIRQ=43,
+C XMSG not configured with gateway code
+     +           XRNGA=44,
+C Remote system not on same LAN
+     +           XRRNL=45,
+C No connection to this system (unknown status)
+     +           XRNCO=46,
+C Ambiguous name
+     +           XRAMB=47,
+C Friend system table full (too many friends)
+     +           XRFFU=48)
+
+C-----------------------------------------------------------------------------C
+C                                                                             C
+C         X R O U T  /  F I L E   S E R V E R   -    E R R O R S              C
+C                                                                             C
+C                          A S                                                C
+C                                                                             C
+C                 S T A N D A R D   V A L U E S                               C
+C                                                                             C
+C         These are the values returned by the FORTRAN XMSG library           C
+C         when a routine involves an XROUT service.                           C
+C                                                                             C
+C                 base value = XRXXX = 16960 = 41100B                         C
+C                                                                             C
+C-----------------------------------------------------------------------------C
+
+      INTEGER XMXRISN,XMXRUNN,XMXRDDF,XMXRNSP,XMXRIPT,XMXRMMP,
+     +        XMXRUNM,XMXRMTL,XMXRSMF,XMXRPRV,XMXRISY,XMXRNRO,
+     +        XMXRIIV,XMXRNEI,XMXRNXM,XMXRILN,XMXRNXL,XMXRNXD,
+     +        XMXRNTR,XMXRTRA,XMXRTRP,XMXRTFE,XMXRTRT,XMXRTIS,
+     +        XMXRBLK,XMXRSYD,XMXRNLS,XMXRTRE,XMXRRNA,XMXRBUS,
+     +        XMXRNSE,XMXRRPN,XMXRUKS,XMXRMFL,XMXRROV,XMXRRFU,
+     +        XMXRNRB,XMXRURT,XMXRSNR,XMXRRND,XMXRNNA,XMXRISE,
+     +        XMXRIRQ,XMXRNGA,XMXRRNL,XMXRNCO
+
+C Illegal service number
+      PARAMETER (XMXRISN= 16961,
+C Unknown name (of server or system)
+     +           XMXRUNN= 16962,
+C Another port already has this name
+     +           XMXRDDF= 16963,
+C No space left for names
+     +           XMXRNSP= 16964,
+C Illegal parameter type
+     +           XMXRIPT= 16965,
+C Missing mandatory parameter
+     +           XMXRMMP= 16966,
+C Unknown magic number
+     +           XMXRUNM= 16967,
+C Too short message (or message buffer)
+     +           XMXRMTL= 16968,
+C Standard message format not handled
+     +           XMXRSMF= 16969,
+C Caller was not privileged
+     +           XMXRPRV= 16970,
+C Illegal system number parameter
+     +           XMXRISY= 16971,
+C No access to remote system
+     +           XMXRNRO= 16972,
+C Illegal integer value
+     +           XMXRIIV= 16973,
+C Cannot define route to a neighbour
+     +           XMXRNEI= 16974,
+C Invalid service request - no intersystem XMSG
+     +           XMXRNXM= 16975,
+C Illegal/Reserved Log. unit no. for link
+     +           XMXRILN= 16976,
+C No more XL-Blocks (Link Descriptors)
+     +           XMXRNXL= 16977,
+C Not enough XD-Blocks for LKINI
+     +           XMXRNXD= 16978,
+C No trace generated
+     +           XMXRNTR= 16979,
+C Trace already active
+     +           XMXRTRA= 16980)
+C Trace passive
+      PARAMETER (XMXRTRP= 16981,
+C Trace/dump file open error (see param 1)
+     +           XMXRTFE= 16982,
+C Trace RT-prog (XTRACE) not found
+     +           XMXRTRT= 16983,
+C Illegal trace system number
+     +           XMXRTIS= 16984,
+C Bad link - open unsuccessful
+     +           XMXRBLK= 16985,
+C Local system number already defined
+     +           XMXRSYD= 16986,
+C No local system number defined yet
+     +           XMXRNLS= 16987,
+C Too many remote names to this system
+     +           XMXRTRE= 16988,
+C Old service calls (<64) cannot go remote
+     +           XMXRRNA= 16989,
+C Service busy - try later!
+     +           XMXRBUS= 16990,
+C This is not a service port
+     +           XMXRNSE= 16991,
+C Remote port statically declared
+     +           XMXRRPN= 16992,
+C Unknown remote system name
+     +           XMXRUKS= 16993,
+C Not enough message table space in remote system
+     +           XMXRMFL= 16994,
+C Remote task space overflow when forwarding
+     +           XMXRROV= 16995,
+C Routing table space full (too many systems def.)
+     +           XMXRRFU= 16996,
+C No remote batch service available here
+     +           XMXRNRB= 16997,
+C Unknown RT program name
+     +           XMXRURT= 16998)
+C This server is not running
+      PARAMETER (XMXRSNR= 16999,
+C Netserver: remote server is not defined
+     +           XMXRRND= 17000,
+C Netserver: network not available
+     +           XMXRNNA= 17001,
+C Netserver: internal server error
+     +           XMXRISE= 17002,
+C Netserver: invalid request
+     +           XMXRIRQ= 17003,
+C XMSG not configured with gateway code
+     +           XMXRNGA= 17004,
+C Remote system not on same LAN
+     +           XMXRRNL= 17005,
+C No connection to this system (unknown status)
+     +           XMXRNCO= 17006,
+C Ambiguous name
+     +           XMXRAMB= 17007,
+C Friend system table full (too many friends)
+     +           XMXRFFU= 17008)
+
+C-----------------------------------------------------------------------------C
+$EOF
+
+
+
+

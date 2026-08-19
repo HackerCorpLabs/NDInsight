@@ -13,7 +13,7 @@ namespace NDInsight.Sintran.Xmsg.Hdlc
     ///  - read the pcapng file and extract Ethernet/IPv4/TCP payload segments.
     ///  - reassemble each directional TCP flow by concatenating its segments in
     ///    ascending sequence order (naive; overlaps and retransmits are not specially
-    ///    handled, matching the reference validator — bad joins simply fail the FCS).
+    ///    handled, matching the reference validator - bad joins simply fail the FCS).
     ///  - de-frame each reassembled stream on <c>0x7E</c> flags and unstuff.
     ///  - keep only frames whose trailing FCS validates.
     /// </remarks>

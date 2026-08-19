@@ -222,8 +222,8 @@ namespace NDInsight.Sintran.Xmsg
                 // Every data (0x0E) frame carries the SAME XMSG sub-header, for ALL
                 // Protocol IDs (0xD8..0xDE). Verified across all 13 captures: the
                 // Protocol ID byte is a channel/tag, NOT a distinct frame layout. So there
-                // is ONE data-frame decode path — sub-header then a content-dispatched
-                // trailer — regardless of whether the channel is DC, TAD, PAD or ROUTING.
+                // is ONE data-frame decode path - sub-header then a content-dispatched
+                // trailer - regardless of whether the channel is DC, TAD, PAD or ROUTING.
                 result.SubHeader = XmsgSubHeader.Parse(rest.Slice(0, XmsgSubHeader.Size));
                 ReadOnlySpan<byte> trailer = rest.Slice(XmsgSubHeader.Size);
 
@@ -268,12 +268,12 @@ namespace NDInsight.Sintran.Xmsg
         /// <remarks>
         /// Dispatch is by the XMCSM control/service word (XMSG-PROTOCOL.md; the reference
         /// dissector's LI ROUTING / XSLET handling):
-        ///  - XMCSM <c>0x0100014B</c> or <c>0x01000100</c> — LI ROUTING (XSGSY) reply, an
+        ///  - XMCSM <c>0x0100014B</c> or <c>0x01000100</c> - LI ROUTING (XSGSY) reply, an
         ///    XROUT letter of 4-byte parameter blocks.
-        ///  - XMCSM low byte <c>0x41</c> — XSLET (send letter), an XROUT letter.
+        ///  - XMCSM low byte <c>0x41</c> - XSLET (send letter), an XROUT letter.
         /// Letters are parsed with <see cref="XroutMessageFraming.BodyOnly"/>: on this transport
         /// the XROUT header is not on the wire.
-        ///  - otherwise — a TAD message chain (terminal session data / control).
+        ///  - otherwise - a TAD message chain (terminal session data / control).
         /// Any part that cannot be decoded is retained verbatim (letter tail in
         /// <see cref="TrailingBytes"/>, TAD tail in <see cref="SubProtocol.TadChain.Remainder"/>),
         /// and <see cref="RawBytes"/> still guarantees a byte-identical re-serialisation.

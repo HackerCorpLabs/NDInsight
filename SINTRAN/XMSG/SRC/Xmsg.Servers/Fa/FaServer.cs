@@ -120,9 +120,16 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
         /// <para>
         /// D102 answers from <c>0x06B6</c>, a port that appears NOWHERE in the letter, and every
         /// one of the several hundred later FA messages in that conversation runs between
-        /// <c>102:0x06B6</c> and <c>100:0x0812</c> - the pair never changes. So the server allocates
-        /// a fresh endpoint for the conversation and hands it to the client by being the source of
-        /// the confirmation.
+        /// <c>102:0x06B6</c> and <c>100:0x0812</c> - the pair never changes. So the server answers
+        /// from an endpoint of its own and hands it to the client by being the source of the
+        /// confirmation.
+        /// </para>
+        /// <para>
+        /// CORRECTED AGAIN 2026-08-10. That paragraph used to end "the server allocates a FRESH
+        /// endpoint for the CONVERSATION", and we implemented it that way. It was an inference
+        /// from a capture holding exactly one conversation, which cannot tell a per-conversation
+        /// port from a per-server one. Captures with two conversations show a per-SERVER port, and
+        /// the per-conversation reading broke a live run - see <see cref="_replyPort"/>.
         /// </para>
         /// <para>
         /// The low seven bits are arbitrary (a real kernel draws them from ZRAND). <c>0x57</c> keeps
@@ -226,7 +233,51 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
         private readonly FolderFileStore _store;
         private readonly Dictionary<uint, FaServerSession> _sessions;
         private readonly List<FaServerSession> _sessionList;
-        private readonly Dictionary<ushort, FaServerSession> _sessionByPort;
+
+        /// <summary>
+        /// The one port every conversation is answered from, or zero before the first connect
+        /// letter has been answered.
+        /// </summary>
+        /// <remarks>
+        /// <para><b>One port for the server's whole life, NOT one per conversation</b></para>
+        /// <para>
+        /// This used to be a port per conversation, allocated in
+        /// <see cref="GetOrCreateSession"/> and released again when the conversation closed. That
+        /// is not what a real server does, and it cost a live run: D100 ran one conversation
+        /// against us perfectly, closed it, opened a second, and then ignored our confirmation
+        /// eleven times before giving up with "NO ANSWER FROM REMOTE SYSTEM; FILE-ACCESS
+        /// CONNECTION ABORTED" and tearing the link down. The only thing that had changed between
+        /// the confirmation it accepted and the ones it ignored was the port we answered from.
+        /// </para>
+        /// <para>
+        /// MEASURED, across three captures on three days, with two different client ports and four
+        /// different connection numbers - D100 answers every one of them from <c>0x05B9</c>:
+        /// </para>
+        /// <code>
+        /// nd-to-nd-write.pcapng        client 0x03F9  server 0x05B9   two conversations, one port
+        /// readback-10-blocks.pcapng    client 0x03A6  server 0x05B9
+        /// readback-proves-content      client 0x03A6  server 0x05B9
+        /// </code>
+        /// <para>
+        /// The second line of the write capture is the case that settles it: the client releases
+        /// one conversation, opens another, and the server confirms the new one from the SAME
+        /// port. A different server has a different port - D102 is <c>0x06B6</c> throughout
+        /// <c>capture-read.txt</c> - so the port belongs to the server, not to the conversation.
+        /// </para>
+        /// <para><b>What is NOT established</b></para>
+        /// <para>
+        /// That the moved port is the CAUSE of the refusal rather than something that travels with
+        /// it. No capture shows a real client rejecting a confirmation from a moved port, because
+        /// no real server has ever moved one. This reproduces what real servers do; it does not
+        /// prove what real clients check.
+        /// </para>
+        /// <para>
+        /// Whether the port survives an XMSG restart on the real machine is also unknown, and does
+        /// not matter here: ours is allocated once per server and that is already stable across
+        /// every conversation, which is the property the captures show.
+        /// </para>
+        /// </remarks>
+        private ushort _replyPort;
 
         /// <summary>
         /// The connection number the next confirmation will stamp.
@@ -385,7 +436,6 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
             _userIndex = userIndex;
             _sessions = new Dictionary<uint, FaServerSession>();
             _sessionList = new List<FaServerSession>();
-            _sessionByPort = new Dictionary<ushort, FaServerSession>();
         }
 
         /// <summary>
@@ -501,8 +551,11 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
         /// its conversations holds.
         /// </summary>
         /// <remarks>
-        /// Both matter: the directory port is where a name lookup lands, and the session ports are
-        /// where the conversations actually run once the confirmation has handed one over.
+        /// Both matter: the directory port is where a name lookup lands, and the reply port is
+        /// where the conversations actually run once the confirmation has handed it over. There is
+        /// only ever ONE reply port - see <see cref="_replyPort"/> - so this is a comparison
+        /// rather than a lookup, and it stays true after a conversation closes, which is exactly
+        /// what lets the next one arrive.
         /// </remarks>
         /// <param name="port">
         /// The destination wire port of an incoming datagram.
@@ -512,7 +565,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
         /// </returns>
         public bool OwnsPort(ushort port)
         {
-            return port == FaServerWirePort || _sessionByPort.ContainsKey(port);
+            return port == FaServerWirePort || (_replyPort != 0 && port == _replyPort);
         }
 
         /// <summary>
@@ -817,6 +870,26 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
                     session.Conversation.BuildReply(default, 0, ErrorFields(FaServerStatus.BadRequest)));
             }
 
+            // A REPEAT OF THE REQUEST WE JUST ANSWERED GETS THE SAME BYTES BACK.
+            //
+            // Not a fresh reply built from the conversation's counter. A real D100 asked for
+            // directory entry 0 nine times - the same datagram retransmitted, every request byte
+            // for byte identical - and each fresh answer carried a counter it had never asked for
+            // (8200, 8300, 8400 ... where it was waiting on 8100), so it never advanced and the
+            // listing died. Measured 2026-08-11. See FaServerSession.RememberReply.
+            //
+            // The dispatch is skipped as well as the numbering: walking the directory again would
+            // move the cursor for a question that has already been answered.
+            ushort requestFlags1 = incoming.Header != null ? incoming.Header.Flags1 : (ushort)0;
+            byte[]? replay = session.ReplayFor(requestFlags1);
+            if (replay != null)
+            {
+                Log?.Invoke(
+                    $"[fa] system {session.ClientSystem} re-sent the request at datagram "
+                    + $"Flags 1 0x{requestFlags1:X4}; replaying the same reply rather than building a new one");
+                return AckThenReply(session, incoming, transport, replay);
+            }
+
             byte[]? fields = Dispatch(session, operation, sequence, body);
 
             if (fields == null)
@@ -827,9 +900,10 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
                 return One(BuildShortAck(session, incoming, transport));
             }
 
-            return AckThenReply(
-                session, incoming, transport,
-                session.Conversation.BuildReply(operation, sequence, fields));
+            byte[] reply = session.Conversation.BuildReply(operation, sequence, fields);
+            session.RememberReply(requestFlags1, reply);
+
+            return AckThenReply(session, incoming, transport, reply);
         }
 
         /// <summary>
@@ -2272,18 +2346,25 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
                 return existing!;
             }
 
-            ushort sessionPort = transport.AllocateSessionPort();
+            // ONE port for the server, taken the first time it is needed and kept for good. A port
+            // per conversation is what we used to do and it is what a real machine refuses - see
+            // the remarks on _replyPort for the captures and the live failure.
+            if (_replyPort == 0)
+            {
+                _replyPort = transport.AllocateSessionPort();
+            }
+
             FaServerSession session = new FaServerSession(
-                incoming.Header!.SourceNode, clientSystem, clientPort, sessionPort);
+                incoming.Header!.SourceNode, clientSystem, clientPort, _replyPort);
 
             _sessions[key] = session;
             _sessionList.Add(session);
-            _sessionByPort[sessionPort] = session;
             return session;
         }
 
         /// <summary>
-        /// Forgets a conversation and releases its port.
+        /// Forgets a conversation. The reply port is NOT released - it belongs to the server, not
+        /// to the conversation, and the next client has to be able to reach it.
         /// </summary>
         /// <param name="session">
         /// The conversation to close.
@@ -2291,7 +2372,6 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
         private void CloseSession(FaServerSession session)
         {
             _sessions.Remove(SessionKey(session.ClientSystem, session.ClientPort));
-            _sessionByPort.Remove(session.SessionWirePort);
             for (int i = 0; i < _sessionList.Count; i++)
             {
                 if (_sessionList[i] == session)

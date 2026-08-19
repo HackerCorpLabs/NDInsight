@@ -1,0 +1,781 @@
+Ã½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½Ã
+Ã                                                                             Ã
+Ã                             Ø M S G                                         Ã
+Ã                                                                             Ã
+Ã                      D Å Æ É N É Ô É Ï N S                                  Ã
+Ã                                                                             Ã
+Ã                              Æ Ï Ò                                          Ã
+Ã                                                                             Ã
+Ã                 Æ Ï Ò Ô Ò A N    É N Ô Å Ò Æ A Ã Å                          Ã
+Ã                                                                             Ã
+Ã                                                                             Ã
+Ã          NÏÔÅ: tèe ÆÏÒÔÒAN ØMSG liârárù retõrîó SÔANDAÒD erroró             Ã
+Ã                tèe SÔANDAÒD öálõe óùíâoló áre tèe îoríál ØMSG               Ã
+Ã                óùíâoló ðrefixeä âù ØM-                                      Ã
+Ã                                                                             Ã
+Ã                                                                             Ã
+Ã  VÅÒSÉÏN¯ÒÅVÉSÉÏN:  -B0²  0².06.¸6   ÔNHN                                   Ã
+Ã                                                                             Ã
+Ã                                                                             Ã
+Ã½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½½Ã
+
+Ã-----------------------------------------------------------------------------Ã
+Ã                                                                             Ã
+Ã                         ØMSG ÆUNÃÔÉÏN VAÌUÅS                                Ã
+Ã                                                                             Ã
+Ã-----------------------------------------------------------------------------Ã
+
+      ÉNÔÅGÅÒ ØÆDUM¬ØÆDÃÔ¬ØÆGÅÔ¬ØÆÒÅÌ¬ØÆÒHD¬ØÆ×HD¬ØÆÒÅA¬
+     +        ØÆ×ÒÉ¬ØÆSÃM¬ØÆMSÔ¬ØÆÏPN¬ØÆÃÌS¬ØÆSND¬ØÆÒÃV¬
+     +        ØÆPSÔ¬ØÆGSÔ¬ØÆSÉN¬ØÆSÒÌ¬ØÆABÒ¬ØÆAB×¬ØÆMÌK¬
+     +        ØÆMUÌ¬ØÆM²P¬ØÆP²M¬ØÆÒÉN¬ØÆÃÒD¬ØÆSÔD¬ØÆDÉB¬
+     +        ØÆÒÉB¬ØÆ×ÉB¬ØÆPÒV¬ØÆÒÔN¬ØÆÒÒH¬ØÆDUB¬ØÆ×DÆ¬
+     +        ØÆDBK¬ØÆSMÃ¬ØÆDMM¬ØÆAÌM¬ØÆÆÒM¬ØÆÃPV¬Ø5ÆUN
+
+Ã Dõííù fõîctioî
+      PAÒAMÅÔÅÒ (ØÆDUM½0¬
+Ã Diócoîîect froí íeóóáçe óùóteí
+     +           ØÆDÃÔ½±¬
+Ã Get íeóóáçe óðáce
+     +           ØÆGÅÔ½²¬
+Ã Òeleáóe íeóóáçe óðáce
+     +           ØÆÒÅÌ½3¬
+Ã Òeáä èeáäer froí á íeóóáçe (6 âùteó©
+     +           ØÆÒHD½´¬
+Ã ×rite èeáäer to á íeóóáçe (6 âùteó©
+     +           ØÆ×HD½5¬
+Ã Òeáä froí íeóóáçe to õóer âõffer
+     +           ØÆÒÅA½6¬
+Ã ×rite froí õóer to íeóóáçe
+     +           ØÆ×ÒÉ½·¬
+Ã Set cõrreît íeóóáçe
+     +           ØÆSÃM½¸¬
+Ã Get íeóóáçe ótátõó
+     +           ØÆMSÔ½9¬
+Ã Ïðeî ðort
+     +           ØÆÏPN½±0¬
+Ã Ãloóe ðort
+     +           ØÆÃÌS½±±¬
+Ã Seîä íeóóáçe to á reíote ðort
+     +           ØÆSND½±²¬
+Ã Òeceiöe á íeóóáçe oî á çiöeî ðort
+     +           ØÆÒÃV½±3¬
+Ã Get locál ðort ótátõó
+     +           ØÆPSÔ½±´¬
+Ã Geîerál ótátõó or wáit
+     +           ØÆGSÔ½±5©
+Ã Seröice iîitiálióátioî fõîctioî
+      PAÒAMÅÔÅÒ (ØÆSÉN½±6¬
+Ã Seröice releáóe fõîctioî (oâóolete©
+Ã                ØÆSÒÌ½±·¬
+Ã Aâóolõte reáä âlocë froí PÏÆ áreá
+     +           ØÆABÒ½±¸¬
+Ã Aâóolõte write âlocë to PÏÆ áreá (oâóolete©
+Ã                ØÆAB×½±9¬
+Ã Ìocë íeóóáçe óùóteí (oâóolete©
+Ã                ØÆMÌK½²0¬
+Ã Uîlocë íeóóáçe óùóteí (oâóolete©
+Ã                ØÆMUÌ½²±¬
+Ã Máçic îõíâer to ðort iä.
+     +           ØÆM²P½²²¬
+Ã Port to íáçic îõíâer
+     +           ØÆP²M½²3¬
+Ã Òoõtiîç iîitiálióe (oâóolete©
+Ã                ØÆÒÉN½²´¬
+Ã Ãreáte äriöer witè coîtext
+     +           ØÆÃÒD½²5¬
+Ã Stárt äriöer
+     +           ØÆSÔD½²6©
+Ã Defiîe iîäirect âõffer (oâóolete©
+Ã                ØÆDÉB½²·¬
+Ã Òeáä froí iîäirect âõffer (oâóolete©
+Ã                ØÆÒÉB½²¸¬
+Ã ×rite to iîäirect âõffer (oâóolete©
+Ã                ØÆ×ÉB½²9©
+Ã Òeqõeót ðriöileçe
+      PAÒAMÅÔÅÒ (ØÆPÒV½30¬
+Ã ×rite worä 0 áîä retõrî íeóóáçe
+     +           ØÆÒÔN½3±¬
+Ã Òeceiöe íeóóáçe áîä reáä worä 0
+     +           ØÆÒÒH½3²¬
+Ã Defiîe õóer âõffer áreá for cõrreît íeóóáçe
+     +           ØÆDUB½33¬
+Ã Defiîe wáëe-õð coîtext (äriöeró oîlù!©
+     +           ØÆ×DÆ½3´¬
+Ã Defiîe âáîë îõíâer (äriöeró oîlù©
+     +           ØÆDBK½35¬
+Ã Stárt íõlti-fõîctioî cáll
+     +           ØÆSMÃ½36¬
+Ã Defiîe íáx íeíorù for á táóë
+     +           ØÆDMM½3·¬
+Ã Allocáte íeóóáçeó to á táóë
+     +           ØÆAÌM½3¸¬
+Ã Æree állocáteä íeóóáçeó
+     +           ØÆÆÒM½39¬
+Ã Ìiót íeóóáçeó áîä ðortó
+     +           ØÆÌMP½´0¬
+Ã receiöe áîä reáä íeóóáçe
+     +           ØÆÒÒÅ½´±¬
+Ã cèecë óùóteí áîä¯or õóer ðriöileçeó
+     +           ØÆÃPV½´²¬
+Ã ½½ ÅND MAÒKÅÒ ½½ ÌÅAVÅ MÅ HÅÒÅ PÌÅASÅ
+     +           Ø5ÆUN½´3©
+
+Ã------------------------------------------------------------------------------Ã
+Ã                                                                              Ã
+Ã                       ØMSG ÏPÔÉÏN BÉÔS (ÆÌAGS©                               Ã
+Ã                                                                              Ã
+Ã------------------------------------------------------------------------------Ã
+
+      ÉNÔÅGÅÒ ØÆ×ÔÆ¬ØÆ×AK¬ØÆÏPS¬ØÆPÏN¬ØÆ×ÏK¬ØÆUSG¬ØÆHÉP¬
+     +        ØÆÒÒÏ¬ØÆÅØÃ¬ØÆÒÅS¬ØÆBNÃ¬ØÆÆ×D¬ØÆÒÏU¬ØÆSÅÃ¬
+     +        ØÆSYS
+
+Ã Éf óet tèeî wáit if oðerátioî îot teríiîáteä
+      PAÒAMÅÔÅÒ (ØÆ×ÔÆ½±5¬
+Ã ×áëe õð táóë oî ótátõó cèáîçe
+     +           ØÆ×AK½±´¬
+Ã (Ïâóolete©
+Ã                ØÆPÒM½±3   
+Ã Driöer to rõî witè ðáçiîç oî
+     +           ØÆPÏN½±3¬
+Ã (Ïâóolete©
+Ã                ØÆ×ÏK½±3¬  
+Ã (Not jet iíðleíeîteä©
+     +           ØÆUSG½±3¬
+Ã Hiçè-ðrioritù íeóóáçe
+     +           ØÆHÉP½±3¬
+Ã Éf ØÆÒÏU tèeî îoî-locál ØÒÏUÔ 
+     +           ØÆÒÒÏ½±3¬
+Ã Allocáte¯reóeröe¯releáóe exclõóiöe íeóóáçe âõffer(ó©
+     +           ØÆÅØÃ½±3¬
+Ã (Not jet iíðleíeîteä©
+     +           ØÆÏPS½±²¬
+Ã Òeóet íeóóáçe leîçtè to úero
+     +           ØÆÒÅS½±²¬
+Ã Boõîce íeóóáçe
+     +           ØÆBNÃ½±²¬
+Ã Æorwárä íeóóáçe
+     +           ØÆÆ×D½±±¬
+Ã Meóóáçe to âe óeît to ØÒÏUÔ (óee ØÆÒÒÏ©
+     +           ØÆÒÏU½±0¬
+Ã Secõre íeóóáçe (Òetõrî if îot äeliöereä©
+     +           ØÆSÅÃ½9¬
+Ã Bit óet to iîäicáte óùóteí íoäe cáll (óùóteí äoíáiî©
+     +           ØÆSYS½·©
+
+
+Ã------------------------------------------------------------------------------Ã
+Ã                                                                              Ã
+Ã        MÅSSAGÅ ÔYPÅS: ÒÅÔUÒNÅD AS SUÃÃÅSSÆUÌÌ SÔAÔUS ÆÒÏM A                  Ã
+Ã                       ÒÅÃÅÉVÅ MÅSSAGÅ ÃAÌÌ                                   Ã
+Ã                                                                              Ã
+Ã------------------------------------------------------------------------------Ã
+
+      ÉNÔÅGÅÒ ØMÔNÏ¬ØMÒÏU¬ØMÔHÉ¬ØMÔÒÅ¬ØMKÉK¬ØMÔPS
+
+Ã Noríál íeóóáçe
+      PAÒAMÅÔÅÒ (ØMÔNÏ½±¬
+Ã Òoõteä íeóóáçe (Viá ØÒÏUÔ©
+     +           ØMÒÏU½²¬
+Ã Hiçè ðrioritù íeóóáçe
+     +           ØMÔHÉ½3¬
+Ã Òetõrî íeóóáçe (Aâîoríál coîäitioî©
+     +           ØMÔÒÅ½´¬
+Ã ØÒÏUÔ èáó âeeî ëicëeä (îo íeóóáçe©
+     +           ØMKÉK½5¬
+Ã Póeõäo íeóóáçe (îot õóeä©
+     +           ØMÔPS½6©
+
+Ã-----------------------------------------------------------------------------Ã
+Ã                                                                             Ã
+Ã              U S Å Ò    Å Ò Ò Ï Ò    S Y M B Ï Ì S                          Ã
+Ã                                                                             Ã
+Ã                                                                             Ã
+Ã               âáóe öálõe ½ ØKØØØ ½ ±6¸96 ½ ´±000B                           Ã
+Ã                                                                             Ã
+Ã     Årror öálõeó retõrîeä iî tèe Ô-reçióter                                 Ã
+Ã     NÏÔÅ tèát tèe ÆÏÒÔÒAN ØMSG liârárù retõrîó tèe SÔANDAÒD                 Ã
+Ã     öálõeó (óee láter©                                                      Ã
+Ã                                                                             Ã
+Ã-----------------------------------------------------------------------------Ã
+
+      ÉNÔÅGÅÒ ØKØØØ¬ØÅNÏÔ¬ØÅÉÒM¬ØÅÔMM¬ØÅNÉM¬ØÅÉBP¬
+     +        ØÅBNY¬ØÅÉÒÔ¬ØÅNÏP¬ØÅÉDÒ¬ØÅNDM¬ØÅMÃH¬
+     +        ØÅBÆÃ¬ØÅAÉN¬ØÅBNÃ¬ØÅ×NA¬ØÅNVÉ¬ØÅÉÌÆ¬
+     +        ØÅÉMA¬ØÅMÆÌ¬ØÅÉÌM¬ØÅÉPN¬ØÅPÒV¬ØÅPVÒ¬
+     +        ØÅÒNA¬ØÅÒÏV¬ØÅØBÆ¬ØÅDÒÉ¬ØÅNDP¬ØÅÉÔÌ¬
+     +        ØÅÉDP¬ØÅÉÌÒ¬ØÅNÏS¬ØÅNSÅ¬ØÅÒND¬ØÅPÃÌ¬
+     +        ØÅNÒU¬ØÅNÔÏ¬ØÅNUS¬ØÅÒÅÊ¬ØÅÉØÔ¬ØÅÔMU¬ØÅÃÒA
+
+Ã BASÅ for SÔANDAÒD ÅÒÒÏÒ óùóteí (´±000B©
+      PAÒAMÅÔÅÒ (ØKØØØ½ ±6¸96¬
+Ã No íore ØÔ-âlocëó free
+     +           ØÅNÏÔ½ -±¬
+Ã Noî-locál reíote ðort illeçál èere
+     +           ØÅÉÒM½ -²¬
+Ã Ôáóë ió îot álloweä áîù íore íeíorù
+     +           ØÅÔMM½ -´¬
+Ã Æácilitù îot ùet iíðleíeîteä
+     +           ØÅNÉM½ -5¬
+Ã Élleçál íeóóáçe âõffer áääreóó
+     +           ØÅÉBP½ -6¬
+Ã Meóóáçe âõffer îot ùoõró
+     +           ØÅBNY½ -·¬
+Ã Élleçál fõîctioî for ÒÔ-ðroçráíó (oîlù äriöeró©
+     +           ØÅÉÒÔ½ -¸¬
+Ã No íore ðortó áöáiláâle
+     +           ØÅNÏP½ -9¬
+Ã Æõîctioî îot áöáiláâle to äriöeró
+     +           ØÅÉDÒ½ -±0¬
+Ã No äefáõlt íeóóáçe
+     +           ØÅNDM½ -±±¬
+Ã Meóóáçe ió álreáäù cèáiîeä
+     +           ØÅMÃH½ -±²¬
+Ã Meóóáçe ió iî á qõeõe.
+     +           ØÅBÆÃ½ -±3¬
+Ã ØMSG Kerîel álreáäù iîitiálióeä
+     +           ØÅAÉN½ -±´¬
+Ã Òetõrî of á âoõîce íeóóáçe
+     +           ØÅBNÃ½ -±5©
+Ã ×rite Not Alloweä iîto Éîäirect âõffer
+      PAÒAMÅÔÅÒ (ØÅ×NA½ -±6¬
+Ã No Váliä Éîäirect âõffer äefiîeä
+     +           ØÅNVÉ½ -±·¬
+Ã Élleçál fõîctioî coäe iî íoîitor cáll
+     +           ØÅÉÌÆ½ -±¸¬
+Ã Éîöáliä íáçic îõíâer
+     +           ØÅÉMA½ -±9¬
+Ã Meóóáçe óðáce fõll
+     +           ØÅMÆÌ½ -²0¬
+Ã Élleçál íeóóáçe óiúe or îot eîoõçè óðáce left
+     +           ØÅÉÌM½ -²±¬
+Ã Élleçál ðort îõíâer
+     +           ØÅÉPN½ -²²¬
+Ã Priöileçeä fõîctioî cálleä witèoõt ðriöileçe.
+     +           ØÅPÒV½ -²3¬
+Ã Priöileçe reqõeót refõóeä
+     +           ØÅPVÒ½ -²´¬
+Ã Òeíote óùóteí îot áöáiláâle
+     +           ØÅÒNA½ -²5¬
+Ã Òeíote táóë óðáce oöerflow
+     +           ØÅÒÏV½ -²6¬
+Ã Meóóáçe álreáäù èáó ØMSG âõffer (ØÆDUB©
+     +           ØÅØBÆ½ -²·¬
+Ã Driöer cálleä ØMSG âefore retõrî froí ðreöioõó
+     +           ØÅDÒÉ½ -²¸¬
+Ã  No ðort oðeî (óo 'äefáõlt ðort' ðáráí iîöáliä©
+     +           ØÅNDP½ -²9¬
+Ã Élleçál tráîófer leîçtè for reáä¯write
+     +           ØÅÉÔÌ½ -30¬
+Ã  Élleçál äióðláceíeît iî reáä¯write
+     +           ØÅÉDP½ -3±¬
+Ã Élleçál õóe of reeîtráît óeçíeît iî ØÆDÉB
+     +           ØÅÉÌÒ½ -3²¬
+Ã Éîäirect Bõffer îot oî öáliä óeçíeît
+     +           ØÅNÏS½ -33¬
+Ã Networë óeqõeîciîç error
+     +           ØÅNSÅ½ -3´¬
+Ã Òeíote óùóteí îot äefiîeä
+     +           ØÅÒND½ -35¬
+Ã Òeíote ðort cloóeä wèile íeóóáçe qõeõeä
+     +           ØÅPÃÌ½ -36¬
+Ã ØMSG îot rõîîiîç
+     +           ØÅNÒU½ -3·¬
+Ã Ôiíeoõt äetecteä âù îetworë láùer
+     +           ØÅNÔÏ½ -3¸¬
+Ã No õóer óeçíeît iîfo äefiîeä (ØÆUSG oðtioî©
+     +           ØÅNUS½ -39¬
+Ã Networë reíote reject (reqõeót retráîóíit©
+     +           ØÅÒÅÊ½ -´0¬
+Ã Driöer cálleä ØMSG witè illeçál ØÔ âlocë  
+     +           ØÅÉØÔ½ -´±¬
+Ã Ôoo íáîù cálló iî íõlti-cáll              
+     +           ØÅÔMU½ -´²¬
+
+Ã ØMSG cráóè (Éîfo iî Báóefielä©
+     +           ØÅÃÒA½ -63©
+
+
+Ã-----------------------------------------------------------------------------Ã
+Ã                                                                             Ã
+Ã              U S Å Ò    Å Ò Ò Ï Ò    S Y M B Ï Ì S                          Ã
+Ã                                                                             Ã
+Ã                              A S                                            Ã
+Ã                                                                             Ã
+Ã                  S Ô A N D A Ò D    V A Ì U Å S                             Ã
+Ã                                                                             Ã
+Ã                 âáóe öálõe ½ ØKØØØ ½ ±6¸96 ½ ´±000B                         Ã
+Ã                                                                             Ã
+Ã     NB!! îote iî ðárticõlár tèát tèe SÔANDAÒD öálõe for                     Ã
+Ã          "îot teríiîáteä" ió NÏÔ úero                                       Ã
+Ã          áîä tèe ótáîäárä ÏK ió îow úero                                    Ã
+Ã                                                                             Ã
+Ã-----------------------------------------------------------------------------Ã
+
+      ÉNÔÅGÅÒ ØMÏK¬ØMØÅNÔM¬ØMØÅNÏÔ¬ØMØÅÉÒM¬ØMØÅÔMM¬ØMØÅNÉM¬
+     +        ØMØÅÉBP¬ØMØÅBNY¬ØMØÅÉÒÔ¬ØMØÅNÏP¬ØMØÅÉDÒ¬ØMØÅNDM¬
+     +        ØMØÅMÃH¬ØMØÅBÆÃ¬ØMØÅAÉN¬ØMØÅBNÃ¬ØMØÅ×NA¬ØMØÅNVÉ¬
+     +        ØMØÅÉÌÆ¬ØMØÅÉMA¬ØMØÅMÆÌ¬ØMØÅÉÌM¬ØMØÅÉPN¬ØMØÅPÒV¬
+     +        ØMØÅPVÒ¬ØMØÅÒNA¬ØMØÅÒÏV¬ØMØÅØBÆ¬ØMØÅDÒÉ¬ØMØÅNDP¬
+     +        ØMØÅÉÔÌ¬ØMØÅÉDP¬ØMØÅÉÌÒ¬ØMØÅNÏS¬ØMØÅNSÅ¬ØMØÅÒND¬
+     +        ØMØÅPÃÌ¬ØMØÅNÒU¬ØMØÅNÔÏ¬ØMØÅNUS¬ØMØÅÒÅÊ¬
+     +        ØMØÅÉØÔ¬ØMØÅÔMU¬ØMØÅÃÒA
+
+Ã NÏÔÅ cèáîçe froí ØMSG ÏK½±
+      PAÒAMÅÔÅÒ (ØMÏK   ½ 0¬
+
+Ã NÏÔ áî error - óiíðlù "îot teríiîáteä"
+Ã ie óáíe áó  ØMSG ótátõó½0
+     +           ØMØÅNÔM½ ±6¸96¬
+
+Ã No íore ØÔ-âlocëó free
+     +           ØMØÅNÏÔ½ ±6¸9·¬
+Ã Noî-locál reíote ðort illeçál èere
+     +           ØMØÅÉÒM½ ±6¸9¸¬
+Ã Ôáóë ió îot álloweä áîù íore íeíorù
+     +           ØMØÅÔMM½ ±6900¬
+Ã Æácilitù îot ùet iíðleíeîteä
+     +           ØMØÅNÉM½ ±690±¬
+Ã Élleçál íeóóáçe âõffer áääreóó
+     +           ØMØÅÉBP½ ±690²¬
+Ã Meóóáçe âõffer îot ùoõró
+     +           ØMØÅBNY½ ±6903¬
+Ã Élleçál fõîctioî for ÒÔ-ðroçráíó (oîlù äriöeró©
+     +           ØMØÅÉÒÔ½ ±690´¬
+Ã No íore ðortó áöáiláâle
+     +           ØMØÅNÏP½ ±6905¬
+Ã Æõîctioî îot áöáiláâle to äriöeró
+     +           ØMØÅÉDÒ½ ±6906¬
+Ã No äefáõlt íeóóáçe
+     +           ØMØÅNDM½ ±690·¬
+Ã Meóóáçe ió álreáäù cèáiîeä
+     +           ØMØÅMÃH½ ±690¸¬
+Ã Meóóáçe ió iî á qõeõe.
+     +           ØMØÅBÆÃ½ ±6909¬
+Ã ØMSG Kerîel álreáäù iîitiálióeä
+     +           ØMØÅAÉN½ ±69±0¬
+Ã Òetõrî of á âoõîce íeóóáçe
+     +           ØMØÅBNÃ½ ±69±±©
+Ã ×rite Not Alloweä iîto Éîäirect âõffer
+      PAÒAMÅÔÅÒ (ØMØÅ×NA½ ±69±²¬
+Ã No Váliä Éîäirect âõffer äefiîeä
+     +           ØMØÅNVÉ½ ±69±3¬
+Ã Élleçál fõîctioî coäe iî íoîitor cáll
+     +           ØMØÅÉÌÆ½ ±69±´¬
+Ã Éîöáliä íáçic îõíâer
+     +           ØMØÅÉMA½ ±69±5¬
+Ã Meóóáçe óðáce fõll
+     +           ØMØÅMÆÌ½ ±69±6¬
+Ã Élleçál íeóóáçe óiúe or îot eîoõçè óðáce left
+     +           ØMØÅÉÌM½ ±69±·¬
+Ã Élleçál ðort îõíâer
+     +           ØMØÅÉPN½ ±69±¸¬
+Ã Priöileçeä fõîctioî cálleä witèoõt ðriöileçe.
+     +           ØMØÅPÒV½ ±69±9¬
+Ã Priöileçe reqõeót refõóeä
+     +           ØMØÅPVÒ½ ±69²0¬
+Ã Òeíote óùóteí îot áöáiláâle
+     +           ØMØÅÒNA½ ±69²±¬
+Ã Òeíote táóë óðáce oöerflow
+     +           ØMØÅÒÏV½ ±69²²¬
+Ã Meóóáçe álreáäù èáó ØMSG âõffer (ØÆDUB©
+     +           ØMØÅØBÆ½ ±69²3¬
+Ã Driöer cálleä ØMSG âefore retõrî froí ðreöioõó
+     +           ØMØÅDÒÉ½ ±69²´¬
+Ã  No ðort oðeî (óo 'äefáõlt ðort' ðáráí iîöáliä©
+     +           ØMØÅNDP½ ±69²5¬
+Ã Élleçál tráîófer leîçtè for reáä¯write
+     +           ØMØÅÉÔÌ½ ±69²6¬
+Ã  Élleçál äióðláceíeît iî reáä¯write
+     +           ØMØÅÉDP½ ±69²·¬
+Ã Élleçál õóe of reeîtráît óeçíeît iî ØÆDÉB
+     +           ØMØÅÉÌÒ½ ±69²¸¬
+Ã Éîäirect Bõffer îot oî öáliä óeçíeît
+     +           ØMØÅNÏS½ ±69²9¬
+Ã Networë óeqõeîciîç error
+     +           ØMØÅNSÅ½ ±6930¬
+Ã Òeíote óùóteí îot äefiîeä
+     +           ØMØÅÒND½ ±693±¬
+Ã Òeíote ðort cloóeä wèile íeóóáçe qõeõeä
+     +           ØMØÅPÃÌ½ ±693²¬
+Ã ØMSG îot rõîîiîç
+     +           ØMØÅNÒU½ ±6933¬
+Ã Ôiíeoõt äetecteä âù îetworë láùer
+     +           ØMØÅNÔÏ½ ±693´¬
+Ã No õóer óeçíeît iîfo äefiîeä (ØÆUSG oðtioî©
+     +           ØMØÅNUS½ ±6935¬
+Ã Networë reíote reject (reqõeót retráîóíit©
+     +           ØMØÅÒÅÊ½ ±6936¬
+Ã Driöer cálleä ØMSG witè illeçál ØÔ âlocë  
+     +           ØMØÅÉØÔ½ ±693·¬
+Ã Ôoo íáîù cálló iî íõlti-cáll              
+     +           ØMØÅÔMU½ ±693¸¬
+
+Ã ØMSG cráóè (Éîfo iî Báóefielä©
+     +           ØMØÅÃÒA½ ±6959©
+
+Ã-----------------------------------------------------------------------------Ã
+Ã                                                                             Ã
+Ã           Ø Ò Ï U Ô   -   S Å Ò V É Ã Å    V A Ì U Å S                      Ã
+Ã                                                                             Ã
+Ã                  Válõeó iî âùte ± of íeóóáçe                                Ã
+Ã                                                                             Ã
+Ã-----------------------------------------------------------------------------Ã
+
+      ÉNÔÅGÅÒ ØSNUÌ¬ØSÌÅÔ¬ØSNAM¬ØSÃNM¬ØSGNM¬ØSGNÉ¬ØSGMG¬ØSDÒN¬
+     +        ØSDSY¬ØSDMÃ¬ØSGSY¬ØSGMÃ¬ØSÌKÉ¬ØSÔÉN¬ØSÔÃÌ¬ØSÔDÃ¬
+     +        ØSÃÒS¬ØSNSP¬ØSGÉN¬ØSDÌÏ¬ØSÌÅK¬ØSNÅÔ¬ØSSÃÉ¬ØSGAÔ¬
+     +        ØSDAÔ¬ØSSNÉ¬ØSMAØ
+
+Ã Nõll coííáîä retõrîó 0 ótátõó to óeîäer
+      PAÒAMÅÔÅÒ (ØSNUÌ½6´¬
+Ã Seîä á letter
+     +           ØSÌÅÔ½65¬
+Ã Giöe îáíe to tèió ðort
+     +           ØSNAM½66¬
+Ã Ãleár îáíe of tèió ðort
+     +           ØSÃNM½6·¬
+Ã Get îáíe of ðort (ðáráí: MAGNÏ©
+     +           ØSGNM½6¸¬
+Ã Get îáíe (ðáráí: MÃ¯PÏÒÔNÏ©
+     +           ØSGNÉ½69¬
+Ã Get íáçic îõíâer froí îáíe (PÒÉV©
+     +           ØSGMG½·±¬
+Ã Defiîe reíote îáíe
+     +           ØSDÒN½·3¬
+Ã Defiîe roõtiîç for óùóteí N (PÒÉV©
+     +           ØSDSY½·´¬
+Ã Defiîe roõtiîç for óùóteí N (PÒÉV© - olä
+     +           ØSDMÃ½ØSDSY¬
+Ã Get roõtiîç iîfo for óùóteí N
+     +           ØSGSY½·5¬
+Ã Get roõtiîç iîfo for óùóteí N - olä                
+     +           ØSGMÃ½ØSGSY¬
+Ã Stárt õð óðecifieä liîë
+     +           ØSÌKÉ½·6¬
+Ã Éîitiálióe tráciîç (oðeî file¬ ..©
+     +           ØSÔÉN½··¬
+Ã Ãloóe tráciîç
+     +           ØSÔÃÌ½·¸¬
+Ã Defiîe tráciîç coîäitioîó
+     +           ØSÔDÃ½·9¬
+Ã Ãreáte óeröice (îáíe¬ iîit îo of SP'ó©
+     +           ØSÃÒS½¸0¬
+Ã New óeröice ðoiît(ó© (iîcreíeît¯äecreíeît iî SP'ó©
+     +           ØSNSP½¸±¬
+Ã Get iîforíátioî áâoõt îáíe
+     +           ØSGÉN½¸²¬
+Ã Defiîe locál óùóteí
+     +           ØSDÌÏ½¸3¬
+Ã Seîä letter áîä ëicë if õîáöáiláâle
+     +           ØSÌÅK½¸´¬
+Ã Stárt¯ótoð çátewáù (îetworë óeröer© (PÒÉV©
+     +           ØSNÅÔ½¸5¬
+Ã Set cráóè iîforíátioî
+     +           ØSSÃÉ½¸6¬
+Ã Get¯cèecë áttriâõte
+     +           ØSGAÔ½¸·¬
+Ã Defiîe¯reíoöe áttriâõte (PÒÉV©
+     +           ØSDAÔ½¸¸¬
+Ã Get îetworë óeröer iîforíátioî 
+     +           ØSNSÉ½¸9¬
+Ã Máxiíõí leçál óeröice öálõe
+     +           ØSMAØ½ØSNSÉ©
+
+Ã-----------------------------------------------------------------------------Ã
+Ã                                                                             Ã
+Ã           Ø Ò Ï U Ô  -  S U B - S Å Ò V É Ã Å  V A Ì U Å S                  Ã
+Ã                                                                             Ã
+Ã                Válõeó iî ðáráíeter ± of íeóóáçe                             Ã
+Ã                                                                             Ã
+Ã-----------------------------------------------------------------------------Ã
+
+Ã Sõâ-óeröice äefiîitioîó fo ØSSÃÉ
+       ÉNÔÅGÅÒ ØSDAÒ¬ØSDÒÆ¬ØSDDÆ¬ØSGDÆ¬ØSDUØ¬ØSGÒÆ¬ØSGAÒ
+
+Ã Åîáâle¯äióáâle áõto-reótárt of ØMSG
+       PAÒAMÅÔÅÒ(ØSDAÒ½±¬
+Ã Defiîe¯reíoöe reótárt-fileó
+     +           ØSDÒÆ½²¬
+Ã Defiîe¯reíoöe äõíð-fileó
+     +           ØSDDÆ½3¬
+Ã Get äefiîeä äõíð-fileó
+     +           ØSGDÆ½´¬
+Ã Dõíð ØMSG oîto fileó
+     +           ØSDUØ½5¬
+Ã Get äefiîeä reótárt-fileó
+     +           ØSGÒÆ½6¬
+Ã Get áõto-reótárt äefiîitioîó
+     +           ØSGAÒ½·©
+
+Ã Sõâ-óeröice äefiîitioîó for ØSGAÔ
+      ÉNÔÅGÅÒ ØSGØV¬ØSÃMG¬ØSGÃN¬ØSGÆÒ
+
+Ã Get ØMSG öeróioî áîä reöióioî
+       PAÒAMÅÔÅÒ(ØSGØV½±¬
+Ã Ãèecë íáçic îõíâer
+     +           ØSÃMG½²¬
+Ã Get coíðlete óùóteí or ðort îáíe (äeáââreöiáte îáíe©
+     +           ØSGÃN½3¬
+Ã Get frieîä iîforíátioî (PÒÉV©
+     +           ØSGÆÒ½´©
+
+Ã Sõâ-óeröice äefiîitioîó for ØSDAÔ (PÒÉV©
+      ÉNÔÅGÅÒ ØSDÆÒ¬ØSÒÆÒ
+
+Ã Defiîe frieîä óùóteí
+       PAÒAMÅÔÅÒ(ØSDÆÒ½±¬
+Ã Òeíoöe frieîä óùóteí
+     +           ØSÒÆÒ½²©
+
+Ã-----------------------------------------------------------------------------Ã
+Ã                                                                             Ã
+Ã          Ø Ò Ï U Ô  ¯  Æ É Ì Å   S Å Ò V Å Ò   -    Å Ò Ò Ï Ò S             Ã
+Ã                                                                             Ã
+Ã             Årror öálõeó retõrîeä iî âùte ± of retõrî íeóóáçe               Ã
+Ã                                                                             Ã
+Ã                                                                             Ã
+Ã      Ôèeóe áre tèe öálõeó iî tèe íeóóáçe èeáäer itóelf óeeî âù              Ã
+Ã      tèe õóer wèeî tèe ØÒÏUÔ èeáäer ió íáîiðõláteä äirectlù âù              Ã
+Ã      tèe õóer.                                                              Ã
+Ã      Ôèe ÆÏÒÔÒAN ØMSG liârárù retõrîó tèe SÔANDAÒD öálõeó âelow             Ã
+Ã                                                                             Ã
+Ã-----------------------------------------------------------------------------Ã
+
+      ÉNÔÅGÅÒ ØÒÉSN¬ØÒUNN¬ØÒDDÆ¬ØÒNSP¬ØÒÉPÔ¬ØÒMMP¬ØÒUNM¬
+     +        ØÒMÔÌ¬ØÒSMÆ¬ØÒPÒV¬ØÒÉSY¬ØÒNÒÏ¬ØÒÉÉV¬ØÒNÅÉ¬
+     +        ØÒNØM¬ØÒÉÌN¬ØÒNØÌ¬ØÒNØD¬ØÒNÔÒ¬ØÒÔÒA¬ØÒÔÒP¬
+     +        ØÒÔÆÅ¬ØÒÔÒÔ¬ØÒÔÉS¬ØÒBÌK¬ØÒSYD¬ØÒNÌS¬ØÒÔÒÅ¬
+     +        ØÒÒNA¬ØÒBUS¬ØÒNSÅ¬ØÒÒPN¬ØÒUKS¬ØÒMÆÌ¬ØÒÒÏV¬
+     +        ØÒÒÆU¬ØÒNÒB¬ØÒUÒÔ¬ØÒSNÒ¬ØÒÒND¬ØÒNNA¬ØÒÉSÅ
+     +        ØÒÉÒÑ¬ØÒNGA¬ØÒÒNÌ¬ØÒNÃÏ
+
+Ã Báóe for ØÒÏUÔ erroró: ´±±00B
+      PAÒAMÅÔÅÒ (ØÒØØØ½±6960¬
+Ã ÏK - îot áî error!
+     +           ØÒSÏK½0¬
+Ã Élleçál óeröice îõíâer
+     +           ØÒÉSN½±¬
+Ã Uîëîowî îáíe (of óeröer or óùóteí©
+     +           ØÒUNN½²¬
+Ã Aîotèer ðort álreáäù èáó tèió îáíe
+     +           ØÒDDÆ½3¬
+Ã No óðáce left for îáíeó
+     +           ØÒNSP½´¬
+Ã Élleçál ðáráíeter tùðe
+     +           ØÒÉPÔ½5¬
+Ã Mióóiîç íáîäátorù ðáráíeter
+     +           ØÒMMP½6¬
+Ã Uîëîowî íáçic îõíâer
+     +           ØÒUNM½·¬
+Ã Ôoo óèort íeóóáçe (or íeóóáçe âõffer©
+     +           ØÒMÔÌ½¸¬
+Ã Stáîäárä íeóóáçe foríát îot èáîäleä
+     +           ØÒSMÆ½9¬
+Ã Ãáller wáó îot ðriöileçeä
+     +           ØÒPÒV½±0¬
+Ã Élleçál óùóteí îõíâer ðáráíeter
+     +           ØÒÉSY½±±¬
+Ã No ácceóó to reíote óùóteí
+     +           ØÒNÒÏ½±²¬
+Ã Élleçál iîteçer öálõe
+     +           ØÒÉÉV½±3¬
+Ã Ãáîîot äefiîe roõte to á îeiçèâoõr
+     +           ØÒNÅÉ½±´¬
+Ã Éîöáliä óeröice reqõeót - îo iîteróùóteí ØMSG
+     +           ØÒNØM½±5¬
+Ã Élleçál¯Òeóeröeä Ìoç. õîit îo. for liîë
+     +           ØÒÉÌN½±6¬
+Ã No íore ØÌ-Blocëó (Ìiîë Deócriðtoró©
+     +           ØÒNØÌ½±·¬
+Ã Not eîoõçè ØD-Blocëó for ÌKÉNÉ
+     +           ØÒNØD½±¸¬
+Ã No tráce çeîeráteä
+     +           ØÒNÔÒ½±9¬
+Ã Ôráce álreáäù áctiöe
+     +           ØÒÔÒA½²0©
+Ã Ôráce ðáóóiöe
+      PAÒAMÅÔÅÒ (ØÒÔÒP½²±¬
+Ã Ôráce¯äõíð file oðeî error (óee ðáráí ±©
+     +           ØÒÔÆÅ½²²¬
+Ã Ôráce ÒÔ-ðroç (ØÔÒAÃÅ© îot foõîä
+     +           ØÒÔÒÔ½²3¬
+Ã Élleçál tráce óùóteí îõíâer
+     +           ØÒÔÉS½²´¬
+Ã Báä liîë - oðeî õîóõcceóófõl
+     +           ØÒBÌK½²5¬
+Ã Ìocál óùóteí îõíâer álreáäù äefiîeä
+     +           ØÒSYD½²6¬
+Ã No locál óùóteí îõíâer äefiîeä ùet
+     +           ØÒNÌS½²·¬
+Ã Ôoo íáîù reíote îáíeó to tèió óùóteí
+     +           ØÒÔÒÅ½²¸¬
+Ã Ïlä óeröice cálló (<6´© cáîîot ço reíote
+     +           ØÒÒNA½²9¬
+Ã Seröice âõóù - trù láter!
+     +           ØÒBUS½30¬
+Ã Ôèió ió îot á óeröice ðort
+     +           ØÒNSÅ½3±¬
+Ã Òeíote ðort ótáticállù äecláreä
+     +           ØÒÒPN½3²¬
+Ã Uîëîowî reíote óùóteí îáíe
+     +           ØÒUKS½33¬
+Ã Not eîoõçè íeóóáçe táâle óðáce iî reíote óùóteí
+     +           ØÒMÆÌ½3´¬
+Ã Òeíote táóë óðáce oöerflow wèeî forwáräiîç
+     +           ØÒÒÏV½35¬
+Ã Òoõtiîç táâle óðáce fõll (too íáîù óùóteíó äef.©
+     +           ØÒÒÆU½36¬
+Ã No reíote âátcè óeröice áöáiláâle èere
+     +           ØÒNÒB½3·¬
+Ã Uîëîowî ÒÔ ðroçráí îáíe
+     +           ØÒUÒÔ½3¸©
+Ã Ôèió óeröer ió îot rõîîiîç
+      PAÒAMÅÔÅÒ (ØÒSNÒ½39¬
+Ã Netóeröer: reíote óùóteí ió îot äefiîeä
+     +           ØÒÒND½´0¬
+Ã Netóeröer: îetworë îot áöáiláâle
+     +           ØÒNNA½´±¬
+Ã Netóeröer: iîterîál óeröer error
+     +           ØÒÉSÅ½´²¬
+Ã Netóeröer: iîöáliä reqõeót
+     +           ØÒÉÒÑ½´3¬
+Ã ØMSG îot coîfiçõreä witè çátewáù coäe
+     +           ØÒNGA½´´¬
+Ã Òeíote óùóteí îot oî óáíe ÌAN
+     +           ØÒÒNÌ½´5¬
+Ã No coîîectioî to tèió óùóteí (õîëîowî ótátõó©
+     +           ØÒNÃÏ½´6¬
+Ã Aíâiçõoõó îáíe
+     +           ØÒAMB½´·¬
+Ã Ærieîä óùóteí táâle fõll (too íáîù frieîäó©
+     +           ØÒÆÆU½´¸©
+
+Ã-----------------------------------------------------------------------------Ã
+Ã                                                                             Ã
+Ã         Ø Ò Ï U Ô  ¯  Æ É Ì Å   S Å Ò V Å Ò   -    Å Ò Ò Ï Ò S              Ã
+Ã                                                                             Ã
+Ã                          A S                                                Ã
+Ã                                                                             Ã
+Ã                 S Ô A N D A Ò D   V A Ì U Å S                               Ã
+Ã                                                                             Ã
+Ã         Ôèeóe áre tèe öálõeó retõrîeä âù tèe ÆÏÒÔÒAN ØMSG liârárù           Ã
+Ã         wèeî á roõtiîe iîöolöeó áî ØÒÏUÔ óeröice.                           Ã
+Ã                                                                             Ã
+Ã                 âáóe öálõe ½ ØÒØØØ ½ ±6960 ½ ´±±00B                         Ã
+Ã                                                                             Ã
+Ã-----------------------------------------------------------------------------Ã
+
+      ÉNÔÅGÅÒ ØMØÒÉSN¬ØMØÒUNN¬ØMØÒDDÆ¬ØMØÒNSP¬ØMØÒÉPÔ¬ØMØÒMMP¬
+     +        ØMØÒUNM¬ØMØÒMÔÌ¬ØMØÒSMÆ¬ØMØÒPÒV¬ØMØÒÉSY¬ØMØÒNÒÏ¬
+     +        ØMØÒÉÉV¬ØMØÒNÅÉ¬ØMØÒNØM¬ØMØÒÉÌN¬ØMØÒNØÌ¬ØMØÒNØD¬
+     +        ØMØÒNÔÒ¬ØMØÒÔÒA¬ØMØÒÔÒP¬ØMØÒÔÆÅ¬ØMØÒÔÒÔ¬ØMØÒÔÉS¬
+     +        ØMØÒBÌK¬ØMØÒSYD¬ØMØÒNÌS¬ØMØÒÔÒÅ¬ØMØÒÒNA¬ØMØÒBUS¬
+     +        ØMØÒNSÅ¬ØMØÒÒPN¬ØMØÒUKS¬ØMØÒMÆÌ¬ØMØÒÒÏV¬ØMØÒÒÆU¬
+     +        ØMØÒNÒB¬ØMØÒUÒÔ¬ØMØÒSNÒ¬ØMØÒÒND¬ØMØÒNNA¬ØMØÒÉSÅ¬
+     +        ØMØÒÉÒÑ¬ØMØÒNGA¬ØMØÒÒNÌ¬ØMØÒNÃÏ
+
+Ã Élleçál óeröice îõíâer
+      PAÒAMÅÔÅÒ (ØMØÒÉSN½ ±696±¬
+Ã Uîëîowî îáíe (of óeröer or óùóteí©
+     +           ØMØÒUNN½ ±696²¬
+Ã Aîotèer ðort álreáäù èáó tèió îáíe
+     +           ØMØÒDDÆ½ ±6963¬
+Ã No óðáce left for îáíeó
+     +           ØMØÒNSP½ ±696´¬
+Ã Élleçál ðáráíeter tùðe
+     +           ØMØÒÉPÔ½ ±6965¬
+Ã Mióóiîç íáîäátorù ðáráíeter
+     +           ØMØÒMMP½ ±6966¬
+Ã Uîëîowî íáçic îõíâer
+     +           ØMØÒUNM½ ±696·¬
+Ã Ôoo óèort íeóóáçe (or íeóóáçe âõffer©
+     +           ØMØÒMÔÌ½ ±696¸¬
+Ã Stáîäárä íeóóáçe foríát îot èáîäleä
+     +           ØMØÒSMÆ½ ±6969¬
+Ã Ãáller wáó îot ðriöileçeä
+     +           ØMØÒPÒV½ ±69·0¬
+Ã Élleçál óùóteí îõíâer ðáráíeter
+     +           ØMØÒÉSY½ ±69·±¬
+Ã No ácceóó to reíote óùóteí
+     +           ØMØÒNÒÏ½ ±69·²¬
+Ã Élleçál iîteçer öálõe
+     +           ØMØÒÉÉV½ ±69·3¬
+Ã Ãáîîot äefiîe roõte to á îeiçèâoõr
+     +           ØMØÒNÅÉ½ ±69·´¬
+Ã Éîöáliä óeröice reqõeót - îo iîteróùóteí ØMSG
+     +           ØMØÒNØM½ ±69·5¬
+Ã Élleçál¯Òeóeröeä Ìoç. õîit îo. for liîë
+     +           ØMØÒÉÌN½ ±69·6¬
+Ã No íore ØÌ-Blocëó (Ìiîë Deócriðtoró©
+     +           ØMØÒNØÌ½ ±69··¬
+Ã Not eîoõçè ØD-Blocëó for ÌKÉNÉ
+     +           ØMØÒNØD½ ±69·¸¬
+Ã No tráce çeîeráteä
+     +           ØMØÒNÔÒ½ ±69·9¬
+Ã Ôráce álreáäù áctiöe
+     +           ØMØÒÔÒA½ ±69¸0©
+Ã Ôráce ðáóóiöe
+      PAÒAMÅÔÅÒ (ØMØÒÔÒP½ ±69¸±¬
+Ã Ôráce¯äõíð file oðeî error (óee ðáráí ±©
+     +           ØMØÒÔÆÅ½ ±69¸²¬
+Ã Ôráce ÒÔ-ðroç (ØÔÒAÃÅ© îot foõîä
+     +           ØMØÒÔÒÔ½ ±69¸3¬
+Ã Élleçál tráce óùóteí îõíâer
+     +           ØMØÒÔÉS½ ±69¸´¬
+Ã Báä liîë - oðeî õîóõcceóófõl
+     +           ØMØÒBÌK½ ±69¸5¬
+Ã Ìocál óùóteí îõíâer álreáäù äefiîeä
+     +           ØMØÒSYD½ ±69¸6¬
+Ã No locál óùóteí îõíâer äefiîeä ùet
+     +           ØMØÒNÌS½ ±69¸·¬
+Ã Ôoo íáîù reíote îáíeó to tèió óùóteí
+     +           ØMØÒÔÒÅ½ ±69¸¸¬
+Ã Ïlä óeröice cálló (<6´© cáîîot ço reíote
+     +           ØMØÒÒNA½ ±69¸9¬
+Ã Seröice âõóù - trù láter!
+     +           ØMØÒBUS½ ±6990¬
+Ã Ôèió ió îot á óeröice ðort
+     +           ØMØÒNSÅ½ ±699±¬
+Ã Òeíote ðort ótáticállù äecláreä
+     +           ØMØÒÒPN½ ±699²¬
+Ã Uîëîowî reíote óùóteí îáíe
+     +           ØMØÒUKS½ ±6993¬
+Ã Not eîoõçè íeóóáçe táâle óðáce iî reíote óùóteí
+     +           ØMØÒMÆÌ½ ±699´¬
+Ã Òeíote táóë óðáce oöerflow wèeî forwáräiîç
+     +           ØMØÒÒÏV½ ±6995¬
+Ã Òoõtiîç táâle óðáce fõll (too íáîù óùóteíó äef.©
+     +           ØMØÒÒÆU½ ±6996¬
+Ã No reíote âátcè óeröice áöáiláâle èere
+     +           ØMØÒNÒB½ ±699·¬
+Ã Uîëîowî ÒÔ ðroçráí îáíe
+     +           ØMØÒUÒÔ½ ±699¸©
+Ã Ôèió óeröer ió îot rõîîiîç
+      PAÒAMÅÔÅÒ (ØMØÒSNÒ½ ±6999¬
+Ã Netóeröer: reíote óeröer ió îot äefiîeä
+     +           ØMØÒÒND½ ±·000¬
+Ã Netóeröer: îetworë îot áöáiláâle
+     +           ØMØÒNNA½ ±·00±¬
+Ã Netóeröer: iîterîál óeröer error
+     +           ØMØÒÉSÅ½ ±·00²¬
+Ã Netóeröer: iîöáliä reqõeót
+     +           ØMØÒÉÒÑ½ ±·003¬
+Ã ØMSG îot coîfiçõreä witè çátewáù coäe
+     +           ØMØÒNGA½ ±·00´¬
+Ã Òeíote óùóteí îot oî óáíe ÌAN
+     +           ØMØÒÒNÌ½ ±·005¬
+Ã No coîîectioî to tèió óùóteí (õîëîowî ótátõó©
+     +           ØMØÒNÃÏ½ ±·006¬
+Ã Aíâiçõoõó îáíe
+     +           ØMØÒAMB½ ±·00·¬
+Ã Ærieîä óùóteí táâle fõll (too íáîù frieîäó©
+     +           ØMØÒÆÆU½ ±·00¸©
+
+Ã-----------------------------------------------------------------------------Ã
+$ÅÏÆ
+
+
+
+

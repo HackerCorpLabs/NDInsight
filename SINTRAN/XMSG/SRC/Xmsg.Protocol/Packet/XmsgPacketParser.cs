@@ -36,7 +36,7 @@ namespace NDInsight.Sintran.Xmsg.Packet
 
             // XmsgFrame.Parse retains the exact input as RawBytes, so a round-trip through the
             // packet view re-encodes byte-for-byte even for sub-protocol tails this model does not
-            // structurally decode (TAD/PAD/DB) — the Phase 1 gate depends on that guarantee.
+            // structurally decode (TAD/PAD/DB) - the Phase 1 gate depends on that guarantee.
             XmsgFrame frame = XmsgFrame.Parse(data);
             return new XmsgPacketInfo(frame);
         }

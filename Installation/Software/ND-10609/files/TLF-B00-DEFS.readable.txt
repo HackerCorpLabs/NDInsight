@@ -1,0 +1,426 @@
+C=============================================================================C
+C                                                                             C
+C                              T L I B                                        C
+C                                                                             C
+C                  L I B R A R Y     P A R A M E T E R S                      C
+C                                                                             C
+C                              F O R                                          C
+C                                                                             C 
+C                   F O R T R A N     I N T E R F A C E                       C
+C                                                                             C
+C                               T O                                           C
+C                                                                             C 
+C                             T L I B                                         C
+C                                                                             C 
+C                                                                             C 
+C  INITIAL VERSION:  -B00  01.12.84   RGJ                                     C
+C                                                                             C
+C    MODIFICATIONS:                                                           C
+C                                                                             C
+C=============================================================================C 
+C
+C
+C-----------------------------------------------------------------------------C
+C                                                                             C
+C                   user defined TLIB parameters                              C
+C                                                                             C
+C-----------------------------------------------------------------------------C
+C
+      INTEGER TLMXCONNECTIONS,TLMXACCESSPOINTS,TLMXBUFFERS,
+     +        TLMXQUEUEDTPDUS
+C maximum simultaneous connections:
+      PARAMETER (TLMXCONNECTIONS = 20,
+C maximum XMSG ports:
+     +           TLMXACCESSPOINTS = 5,
+C maximum user buffers owned by TLIB at one time:
+     +           TLMXBUFFERS = 20,
+C maximum TLIB TPDUs which can be queued in XMSG space at one time:
+     +           TLMXQUEUEDTPDUS = 50)
+C
+C-----------------------------------------------------------------------------C
+C                                                                             C
+C        CONSTANTs used in provision of working storage for TLIB              C
+C        the user must provide an INTEGER ARRAY for dynamic storage           C
+C        (via TLFINIT) of the form                                            C
+C               TLDYNAMIC(0:TLSZDYNAMIC-1)                                    C
+C        where                                                                C
+C              TLSZDYNAMIC is calculated below based on the                   C
+C                            user-defined TLIB parameters (see above)         C
+C                                                                             C
+C        NB! it is the user's responsibility to ensure that the array         C
+C            size corresponds to the declared parameters                      C
+C                                                                             C
+C-----------------------------------------------------------------------------C
+C
+C lengths of TLIB control blocks in WORDS - MUST MATCH TLIB DEFINITION!!
+      INTEGER TLSZCONNDESC,TLSZPORTDESC,TLSZUSBFDESC,TLSZQDTPDESC
+      PARAMETER (TLSZCONNDESC = 27,            
+     +           TLSZPORTDESC = 23,            
+     +           TLSZUSBFDESC =  9,            
+     +           TLSZQDTPDESC =  7)            
+
+C PLANC storage manager overhead (fixed and per item) is:
+      INTEGER SMFIXED,SMPERITEM
+      PARAMETER (SMFIXED   = 20,
+     +           SMPERITEM =  2)
+
+C so total storage required is:
+      INTEGER TLSZDYNAMIC
+      PARAMETER (TLSZDYNAMIC = SMFIXED 
+     +                     + TLMXCONNECTIONS*(TLSZCONNDESC+SMPERITEM) 
+     +                     + TLMXACCESSPOINTS*(TLSZPORTDESC+SMPERITEM) 
+     +                     + TLMXBUFFERS*(TLSZUSBFDESC+SMPERITEM) 
+     +                     + TLMXQUEUEDTPDUS*(TLSZQDTPDESC+SMPERITEM))
+
+C-----------------------------------------------------------------------------C
+C                                                                             C
+C                  FIXED USER INTERFACE CONSTANTS                             C
+C                                                                             C 
+C-----------------------------------------------------------------------------C
+C
+      INTEGER TLMXNAMELENGTH,TLMXUSERDATA,TLMXEXPEDITEDDATA
+C maximum length of a name (eg. net address or suffix)
+      PARAMETER (TLMXNAMELENGTH = 32,
+C maximum user data in connection request/confirmation or disconnect
+     +           TLMXUSERDATA = 32,
+C maximum expedited data
+     +           TLMXEXPEDITEDDATA = 8)
+C
+C-----------------------------------------------------------------------------C
+C                                                                             C
+C                SPECIFICATION OF TLIB OPERATING MODE                         C
+C                                                                             C
+C     mode specification is by an INTEGER ARRAY (0:TLALMODE-1)                C
+C     element <TLMDXMSGMODE>     indicates if XMSG is to be used in user      C
+C                                or system mode (usually user)                C
+C     element <TLMDUNIQUESUFFIX> indicates if suffix names should be unique   C
+C                                to this task (usually unique)                C
+C     element <TLMDMXCONNECTIONS>   set = TLMXCONNECTIONS                     C
+C     element <TLTLMXACCESSPOINTS>  set = TLMXACCESSPOINTS                    C
+C     element <TLMDMXBUFFERS>       set = TLMXBUFFERS                         C
+C     element <TLMDMXQUEUEDTPDUS>   set = TLMXQUEUEDTPDUS                     C
+C                                                                             C
+C-----------------------------------------------------------------------------C
+C length of array
+      INTEGER TLALMODE
+      PARAMETER (TLALMODE = 6)
+C indices of parameters
+      INTEGER TLMDXMSGMODE,TLMDUNIQUESUFFIX,
+     +        TLMDMXCONNECTIONS,TLTLMXACCESSPOINTS,TLMDMXBUFFERS,
+     +        TLMDMXQUEUEDTPDUS
+      PARAMETER (TLMDXMSGMODE       = 0,
+     +           TLMDUNIQUESUFFIX   = 1,
+     +           TLMDMXCONNECTIONS  = 2,
+     +           TLTLMXACCESSPOINTS = 3,
+     +           TLMDMXBUFFERS      = 4,
+     +           TLMDMXQUEUEDTPDUS  = 5)
+C
+C  possible values for element <TLMDXMSGMODE> are:
+C
+      INTEGER TLXMINUSERMODE,TLXMINSYSTEMMODE
+      PARAMETER (TLXMINUSERMODE   = 0,
+     +           TLXMINSYSTEMMODE = 1)
+C
+C  possible values for element <TLMDUNIQUESUFFIX> are:
+C
+      INTEGER TLNONUNIQUE, TLISUNIQUE
+      PARAMETER (TLNONUNIQUE =0,
+     +           TLISUNIQUE = 1)
+C
+C-----------------------------------------------------------------------------C
+C                                                                             C
+C                TLIB ACCESS POINT (ADDRESS) FORMATS                          C
+C                                                                             C
+C    specification of these is via an INTEGER*4 ARRAY (0:TLALTLAP-1)          C
+C    element <TLAPFORMAT> specifies the format in which the address           C
+C                         is given                                            C
+C    the meaning of the remainder of the array depends on the value           C
+C    of element <TLAPFORMAT>                                                  C
+C    if element <TLAPFORMAT> = TLTLAP2STRING then the address is contained    C
+C                within the array as two character strings                    C
+C                element <TLAPLNNET>  gives the length of the string          C
+C                                     specifying the net address              C
+C                elements <TLAPNETADDRESS>,<TLAPNETADDRESS+1>....contain      C
+C                                     the packed character string for         C
+C                                     the net address                         C
+C                element <TLAPLNSUFFIX> gives the length of the string        C
+C                                     specifying the suffix                   C
+C                elements <TLAPSUFFIX>,<TLAPSUFFIX+1>....contain              C
+C                                     the packed character string for         C
+C                                     the suffix                              C
+C    if element <TLAPFORMAT> = TLTLAPMAGIC then the address is given as       C
+C                a magic number                                               C
+C                element <TLAPMAGIC>  contains the magic number               C
+C                                                                             C
+C-----------------------------------------------------------------------------C
+C length of array
+      INTEGER TLALTLAP
+      PARAMETER (TLALTLAP = 3 + (TLMXNAMELENGTH/2))
+C indices to parameters
+      INTEGER TLAPFORMAT,TLAPLNNET,TLAPNETADDRESS,
+     +        TLAPLNSUFFIX,TLAPSUFFIX,TLAPMAGIC
+      PARAMETER (TLAPFORMAT = 0,
+     +           TLAPLNNET = 1,
+     +           TLAPNETADDRESS = 2,
+     +           TLAPLNSUFFIX = 2+(TLMXNAMELENGTH/4),
+     +           TLAPSUFFIX = 3+(TLMXNAMELENGTH/4),
+     +           TLAPMAGIC = 1)
+C
+C possible values for element <TLAPFORMAT> are:
+C
+      INTEGER TLTLAP2STRING,TLTLAPMAGIC
+      PARAMETER (TLTLAP2STRING = 0,
+     +           TLTLAPMAGIC   = 1)
+C
+C-----------------------------------------------------------------------------C
+C                                                                             C
+C                       QUALITY OF SERVICE                                    C
+C                                                                             C
+C     QOS specification is by an INTEGER ARRAY (0:TLALQOS-1)                  C
+C     element <TLQSISDEFAULT>    indicates if the quality of service          C
+C                                is default                                   C
+C                                MUST be SET = TLISDEFAULT                    C
+C                                (ONLY DEFAULT CURRENTLY provided!)           C
+C                                                                             C
+C-----------------------------------------------------------------------------C
+C length of array
+      INTEGER TLALQOS
+      PARAMETER (TLALQOS = 1)
+C indices of parameters
+      INTEGER TLQSISDEFAULT
+      PARAMETER (TLQSISDEFAULT = 0)
+C
+C  possible values for element <TLQSISDEFAULT> are:
+C  CURRENTLY, ONLY DEFAULT SERVICE IS PROVIDED
+C
+      INTEGER TLISDEFAULT
+      PARAMETER (TLISDEFAULT = 1)
+C
+C-----------------------------------------------------------------------------C
+C                                                                             C
+C                      BUFFER SPECIFICATION                                   C
+C                                                                             C
+C      buffers are provided to TLIB in the form of INTEGER*2 ARRAYS           C
+C                                                                             C
+C      they are provided with a USER-SUPPLIED IDENTIFIER which is             C
+C      used by TLIB to identify the particular buffer to the user             C
+C      when it is returned (since the user may have several buffers           C
+C      outstanding on the connection)                                         C
+C                                                                             C
+C-----------------------------------------------------------------------------C
+
+C-----------------------------------------------------------------------------C
+C                                                                             C
+C              FLAGS associated with SENDING/RECEIVING data                   C
+C                                                                             C
+C-----------------------------------------------------------------------------C
+      INTEGER TLEOTSDUMARK
+      PARAMETER(TLEOTSDUMARK = 1)
+C
+C-----------------------------------------------------------------------------C
+C                                                                             C
+C                            EVENTS                                           C
+C                                                                             C
+C      specification of events is by an INTEGER ARRAY (0:TLALEVENT-1)         C
+C      element <TLEVREFNO>     specifies the connection                       C
+C      element <TLEVCODE>      specifies the event (or set of events)         C
+C      elements <TLEV0DATA>... provide data associated with the event         C
+C                                                                             C
+C-----------------------------------------------------------------------------C
+C maximum associated data
+      INTEGER TLMAXEVDATA
+      PARAMETER (TLMAXEVDATA = 2)
+C length of array
+      INTEGER TLALEVENT
+      PARAMETER (TLALEVENT = 2+TLMAXEVDATA)
+C indices to parameters
+      INTEGER TLEVREFNO,TLEVCODE,TLEV0DATA,TLEV1DATA
+      PARAMETER (TLEVREFNO = 0,
+     +           TLEVCODE  = 1,
+     +           TLEV0DATA = 2,
+     +           TLEV1DATA = 3)
+C
+C  "WILD CARD" values used to specify ANY connection and ANY event are:
+C
+      INTEGER TLANYREFNO,TLANYEVENT
+      PARAMETER (TLANYREFNO =  0,
+     +           TLANYEVENT = -1)
+C
+C  element <TLEVCODE> is specified as a set of bits 
+C  the event codes used to form the bit mask are:
+C
+      INTEGER TLEVTIME,TLEVCNIN,TLEVCNCF,TLEVDAIN,
+     +        TLEVCRDT,TLEVXDIN,TLEVXCDT,TLEVDCIN,TLEVDCCF,
+     +        TLEVUNIN,TLEVUNKN,TLEVOTHR
+C timeout:
+      PARAMETER (TLEVTIME =    1,
+C connection request has arrived:
+     +           TLEVCNIN =    2,
+C connection accepted:
+     +           TLEVCNCF =    4,
+C data has arrived:
+     +           TLEVDAIN =    8,
+C credit change:
+     +           TLEVCRDT =   16,
+C expedited data has arrived:
+     +           TLEVXDIN =   32,
+C the user may send more expedited data:
+     +           TLEVXCDT =   64,
+C disconnect due to remote user or TLIB:
+     +           TLEVDCIN =  128,
+C the requested disconnect is complete:
+     +           TLEVDCCF =  256,
+C unit data has arrived:
+     +           TLEVUNIN =  512,
+C XMSG msg has arrived on port not known to TLIB:
+     +           TLEVUNKN = 1024,
+C exit caused by other than timeout, TLIB event, or unknown port
+C (eg. by terminal input):
+     +           TLEVOTHR = 2048)
+C
+C-----------------------------------------------------------------------------C
+C                                                                             C
+C                       TIMEOUTS ON WAIT                                      C
+C                                                                             C
+C    specification of time periods is by an INTEGER ARRAY (0:TLALTIME-1)      C
+C    element <TLTMUNITS>  specifies the units in which the time               C
+C                        is measured                                          C
+C    element <TLTMLENGTH> specifies the number of time units                  C
+C                                                                             C
+C-----------------------------------------------------------------------------C
+C length of array
+      INTEGER TLALTIME
+      PARAMETER (TLALTIME = 2)
+C indices of parameters
+      INTEGER TLTMUNITS,TLTMLENGTH
+      PARAMETER (TLTMUNITS = 0,
+     +           TLTMLENGTH = 1)
+C
+C  possible values of element <TLTMUNITS> are:
+C
+      INTEGER TLTMBASIC,TLTMSECS,TLTMMINS,TLTMHRS
+      PARAMETER (TLTMBASIC = 0,
+     +           TLTMSECS  = 1,
+     +           TLTMMINS  = 2,
+     +           TLTMHRS   = 3) 
+C
+C  a reserved value for element <TLTMLENGTH> specifies an INFINITE
+C  timeout period
+C
+      INTEGER TLINFINITETIME
+      PARAMETER (TLINFINITETIME = -1)
+C
+C-----------------------------------------------------------------------------C
+C                                                                             C
+C            TLIB STATUS CODES RETURNED TO USER FROM CALLS                    C
+C                                                                             C
+C         values conform to the SINTRAN standard value system                 C
+C                                                                             C
+C-----------------------------------------------------------------------------C
+      INTEGER TLOK,TLERNTIN,TLERBDRF,TLERBDCL,TLERBDFM,TLERBDLN,
+     +        TLERBDNM,TLERBDPM,TLERNOUB,TLERSMUB,TLERDCPN,TLERXOUT,
+     +        TLERNOTB,TLERNOSD,TLERNOBD,TLERNOQD,TLERNORM,TLERDPSF,
+     +        TLERFATAL,TLERXNRU,TLERXCRA,TLERXNXT,TLERXNPT,TLERXNSP
+C OK return:
+      PARAMETER (TLOK=0,
+C user has not done TLXINIT:
+     +           TLERNTIN = 17192,
+C user gave invalid TLIB refno:
+     +           TLERBDRF = 17193,
+C call not valid in current state:
+     +           TLERBDCL = 17194,
+C parameter had invaild format:
+     +           TLERBDFM = 17195,
+C parameter had invalid length:
+     +           TLERBDLN = 17196,
+C invalid name specified:
+     +           TLERBDNM = 17197,
+C other parameter error:
+     +           TLERBDPM = 17198,
+C TLIB lacks user buffer:
+     +           TLERNOUB = 17199,
+C the returned buffer is too small:
+     +           TLERSMUB = 17200,
+C there is a disconnect pending:
+     +           TLERDCPN = 17201,
+C still expedited data outstanding:
+     +           TLERXOUT = 17202,
+C attempt to open too many connections (increase TLMXCONNECTIONS):
+     +           TLERNOTB = 17203,
+C attempt to use too many suffices (increase TLMXACCESSPOINTS):
+     +           TLERNOSD = 17204,
+C attempt to use too many user buffers (increase TLMXBUFFERS):
+     +           TLERNOBD = 17205,
+C insufficient internal descriptors for XMSG messages
+C (increase TLMXQUEUEDTPDUS):
+     +           TLERNOQD = 17206,
+C TLIB can't get more buffer space fromn underlying system -
+C user should release some (eg. read data) and try again:
+     +           TLERNORM = 17207,
+C suffix in use by another task:
+     +           TLERDPSF = 17208,
+C FATAL error - contact ND
+     +           TLERFATAL = 17215,
+C
+C
+C Following errors are related to underlying sub-system
+C
+C NB! if TLERXNRU or TLERXCRA error codes are received, then the current
+C TLIB context has been lost: all connections should be considered closed,
+C all "listens" should be considered terminated and the user is in
+C possession of any outstanding user buffers (with indeterminate contents).
+C The only permissible call after these errors is TLPINIT, which will
+C return the same code until XMSG is running again, at which point
+C new connections may be opened etc.
+C
+C XMSG not running (XENRU):
+     +           TLERXNRU = 17256,
+C XMSG crash (XECRA):
+     +           TLERXCRA = 17257,
+C XMSG ran out of XT-blocks (XENOT):
+     +           TLERXNXT = 17258,
+C XMSG out of ports (XENOP):
+     +           TLERXNPT = 17259,
+C XMSG has no space for name (XRNSP):
+     +           TLERXNSP = 17260)
+C
+C-----------------------------------------------------------------------------C
+C                                                                             C
+C                  CONNECTION DISCONNECT CODES                                C
+C                                                                             C
+C-----------------------------------------------------------------------------C
+      INTEGER TLDCSESN,TLDCRMCG,TLDCNGFL,TLDCPRER,TLDCCREF,
+     +        TLDCUNET,TLDCUSUF,TLDCLCRS,TLDCRMRS,TLDCRMDD,
+     +        TLDCNOAC,TLDCUNXR
+C normal disconnect by user:
+      PARAMETER (TLDCSESN = 128,
+C remote congestion (all available connections at this suffix busy):
+     +           TLDCRMCG = 129,
+C connection negotiation failed (incompatible TLIBs):
+     +           TLDCNGFL = 130,
+C protocol error:
+     +           TLDCPRER = 133,
+C connection request refused on this network connection 
+C (= XMSG-code XRNSE = not a connect port):
+     +           TLDCCREF = 136,
+C unknown network address (XMSG:XRUKS - unknown system):
+     +           TLDCUNET = 137,
+C unknown suffix address (XMSG:XRUNN - no open port with this name):
+     +           TLDCUSUF = 138,
+C local TLIB resources exceeded (eg. lack of descriptors to queue:
+C TPDUs):
+     +           TLDCLCRS = 200,
+C remote TLIB resources exceeded (eg. lack of descriptors to queue
+C TPDUs):
+     +           TLDCRMRS = 201,
+C remote end has terminated (XMSG-code XEIMA):
+     +           TLDCRMDD = 202,
+C no access to remote system (XMSG-code XRNRO):
+     +           TLDCNOAC = 203,
+C unknown XROUT status received when trying to send to remote:
+     +           TLDCUNXR = 204)
+C
+C----------------------------------------------------------------------------C
+C
+$EOF
+     

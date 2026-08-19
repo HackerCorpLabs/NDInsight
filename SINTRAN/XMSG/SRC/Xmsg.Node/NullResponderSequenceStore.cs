@@ -16,7 +16,7 @@ namespace NDInsight.Sintran.Xmsg.Node
         /// <inheritdoc />
         public void SaveNextFlags1(ushort remoteNode, ushort nextFlags1)
         {
-            // Intentionally does nothing — no persistence.
+            // Intentionally does nothing - no persistence.
         }
     }
 }

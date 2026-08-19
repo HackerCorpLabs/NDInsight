@@ -28,6 +28,8 @@
          rule is narrow (16-character name, 4-character type, dot becomes colon) and lives in one
          place rather than being repeated here. -->
     <ProjectReference Include="..\Xmsg.Sync\Xmsg.Sync.csproj" />
+    <!-- XftraRequests: the APPEND-REMOTE-BATCH letter is built from the API model. -->
+    <ProjectReference Include="..\Xmsg.Api\Xmsg.Api.csproj" />
   </ItemGroup>
 
   <ItemGroup>

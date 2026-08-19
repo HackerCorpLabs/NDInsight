@@ -19,7 +19,13 @@ numeric field = NL bytes (0-7), signed, 2's complement
 symbol field  = 1 length byte + 1-255 ASCII chars (only for some controls)
 ```
 
-**DERIVED (bit packing)**: the manual's layout table shows the 5-bit control field first (leftmost), then the 3-bit NL - read as most-significant-first this gives `control_byte = (ctrl << 3) | NL`. The manual does not spell out the bit order in words. **TO-VALIDATE**: hex-dump any compiler-produced :NRF (e.g. a library :NRF on the SINTRAN disk) and confirm the first byte decodes as a BEG group under this packing (BEG with NL=3 would read 0x0B).
+**CONFIRMED (bit packing)**: `control_byte = (ctrl << 3) | NL` - VERIFIED 2026-08-10 against
+a real compiler-produced NRF file, `E:\Dev\Ronny\ND500\Microcode\nd-500-apf-lib-e.nrf` (an
+APF vector-math library). Three independent exact matches (MSG group's 17-char message,
+LIB group's 7-char symbol `VADDXXX`, DEF group's 10-char hidden symbol `#(+PROG0+)`), each
+confirmed by the following byte matching its expected symbol-length exactly - see
+`../File-Formats/NRF-FILE-FORMAT.md` for the full byte-by-byte table. This closes item 1 of
+the validation checklist below.
 
 Control numbers used here (manual section 12.2, numbers are octal):
 

@@ -63,6 +63,25 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
         private readonly FaOperation[] _ladder;
 
         /// <summary>
+        /// Whether the peer currently holds the target file OPEN.
+        /// </summary>
+        /// <remarks>
+        /// True from the moment <see cref="FaOperation.OpenFile"/> is answered until
+        /// <see cref="FaOperation.CloseFile"/> is. It exists so that a transfer which dies in the
+        /// middle can still put the file down - see <see cref="AbandonAfterOpenFile"/>.
+        /// <para>
+        /// Measured on D100 on 2026-08-17: a push that stalled part way through left CHAT:PLNC
+        /// open on the machine. Every later attempt on that name then failed, and so did deleting
+        /// it by hand - SINTRAN answered FILE ALREADY OPEN. LIST-OPEN-FILES does not show it
+        /// either, because the file belongs to the file server's RT program and not to any
+        /// terminal, so the only ways out were restarting the file server or the whole machine.
+        /// Walking away from a half-finished write is therefore not a neutral act: it costs the
+        /// peer a file until somebody intervenes.
+        /// </para>
+        /// </remarks>
+        private bool _fileOpenOnPeer;
+
+        /// <summary>
         /// Starts a session for a file of a given size in blocks.
         /// </summary>
         /// <param name="blockCount">
@@ -183,7 +202,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
                 return FaClientAction.SendShortAck;
             }
 
-            return FaClientAction.SendClose;
+            return FaClientAction.SendRelease;
         }
 
         /// <summary>
@@ -364,6 +383,12 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
                 return;
             }
 
+            // From the moment OpenFile is answered, the file is OPEN ON THE PEER and stays open
+            // until CloseFile. Remembering that is what lets an abandoned transfer still close it
+            // - see AbandonAfterOpenFile.
+            if (_ladder[_step] == FaOperation.OpenFile) { _fileOpenOnPeer = true; }
+            if (_ladder[_step] == FaOperation.CloseFile) { _fileOpenOnPeer = false; }
+
             // The block is NOT owed here. It was already sent, straight after the request - see
             // OnRequestSent, which carries the capture that settles the ordering. Owing it here
             // made the content wait for the reply, which is the opposite of what a real client
@@ -395,9 +420,77 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
         /// <summary>
         /// Records that the close has been sent, finishing the session.
         /// </summary>
-        public void OnCloseSent()
+        public void OnReleaseSent()
         {
             _closed = true;
+        }
+
+        /// <summary>
+        /// Whether the peer is holding the target file open on our behalf.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> between the answered <see cref="FaOperation.OpenFile"/> and the answered
+        /// <see cref="FaOperation.CloseFile"/>.
+        /// </value>
+        public bool FileOpenOnPeer
+        {
+            get { return _fileOpenOnPeer; }
+        }
+
+        /// <summary>
+        /// Gives up on the content but still walks the epilogue, so the peer closes the file.
+        /// </summary>
+        /// <returns>
+        /// <c>true</c> when there was an open file to close and the session is now aimed at the
+        /// epilogue; <c>false</c> when there was nothing to put down and the caller should simply
+        /// stop.
+        /// </returns>
+        /// <remarks>
+        /// <para>
+        /// Call this when a transfer cannot be finished - the peer went quiet, the caller timed
+        /// out, the process is stopping. It abandons the remaining content and points the ladder
+        /// at <see cref="FaOperation.SiiiSpecial"/>, <see cref="FaOperation.CloseFile"/> and
+        /// <see cref="FaOperation.ReleaseFileEntry"/>, which is exactly what a completed write
+        /// sends. The file then ends up short rather than absent, which is a state the machine can
+        /// recover from by itself.
+        /// </para>
+        /// <para>
+        /// <b>The alternative is not "nothing happens".</b> Dropping a write after OpenFile leaves
+        /// the file open on the peer for good: it cannot be rewritten, and it cannot be deleted -
+        /// SINTRAN answers FILE ALREADY OPEN - because the file server's RT program owns it. That
+        /// took a file-server restart to clear on D100.
+        /// </para>
+        /// <para>
+        /// The failure text is kept, so a caller that reports why the transfer died still can. The
+        /// session is no longer <see cref="FaClientAction.Failed"/> though, because there is work
+        /// left to do; it reports <see cref="FaClientAction.Done"/> once the close has gone.
+        /// </para>
+        /// </remarks>
+        public bool AbandonAfterOpenFile()
+        {
+            if (!_fileOpenOnPeer || _closed) { return false; }
+
+            // Find the CloseFile step and start the epilogue one step earlier, at SiiiSpecial,
+            // which is what declares the real length. Searching rather than computing keeps this
+            // honest if the ladder ever changes shape.
+            int epilogue = -1;
+            for (int i = 0; i < _ladder.Length; i++)
+            {
+                if (_ladder[i] == FaOperation.SiiiSpecial) { epilogue = i; break; }
+            }
+
+            if (epilogue < 0) { return false; }
+
+            _step = epilogue;
+            _dataOwed = false;
+            _requestSent = false;
+            _requestAcknowledged = false;
+            _replyReceived = false;
+
+            // Clear the failure so NextAction stops returning Failed and lets the epilogue run.
+            // What went wrong is already reported by whoever calls this.
+            _failure = string.Empty;
+            return true;
         }
 
         /// <summary>

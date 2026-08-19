@@ -10,7 +10,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
 {
     /// <summary>
     /// An <see cref="ILink"/> over the proven HDLC/LAPB stack: wraps an <see cref="IByteDuplex"/>
-    /// transport and a <see cref="LapbLayer"/>, runs the receive→deframe→FCS→LAPB pump, delivers each
+    /// transport and a <see cref="LapbLayer"/>, runs the receive->deframe->FCS->LAPB pump, delivers each
     /// in-order information field UP as <see cref="PayloadReceived"/>, and turns
     /// <see cref="SendData"/> into a LAPB I-frame DOWN.
     /// </summary>
@@ -19,7 +19,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
     /// This is the seam-shaped sibling of the proven <see cref="LiveNode"/>: it reuses the identical,
     /// live-tested framing (incremental <c>0x7E</c> splitting, <see cref="HdlcDeframer"/>,
     /// <see cref="Fcs16"/> validation, <see cref="HdlcEncoder"/>) but is DECOUPLED from any
-    /// application node — the codec/layer above it does the responding via the up-event. The old
+    /// application node - the codec/layer above it does the responding via the up-event. The old
     /// <see cref="LiveNode"/> path stays intact until the new path proves live parity (Phase 5).
     /// </para>
     /// <para>
@@ -31,7 +31,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
     /// <b>Buffer ownership:</b> the <see cref="PayloadReceived"/> payload MAY be a buffer the adapter
     /// reuses; a consumer that retains the bytes beyond the callback MUST copy them within the
     /// callback. (Today the underlying frame array is fresh per receive, so no copy is strictly
-    /// required — but consumers must not rely on that.)
+    /// required - but consumers must not rely on that.)
     /// </para>
     /// </remarks>
     public sealed class LapbLayerAdapter : ILink
@@ -48,6 +48,16 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
         private readonly List<byte> _frameAccumulator;
         private readonly Queue<byte[]> _pendingWrites;
 
+        /// <summary>
+        /// How long the closing flush may spend getting queued frames onto a live link.
+        /// </summary>
+        /// <remarks>
+        /// Long enough for a healthy peer to take a handful of frames, short enough that a dead one
+        /// does not hold the process open. See <c>FlushFinalAsync</c> for why the pump's own token
+        /// cannot be used here.
+        /// </remarks>
+        private static readonly TimeSpan FinalFlushGrace = TimeSpan.FromSeconds(2);
+
         // Monotonic millisecond clock feeding the LAPB timers (T1/T3/N2). The LAPB layer never reads a
         // wall clock itself (deterministic by design); this adapter, in the replaceable live half,
         // injects real elapsed milliseconds so the spec timers fire on real time. Stopwatch is
@@ -57,7 +67,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
         private LinkStatus _status;
         // True once Stop()/Dispose() has been called. Used to stop the pump's residual LAPB state from
         // resurrecting the link to Active/Starting. We CANNOT use the status enum for this, because the
-        // INITIAL status is also Stopped (before Start) — and from there the link legitimately advances.
+        // INITIAL status is also Stopped (before Start) - and from there the link legitimately advances.
         private bool _stopRequested;
         private CancellationTokenSource? _cts;
         private Task? _pump;
@@ -79,7 +89,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
         /// <summary>
         /// Diagnostic up-event: every FCS-valid LAPB frame received from the wire (raw body,
         /// before the LAPB state machine processes it). Lets the runner log SABM/UA/RR/I traffic
-        /// from the peer — including a bare-link SABM storm when the peer's XMSG has died.
+        /// from the peer - including a bare-link SABM storm when the peer's XMSG has died.
         /// </summary>
         /// <param name="linkId">
         /// The link the frame arrived on (sender-first).
@@ -111,6 +121,36 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
         /// inbound-frame trigger.
         /// </summary>
         public event LinkLoopTick? LoopTick;
+
+        /// <summary>
+        /// A callback fired once, on the loop thread, when the pump has decided to stop.
+        /// </summary>
+        public delegate void LinkStopping();
+
+        /// <summary>
+        /// Occurs once when the pump is shutting down, BEFORE the closing flush, so a handler can still
+        /// queue frames that will reach the wire.
+        /// </summary>
+        /// <remarks>
+        /// <para><b>Why a server needs this</b></para>
+        /// <para>
+        /// A session is live state on BOTH sides. On 2026-08-17 our runner was stopped with three TAD
+        /// sessions open and D100's XMSG died with a fatal internal inconsistency, holding half a
+        /// session each; recovery was an emulator restart. Saying goodbye needs a moment when the
+        /// pump is known to be ending but can still transmit, and that moment did not exist.
+        /// </para>
+        /// <para>
+        /// Runs on the SAME thread as inbound processing and <see cref="LoopTick"/>, so a handler may
+        /// send without locking. Anything it queues is flushed by the closing flush, which uses its
+        /// own bounded token rather than the cancelled one - see <c>FlushFinalAsync</c>, without
+        /// which this event would be pointless because the frames could never be written.
+        /// </para>
+        /// <para>
+        /// It cannot help a forced kill, which runs none of our code. The operating rule stands
+        /// alongside it: get the users out before stopping a server the ND is still talking to.
+        /// </para>
+        /// </remarks>
+        public event LinkStopping? Stopping;
 
         /// <summary>
         /// Initialises the adapter over a transport and LAPB link.
@@ -304,7 +344,8 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
                     RaiseStatusIfChanged();
                 }
 
-                await FlushPendingAsync(cancellationToken);
+                RaiseStopping();
+                await FlushFinalAsync();
                 RaiseStatusIfChanged();
                 return;
             }
@@ -339,7 +380,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
                 {
                     // Idle tick: advance the LAPB timers ONLY. Tick() itself retransmits on T1 and emits
                     // the conformant RR keepalive poll when T3 expires, so we must NOT also send an
-                    // unconditional RR here — that flooded the link with one RR per idle second. The tick
+                    // unconditional RR here - that flooded the link with one RR per idle second. The tick
                     // interval is just the timer resolution; the keepalive cadence is the T3 period.
                     _link.Tick(CurrentMillis);
                 }
@@ -353,8 +394,83 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
                 RaiseStatusIfChanged();
             }
 
-            await FlushPendingAsync(cancellationToken);
+            RaiseStopping();
+            await FlushFinalAsync();
             RaiseStatusIfChanged();
+        }
+
+        /// <summary>
+        /// Fires <see cref="Stopping"/> once, letting handlers queue their goodbyes.
+        /// </summary>
+        /// <remarks>
+        /// A throwing handler must not replace a clean stop with a stack trace, and must not stop the
+        /// closing flush from running - whatever earlier handlers queued still deserves to go out.
+        /// </remarks>
+        private void RaiseStopping()
+        {
+            try
+            {
+                Stopping?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[link] {_linkId} a Stopping handler threw, continuing shutdown: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Flushes whatever is still queued on the way out, ignoring the cancellation that stopped us.
+        /// </summary>
+        /// <returns>
+        /// A task that completes when the queue is empty, the transport refuses, or the grace elapses.
+        /// </returns>
+        /// <remarks>
+        /// <para><b>Why this cannot use the pump's own token</b></para>
+        /// <para>
+        /// Both loops above end because cancellation was requested, and the flush that followed used
+        /// that same token. <see cref="System.Net.Sockets.NetworkStream"/> returns a CANCELLED task
+        /// without writing when the token is already cancelled, so the closing flush discarded every
+        /// queued frame and threw - and the throw looked like an ordinary "time window elapsed" stop
+        /// because the caller catches <see cref="OperationCanceledException"/>. Anything queued as we
+        /// shut down therefore never reached the wire.
+        /// </para>
+        /// <para>
+        /// MEASURED 2026-08-17 by the consequence rather than the code: our runner was stopped with
+        /// three TAD sessions open, and D100's XMSG died with a fatal internal inconsistency because
+        /// it was left holding half a session. Sending the goodbye was impossible while this stood.
+        /// </para>
+        /// <para>
+        /// The grace is bounded so a dead peer cannot hang the exit: if the far end has gone, the
+        /// write will not complete and we leave anyway. Failures are swallowed deliberately - this
+        /// runs on the way out, and a shutdown that throws is worse than one that gave up flushing.
+        /// </para>
+        /// </remarks>
+        private async Task FlushFinalAsync()
+        {
+            if (_pendingWrites.Count == 0)
+            {
+                return;
+            }
+
+            using (CancellationTokenSource grace = new CancellationTokenSource(FinalFlushGrace))
+            {
+                try
+                {
+                    await FlushPendingAsync(grace.Token);
+                }
+                catch (OperationCanceledException)
+                {
+                    // The peer did not take it within the grace. Nothing further to try.
+                }
+                catch (System.IO.IOException)
+                {
+                    // The link is already gone - expected when the peer dropped first.
+                }
+                catch (ObjectDisposedException)
+                {
+                    // The transport was disposed underneath us; also a normal shutdown race.
+                }
+            }
         }
 
         /// <inheritdoc />
@@ -433,7 +549,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
 
                 // Refresh coarse status right after each frame so a SABM/UA that brings the LAPB link
                 // to Connected flips us to Active BEFORE the very next frame (the peer's first I-frame)
-                // delivers its payload — a send issued from that PayloadReceived callback then sees an
+                // delivers its payload - a send issued from that PayloadReceived callback then sees an
                 // Active link. Waiting until the end of the read chunk would race that.
                 RaiseStatusIfChanged();
             }
@@ -489,7 +605,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
         {
             // Once Stop()/Dispose() has been requested, a residual LAPB state left in the pump must not
             // resurrect the link to Active/Starting. (We check the flag, not the status enum, because
-            // the initial pre-Start status is also Stopped — and from there we DO advance.)
+            // the initial pre-Start status is also Stopped - and from there we DO advance.)
             if (_stopRequested)
             {
                 return;

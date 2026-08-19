@@ -1,0 +1,2446 @@
+
+ *"8NSDB
+" %==============================================================================
+ %      S Y M B O L I C   D E B U G G E R
+ %
+ *)9SLPL
+ * *<* MAXUS MAXUS MAXUS MAXUS MAXUS MAXUS MAXUS
+ *)ZERO
+ INTEGER ARRAY DBUGSEG(0); * *+MAXUS/
+ INTEGER ARRAY DATSEGS(0)
+ *)9RLPL
+
+% @MAC
+)9SCLC
+% PICK UP SEGMENT NUMBERS DEFINED ON SIN4-GEN
+"8DB04+8DB05+8DB06+8DB07+8DB08+8DB09
+SGNUM; )KILL TEMP;TEMP=SGNUM+1;)KILL SGNUM;SGNUM=TEMP
+"8DB03+8DB04+8DB05+8DB06+8DB07+8DB08+8DB09
+SGNUM; )KILL TEMP;TEMP=SGNUM+1;)KILL SGNUM;SGNUM=TEMP
+"8DB02+8DB03+8DB04+8DB05+8DB06+8DB07+8DB08+8DB09
+SGNUM; )KILL TEMP;TEMP=SGNUM+1;)KILL SGNUM;SGNUM=TEMP
+"8DB01+8DB02+8DB03+8DB04+8DB05+8DB06+8DB07+8DB08+8DB09
+SGNUM; )KILL TEMP;TEMP=SGNUM+1;)KILL SGNUM;SGNUM=TEMP
+"8NSDB
+)KILL TEMP
+)9RCLC
+% *)9SLPL
+)9SLPL
+ INTEGER ARRAY DBGSEGS(0); * *+MAXUS/
+ INTEGER ARRAY OLDSEGS(0); * *+MAXUS/
+ INTEGER ARRAY BPHANDLER(0); * *+MAXUS/
+ INTEGER ARRAY REGBL(0); * *+MAXUS/
+ INTEGER ARRAY APTNO(0); * *+MAXUS/
+
+ SUBR 3BRPNT,3DEBUG
+
+ INTEGER ARRAY RWPAR=?
+ INTEGER BLCKNO=?, NWRD=?, FILNR=?, 64K=?
+
+
+ 3BRPNT: CALL FINDINDEX; GO FAR RETU
+        RTREF.ACTSEG/\177400+DATSEG(CUIDX)=:T; DBUGSEG(X)=:RTREF.RSEGM
+        CALL MMEXY; T=:OLDSEG(CUIDX)
+        200=:D; CALL DALTON; *BSET ZRO
+        X:=REGBL(CUIDX)
+        *LDF 7,B; RDCR DT; BSET ONE; STF ,X; BSET ZRO
+        *LDF 12,B; BSET ONE; STF 3,X; BSET ZRO
+        *LDD 15,B; BSET ONE; STD 6,X; BSET ZRO
+        OLDPAGE/\600 SH -7+1; *BSET ONE; STA 10,X; BSET ZRO
+        OLDPAGE/\177174+200=:OLDPAGE; BPHANDLER(CUIDX)=:ZPREG
+        GO FAR RETU
+ *)FILL
+
+ 3DEBUGGER: IF ZTREG>>5 GO FAR RETU
+        A GOSW GETDSEG,PLAC1,FAR PSTART,FAR READLOC,FAR WRITLOC,RELDSEG
+
+ GETDSEG:
+          FOR X:=0 TO NMAXUSERS-1 DO
+            IF DBGPROGS(X)=RTREF GO SGFOUND
+          OD
+          FOR X:=0 TO NMAXUSERS-1 DO
+            IF DBGPROGS(X)=0 AND DATSEG(X)><0 THEN RTREF=:DBGPROGS(X); GO SGFOUND FI
+         OD; GO FAR RETU
+ SGFOUND: X=:CUIDX
+        RTREF.ACTSEG/\177400+DATSEG(CUIDX)=:T=:DBGSEGS(X)
+        CALL MMEXY; T=:OLDSEG(X);T=:A; A/\377*5SEGSIZE+SEGSTART=:X
+        IF X.LOGADR SHZ -10=200 THEN T:=100 ELSE T:=0 FI
+        X.LOGADR/\300+T SH 1=:APTNO(CUIDX)
+        RTREF.RSEGM=:DBUGSEG(CUIDX)
+        MIN ZPREG; 0/\0; GO FAR RETU
+ *)FILL
+
+ RELDSEG: CALL FINDINDEX; GO FAR RETU; 0=:DBGPROGS(X); MIN ZPREG; 0/\0; GO FAR RETU
+
+ PLAC1: CALL FINDINDEX; GO FAR RETU
+        ZAREG=:FILNR; 0=:BLCKNO; 7=:NWRD; "BUFFR"=:RWPAR(2)
+        "RWPAR"; *MON 117
+        IF A><0 THEN A=:ZAREG; GO FAR RETU FI
+        GO PLAC2; *)FILL
+
+ PLAC2: 0=:RTREF.RSEGM; CALL GETDATAFIELD
+        5BCOM; T:="BSTATE"; CALL XSTDFADDR
+        T:=FILNR; X:="BUFFR"; CALL 2BDBRECOVER; GO ERET
+        A:=0; MIN ZPREG; 0/\0
+ ERET:  A=:ZAREG; CALL GETDATAFIELD
+        5BUSER; T:="BSTATE"; CALL XSTDFADDR
+        DBUGSEG(CUIDX)=:RTREF.RSEGM; T:=DBGSEGS(CUIDX); CALL MMEXY
+        GO FAR RETU
+
+
+ INTEGER ARRAY RWPAR:=(FILNR,"0",0,BLCKNO,NWRD)
+ INTEGER FILNR,NWRD,64K,BLCKNO
+
+
+ PSTART: 200=:D; CALL DALTON; *BSET ZRO
+        CALL FINDINDEX; GO FAR RETU
+        ZXREG=:BPHANDLER(CUIDX); ZAREG=:REGBL(X)
+        X:=ZAREG
+        *BSET ONE; LDF ,X; BSET ZRO; STF 7,B
+        *BSET ONE; LDF 3,X; BSET ZRO; STF 12,B
+        *BSET ONE; LDF 6,X; BSET ZRO; STT 15,B; STA 16,B
+        IF D=3 THEN T:=APTNO(CUIDX) ELSE T:=200 FI; T=:D
+        T:=OLDSEG(CUIDX); 0=:RTREF.RSEGM; CALL MMEXY
+        OLDPAGE/\177177\/D=:OLDPAGE; GO RETU
+ *)FILL
+
+ READLOC:
+ WRITLOC: CALL FINDINDEX; GO RETU; T:=OLDSEG(X); 0=:RTREF.RSEGM
+        CALL MMEXY
+        IF ZAREG><0 THEN T:=APTNO(CUIDX) ELSE T:=200 FI
+        T=:D; CALL DALTON; *BSET ZRO
+        X:=ZDREG
+        IF ZTREG=3 THEN
+           *BSET ONE; LDA ,X; BSET ZRO
+           A=:ZAREG
+        ELSE
+           A:=ZXREG; *BSET ONE; STA ,X; BSET ZRO
+        FI; T:=DBGSEGS(CUIDX); DBUGSEG(X)=:RTREF.RSEGM; CALL MMEXY
+        MIN ZPREG; 0/\0; GO RETU
+
+ FINDINDEX: FOR X:=0 TO NMAXUSERS-1 DO
+              IF DBGPROGS(X)=RTREF THEN X=:CUIDX; EXITA FI
+            OD; EXIT
+
+ RETU:  *IOF                  % WHEN CALLING BRELEASE FROM APPL. LEVEL
+        X:=CURPROG; CALL BRELEASE; GO RET  % RELEASE SYNC. DATAFIELD
+
+ RBUS
+
+ *"8MOLI
+" %==============================================================================
+ %
+ % MON LOGIN
+ %            <LOG.DEV>       : LOGICAL DEVICE NUMBER OF THE TERMINAL
+ %            <USER NAME>
+ %            <PASSWORD>
+ %            <PROJECT PASSWORD>
+ %            <SUBSYSTEM NAME>
+ %            <PASET PARAMETERS>
+ %            <RETURNED STATUS>
+ %
+
+ SUBR 3MLOGIN
+
+ INTEGER MLCPLIST=?
+ GSX:   X:=MLCPLIST+A; *BSET ONE
+        X.S0; *BSET ZRO
+        EXIT
+
+ CMOVSTR: A=:MLICADDR+20=:MLIMXADDR
+        DO WHILE X:=MLICADDR><MLIMXADDR
+           *BSET ONE
+           X.S0; *BSET ZRO
+           IF A=:MLIWORD SHZ -10=15 OR A=##' GO OUT
+           X:=MLICPNT; T:=B; *SBYT
+           MIN MLICPNT; IF MLIWORD/\377=15 OR A=##' GO OUT
+           X:=MLICPNT; T:=B; *SBYT
+           MIN MLICPNT; MIN MLICADDR
+        OD; EXIT
+ OUT:   15; T:=B; X:=MLICPNT; *SBYT
+        MIN MLICPNT
+        EXITA
+ *)FILL
+
+ INTEGER MLCPLIST
+ 3MLOGIN: ZAREG=:MLCPLIST
+        MLEV; *MST PIE
+        CALL ALTON; *BSET ZRO
+        "S6"; CALL GSX; A=:MLIADDR
+        D0; CALL LOGPH; IF A=0 OR D=0 GO EDEV
+        IF A.TYPRING NBIT 5TERM AND A NBIT 5BAD GO EDEV
+        IF X.RTRES><0 GO EOCCU
+        X=:MLITERM
+        IF UNAFLAG><0 AND RTRES><"STSIN" GO ESUNA
+        MLISTRNG SH 1=:MLICPNT
+        "S1"; CALL GSX; CALL CMOVSTR; GO ESTRNG
+        "S2"; CALL GSX; CALL CMOVSTR; GO ESTRNG
+        "S3"; CALL GSX; CALL CMOVSTR; GO ESTRNG
+        "S4"; CALL GSX; CALL CMOVSTR; GO ESTRNG
+        "S5"; CALL GSX; X:=MLIPASET+B; T:=12=:D; D BONE 16
+        *BSET ONE; MOVB; JMP *; BSET ZRO
+        MLICPNT=:MLIMXADDR; MLISTRNG SH 1=:MLICPNT
+        *IOF
+        IF MLITERM.RTRES><0 GO XEOCCU
+        T:="FLAGB"; CALL XGTDFADDR; A BONE 5MLGIN; T:="FLAGB"; CALL XSTDFADDR
+ *"8MOLI -8BACS
+"        T:="DBPROG"; CALL XGTDFADDR; IF A=0 GO XPEND
+        X:=A
+ *"8MOLI 8BACS
+"        CALL RTENTRY
+        RTREF.STATUS BONE 5WAIT=:X.STATUS
+        TTMR=:TMR; "RWAIT"; *IRW MLEVB DP
+        MLEV; *MST PID
+ RETU:  *ION
+        X:=MLIADDR; MLIMSTATUS; *BSET ONE
+        A=:X.S0; *IOF; BSET ZRO
+        X:=RTREF; CALL BRELEASE; GO RET
+ *)FILL
+
+ ESUNA: A:=-1; GO EFEL
+ XEOCC:
+ EOCCU: A:=-1; GO EFEL
+ EDEV:  A:=-1; GO EFEL
+ XPEND:
+        A:=-1; GO EFEL
+ ESTRN: A:=-1; GO EFEL
+ ENOFREE: A:=-1
+ EFEL:  A=:MLIMSTATUS; GO RETU
+
+ RBUS
+ *"
+"
+
+ %==============================================================================
+ % 34.27      G R T D A   -   G S G N O
+ %
+ % GRTDA: MONITOR CALL TO GET ADDR. OF RT-DESCRIPTION
+ % GSGNO: MONITOR CALL TO GET SEGMENT NUMBER FROM SEGMENT NAME
+ %
+ SUBR 3GRTDA,3GSGNO
+
+ DISP 0; DOUBLE DOD1=D1,DOD2=D2; PSID
+ DISP 0; REAL FS0=S0; PSID
+ INTEGER CCRSG=?,CFLAG=?
+
+ 3GSGNO: 5; GO FELLS
+ 3GRTDA: 7
+ FELLS: A=:CFLAG; T=:D0
+        MLEV; *MST PIE
+        IF LOADI=0 GO FAR ERR
+        0=:D1=:D2=:D3
+        CALL ALTON; *BSET ZRO
+        FOR X:=D0 TO D0+3 DO
+              RTREF=:D; A:=X; T:=1; CALL CHLIM; GO FAR ERR; *BSET ONE
+              T:=X.S0; *BSET ZRO
+              T=:D4
+              IF D4 SHZ -10/\177=##' GO OUT
+              A BZERO 6=:T
+              AD:=DOD1 SH 6; A=:D1; AD:=DOD2 SH 6
+              D+T; AD=:DOD2
+              IF D4/\177=##' GO OUT
+              A BZERO 6=:T
+              AD:=DOD1 SH 6; A=:D1; AD:=DOD2 SH 6
+              D+T; AD=:DOD2
+        OD; GO OUT; *)FILL
+ INTEGER CCRSG,CFLAG
+ OUT:   RTREF.ACTSEG=:D4; X.RSEGM=:CCRSG; 0=:X.RSEGM; T:=5RTFIL; CALL MMEXY
+        X:=6; CALL RALTON; X.S0; *BSET ZRO
+        A=:D0; X+1
+        DO WHILE D0><0
+              *BSET ONE
+              X.S4; *BSET ZRO
+              IF A/\7=CFLAG THEN
+                 *BSET ONE
+                 TAD:=X.FS0; *BSET ZRO
+                 IF A-D2=0 AND D=A:=D3 AND T=A:=D1 GO FOUND
+              FI
+              X+7; D0-1=:D0
+        OD; T:=D4; CCRSG=:RTREF.RSEGM; CALL MMEXY
+ ERR:   -1=:ZAREG; GO RET
+ FOUND: *BSET ONE
+        IF CFLAG=7 THEN X.S5; T:=0 ELSE X.S3; T:=1 FI; *BSET ZRO
+        A=:ZAREG; ZPREG+T=:ZPREG; CCRSG=:RTREF.RSEGM; T:=D4; CALL MMEXY
+        GO RET
+
+ RBUS
+
+
+ %==============================================================================
+ % 34.28      G R T N A
+ %
+
+ SUBR 3GRTNA
+
+ DISP 0; REAL FZTREG=ZTREG,FS0=S0; PSID
+ INTEGER CCRSG
+
+ 3GRTNA: IF LOADI=0 GO ERR
+        MLEV; *MST PIE
+        RTREF.ACTSEG=:D1; IF D0=0 THEN X=:D0 FI
+        X.RSEGM=:CCRSG; 0=:X.RSEGM; T:=5RTFIL; CALL MMEXY
+        X:=6; CALL RALTON; X.S0; *BSET ZRO
+        A=:D2; X+1
+        DO WHILE D2><0
+              *BSET ONE
+              X.S4; *BSET ZRO
+              IF A/\37=27 THEN
+                 *BSET ONE
+                 X.S5; *BSET ZRO
+                 IF A=D0 THEN
+                    *BSET ONE
+                    TAD:=X.FS0; *BSET ZRO
+                    GO OUT
+                 FI
+              FI; X+7; D2-1=:D2
+        OD
+        TAD:=FZTREG; D:=0
+ OUT:   TAD=:FZTREG; CCRSG=:RTREF.RSEGM; T:=D1; CALL MMEXY
+        GO RET
+ ERR:   0=:ZDREG; GO RET
+
+ RBUS
+
+ %==============================================================================
+ %            3 S P L R E E
+ %
+ % THIS ROUTINE IS CALLED FROM SPLREE
+ %
+ SUBR 3SPLRE
+
+ DISP 26                      % D5+1
+ INTEGER CBSGNO,CPOTADDR,CCFP,CCLP,CORSEGM,CCBMX,CCPOTADDR,CREBMAP,CCSGNO
+ INTEGER NPAGES=CCBMX,PREVT=CCBMX,PREVX=CCPOTADDR,CURRX=CCSGNO
+ INTEGER CFP1=D1,CLP1=D2,CFP2=D3,CLP2=D4
+ DOUBLE DDDS1=CFP1,DDDS2=CFP2,DDDD0=D0,DDDD2=D2,DDDD4=D4,CCLMS=CCFP
+ PSID
+ DISP 100; DOUBLE D1PREV,D2PREV; PSID   % PREVIOUS LOGICAL ADDRESS AREAS
+ DISP 0; TRIPLE 3BM0,3BM3; DOUBLE 2BM6; PSID
+
+ % COMPUTE ADDRESSES AND SIZES USED BY SEVERAL ROUTINES
+ %
+ GTVALUES: AD=:CCLMS; *BLDA 00 DA
+           T:=D-A; AD SHZ -4; A+CREBMAP=:CCBMX
+           AD SHZ 7; A/\170=:D
+           CCFP SHZ -1; X:=CPOTADDR+A=:CCPOTADDR
+           EXIT
+
+ % FOR ALL PAGES IN PREVIOUS LOGICAL ADDRESS AREA DO
+ %      IF BIT OF CORRESPONDING PAGE IN BITMAP IS SET THEN
+ %         SET CORRESPONDING POT-TABLE ENTRY EQUAL CURRENT REENTRANT SEGMENT
+ %      FI
+ % OD
+ %
+ INTEGER POINTER LREG=?
+ INTEGER ENDINSTR(0); *BSKP ONE 170 DT
+ INTEGER CINSTR(0); *BSKP ONE 00 DT
+ STPOTTABLE: T:=L=:"LREG"; CALL GTVALUES
+         T=:L; A:=CINSTR; D\/A
+         DO WHILE L>>0                            % FOR ALL BITMAP LOCATIONS DO:
+            IF T:=CCBMX.S0><0 THEN                % IF UNEQUAL ZERO
+               *EXR SD                            % TEST EACH BIT
+               GO NOTSET
+               A:=CORSEG; *BSKP ONE SSK; SHA 10   % A = RSEGM READ FROM RT-D
+               A=:CCSGNO; X=:CCBMX:=CCPOTADDR     % X = ADDRESS OF POT-ENTRY
+               T:=SREBBANK; *LDATX                % T = BANK NO. WHERE POT RESIDES; A = POT INFORMATION
+               IF K NBIT THEN                     % ACCORDING TO THE SETTING OF K-INDICATOR
+                   A/\377
+               ELSE                               % TAKE RIGHT- OR LEFTMOST BYTE
+                   A/\177400
+               FI
+               A\/CCSGNO; *STATX                  % COMBINE WITH RSEGM-INFO AND UPDATE POT-ENTRY
+               *BSKP ZRO SSK
+               MIN CCPOTADDR; 0/\0                % INCREMENT POINTER IN POT-ENTRY
+ NOTSET:       L-1
+               T:=10; IF D+T>>ENDINSTR GO INELSE  % MODIFY BSKP INSTRUCTION TO TEST FOR NEXT BIT
+               *BSET BCM SSK                      % SWITCH VALUE OF K-INDICATOR
+           ELSE
+               A:=D SHZ -3/\17; T:=20-A; L-T; T+1 SHZ -1
+               CCPOTADDR+T=:CCPOTADDR
+ INELSE:       CINSTR=:D; K:="0"; MIN CCBMX       % MAKE READY TO TEST NEXT BITMAP WORD
+           FI
+         OD; GO LREG
+
+ INTEGER CBSET(0); *BSET ZRO 00 DA
+ INTEGER LBSET(0); *BSET ZRO 170 DA
+ INTEGER CLBSGNO
+ INTEGER POINTER LREG
+ MBCLBITS: T:=L=:"LREG"; CALL GTVALUES
+           T=:L; A:=CBSET; D\/A
+           DO WHILE L><0                          % FOR ALL PAGES IN LOGICAL AREA DO:
+              X:=CCPOTADDR; T:=SREBBANK; *LDATX   % READ A WORD FROM POT-TABLE
+              *BSKP ONE SSK                       % SKIP NEXT IF PAGE NO IS AN ODD NUMBER
+              *SHA ZIN SHR 10                     % SEGMENT NUMBER IN RIGHTMOST BYTE
+              IF A/\377-D0><0 THEN                % IF EQUAL SEGMENT NO IN PARAMETERLIST
+                 *LDATX; BSKP ZRO SSK; JMP RBY
+                 A/\377\/CLBSGNO; GO FELLS
+ RBY:            A/\177400\/CBSGNO
+ FELLS:          *STATX
+                 X:=CCBMX; X.S0; *EXR SD          %   SET THE RESPECTIVE BIT TO 1
+                 A=:X.S0                          %   IN BITMAP
+              FI; T:=10
+              IF D+T>>LBSET THEN                  % IF LAST BIT IN THIS LOC. HAS BEEN SET
+                  CBSET=:D; MIN CCBMX; 0/\0       %   MAKE READY FOR THE NEXT ONE
+              FI
+              *BSET BCM SSK                       % SWITCH VALUE OF K (INDICATES ODD OR EVEN PAGE NO)
+              IF K NBIT THEN MIN CCPOTADDR; 0/\0 FI; L-1
+          OD; GO LREG
+ *)FILL
+
+ TRIPLE ALLONES(0); *-1;-1;-1
+
+ CCHLIMS: D+A; IF C OR A>>200 OR D>>T GO CR15ERRD
+          EXIT
+
+ CR15ERRD: D0; GO R15ERRD
+
+ 3SPLRE: RTREF.SEGM SHZ -10+1=:CBSGNO                       % GET BACKGROUND SEGMENT NO
+         T:=A SH 10=:CLBSGNO
+         IF A*5SEGSIZE+SEGSTART><NSEGB GO RETSTUPR          % IF UNEQUAL NSEGB START SCANNING EXEC.QUEUE
+         A:=RTREF-"BAK01"=:D:=0; T:=5RTSIZE; *RDIV ST       % INDEX IN RT-D TABLE, BAK01 = INDEX 0
+         A*POTESIZE+SREBADDR=:CPOTADDR; X.RSEGM=:CORSEGM    % CPOTADDR = POINTER TO POT-ENTRY, SAVE REENTR. SEG NO
+         X.RTDLGADDR+5BITMAP=:CREBMAP
+         IF D0=0 AND CORSEGM=0 THEN
+            X:=NSEGB; CBSGNO; CALL WSEGX                    % WRITE SHADOW SEGMENT BACK
+         FI
+         IF D0><0 THEN                                      % IF SEGMENT NUMBER UNEQUAL O
+            CALL LEGSEG; IF A NBIT 5SREEP GO CR15ERRD       % LEGAL SEGMENT ? DEMAND SEGMENT?
+            IF A SHZ -11/\3><0 GO CR15ERRD                  % RING ><0 ?
+            IF X.LOGADR SHZ -6/\3<1 OR A>2 GO CR15ERRD      % PAGE TABLE MUST BE 1 OR 2
+         FI
+         AD:=DDDS1; CALL CCHLIMS; AD=:DDDS1                 % LOGICAL AREA 1 TOO LARGE?
+         AD:=DDDS2; CALL CCHLIMS; AD=:DDDS2                 % LOGICAL AREA 2 TOO LARGE?
+         IF D5><0 THEN                                      % IF POT-ENTRY FOR THIS PROGRAM IS TO BE CLEARED
+            X:=CPOTADDR; A:=X+100=:L                        %    X POINTS TO START OF POT-ENTRY, L POINTS TO THE NEXT
+            CBSGNO SH 10\/CBSGNO=:D; T:=SREBBANK
+            DO WHILE X><L                                   %    FOR ALL BYTES IN THE POT-ENTRY
+               *STDTX; AAX 2                                %    FILL IN BACKGROUND SEGMENT NUMBER
+            OD;
+         ELSE
+            IF CORSEGM><0 THEN
+               X:=CPOTADDR; T:=SREBBANK; *AAX D1PRE; LDDTX
+               CALL FAR STPOTTABLE
+               X:=CPOTADDR; T:=SREBBANK; *AAX D2PRE; LDDTX
+               CALL FAR STPOTTABLE
+            FI
+         FI
+         TAD:=ALLONES=:CREBMAP.3BM0=:X.3BM3; AD=:X.2BM6
+         IF D0><0 THEN
+            AD:=DDDS1; CALL FAR MBCLBITS
+            AD:=DDDS2; CALL FAR MBCLBITS
+         FI; GO L1; *)FILL
+
+ INTEGER POINTER PPBPAG1:=BPAG1
+ INTEGER CBSKP(0); *BSKP ZRO 00 DT
+ L1:     AD:=DDDS1; T:=SREBBANK; X:=CPOTADDR; *AAX D1PRE; STDTX
+         T:=100; A+T; D+T; AD=:DDDS1
+         AD:=DDDS2; T:=SREBBANK; *AAX D2PRE-D1PRE; STDTX
+         T:=100; A+T; D+T; AD=:DDDS2
+         IF D0><0 THEN
+            T:=0; X:=NSEGB+1   % BPAGLINK=1
+            DO
+               T=:PREVT; X=:PREVX; *LDXTX DPAGL
+            WHILE X><0
+               T:=CORMBANK; X=:CURRX; *LDATX DALOG
+               IF A>=CFP1 AND A<CLP1 GO COVERLAP
+               IF A<CFP2 OR A>=CLP2 GO NOVERLAP
+ COVERLAP:     A-100; AD SHZ -4; A+CREBMAP=:X
+               AD SH 7; A/\170+CBSKP; T:=X.S0; *EXR SA
+               GO NOVERLAP
+               X:=CURRX; T:=CORMBANK; *LDATX DPAGL
+               A=:L:=PPBPAG1; *STATX DPAGL
+               A:=1; *STATX DPGPR
+               X=:PPBPAG1:=PREVX; T:=PREVT; A:=L; *STATX DPAGL
+               GO EDO
+ NOVERLAP:     T:=CORMBANK; X:=CURRX
+ EDO:       OD
+            IF PPBPAG1><0 AND "XSGRT".SEGLINK=0 THEN
+               X:="BSEGLINK"; DO WHILE X.SEGLINK><-1; X:=A; OD
+               "XSGRT"=:X.SEGLINK; -1=:"XSGRT".SEGLINK
+            FI
+         FI; D0=:RTREF.RSEGM; GO RETSTUPR
+ RBUS
+
+
+
+
+ %==============================================================================
+ %            S T S L I C E
+ %
+ % ROUTINE TO TIMESLICE ND-100 PROCESSES
+ %
+
+ SUBR STSLICE
+
+ INTEGER CINDEX=?,CTSLPROC=?,CTSLSTATUS=?
+
+ STSLICE:
+        MLEV; *MCL PIE                   % STSLICE ENTRY POINT
+        0=:CINDEX; X:=FPTSLICE
+        DO WHILE X<<LPTSLICE
+           IF X.WLINK=0 GO NXTSLPROG                   % PROGRAM NOT ACTIVE
+           X=:B=:CTSLPROC
+           IF TSLSTATUS(CINDEX) NBIT 5NOSLICE AND NBIT 5SPRF THEN
+              A=:CTSLSTATUS
+              IF A BIT 5ESCF THEN                       % WAITING FOR ESCAPE PRIORITY?
+                 A BZERO 5ESCF BZERO 5BRKF=:CTSLSTATUS  % CLEAR ESCAPE AND BREAK
+                 A SHZ -7CUTY/\7                        % FIND SLICE TYPE
+                 TSLESCELEM(A); GO INBRKTEST            % GET ESCAPE ELEMENT
+              FI
+              IF A BIT 5BRKF THEN                       % WAITING FOR BREAK PRIORITY?
+                 A BZERO 5BRKF=:CTSLSTATUS              % CLEAR BREAK FLAG
+                 IF STATUS/\377<=TSLLOWLG THEN          % CAN PRIORITY BE INCREASED
+                    CTSLSTATUS SHZ -7CUTY/\7            % FIND SLICE TYPE
+                    TSLBRKELEM(A)                       % GET BREAK ELEMENT
+ INBRKTEST:         A=:D:=CTSLSTATUS/\177740\/D=:CTSLSTATUS
+                    DTIN2=:TSLNTIME(CINDEX)
+                    GO SETALL
+                 FI
+              FI
+ %            A:=TSLNTIME(CINDEX)-TSLIDLE=:TSLNTIME(X)-+DTIN2=:D:=0
+              A:=DTIN2-TSLNTIME(CINDEX)=:D:=0
+              T:=TSLTUNIT; *RDIV ST                      % COMPUTE CPU TIME USED
+              IF A+TSLCOUNTA(X)<0 GO CONWAIT             % TIMESLICE FINISHED?
+              DTIN2=:TSLNTIME(X)                         % YES, SET NEW CPU TIME
+ FINNEW:      CTSLSTATUS/\37=:X                          % TIMESLICE ELEMENT
+              A:=CTSLSTATUS/\177740\/TSLNEXTAB(X)        % FIND NEXT ELEMENT IN CHAIN
+              A=:CTSLSTATUS/\37=:D
+
+ SETALL:      IF TSLTIMTAB(D)=:T-TSLHTIME>=0 THEN        % HASH ELEMENT?
+                 DTIN2/\TSLHASHM+T                       % YES; HASH WITH TIME USED
+              ELSE
+                 A:=T
+              FI; A-=:TSLCOUNTA(CINDEX)                  % SET TIMSLICE COUNTER
+              STATUS/\177400\/TSLPRITAB(D)=:STATUS       % SET PRIORITY ON PROCESS
+              X:=B; CALL FRWQU
+              IF A><0 THEN B:=A; CALL TOWQU FI           % UPDATE EX-QUEUE
+              CTSLSTATUS=:TSLSTATUS(CINDEX)
+ CONWAIT:  FI; X:=CTSLPROC
+ NXTSLPROG: X+5RTSIZE; MIN CINDEX
+        OD; MLEV; *MST PIE
+        CALL N500SCHEDULER                               % TIMESLISE ND-500 PROCESSES
+        *IOF
+        X:=RTREF; CALL FREXQ; 1=:MTOR
+        "MONEN"; *IRW MLEVB DP
+        MLEV; *MST PID; ION; JMP *                       % TERMINATE RTSLI (INSTEAD OF MON RTEXT)
+
+ INTEGER CINDEX,CTSLPROC,CTSLSTATUS
+
+ RBUS
+ %==============================================================================
+ %            T 3 R E P P     (TREPP  MON 332)
+ %
+ %      MONITORCALL TO DISABLE/ENABLE AND READ TERMINAL REPPORT
+ %
+ %      ENTRY: T = LOGICAL DEVICE NUMBER ( 1: OWN TERMINAL BACKGROUND)
+ %             A = FUNCTION  = 0: DISABLE TERMINAL-REPPORT
+ %                           = 1: ENABLE  TERMINAL-REPPORT
+ %                           = 2: READ    TERMINAL-STATUS
+ %      ERROR RETURN: A = ERROR NUMBER
+ %      SKIP  RETURN: FUNCTION 0: OK
+ %                    FUNCTION 1: OK
+ %                    FUNCTION 2: OK  A = STATUS
+ %                                        BIT  0: 1 - TERMINAL LINE DEAD
+ %                                        BIT  1: 1 - LOGOUT WAITING FOR MON 0
+ %                                        BIT  2: 1 - OVERRUN IN INPUT BUFFER
+ %                                        BIT  3: 1 - PARITY ERROR IN INPUT
+ %                                        BIT  4: 1 - FRAMING ERROR IN INPUT
+ %      BITS USED IN FLAGB:
+ %           BIT  0: 5TLREP
+ %           BIT   : 5LOGOUT
+ %           BIT 17: 5LSTA
+ %      BITS USED IN TINFO:
+ %           BIT 17: 5BFUL   - READ AND CLEAR
+ %           BIT 16: 5PAER   - -----"-------
+ %           BIT 15: 5FRER   - -----"-------
+
+ SUBR T3REPP
+ INTEGER POINTER TTIF:=TTIFIELD,PBCHFLAG:=BCHFLAG
+ T3REPP: IF BACKGROUND><0 AND ZTREG=1 THEN         % BACKGROUND OWN TERMINAL
+            IF PBCHFLAG=1 GO DUMRE                 % FAKE ALWAYS OK IF BATCH
+            X:=TTIF                                % TTIFIELD IS TERM. DATAF.
+        ELSE                                       % RT OR BACKGROUND DEV SPEC.
+           IF ZTREG/\177700=100 GO ILLDV           % FILE IS ILLEGAL
+           ZTREG; CALL LOGPH; IF A=0 GO ILLDV      % FIND DATAFIELD
+           IF A.RTRES><RTREF GO NRESV              % DEVICE MUST BE RESERVED
+           IF X.TYPRING BIT 5TERM THEN
+              CALL XSETBFPAGE
+           FI
+        FI
+        IF X.TYPRING BIT 5COM THEN A:="0"; T:=X.FLAGB; GO IGNLI FI
+        IF A NBIT 5TERM AND A NBIT 5BAD THEN GO ILLDV FI
+        IF ZAREG=0 THEN X.FLAGB BZERO 5TLREP=:X.FLAGB; GO DUMRE FI
+        IF A=1 THEN X.FLAGB BONE 5TLREP=:X.FLAGB; GO DUMRE FI
+        IF A=2 THEN
+           A:="0"
+           IF T:=X.FLAGB BIT 5LSTA THEN
+              A BONE "0"                                    % LINE IS DEAD
+           ELSE
+              IF T BIT 5TLREP AND T BIT 5LOGOUT THEN        % TERMINATION STARTED
+                 A BONE "0"   % LINE IS UP, BUT NOT RAPPORTED
+              ELSE
+                 A BZERO "0"  % LINE IS UP
+              FI
+           FI; *IOF
+           T:=X.TINFO
+           IF T BIT 5BFUL THEN T BZERO 5BFUL; A BONE 2 FI
+           IF T BIT 5PAER THEN T BZERO 5PAER; A BONE 3 FI
+           IF T BIT 5FRER THEN T BZERO 5FRER; A BONE 4 FI; T=:X.TINFO; *ION
+ IGNLI:    IF T BIT 5LOGOUT THEN A BONE 1 ELSE A BZERO 1 FI % LOGOUT WANTED?
+           GO RERET
+        FI
+        GO ILLFU
+
+ DUMRE: A:="0"
+ RERET: MIN ZPREG; 0/\0
+ RETU:  A=:ZAREG; GO RET
+ NRESV: A:=5; GO RETU                   % DEVICE NOT RESERVED
+ ILLDV: A:=240; GO RETU                 % ILLEGAL DEVICE TYPE
+ ILLFU: A:=201; GO RETU                 % ILLEGAL FUNCTION CODE
+ RBUS
+
+ %=======================================================================
+ %  11.34     G D E V 3 T Y
+ %
+ %  MONITOR CALL TO GET DEVICE-TYPE AND ATTRIBUTES (MON 263)
+ %
+ %  ENTRY:        T-REG:   DEVICE NUMBER
+ %                A-REG:   0=INPUT, 1=OUTPUT
+ %  SKIP RETURN:  T-REG:   DEVICE TYPE
+ %                A&D REG: DEVICE ATTRIBUTES
+ %  RETURN:       A-REG:   ERROR CODE
+ %
+ %  DEVICE TYPES RETURNED IN T-REG
+ %      0 - UNSPECIFIED
+ %      1 - TERMINAL
+ %      2 - BACKGROUND ACCESS DEVICE (BAD)
+ %      3 - COMMUNICATION CHANNEL
+ %      4 - INTERNAL BLOCK DEVICE
+ %      5 - FLOPPY-DISK
+ %      6 - MAG-TAPE
+ %      7 - MASS-STORAGE-FILE
+ %
+ %  ATTRIBUTES  RETURNED IN A&D REG
+ %     BIT  0: INBT/OUTBT ALLOWED
+ %     BIT  1: CONCT ALLOWED
+ %     BIT  2: IOSET ALLOWED
+ %     BIT  3: BLOCK CALLS ALLOWED
+ %     BIT  4: CLEAR DEV ROUTINE AVAILABLE
+ %     BIT  5: NO RESERVATION NECESSARY
+ %     BIT  6: COSMOS REMOTE OPEN FILE
+ %     BIT  7: NN-CHANNEL USED FOR REMOTE OPEN
+
+ SUBR GDEV3TY
+ SYMBOL 9BTERM=1,9BBAD,9BCOM,9BIBDV,9BFLOP,9BMT,9BRFILE            % TYPES
+ SYMBOL AIOBT,ACONCT,ATISET,AM144,ACLDV,ANORES,ACOSOP,ANNOP  % ATTRIBUTES
+ INTEGER POINTER PTTNO:=TTNO,PBCHFLAG:=BCHFLAG, PTTIF:=TTIFIELD
+
+ GDEV3TY:
+        IF BACKGROUND><0 AND ZTREG=1 THEN
+           IF PBCHFLAG=0 THEN
+              PTTNO
+           ELSE
+              X:=PTTIF
+              IF ZAREG=0 THEN X.RIFIL ELSE X.DFOPP.ROFIL FI
+           FI
+        ELSE
+           ZTREG
+        FI
+        CALL LOGPH
+        IF T:=ZAREG><0 THEN D=:A FI
+        IF A=0 GO ERR                             % NO SUCH LOGICAL UNIT
+        IF A.TYPRING BIT 5TERM THEN T:=9BTERM; GO ATRIB FI
+        IF A BIT 5BAD   THEN T:=9BBAD;   GO ATRIB FI
+        IF A BIT 5COM   THEN T:=9BCOM;   GO ATRIB FI
+        IF A BIT 5IBDV  THEN T:=9BIBDV;  GO ATRIB FI
+        IF A BIT 5FLOP  THEN T:=9BFLOP;  GO ATRIB FI
+        IF A BIT 5MT    THEN T:=9BMT;    GO ATRIB FI
+        IF A BIT 5RFILE THEN T:=9BRFILE; GO ATRIB FI
+        T:=0
+ ATRIB: T=:ZTREG:=0
+        IF A BIT 5RFILE THEN
+           A=:D; IF X.OFFLG BIT 5RCFIL THEN T BONE ACOSOP FI
+           IF A BIT 5REMPO THEN T BONE ANNOP FI
+           D=:A
+        FI
+        IF A BIT 5IOBT  THEN T BONE AIOBT FI
+        IF A BIT 5CONCT THEN T BONE ACONCT FI
+        IF A BIT 5ISET  THEN T BONE ATISET FI
+        IF A BIT M144B  THEN T BONE AM144 FI
+        IF A BIT 5CLDV  THEN T BONE ACLDV FI
+        IF A BIT 5NORES THEN T BONE ANORES FI
+
+ UT:    T=:ZDREG; 0=:ZAREG; MIN ZPREG; 0/\0; GO RET
+
+ ERR:   33=:ZAREG; GO RET
+ RBUS
+
+
+ %=============================================================================
+ %            3 G E T X T     (MON 334)
+ %
+ SUBR 3GETXT
+ DISP 0; INTEGER SVACTSG=D0,SVRSGM=D1; PSID
+ 3GETXT:RTREF=:D; ZXREG; T:=100; CALL CHLIM; GO ERR  % CHECK USER'S BUFFER ADDRESS
+        RTREF.ACTSEG=:SVACTSG; X.RSEGM=:SVRSGM       % SAVE USER'S SEGMENT
+        MLEV; *MST PIE
+        T:=ECODSEG; CALL MMEXY                       % GET ERROR-PROGRAM SEGMENT
+        IF ZAREG<<ER0 THEN
+           ERSTB(A)
+        ELSE
+           IF A<<ERM THEN A-ER0 ELSE A:=0 FI
+           ERTAB(A)
+        FI
+ @LIB CXCPU
+ @LIB CXCPU-,
+        X:=A; 100=:L; B=:D; "CBUFF"=:B
+        DO WHILE L><0                                 % MOVE ERROR-MESSAGE TO BUFFER
+           *LDA ,X; BSET ZRO; STA ,B; BSET ONE
+           L-1; X+1; B+1
+        OD; B:=D; SVRSGM=:RTREF.RSEGM; T:=SVACTSG; CALL MMEXY   % UNSAVE USER'S SEGMENT
+        OLDPAGE=:D; CALL DALTON; *BSET ZRO
+        X:=ZXREG; B=:D; 100=:L; "CBUFF"=:B
+        DO WHILE L><0
+           *LDA ,B; BSET ONE; STA ,X; BSET ZRO
+           L-1; X+1; B+1
+        OD; B:=D; MIN ZPREG; 0/\0; GO RET
+ @ELIB
+ ERR:   153=:ZAREG; GO RET                                  % ILLEGAL ADDRESS REFS IN MONCALL
+ *)FILL
+ INTEGER ARRAY CBUFF(100)                                   % BUFFER FOR ERROR-MESSAGE
+ RBUS
+
+ %==============================================================================
+ %            E X A B S       (MON 335)
+ %
+ % ENTRY:     X=WORKING AREA
+ %            B=PARAMETER LISTE
+ %
+ SUBR 3EXABS
+
+ DISP 0; TRIPLE TRIP1=ZPREG,TRIP2=ZAREG,TRIP3=ZSREG; PSID
+ DISP 4;  INTEGER A3FUNC;     PSID
+ DISP 5;  DOUBLE A3MEMAD;     PSID
+ DISP 20; DOUBLE A3MADDR;     PSID
+ DISP 22; DOUBLE A3NWRD;      PSID
+ DISP 24; INTEGER A3RETADDR;  PSID
+ DISP 25; INTEGER A3PLIST;    PSID
+
+ INTEGER SVX=?
+
+ 3EXABS:IF X.OLDPAGE NBIT "1" THEN
+            X=:B; -1=:ZAREG; GO RETSTUPR                    % ERROR, PROG NOT ON RING 2
+        FI; MLEV; *MCL PIE
+        X=:SVX
+        FOR X:="FPL3ABS" STEP 31 TO "LPL3ABS"-31 DO            % FIND PARAMETER FIELD
+           IF X.RTRES=0 OR A=RTREF GO FOUND
+        OD
+        IF X.RTRES=0 THEN X=:B:="DUMMY"; CALL BRESERVE; FI  % RESERVE QUEUEING SEMAPHORE FOR DUMMY
+        X:=RTREF; CALL FREXQU; CALL TOWQU                   % WAIT FOR ABSTR PARAMETER LISTE
+        SVX=:B; ZPREG-1=:ZPREG; GO RETSTUPR; *)FILL
+
+ INTEGER SVX
+ FOUND: X=:B:=RTREF; CALL BRESERVE                          % RESERVE ABSTR PARAMETER LISTE
+        IF A<0 THEN CALL ERRFATAL FI; X:=SVX
+        TAD:=X.TRIP1=:TRIP1:=X.TRIP2=:TRIP2:=X.TRIP3=:TRIP3
+        X:=:B=:SVX:=RTREF; CALL BRELEASE                    % RELEASE ORIGINAL WORKING FIELD
+        SVX=:B; MLEV; *MST PIE
+        OLDPAGE=:D; CALL DALTON; *BSET ZRO                  % SET ALT.PIT=USER'S.ALT.PIT
+        X:=ZAREG; *BSET ONE                                 % SET UP ABSTR PARAMETER LISTE
+        X:=X.S0; X.S0; *BSET ZRO
+        A=:A3FUNC; X:=ZAREG; *BSET ONE
+        X:=X.S1; X.DS0; *BSET ZRO
+        AD=:A3MEMAD; X:=ZAREG; *BSET ONE
+        X:=X.S2; X.DS0; *BSET ZRO
+        AD=:A3MADDR; X:=ZAREG; *BSET ONE
+        X:=X.S3; X.DS0; *BSET ZRO
+        AD=:A3NWRD; X=:A3RETADDR
+        T:=ZTREG; "A3PLIST"+B; *MON 2ABST
+        A=:ZAREG; X:=A3RETADDR; A3NWRD; *BSET ONE
+        AD=:X.DS0; *BSET ZRO
+        MLEV; *MCL PIE
+        IF "LPL3ABS".RTRES="DUMMY" THEN
+           IF X.BWLINK><X THEN
+              X:=:B; X=:SVX:=A; CALL FRWQU; CALL TOEXQU; SVX=:B
+           FI
+        FI; X:=RTREF; CALL BRELEASE
+        GO RET
+
+ RBUS
+
+ *"8ESCX
+" %==============================================================================
+ %            E L O N 3    E L O F 3
+
+ % MONITOR CALLS TO TURN ON OFF DELAYED ESCAPE HANDLING
+ %
+ % ELON3  (ELON  - MON 302)   - NORMAL  ESCAPE/LOCAL DETECTION
+ % ELOF3  (ELOFF - MON 303)   - DELAYED ESCAPE/LOCAL DETECTION
+ SUBR ELON3,ELOF3,T207RET
+ INTEGER POINTER TTIF:=TTIFIELD
+ ELON3: IF TTIF=0 THEN 33; GO RETU; FI
+        IF A.TYPRING NBIT 5TERM AND A NBIT 5BAD AND A NBIT 5COM THEN
+           240; GO RETU
+        FI
+        IF X.FLAGB BIT 5WLOC THEN
+              IF A BIT 5LCHAR THEN
+                 X.LUSADD=:ZPREG        % RETURN IN LOCAL CHAR HANDLING
+                 GO ESON
+              FI
+        FI
+        IF A BIT 5WESC THEN
+              X:=:B; GO T2P07           % ESCAPE RESPONSE IF TAD
+ T207RET:     X:=:B                     % T2P07 ALWAYS RETURNS TO T207RET
+              IF X.FLAGB BIT 5USESC THEN
+                 X.EUSADD=:ZPREG        % RETURN IN USER ESCAPE HANDLING
+                 GO ESON
+              ELSE
+                 "XBRTWT"               % SYSTEM ESCAPE HANDLING
+                 *IOF; IRW MLEVB DP
+                 MLEV; *MST PID
+              FI
+        FI
+        MIN ZPREG; 0/\0
+ ESON:  X.FLAGB BZERO 5ESCLOFF; GO OUT
+
+ ELOF3: CALL GET0; IF TTIF=0 THEN 33; GO RETU; FI
+        IF A.TYPRING NBIT 5TERM AND A NBIT 5BAD AND A NBIT 5COM THEN
+           240; GO RETU
+        FI
+        X.FLAGB BONE 5ESCLOFF; MIN ZPREG; 0/\0; GO OFOUT
+ OUT:   A BZERO 5WLOC BZERO 5WESC
+ OFOUT: A=:X.FLAGB; A:=0; *ION
+ RETU:  A=:ZAREG; GO RET
+ RBUS
+
+ %==============================================================================
+ %            E L O 3 F   D L O F 3
+
+ % MONITOR CALLS TO ENABLE/DISABLE LOCAL FUNCTION
+ %
+ % ELO3F (ELOFU - MON 276)   - ENABLE  LOCAL FUNCTION
+ % DLOF3 (DLOFU - MON 277)   - DISABLE LOCAL FUNCTION
+ SUBR ELO3F,DLOF3
+ INTEGER POINTER TTIF:=TTIFIELD
+ ELO3F: K:=1; GO FELLS
+ DLOF3: K:="0"
+ FELLS: IF TTIF=0 THEN 33; GO RETU; FI
+        IF A.TYPRING NBIT 5TERM AND A NBIT 5BAD THEN
+           240; GO RETU
+        FI
+        IF K THEN
+           ZAREG=:X.LUSADD; *IOF
+           X.FLAGB BONE 5LCHAR=:X.FLAGB; *ION
+        ELSE
+           *IOF
+           X.FLAGB BZERO 5LCHAR BZERO 5WLOC=:X.FLAGB; *ION
+        FI
+        MIN ZPREG; 0/\0; A:=0
+ RETU:  A=:ZAREG; GO RET
+ RBUS
+
+ %==============================================================================
+ %            E U S E 3   D U S E 3
+
+ % MONITOR CALLS TO ENABLE/DISABLE USER ESCAPE HANDLING
+ %
+ % EUSE3 (EUSEL - MON 300)   - ENABLE  USER ESCAPE HANDLING
+ % DUSE3 (DUSEL - MON 301)   - DISABLE USER ESCAPE HANDLING (NORMAL SINTRAN MODE)
+ SUBR EUSE3,DUSE3
+ INTEGER POINTER TTIF:=TTIFIELD
+ EUSE3: K:=1; GO FELLS
+ DUSE3: K:="0"
+ FELLS: IF TTIF=0 THEN 33; GO RETU; FI
+        IF A.TYPRING NBIT 5TERM AND A NBIT 5BAD THEN
+           240; GO RETU
+        FI
+        IF K THEN
+           ZAREG=:X.EUSADD; *IOF
+           X.FLAGB BONE 5USESC=:X.FLAGB; *ION
+        ELSE
+           *IOF
+           X.FLAGB BZERO 5USESC BZERO 5WESC=:X.FLAGB; *ION
+        FI
+        MIN ZPREG; 0/\0; A:=0
+ RETU:  A=:ZAREG; GO RET
+ RBUS
+
+ *"8IBRS
+" %=======================================================================
+ %            I B R 3 S
+ %
+ % MONITOR CALL TO RETURN NUMBER OF CHARACTERS IN THE INPUT-BUFFER
+ % IF BREAK STRATEGY APPLIES TO THE DEVICE, NUMBER OF CHARACTERS
+ % UNTIL BREAK CONDITION IS ALSO RETURNED.
+ % MON 313
+ % ENTRY:       T = DEVICE-NUMBER
+ % SKIP-RETURN: A = NUMBER OF CHARACTERS IN BUFFER
+ %              X = BREAK CHARACTER NUMBER
+ % NOSKIP:      A = ERROR CODE
+
+ SUBR IBR3S,T206RET
+ INTEGER POINTER PTTNO:=TTNO,PBCHFLAG:=BCHFLAG
+ INTEGER BREG=?,BCOUNT=?,BHENTE=?,BBUFS=?
+ @LIB CXCPU
+ IBR3S: CALL GZTREG; GO FAR ERR; IF A=0 GO FAR ERR; *IOF
+        A:=:B=:BREG
+        IF TYPRING BIT 5TERM THEN                 % TERMINAL
+ @LIB CXCPU
+           0=:BCOUNT
+           IF BRKTAB><0 THEN                                          % BREAK APPLIES
+              IF BHOLD><0 THEN
+                 IF DFLAG NBIT 5ECHO THEN                             % PAST BREAK IN DRIVER
+                    HENTE=:BHENTE
+                    IF RSISTE=-1 THEN                                 % HENTE PAST FIRST BREAK
+ CHCHR:                1=:BCOUNT
+ @LIB CXCPU
+ @LIB CXCPU-,
+                       BUFST=:BBUFS
+ @ELIB
+                       FOR X:=BCOUNT TO BHOLD DO; X=:BCOUNT           % SEARCH FOR BREAK
+                          T:=BBUFS; X:=BHENTE
+ @LIB CXCPU
+ @LIB CXCPU-,
+                          CALL IBLBYT
+ @ELIB
+                          X+1 IF X=MAX THEN X:=0 FI; X=:BHENTE
+                          X:=BRKTAB; CALL VSXGETBIT; IF A<0 GO RETTR
+                       X:=BCOUNT; OD
+                       0=:BCOUNT
+                       IF BRKMAX><0 THEN
+                          IF BHOLD+NCBRK>=BRKMAX THEN
+                             BRKMAX-NCBRK=:BCOUNT
+                          FI
+                       FI
+                    ELSE
+                       IF BHENTE=RSISTE GO CHCHR
+                       DO                                             % BREAK FROM DRIVER
+                          A+1; IF A=MAX THEN A:=0 FI                  % FIND NUMBER
+                          MIN BCOUNT; IF A=RSISTE GO RETTR
+                       OD
+           FI;FI;FI;FI
+ RETTR:    A:=BHOLD
+ @LIB CXCPU
+           GO RETU; *)FILL
+
+ INTEGER BREG,BCOUNT,BHENTE,BBUFS
+
+        FI
+        IF TYPRING BIT 5COM THEN                  % COMMINICATION CHANNEL
+           IF BRKTAB><0 THEN
+              BYTS-=:BCOUNT
+           ELSE
+              0=:BCOUNT
+           FI
+           A:=BYTS-; GO RETU
+        FI
+        IF TYPRING BIT 5BAD THEN                  % BACKGROUND ACCESS DEVICE
+           X:=BREG; GO T2C06                      % RETURN IN BISIZ IF TAD INCLUDED
+        FI
+ T206RET:
+        IF TYPRING BIT 5IOBT THEN
+           0=:BCOUNT; A:=BHOLD; GO RETU
+        FI
+
+ ERRB:  BREG=:B
+ ERR:   240=:ZAREG; GO RET
+ RETU:  T:=BREG=:B; T:=BCOUNT
+        A=:ZAREG; T=:ZXREG; MIN ZPREG; 0/\0; GO RET
+ RBUS
+ *"
+"
+ %==============================================================================
+ % 34.3       M C 1 4 4
+ %
+ %
+ % CALL MAGTP(FUNC,CORAD,LOG.DEV,MAXWORDS,READWORDS)
+ % ENTRY: B=DF-DATAFIELD
+ %       PARAMETERS ARE IN DATAFIELD
+ % EXIT: A=0 IF OK
+ %
+ SUBR PT3MC144,RMAGT
+
+ % VARIABLES IN I/O DATAFIELD:
+
+ DISP 25; INTEGER CASUN; PSID           % DEVICE UNIT NUMBER
+
+ % VARIABLES IN "DF" DATAFIELDS:
+
+ DISP 35
+    INTEGER DMLOG                % LOGICAL DEVICE NUMBER OF MASS STORAGE DEVICE
+    INTEGER DMFLD                % DATA FIELD ADDRESS OF MASS STORAGE DEVICE
+    INTEGER IUNIT                % DEVICE UNIT NUMBER
+    INTEGER MDBUF                % DEVICE BUFFER ADDRESS: LEAST SIG. 16 BITS
+    INTEGER CMDBUF               % DEVICE BUFFER ADDRESS: LEAST SIG. 16 BITS
+                                 % WILL BE INCREMENTED WITH 1K FOR EACH K WORDS
+                                 % TO READ/WRITE
+    INTEGER MDFI                 % DEVICE BUFFER HEADER ADDRESS
+    INTEGER FIMAX                % NO. OF WORDS TO READ OR WRITE IF FLOPPY DISC
+    INTEGER SVXERR=DMLOG         % TEMPORARLY SAVING OF X-REGISTER
+    INTEGER TSAVE=MDBUF          % TEMPORARLY SAVING OF T-REGISTER
+ PSID
+
+ %      DISPLACEMENTS IN INTERNAL BLOCK DEVICE DATAFIELDS.
+
+ DISP -3
+    INTEGER DBLDN             % LOGICAL DEVICE NUMBER OF DBH RESERVED FOR THIS IBD. (ONLY FIRST). .
+    INTEGER INWORDS           % NO. OF WORDS IN BUFFER                                            .  INPUT PART ONLY
+    INTEGER IDFOPP            % ADDRESS OF OUTPUT DATAFIELD                                       .
+ PSID
+ DISP 13
+    INTEGER BREGC
+ PSID
+
+ INTEGER POINTER OFLD1=?,OFLD=?  % OPEN FILE TABLE LOCK
+ INTEGER POINTER OFLD3:=OFLCK
+
+ PT3MC144:
+        IF IOLOG>="RDVLO" AND <"RDVHI" THEN   % REMOTE PERIPHERAL?
+           IOLOG-"RDVDF"=:IOLOG; CALL LOGPH; IF =0 THEN D=:A; FI; A=:DMFLD
+           IF =0 THEN A:=174; GO FAR ERR; FI
+           IF A.OFNBR<100 OR >177 THEN A:=201; GO FAR ERR; FI; GO RMAG
+        FI
+        IOLOG; CALL LOGPH; IF =0 THEN D=:A FI
+        IF =0 OR A.TYPRING NBIT M144B THEN 174; GO FAR ERR FI
+        IF A BIT 5COM THEN CALL COMBLOCK FI                 % 5COM: COMMUNICATION CHANNEL
+        IF A BIT 5HDMA OR A BIT 5IBDV THEN                  % 5HDMA: BSC ON DMA, HDLC.
+           IF IFUNC=1 OR =51 OR =52 OR =55 THEN D=:X FI     % 5IBDV: INTERNAL BLOCK DEVICE: X-REG POINTS TO CHAR DATAFIELD.
+        FI
+        IF X.RTRES><0 AND A><SSREF GO FAR E205
+        X.CASUN=:IUNIT; X.CLOGDV=:DMLOG; CALL LOGPH
+        IF A = 0 THEN A:=ER109; GO FAR ERR FI               % "ILLEGAL PARAMETER".
+        A=:DMFLD
+        IF A.TYPRING BIT 5IBDV THEN
+ %
+ %         INTERNAL BLOCK DEVICE. CHECK THAT A DMA DEVICE BUFFER HAS
+ %         ALREADY BEEN OBTAINED AND IF NOT GET ONE.
+ %
+           X=:CMDBU; T:=X.DBLDN
+           IF T = 0 THEN
+              A:=IMAXW; T:=IOLOG; CALL G3IBUF; GO FAR ERRBU
+              T=:MDFI; A:=D=:MDBUF; X=:D
+              A:=IMAXW+1777 /\ 177000=:T.CPAG2              % BUFFER OBTAINED FOR UP TO THIS NUMBER OF WORDS.
+              A:=X.LNUMB=:D.DBLDN                           % SAVE LDN OF DBH IN INPUT PART OF IBD DATAFIELD.
+              0=:X.BREGC                                    % NEW DEVICE BUFFER: NO DATA IN IT.
+           ELSE
+              A:=T; CALL XLOCK; A:=T                        % LOCK THE DBH
+              CALL LOGPH; A=:X=:MDFI; A:=X.BUFFER=:MDBUF    % LEAST SIG WORD OF DB ADDRESS.
+              IF A:=IMAXW > T:=X.CPAG2 THEN
+                 A:=ER206; GO FAR ERR                       % TRYING TO READ OR WRITE TOO MANY WORDS IN THE BUFFER.
+              FI
+           FI
+           X:=CMDBUF; A:=MDBUF=:CMDBUF                      % X-REG NOW POINTS AT RIGHT DATFIELD.
+           A:=OFLD3; CALL XUNLOCK
+           GO FAR M144X
+ *)FILL
+        FI    % EG. ELSE
+ RMAG:        IOLOG; CALL LOGPH
+              IF A><0 THEN IF A.RTRES><0 AND A><SSREF GO FAR E205 FI
+              IF D><0 THEN IF D.RTRES><0 AND A><SSREF GO FAR E205 FI
+ *"8MDIR 99MGT
+"        IF IFUNC<5 OR =25 OR =43 OR =44 OR =52 OR =55 THEN
+           IMAXW
+        ELSE
+           IF A=26 OR A=27 THEN IMAXW+1 SHZ -1 ELSE A:=0 FI
+        FI
+        A=:D                                                % NO. OF WORDS
+        IF DMFLD.TYPRING BIT 5HDMA THEN
+           IF BREGC=0 THEN                                  % DEVICE BUFFER IS PRESENT
+              T:=IOLOG; A:=D; CALL G3BUFF; GO ERRBU
+              A:=D=:MDBUF=:CMDBUF; T=:MDFI; 1=:BREGC
+              IOLOG; CALL LOGPH; D=:X                       % GET OPPOSIT DATAFIELD
+              X.DFDEV; CALL LOGPH; A=:X
+              IF X=B THEN                                   % THIS IS THE SAME,
+                 IOLOG; CALL LOGPH; A=:X                    % GET OPPOSITE
+                 X.DFDEV; CALL LOGPH; A=:X
+              FI
+              CMDBUF=:X.CMDBUF=:X.MDBUF
+              MDFI=:X.MDFI; 1=:BREGC
+           ELSE
+              CMDBUF=:MDBUF                                 % DEVICE BUFFER OK
+           FI
+        ELSE
+           T:=IOLOG; A:=D; CALL G3BUFF; GO ERRBU
+           A:=D=:MDBUF=:CMDBUF; T=:MDFI
+        FI
+        IF DMFLD.OFFLG BIT 5RCFIL AND X.TYPRING BIT 5RFILE GO M144X
+        OFLD1; CALL XUNLOCK; GO M144X
+ *)FILL
+
+ INTEGER POINTER OFLD1:=OFLCK
+
+ ERRAD: 153; GO FAR RETU
+ ERRBU: 172; GO ERR
+ E201:  201; GO ERR
+ E205:  205
+ ERR:   GO FAR RETU2
+
+ M144X: IF DMFLD.TYPRING BIT 5FLOP THEN
+           IFUNC/\77+"SFTIM"=:X; T:=0; *LDATX     % FLOPPY/STREAMER FUNCTION DESCRIPTION (IN POF)
+           IF A BIT 3FRESTRICTED THEN
+              IF SSREF.ACTPRI BIT 5BACKR OR A/\3 < 2 GO E201  % ONLY LEGAL FOR RT-P ON RING 2
+           FI
+        FI
+        IF IFUNC=20 OR =24 OR =57 OR =64 OR =65 OR =70 THEN
+           CALL CALABSTR; GO FAR RETU; *)FILL
+        FI
+        IF A=42 OR A=46 OR =56 OR =63 THEN        % READ FORMAT/READ DISC ADDR.+ND852 FUNCTIONS
+           T:=1; SSREF=:D; "IRETW"; CALL CHLIM; GO ERRAD
+           CALL CALABSTR; X:=B; CALL GAPIT
+           MDFI.DBLOCK; X:="IRETW"
+           CALL DALTON; A=:X.S0; CALL ALTOFF; *BSET ONE
+           GO FAR RETU1
+        FI
+ @ICR
+        IF >4 AND A><43 AND A><44 AND A><25 AND A><52
+          AND A><55 AND A><26 AND A><27 AND A><36 THEN
+ @CR;
+           CALL CALABSTR
+ %
+ %         CLEAR DEVICE: BLOCK INTERNAL DEVICES ONLY.
+ %
+           IF DMFLD.TYPRING BIT 5IBDV AND IFUNC=21 THEN
+              A:=X.DBLDN; CALL LOCK                         % LOCK DEVICE BUFFER HEADER.
+              T:=IOLOG; CALL R3IBUFF; CALL ERRFATAL
+              0=:X.DBLDN; 0=:X.IDFOPP.BREGC
+           FI
+           GO FAR RETU1
+ *)FILL
+        FI
+
+ %      READ OR WRITE FUNCTIONS:
+
+ L1:    IF IFUNC=2 OR=26 OR=27 THEN T:=IMAXW+1 SHZ -1 ELSE T:=IMAXW FI
+        SSREF=:D:=ICORAD
+        CALL CHLIM; GO FAR ERRAD                  % ILL. USER-BUFF-ADDR
+        IF MTFLG><0 THEN
+           T:=1; "IRETW"
+           CALL CHLIM; GO FAR ERRAD               % CHECK ADDRESS OF IRETW
+        FI
+        CALL BLOCK
+        IF IFUNC><0 AND A><2 AND A><4 AND A><43 AND A><25 AND A><26 AND A><36 GO FAR L3    % READ
+           IF DMFLD.TYPRING BIT 5FLOP THEN IMAXW=:FIMAXW FI
+           CALL CALABSTR                          % CALL ABSTR, SAVE STATUS
+           IF DMFLD.TYPRING BIT 5FLOP THEN
+              IF SVXERR BIT 4 THEN A:=0 ELSE FIMAXW FI
+              A=:IMAXW
+           ELSE
+              IF A BIT 5IBDV THEN
+                 MDFI.BUFFER; A=:MDBUF=:CMDBUF    % INTERNAL BLOCK DEVICE.
+                 X.DBLOCK=:IMAXW
+              ELSE
+                 IF A BIT 5HDMA THEN
+                    IF SVXERR BIT 4 THEN
+                       A:=0
+                    ELSE
+                       X:=MDFI.BUFFER; T:=BUFBANK; *LDATX 10
+                       A+1 SHZ -1+2
+                       IF A>IMAXW THEN
+                          A:=T
+                       FI
+                    FI
+                    A=:IMAXW
+                 ELSE
+                    MDFI.DBLOCK=:IMAXW
+           FI FI FI
+ RRETU:    X:=B; CALL GAPIT; X:="IRETW"; T:=IMAXW
+           IF MTFLG BIT MCMAGTP THEN
+              CALL DALTON
+              T=:X.S0; CALL ALTOFF; *BSET ONE
+           FI; GO L2                                        % NO. OF WORDS READ
+ *)FILL
+
+ L2:       IF T>0 THEN
+              OFLD; CALL XLOCK
+              IF IFUNC=26 THEN
+                 IMAXW+1 SHZ -1 =: IMAXW                    % BYTES => WORDS!!!
+              FI; OLDPAGE=:D
+ @LIB CXCPU-,
+              DO WHILE IMAXW >> 2000                         % COPY PAGE AT A TIME.
+                 ICORAD; X:=CMDBUF; T:=BUFBANK; CALL DBTRANS
+                 T:=2000; CALL PT3COPYB
+                 CMDBUF+T=:CMDBUF; ICORAD+T=:ICORAD; IMAXW-T=:IMAXW
+                 T:=-1; CALL MMEXY
+              OD
+ @ELIB
+              X:=CMDBUF; ICORAD; T:=BUFBANK; CALL DBTRANS;
+              T:=IMAXW; CALL PT3COPYB                          % LAST BLOCK <= 2000 (OCT) WORDS.
+              OFLD; CALL XUNLOCK
+           FI
+           GO OVER
+ *)FILL
+                                        % WRITE
+ L3:       OFLD; CALL XLOCK
+           IMAXW=:D
+           IF IFUNC=27 THEN                                 % WRITE BYTE RECORD.
+              A:=D+1 SHZ -1 =: D                            % BYTES => WORDS!!!
+           FI
+ @LIB CXCPU-,
+           DO WHILE D>>2000                                 % D CONTAINS IMAXW
+              T:=OLDPAGE:=:D; X:=CMDBUF; ICORAD
+              T=:TSAVE:=BUFBANK; CALL DBTRANS; T:=TSAVE
+              A:=:X; T=:D:=2000; CALL PT3COPYB
+              D-T; CMDBUF+T=:CMDBUF; ICORAD+T=:ICORAD
+           OD
+ @ELIB
+           T:=OLDPAGE:=:D; X:=CMDBUF; ICORAD
+           T=:TSAVE; T:=BUFBANK; CALL DBTRANS; T:=TSAVE
+           A:=:X; CALL PT3COPYB
+           OFLD; CALL XUNLOCK
+           CALL CALABSTR
+ OVER:     CALL BUNLOCK; GO RETU1
+
+ INTEGER POINTER OFLD:=OFLCK                      % IN FILE SYSTEM
+
+ RETU1: IF DMFLD.OFFLG BIT 5RCFIL AND X.TYPRING BIT 5RFILE GO RETU3
+        IF SVXERR BIT 4 THEN X:=DMFLD; CALL MERRCODE ELSE A:=0 FI
+ RETU:  A=:SVXERR
+ RETU3: IF DMFLD.TYPRING BIT 5IBDV AND IFUNC >< 21 THEN
+           A:=MDFI.LNUMB; CALL UNLOC                        % UNLOCK, BUT DON'T CLEAR, DBH.
+        ELSE
+           IF A NBIT 5HDMA THEN
+              OFLD; CALL XLOCK
+              T:=IOLOG; CALL R3BUF; CALL ERRFATAL
+              OFLD; CALL XUNLOCK; A:=SVXERR
+           FI
+        FI
+ RETU2: X:=ZDREG=:D:=ZXREG; T:=ZTREG; GO MCLRG
+
+ *)FILL
+
+ % SUBROUTINE FOR CALLING ABSTRANS
+ CALABSTR:                                                            % TEST IF REMOTE
+        IF DMFLD.OFFLG BIT 5RCFIL AND X.TYPRING BIT 5RFILE THEN       % REMOTE MAGTP
+           B=:D; T:=MDFI;  GO RMAGT
+        FI
+        IFUNC=:MDFI.DKFUN; IUNIT=:X.DBLO1; IMAXW=:X.DBLOCK
+        IF DMFLD.TYPRING BIT 5FLOP THEN
+           IF IFUNC<2 OR A=43 OR A=44 THEN                  % READ/WRITE FUNCTIOINS
+              IUNIT+DMFLD+"FDIFORM"=:X; X.S0+DMFLD+"WDSCT"=:X
+              T:=X.S0; A:=IMAXW=:D:=0; *RDIV ST
+              IF D><0 THEN A+1 FI; A=:MDFI.DBLOCK=:D
+              IUNIT+DMFLD+"NFDIADR"=:X; X.S0+D=:X.S0-D=:MDFI.DBLO1
+           FI
+           IUNIT SH 6+IFUNC=:MDFI.DKFUN
+        ELSE
+           IF A BIT 5IBDV AND IFUNC/\ 77 = 1 THEN
+              DMLOG BONE 17=:DMLOG                          % WRITE ON AN INTERNAL BLOCK DEVICE.
+           FI
+        FI
+        T:=DMLOG; MDFI+"DPNT0"; *MON 2ABST
+        A=:SVXERR; EXIT
+ *)FILL
+
+        *SDATA
+ DISP 0
+ INTEGER XREG,TREG,AREG,DREG,LREG,BREG
+ INTEGER DBHAD,SAVSG,FUDSG,OLSGM,CFRSEG
+ INTEGER ARRAY XBMSV(10)                % SAVE ARRAY FOR BITMAP
+ INTEGER WNUMB,ZFUNC,REPAR,WMOVD,FSPEC
+ INTEGER MDBU1,MDBU2; DOUBLE XMDBUF=MDBU1
+ INTEGER FUBU1,FUBU2; DOUBLE FUBUF=FUBU1
+ PSID
+
+        *DATA FUBU2
+
+ % AT ENTRY:
+ %
+ % XREG: POINTER TO OPEN FILE TABLE
+ % TREG: ADDRESS TO DEVICE BUFFER HEADER
+ % DREG: ADDRESS TO "DF-DATAFIELD"
+
+ DISP 24; INTEGER OFADR,MGFUNC,RWFUN,DAADR,NWRDS,ANWRDS,RTPAR; PSID
+ RMAGT:
+ *"-8RFAC
+"        *FENTR
+        T=:DBHAD; T.DBPAG=:XMDBUF
+        RTREF.RSEGM=:CFRSEG; X.ACTSEG=:SAVSG
+        A:=DRFSG;  A\/177400=:FUDSG
+        0=:FUBU1; TLBUF=:FUBU2; 0=:FSPEC
+        % SAVE BITMAP FOR CALLER
+ *"CXCPU
+"        X:=X.RTDLGADDR+5BITMAP; "XBMSV"+B=:B; T:=0; *BSET ONE
+        *LDDTX 00; STD 0,B; LDDTX 20; STD 2,B
+        *LDDTX 40; STD 4,B; LDDTX 60; STD 6,B; BSET ZRO
+        A:=B-"XBMSV"=:B;
+ *"
+"
+        A:=DREG.IFUNC=:ZFUNC; T:=X.IMAXW=:WNUMB
+ @ICR
+        IF A>4 AND ><43 AND ><44 AND ><25 AND ><52 AND ><55
+           AND ><26 AND ><27 THEN
+ @CR;
+           4=:FSPEC; CALL SPARM; CALL PT3FUSER; GO FAR ERET
+           IF ZFUNC=42 OR =46 OR =56 OR =63 THEN
+              WMOVD=:DBHAD.DBLOCK;
+           FI; REPAR=:DREG.SVXERR=:AREG; GO OUT3; *)FILL
+        FI
+        % READ OR WRITE FUNCTIONS:
+        IF A=26 OR =27 THEN  % NUMBER OF BYTES IN IMAXW
+           WNUMB+1 SHZ -1=:WNUMB; FSPEC+2=:FSPEC
+        FI
+        IF WNUMB<0 OR >2000 THEN A:=172; GO ERET; FI    % MAX 1 K
+        IF ZFUNC><0 AND ><2 AND ><43 AND ><25 AND><26 AND ><36 GO MWRT
+        % READ:
+        CALL SPARM; CALL PT3FUSER; GO ERET;
+        % MOVE DATA FROM FILE USER DATA SEGMENT TO DEVICE BUFFER:
+        RTREF.ACTPRI=:D; T:=FUDSG; CALL MMEXY; T=:OLSGM; A:=0; CALL MMREENT
+        X:=MDBU2; T:=MDBU1; A:=TLBUF; CALL DBTRANS; X:=:A
+        T:=WNUMB; CALL PT3COPYB; T:=OLSGM; CALL MMEXY; A:=CFRSEG; CALL MMREENT
+        WMOVD=:DREG.IMAXW; REPAR=:X.SVXERR; "RRETU"=:LREG; GO OUT3; *)FILL
+ MWRT:  % WRITE:
+        % MOVE DATA FROM DEVICE BUFFER TO FILE USER DATA SEGMENT:
+        RTREF.ACTPRI=:D; T:=FUDSG; CALL MMEXY; T=:OLSGM; A:=0; CALL MMREENT
+        X:=MDBU2; T:=MDBU1; A:=TLBUF; CALL DBTRANS;
+        T:=WNUMB; CALL PT3COPYB; T:=OLSGM; CALL MMEXY; A:=CFRSEG; CALL MMREENT
+        FSPEC+1=:FSPEC; CALL SPARM; CALL PT3FUSER; GO ERET; A:=REPAR
+ ERET:  A=:AREG=:DREG.SVXERR; "RETU"=:LREG
+ OUT3:  X:=RTREF; % RESTORE CALLERS BITMAP:
+ *"CXCPU
+"        X:=X.RTDLGADDR+5BITMAP; "XBMSV"+B=:B; T:=0; *BSET ONE
+        *LDD 0,B; STDTX 00; LDD 2,B; STDTX 20
+        *LDD 4,B; STDTX 40; LDD 6,B; STDTX 60; BSET ZRO
+        A:=B-"XBMSV"=:B;
+ *"
+"        *FLEAV
+ *)FILL
+
+ SPARM: A:=XREG=:CSTCK.OFADR; "FUBU1"+B=:X.DAADR; "ZFUNC"+B=:X.MGFUNC
+        "WNUMB"+B=:X.NWRDS; "WMOVD"+B=:X.ANWRDS; "REPAR"+B=:X.RTPAR
+        "FSPEC"+B=:X.RWFUN; X:=UMAGTP; EXIT
+ *"
+" RBUS
+
+ *"8RFAC
+" %
+
+ % ===========================================================================
+ % 15.16      P T 3 F U S E R
+ % INTERFACE ROUTINE TO CALL PLANC SUBROUTINES ON FILE USER SEGMENT
+ % PARAMETER TRANSFER BY REFERENCE
+ %
+ % CALL SEQUENCE:
+ %      X:=<INDEX TO PLANC ROUTINE>; CALL FILUS; CALL ERROR
+ %      SKIP RETURN IF NO ERRORS DETECTED
+ % NOTE:
+ %      BEFORE CALLING FILUS, REFERENCES TO PARAMETERS MUST BE
+ %      PLACED ON THE FILE SYSTEM STACK FROM LOCATION CSTCK+22
+ %      CSTCK: FILE SYSTEM CURRENT STACK POINTER
+ %
+ SUBR PT3FUSER
+
+ INTEGER WPROG=?
+ INTEGER ARRAY POINTER RFRES:=RFSTB      % RFA DATA SEGMENT RESERVE TABLE
+ INTEGER POINTER NMSEGS:=NRFSG           % NUMBER OF RFA DATA SEGMENTS
+ INTEGER POINTER CRTR:=CRTREF            % CALLING RT PROGRAM
+
+ DISP 0; DOUBLE DACTSEG=ACTSEG; PSID
+
+        *SDATA
+
+ % NOTE:      THIS DISP VARIABLES ARE ALSO DEFINED IN THE ROUTINE
+ %            TOFENTRY IN RESIDENT (ON FILE SINB-X).
+ %            DO NOT CHANGE THIS DISP DEFINITIONS WITHOUT DOING
+ %            THE SAME MODIFICATIONS IN TOFENTRY
+ %
+
+ DISP 0
+        INTEGER XREG,TREG,AREG,DREG,LREG,BREG
+        INTEGER OLDSG,OLDRSG                      % SAVED ON FILE SYSTEM STACK
+        INTEGER RETUR,PREVB,STPTR,STMAX,LEXIT,ERRCO         % PLANC STACK FRAME
+ PSID
+        *DATA ERRCO
+
+ PT3FUSER: *FENTR
+        0=:LEXIT=:ERRCO       % MAKE PLANC STACK FRAME
+        "ESTCK"=:STMAX
+        CSTCK=:STPTR; X:=RTREF
+        IF BACKGR=0 OR X.ACTSEG SHZ -10=5ERRSEG OR XREG=URTLIOP THEN
+           % RT PROGRAM OR RTOPEN, RTCONNECT, RTCLOSE,LIST-RTOPEN OR RTRES-O-F-E
+           A:="5RRUS"=:DRFSG  % RT PROGRAM
+        ELSE
+           IF DRFSG=0 THEN
+              *IOF                                                            %%%%%%%%%%%%%%%%%%%%%
+              FOR X:=0 TO NMSEGS DO                                           %%                 %%
+                 IF RFRES(X)=0 GO SFNDX; X=:T:=A  % SEGMENT IS FREE TO USE    %%  MUST NOT CROSS %%
+                 IF X.WLINK=0 AND X.TLINK=0 AND X.STATUS NBIT 5RWAIT THEN     %%  A PAGE BORDER  %%
+                    T=:X; GO SFNDX   % PROGRAM IS PASSIVE, TAKE SEGMENT       %%                 %%
+                 FI; T=:X                                                     %%                 %%
+              OD; *ION                                                        %%                 %%
+              % ALL SEGMENTS ARE RESERVED                                     %%                 %%
+              A:=ER188=:AREG; GO FAR NSGSX; *)FILL                            %%                 %%
+ SFNDX:       RTREF=:RFRES(X); 0=:INSFG; A:="DSSNM"+X=:DRFSG; X:=RTREF; *ION  %%%%%%%%%%%%%%%%%%%%%
+           FI
+        FI    % A-REG: RFA DATA SEGMENT NUMBER
+        A\/177400=:T;
+        CALL MMEXY; T=:OLDSG; X.RSEGM=:OLDRSG;
+        IF X:=XREG<=UCLOS THEN A:=5FIU2 ELSE A:=5FIUS; FI; CALL MMREENT
+        IF DRFSG="5RRUS" THEN           % RT PROGRAM
+           IF X:="RTRFA"=RTREF GO ASBACK          % ALREADY RUNNING
+           A:=1730; CALL XLOCK                    % RESERVE RTRFA SEMA
+           X:=X.RTDLGADDR; CALL SVRBLK            % COPY REGISTER BLOCK
+           A:="NSTRT"; T:=0; *STATX               % SET P-REG.
+           AD:=RTREF.DACTSEG; D BZERO 5BACKGR; AD=:"RTRFA".DACTSEG
+           RTREF.RSEGM=:"RTRFA".RSEGM
+           % RESERVE DF DATAFIELD
+           MLEV; *MCL PIE
+           X:="RTRFA"; CALL RTENTRY; RTREF.STATUS BONE 5WAIT=:X.STATUS
+           "STUPR"; *IRW MLEVB DP;
+           MLEV; *MST PID; MST PIE
+           GO XRRT; A:=1730; CALL XUNLOCK; MIN LREG; GO OUT
+ XRRT:     A:=1730; CALL XUNLOCK; D=:A; GO ERRT
+ NSTRT:    T=:WPROG                               % NEW ENTRY OF RTRFA
+           X:=XREG; CALL TOFENTRY; GO EERRT
+           T:=0; X:=WPROG.RTDLGADDR
+           *LDATX; AAA 1; STATX                   % INCREMENT P-REG.
+           GO ENDXX
+ EERRT:    X:=WPROG.RTDLGADDR; T:=0; *STATX 40    % ERROR CODE IN D-REG.
+ ENDXX:    WPROG.STATUS BZERO 5WAIT=:X.STATUS
+           *JMP I (SRRT1; )FILL                   % RESTART WAITING TASK
+           INTEGER WPROG
+        FI
+ ASBAC: X:=XREG
+        CALL TOFENTRY; GO ERRT                    % X MUST BE SET
+        MIN LREG; GO OUT                          % SKIP RETURN IF NO ERRORS
+ ERRT:  IF A=-1 THEN A:=ER161; FI; A=:AREG
+ OUT:   % GET BACK FILE SYSTEM SEGMENT(S):
+        T:=OLDSG; CALL MMEXY; A:=OLDRSG; CALL MMREENT
+ NSGSX: *FLEAV
+ RBUS
+ *"
+"
+ *"8C1X2+8C2X2+8C3X2+8C4X2
+" %
+
+ %=============================================
+ % 40.20
+ %      X 2 1 2 S    X 2 1 3 S    X 2 S N D
+ %      X 2 S S S
+
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ %
+ %      X 2 1  DRIVER FOR HANDLING X21 DCB'S
+ %
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+ %PURPOSE:    CONNECT AND DISCONNECT TO A X 21 NETWORK
+
+ %ENTER:      B-REG DATAFIELDPOINTER
+ %            MESSAGE:      COMMAND
+ %                          FACILITY
+ %                          STATUS
+ %                          SELECTIONS SIGNALS
+ %                          DTE/DCE PROVIDED INFORMATION
+
+
+ %EXIT:       MESSAGE SENT BACK TO USER WITH APPROPRIATE STATUS INFORMATION.
+
+
+ %HDLC REGISTER CONTENT DEFINITION
+ %
+ %
+ SYMBOL CPCR = 100                                % IOX + 1
+ SYMBOL CSAR = 377% IOX + 3
+ SYMBOL CCL  = 347                                %IOX + 4  7BITS BYTE+PARITY
+ SYMBOL CTCW =   1% IOX + 7
+ SYMBOL CWTTC= 104% IOX + 13
+ SYMBOL CRTTC= 104% IOX + 11
+ %
+ %
+
+ %
+ %
+ %      X21 LOGGING ROUTINES
+ %**************************
+
+
+        SYMBOL X22SIZ = 20
+        SYMBOL X2LMA = X22SIZ-1
+        SYMBOL DCEMS = X22SIZ*10+4
+
+        INTEGER ARRAY X2A00(X22SIZ)
+        INTEGER ARRAY X2A02(X22SIZ)
+        INTEGER ARRAY X2A05(X22SIZ)
+        INTEGER ARRAY X2A10(X22SIZ)
+        INTEGER ARRAY X2A11(X22SIZ)
+        INTEGER ARRAY X2A12(X22SIZ)
+        INTEGER ARRAY X2AST(X22SIZ)
+        INTEGER ARRAY X2ATL(X22SIZ)
+
+        INTEGER X2LL:=0
+        INTEGER X2LL1:=-1
+        INTEGER X2LL2:=0
+        INTEGER X2LL4:=0
+        INTEGER X2LL5:=0
+
+ %
+ %
+ %      LOGG IN ARRAYS
+
+ SUBR STORE
+ STORE: IF X2D00 >< X2A00(X2LL) THEN GO XUP21 FI
+        IF X2D02 >< X2A02(X2LL) AND >< "0" THEN GO XUP21 FI
+        IF X2D05 >< X2A05(X2LL) THEN GO XUP21 FI
+        IF X2D10 >< X2A10(X2LL) THEN GO XUP21 FI
+        IF X2D11 >< X2A11(X2LL) THEN GO XUP21 FI
+        IF X2D12 >< X2A12(X2LL) THEN GO XUP21 FI
+        IF X2DST >< X2AST(X2LL) THEN GO XUP21 FI
+        MIN X2LL4; P+0; X:=X2DMP
+        EXIT
+ XUP21: MIN X2LL1; P+0
+        X2LL1 /\ X2LMA=:X2LL
+        X2D00=:X2A00(X2LL)
+        X2D02=:X2A02(X2LL); 0=:X2D02
+        X2D05=:X2A05(X2LL)
+        X2D10=:X2A10(X2LL)
+        X2D11=:X2A11(X2LL)
+        X2D12=:X2A12(X2LL)
+        X2DST=:X2AST(X2LL)
+        X2LL-1=:X2LL5
+        IF X2LL5 < 0 THEN "X22SIZ-1"=:X2LL5 FI
+        X2LL4=:X2ATL(X2LL5); 0=:X2LL4
+        X:=X2DMP; EXIT
+ RBUS
+
+
+
+ %****************************
+ %
+ %      SOME USEFUL ROUTINES
+ %
+ %****************************
+
+
+ %      SERVICE ROUTINE FOR UPATINNG IDENT TABLES
+ %************************************************
+
+
+ %      EXCHANGE "X2OLD" IN IDENTTABLE WITH "X2NEW"
+ %      "X2OLD" MAY ALSO BE FOUND IN EXTENDED IDENTTABLE
+ %      ENTRY X212S - LEVEL 12(D)
+ %      ENTRY X213S - LEVEL 13(D)
+
+ %      INPUT PARAMS:
+
+ INTEGER X2NEW:=0                                 % ADDR TO BE INSERTED
+ INTEGER X2OLD:=0                                 % ADDR TO BE REMOVED
+
+ %      SCRATCH LOCATIONS
+
+ SUBR X212S,X213S
+ INTEGER X2TA1:=0                                 % ADDR TO TABLE
+ INTEGER X2TA2:=0                                 % ADDR TO EXTENDED TABLE
+ INTEGER X2SSP:=0                                 % WORKING
+
+ DISP 0; INTEGER XNUL1; INTEGER EN; PSID
+
+ X212S: IDNTS(2)=:X2TA1+"MAX12"=:X2SSP; EXTDS(2)=:X2TA2; GO X2HER
+ X213S: IDNTS(3)=:X2TA1+"MAX13"=:X2SSP; EXTDS(3)=:X2TA2
+
+ X2HER: FOR X:=X2TA1 STEP 1 TO X2SSP DO
+           T:=0; *LDATX
+           IF A=X2OLD THEN
+              T:=0; X2NEW; *STATX
+              EXIT
+           FI
+        OD
+
+ %      LOOK IN EXTENDED TABLE
+
+        DO T:=0; X:=X2TA2; X+1; * LDATX
+        WHILE A><-1
+           X:=X2TA2; X+1; T:=0; * LDATX
+           IF A=X2OLD THEN
+              T:=0; X2NEW; *STATX
+              EXIT
+           FI
+           MIN X2TA2; P+0
+        OD
+        A:=X2FNI; CALL X21UT                      % ENTRY NOT FOUND
+ RBUS
+
+ %
+ %      SEND ONE CHARACTER
+ %      THE ROUTINE WILL GENERATE ODD PARITY
+ %
+ %      INPUT: A-REG IS CHARACTER TO BE TRANSMITTED
+ %
+ %      OUTPUT: STATUS IN X2D12 IN DATAFIELD
+ %
+ %**************************************************
+
+ SUBR X2SND
+ X2SND: T:=L=:X2DLS;
+        CALL X21PG; A=:X2D05
+        T:=X2DHD+XWTDR; *EXR ST
+        105
+        T+"XWTTC-XWTDR"
+        *EXR ST
+        CALL X21LV; T:=X2DHD+XRTTS; *EXR ST
+        A=:X2D12; CALL STORE; A:=X2DLS=:P
+
+
+ %      ROUTINE FOR PARITY GENERATION ( ODD PARITY)
+ %**************************************************
+
+ X21PG: *BSET ONE 70 DA
+        *BSKP ZRO 60 DA; BSET BCM 70 DA
+        *BSKP ZRO 50 DA; BSET BCM 70 DA
+        *BSKP ZRO 40 DA; BSET BCM 70 DA
+        *BSKP ZRO 30 DA; BSET BCM 70 DA
+        *BSKP ZRO 20 DA; BSET BCM 70 DA
+        *BSKP ZRO 10 DA; BSET BCM 70 DA
+        *BSKP ZRO  0 DA; BSET BCM 70 DA
+        EXIT
+ RBUS
+
+ %
+ %      ROUTINE FOR STARTING TRANSMITTER PART OF INTERFACE
+ %      AND SENDING "SYN,SYN"
+ %
+ %*********************************************************
+
+ SUBR X2SSS
+ X2SSS: A:=L=:X2DLS
+        1=:X2DPC
+        FOR X2DPC STEP 1 TO 4 DO                  % SEND 4 SYNC
+           1; T:=X2DHD+XWTCR; *EXR ST
+ L1:       105; T:=X2DHD+XWTTC; *EXR ST
+           CALL X21LV
+           T:=X2DHD+XRTTS; *EXR ST
+           A=:X2D13
+           IF A NBIT 0 THEN GO L1 FI
+        OD
+        0=:A; T:=X2DHD+XWTCR; *EXR ST
+        A:=X2DLS=:P
+ RBUS
+
+
+
+
+ % ======================================================
+ % 40.21
+ %      X 2 1 E R    X 2 S T A     X 2 S B Y    X 2 R B Y
+ %      X 2 R A C    X 2 1 U T
+ %========================================================
+
+ %*******************************
+ %
+ %      MESSAGE HANDLING
+ %
+ %*******************************
+
+ SUBR X21ER,X2STA,X2SBY,X2RBY,X2RAC,X21UT
+
+ %
+ %
+ %      MESSAGE RECEPTION
+ X2STA: IF X2DST=10 THEN                          % ARE YOU IN READY STATE?
+           CALL XTSTC; GO NOMES                   % YES, ANY MESSAGE?
+              CALL X2114                          % CONTROLLED NOT READY
+              0=:X2DST=:X2DPIN
+              X2FNC=:X2DMP.X2MST; CALL O3CHA     % YES, RETURN READY MESSAGE
+              0=:X2DMP; 1=:X2DDF
+        FI
+ NOMES: CALL D3CHA; CALL X21LV; 0=:X2DER; CALL X2RBY      % GET NEW MESSAGE
+        IF A >= 10 THEN CALL X21C FI              % DECODE COMMAND
+        IF A >= 6 THEN X2FSM=:X.CRET FI           % TOO SMALL MESSAGE
+        CALL O3CHA; 0=:X2DMP; GO X2STA           % RETURN MINI MESSAGE
+
+
+ %
+ %
+ %      MESSAGE SENDING       (RETURN IT TO SENDER)
+
+ X21ER: A=:X2DMP.X2MST=:X2DER; CALL STORE; CALL X2116
+        CALL X2121; CALL X211; CALL X2114
+        X:=X2DMP; GO X21UU                         % LEAVE AT STATE 24
+
+ X21UT: A=:X2DMP.X2MST; CALL STORE                % SET STATUS
+ X21UU:  CALL X2RBY; A+X2DBC=:T; CALL X2SBY
+        CALL O3CHA; 0=:X2DMP; 1=:X2DDF
+        GO FAR X2STA
+
+ %
+ %
+ %      SOME USEFUL MESSAGE MAINTENANCE ROUTINES
+
+
+ %      STORE BYTECOUNT IN MESSAGE
+
+ X2SBY: T=:X.BBYTC; EXIT
+
+ %
+ %      READ ACTUAL BYTECOUNT
+
+ X2RAC: A:=X.BBYTC; EXIT
+
+ %
+ %      READ MAX BYTECOUNT
+
+ X2RBY: A:=X.BMBYTE; EXIT
+
+ %
+ %      ANY MESSAGES FOR ME?
+
+ XTSTC: IF IQUEU><0 THEN  EXITA FI
+        EXIT
+ RBUS
+
+
+ %============================
+ % 40.22
+ %      X 2 1 C
+ %
+ %============================
+
+
+ %******************************
+ %
+ %      THE X21 COMMANDS
+ %
+ %******************************
+
+
+ SUBR X21C,X21RE,X21LG,X21CL,X21CN,X21CH,X21DC,X21AA,X21RD,X21BR
+
+ %      S T A T U S
+ %      ***********
+
+ X21AA: IF X2DCN = 0 THEN X21SA; GO LLL FI        % NOT CONNECTED
+        IF X2DST = 14 THEN X21SB ELSE X21SC FI    % DATA-PHASE OR CONNECTED
+ LLL:   T:=X2DBC+2=:X2DBC
+        IF T:=X2DBC<0 THEN                        % ENOUGH MESSAGE SPACE ?
+          A=:X2DMP.X2MSL; A:=0                    % YES
+            ELSE
+          A:=X2FSM                                % NO
+        FI
+        CALL X21UT
+
+ %      C A L L
+ %      *******
+
+ X21CA: IF X2DCN=0 THEN X2FFF; CALL X21UT FI      % MUST CONNECT FIRST
+        IF X2DST=14 OR X2DCC = 2 THEN A:=X2FIS; CALL X21UT FI  % ILLEGAL COMMAND IN DATA PHASE
+        IF X2DMP.X2MFA NBIT X21C3 THEN            % DIRECT CALL ?
+           CALL X2RAC; A=:D; X:=0                 % NO, LOOK FOR "+"
+           DO WHILE A><"X21PL"                    % ANY "+" IN SELECTION SIGNAL ?
+              T:=X2DMP+X2M3; *LBYT
+              X+1
+              IF X>D OR X>15 THEN A:=X2FNP; CALL X21UT FI % NO, ERROR
+           OD
+        FI
+        CALL X211
+        IF T><0 THEN T=:A; CALL X21ER FI
+        CALL X212                                 % STATE 2 - 6
+ LOOP:  CALL X2GET; A=:A
+           IF X2D10 BIT 6 THEN 0=:TMR; CALL X2112 FI  % DCE READY FOR DATA
+           IF T = 0  GO LOOP                          % WAIT FOR DATA
+           IF X2D00="X21SY" OR ="X21PL" OR ="177" THEN GO LOOP FI
+           IF A="X21ST" OR ="X21SL" THEN
+              CALL X2110                          % ENTER STATE 10
+              IF T><0 THEN T=:A; CALL X21ER FI
+                 ELSE
+              0=:TMR; CALL X217; X21T3=:TMR       % CALL PROGRESS SIGNALS
+              IF T><0 THEN T=:A; CALL X21ER FI
+           FI
+        GO LOOP
+ *)FILL
+
+ %      R E A D Y
+ %      *********
+
+ X21RE: IF X2DCN=0 THEN X2FFF; CALL X21UT FI      % MUST CONNECT FIRST
+        IF X2DST=14 OR X2DCC = 2 THEN A:=X2FIS; CALL X21UT FI  % ILLEGAL COMMAND IN DATAPHASE
+        CALL X211
+        IF T><0 THEN T=:A; CALL X21ER FI
+        CALL X218                                 % EXECUTE STATE 8 - 9
+        DO CALL X2GET; A=:A                       %
+        WHILE X2D10 NBIT 6
+           IF T=1 AND X2D00="X21ST" THEN CALL X2110       % CALLING LINE IDENTIFICATION
+             IF T><0 THEN 0=:TMR; T=:A; CALL X21ER FI  % TOO SMALL MESSAGE
+           FI
+        OD
+        0=:TMR
+        CALL X2112                                % READY FOR DATA
+
+
+ %      C L E A R  R E Q U E S T
+ %      ************************
+
+ X21CL: IF X2DCN=0 THEN X2FFF; CALL X21UT; FI     % MUST CONNECT FIRST
+        IF X2DBR >< 0 THEN                        % BREAK REQUESTED
+          X2FBR =: X2DBR.X2MST                    %
+          0=:X2DBR; 4=:X.BBYTC                    % SET BYTECOUNT
+          CALL O3CHA                             % SEND IT TO USER
+        FI
+        CALL X2116; CALL X2121
+        IF X2DCC=1 THEN                           % EXPECTING CHARGING INFO ?
+          CALL X21GC                              % GET CHARGING
+        FI
+        CALL X21SH; CALL X2SSS; CALL X2114
+        X21LO=:X2DUI.HXDOK=:X2DUO.HXDOK           % LOCK USER DRIVER
+        A:=0; CALL X21UT
+ *)FILL
+
+ %      C O N N E C T  T O  X 2 1
+ %      *************************
+ *)FILL
+
+ X21CN: IF X2DCN><0 THEN X2FAC; CALL X21UT FI     % ALLREADY CONNECTED
+        CALL X2RAC
+        IF A<16 THEN A:=X2FSM; CALL X21UT FI      % TOO SMALL MESSAGE
+        A:=X2DMP.X2MSL; CALL LOGPH; A=:X2DUI      % GET USER INPUT DATAFIELD ADR
+        IF A=0 THEN A:=X2FIL; CALL X21UT FI
+        A:=X2DMP.X2MSS; CALL LOGPH; A:=D=:X2DUO   % GET USER OUTPUT DATAFIELD ADR
+        IF A=0 THEN A:=X2FIL; CALL X21UT FI
+        IF X2DMP.X2MS2=0 THEN A:=CURPR FI
+        IF A><X2DUO.RTRES  THEN
+           X2FNR; CALL X21UT                      % NOT RESERVED BY YOU
+        FI
+        IF A><X2DUI.RTRES THEN
+           X2FNR; CALL X21UT                      % NOT RESERVED BY YOU
+        FI
+
+ %      GET NEW DATAFIELD IF HASP-DMA IS USED
+
+        IF X2DUO.TYPRING BIT 5HDMA THEN
+          A:=X.CLOGDV; CALL LOGPH A=:X2DUO        % NB SHOULD HAVE BEEN OUTPUT
+          A:=X2DUI.CLOGDV; CALL LOGPH; A=:X2DUI
+        FI
+
+
+ %      GET HARDWARE DEVICE NUMBER (HDEV)
+
+        A:=X2DUO.HDEV=:HDEV
+        IF A><X2DUI.HDEV THEN X2FNM=:A; CALL X21UT FI  % NOT MATCHING HDEV
+
+ %      REROUTE INTERRUPTS TO X21 DRIVER
+
+        A:=B=:X2NEW; X2DUO=:X2OLD;
+        CALL X212S                                % UPDATE LEVEL 12
+        A:=B=:X2NEW; X2DUI=:X2OLD
+        CALL X213S                                % UPDATE LEVEL 13
+        1=:X2DCN; A:=0; CALL X21UT
+ *)FILL
+
+ %      R E D I R E C T
+ %      ***************
+
+ X21RD: A:=X2FIC; CALL X21UT
+
+ %      D I S C O N N E C T  F R O M  X 2 1
+ %      ***********************************
+
+ X21DC: IF X2DCN=0 THEN A:=X2FFF; CALL X21UT; FI  % NOTHING CONNECTED
+        IF X2DST=14 THEN A:=X2FIS; CALL X21UT; FI % YOU ARE IN DATA PHASE !
+        A:=B=:X2OLD; X2DUO=:X2NEW; CALL X212S     % REROUTE LEVEL 12
+        X2DUI=:X2NEW; CALL X213S                  % REROUTE LEVEL 13
+        A:=0=:X2DCN; CALL X21UT                   % OK, RETURN
+
+
+ %      G E T  C H A R G I N G  I N F O R M A T I O N
+ %      *********************************************
+
+ X21CH: IF X2DCC >< 3 THEN X2FAB; CALL X21UT FI   % NO CHARGING RECEIVED
+        IF X2DBC>-10 THEN X2FSM; CALL X21UT FI    % TOO SMALL MESSAGE
+        0=:X2DPC
+        DO WHILE X2DPC < 14
+           T:=X2DCI; X:=X2DPC; *LBYT
+           T:=X2DMP+X2M3; *SBYT
+           MIN X2DPC; P+0
+           MIN X2DBC; P+0
+           IF A = "X21PL" THEN GO ASD FI
+        OD
+ ASD:   0=:X2DCC; A:=0; CALL X21UT
+
+ %      R E T U R N    W H E N    C O N N E C T I O N    B R O K E N
+ %      ************************************************************
+
+ X21BR: IF X2DST >< 14 THEN X2FBR; CALL X21UT FI  % NOT IN DATAPHASE
+        X =: X2DBR; 1=:X2DDF
+        GO FAR X2STA
+ %*****************************
+ %
+ %     X 2 1 COMMAND DECODER
+ %
+ %*****************************
+
+ X21C:  X=:X2DMP; A-; A+10=:X2DBC; A:=X.X2MFU-    % POSITIVE FUNCTIONS
+        IF A < 1 OR > X21PM THEN
+           A:=X2FIC; CALL X21UT                   % ILLEGAL COMMAND
+        FI
+        0=:X2DDF                                   % EXPECTING NO CHARGING INFO
+        GOSW X21C,FAR X21CA,X21RE,X21CL,X21CH,X21CN,X21DC,X21RD,FAR X21AA,X21BR
+ RBUS
+
+
+ %==========================================
+ % 40.23
+ %      X 2 1 L V    X 2 1 I N    X 2 1 G C
+ %
+ %==========================================
+
+ %***************************************
+ %
+ %      INTERRUPT HANDLING ROUTINES
+ %
+ %***************************************
+
+ SUBR X21LV,X21IN
+
+ %      LEAVE X21, WAITING FOR INTERRUPT
+
+        INTEGER CPOF(0); *POF
+ X21LV: A:=L=:X2DL3; *TRA STS
+        IF A BIT 10 THEN GO FAR WT13 ELSE GO FAR WT12 FI
+ %
+ %
+ %      LEVEL 12 AND 13 INTERRUPT HANDLING
+
+ X21IN: *TRA STS                                  % WHICH LEVEL ?
+        IF A BIT 10 THEN
+
+ %      LEVEL 13
+ %      ********
+
+        T:=X2DHD+XRRTS; *EXR ST                   % GET STATUS
+        A=:X2D10
+        IF A BIT DCE19 THEN                       % DCE CLEAR INDICATION ?
+         IF X2DDF >= 0 THEN                       % NOT ENTRY HERE TWICE
+          A BONE 17 =: X2DDF
+          IF X2DST >< 25 THEN                     % DON'T CARE IF WAITING FOR DCE TO GET READY *H*
+            CALL X2120; 1=:WAKEF                  % YES
+            X21LO=:X2DUI.HXDOK=:X2DUO.HXDOK       % LOCK USER DRIVER
+            X21T6=:TMR; CALL X2121
+            IF X2DCC = 1 THEN CALL X21GC FI       % GET CHARGING IF REQUESTED
+            CALL X21SH; CALL X2SSS; CALL X2114    % NB X2SSS BRINGS US FROM LEVEL 13 TO LEVEL 12
+            0=:WAKEF
+            IF X2DBR >< 0 THEN                    % BREAK REQUESTED ?
+              X2FBR =: X2DBR.X2MST; 0=:X2DBR      % YES
+              4=:X.BBYTC; CALL O3CHA             % SEND BREAK MESSAGE FOR USER
+            FI
+            IF X2DDF NBIT 0 THEN                  % X21 MODUS ?
+              X2DST+30=:X2DMP.X2MST; 6=:X.BBYTC   % YES, STATUS TO DCB
+              CALL O3CHA; 0=:X2DST=:X2DPI=:X2DMP % SEND IT BACK TO USER
+              1=:X2DDF; GO FAR X2STA              % NOT X21 MODUS ANY MORE
+            FI
+            X2DDF BONE 16; A BZERO 17=: X2DDF     %
+           FI
+         FI
+        FI
+
+ %      ACTIVATE X21 DRIVER ?
+
+        IF X2DDF NBIT 0 OR A BIT 17 THEN          % X21 ACTIONS ?
+          IF X2DPIN = 0 THEN GO X21LV FI          % NOT PINNED, SKIP IT
+          A:=X2D10; 0=:X2DPIN; T:=X2DL3=:P        % GO TO X21 ROUTINE
+        FI
+
+ %      ACTIVATE DATA DRIVER
+
+        IF X2DDF BIT 16 THEN                      % CONNECTION BROKEN ?
+          A:=X2DUI=:B; T:="DRIVER"+3; A:=HX21M
+          *IOF; IRW LV13B DA
+          CALL S3L13; *ION                        % FIRST START DRIVER, THEN RETURN
+          CALL WT12
+            ELSE
+          A:=X2D10                                %
+          T:=X2DUI=:B; T:="DRIVER"+3; GO FAR X3T13 % GO TO USER DRIVER
+        FI
+        FI
+
+ %      LEVEL 12
+ %      ********
+
+        IF X2DDF > 0 THEN                         % DATA PHASE ?
+           A:=X2DUO=:B; GO FAR X3T12                 % YES, GO TO USER DRIVER
+        FI
+        A:=X2DL3=:P                               % LEVEL = 12
+
+ RBUS
+
+ SUBR X21GC
+
+ %      ROUTINE FOR RECEIVING CHARGING INFORMATION
+ %      ******************************************
+
+ X21GC: A:=L=:X2DSL
+        2=:X2DCC                                  % WAITING FOR CHARGING
+           CALL X211; X21T7=:TMR; CALL X218       % YES, GET READY FOR IT
+           0=:X2DPC=:WAKEF
+ KAST:     CALL X2GET; *JMP *-1
+              IF X2D00 = "X21BL" OR A = "X21SY" THEN
+                GO KAST
+              FI
+              0=:TMR
+              X:=X2DPC; T:=X2DCI; *SBYT           % STORE CHARGING INFO.
+              MIN X2DPC; P+0                      % IN DATAFIELD
+              IF X2D00 >< "X21PL" AND X2DPC < 14 THEN
+                GO KAST
+              FI
+           3=:X2DCC; CALL X2116; CALL X2121       % TERMINATE CHARGING CALL
+           CALL X211
+        A:=X2DSL=:P                               % EXIT
+ RBUS
+
+
+ %============================
+ % 40.24
+ %      X 2 1 T O    X 2 G E T
+ %
+ %============================
+ %**********************
+ %
+ %      TIMOUT HANDLING
+ %
+ ***********************
+
+ %      NON RESIDENT PART
+
+ SUBR X21TO
+ X21TO: IF X2DPIN = 0 THEN GO FAR WT13 FI         % NOT PINNED, SKIP IT
+        0=:X2DPIN
+        IF X2DCC = 2 THEN 0=:X2DCC; CALL X2114; GO FAR WT13 FI          % WAITING FOR CHARGININFO ?
+        IF X2DST = -1 THEN CALL X2114; X2F01; CALL X21UT; FI  %
+        IF X2DST = 3 THEN CALL X21SH; CALL X2SSS; CALL X2114; A:=33; CALL X21UT FI  % STATE 1, STATE 14
+        IF X2DST = 25 THEN CALL X2114             % HAVE SEEN DCE CLEAR, TIMOUT FOR 21
+          IF X2DDF NBIT 0 THEN                      % X21 MODUS?
+            55; CALL X21UT                        % 55 MEANS TIMOUT IN STATE 25
+          ELSE
+            IF X2DBR >< 0 THEN
+              X2FBR =: X2DBR.X2MST; 0=:X2DBR
+              4=:X.BBYTC; CALL O3CHA
+            FI
+            X21LO=:X2DUI.HXDOK=:X2DUO.HXDOK
+            60000; T:=X2DUI=:B; T:="DRIVER"+3; GO FAR X3T13  % ACTIVATE DRIVER, 60000 MEANS CONNECTION BROKEN BY X21
+          FI
+        FI
+        IF X2DER >< 0 THEN CALL X21SH; CALL X2SSS; X2F01; CALL X21UT; FI          % ERROR IN ERROR SEQUENCE
+        X2DST+30; CALL X21ER
+ RBUS
+ %*****************************************************************************
+ %
+ %      WAIT FOR ANY INPUT REACTION
+ %      THE INPUT CHARACTER IS STORED IN X2D00 IN DATAFIELD
+ %      STATUS IS SAVED IN X2D10
+ %
+ %      RETURN: SKIP IF INPUT DATA ELSE NOSKIP
+ %
+ %*****************************************************************************
+
+ SUBR X2GET
+ X2GET: A:=L=:X2DLS; -2=:X2D0C                    % SAVE RETURN ADDRES
+        X2D11; T:=X2DHD+XWRTC; *EXR ST            % ENABLE RECEIVER, C = ON
+        1=:X2DPI; CALL X21LV                      % PINNED FOR INPUT (SEE X21TO)
+        A=:X2D10                                  % SAVE IT
+        IF A BIT 1 THEN                           % STATUS AVAILABLE
+              T:=X2DHD+XRRSR; *EXR ST             % GET STATUS
+              A=:X2D02
+        FI
+        IF X2D10 BIT 0 THEN                       % ANY DATA AVAILABLE
+           T:=X2DHD+XRRDR; *EXR ST                % GET DATA
+           A BZERO "7" =:X2D00; X2DLS+1=:X2DLS    % SKIP RETURN IF DATA
+           T:=1                                   % T = 1  I.E DATA
+        ELSE
+           T:=0                                   % T = 0 I.E NO DATA
+        FI
+ OUT:   A:=X2DLS=:P                               % NO DATA, NO SKIP
+ RBUS
+
+
+
+
+ %==================================
+ % 40.25      R E A D Y    X 2 1 S H    X 2 1 1 4
+
+ %***************************************************************
+ %
+ %      R E A D Y                                 % ** STATE 1 **
+ %      T = 1  C = OFF
+ %
+ %      EXIT: T = 0     OK
+ %            T ><0     ERROR CODE IN T
+ %
+ %***************************************************************
+
+ SUBR X211
+ X211:  A:=L=:X2DSR; 1=:X2DST                     % SAVE RETURN ADDR
+        CALL X21SH                                % DEFINE SYN = HIGH, ENABLING
+                                                  % INTERFACE TO DETECT R = HIGH
+        100=:A; T:=X2DHD+XWTTC; *EXR ST           % T = 1
+        -3=:X2D0C; -1=:X2DST                      % **** POSSIBLE -7 HERE *****
+ X21L:  005; T:=X2DHD+XWRTC; *EXR ST              % C = OFF, IS R = 1 ?
+        X21TA=:TMR; 1=:X2DPI; CALL X21LV          % WAIT FOR R = 1
+        A=:X2D10                                  % SAVE STATUS
+        IF A/\ "101" >< "001" THEN                % IS I OFF ?
+              T:=X2F01;  GO OUT                   % NO, REPORT ERROR
+        FI                                        % YES,  I = OFF
+        T:=X2DHD+XRRDR; *EXR ST                   % GET R
+        A=:X2D00
+        IF A >< "377" THEN                        % IS R = HIGH ?
+              T:=X2F01; GO OUT                    % NO, NETWORK NOT READY
+        FI                                        % I DO NOT LIKE STATE 8 NOW
+        MIN X2D0C; GO X21L                        % MUST DETECT 3 SUCH CHAR, THUS
+                                                  % MAKE SURE T = 1 IN 24 BIT
+        0=:TMR                                    % INTERVALLS
+        0=:A; T:=X2DHD+XWRTC; *EXR ST             % DISABLE RECEIVER
+        40; *EXR ST
+        147; T:=X2DHD+XWPCR; *EXR ST              % 8 BITS CHAR,STRIP SYNC
+                                                  % NO PARITY CONTROL
+        X21SY; T:=X2DHD+XWSAR; *EXR ST            % REDEFINE SYNC CHARACTER
+        100; T:=X2DHD+XWTTC; *EXR ST              % T = 1
+        CALL STORE; T:=0
+ OUT:   A:=X2DSR=:P                               % EXIT
+ RBUS
+
+ %      SET READY (1,OFF) DONT CARE ABOUT DCE
+
+ SUBR X2118
+
+ X2118: A:=L=:X2DSR; T:=22=:X2DST; CALL STORE
+        CALL X21SH; 100; T:=X2DHD+XWTTC; *EXR ST
+        A:=0; T+"XWRTC-XWTTC"; *EXR ST
+        A:=X2DSR=:P
+
+ RBUS
+
+ %      STATE 14 CONTROLLED NOT READY
+
+ SUBR X2114
+ X2114: A:=0; T:=X2DHD+XWRTC; *EXR ST
+        A:=40; *EXR ST
+        A:=0; *EXR ST
+        A:=107; T+"XWPCR-XWRTC"; *EXR ST
+        A:=252; T+"XWSAR-XWPCR"; *EXR ST
+        A:=0; T+"XWCHL-XWSAR"; *EXR ST
+        A:=104; T+"XWTTC-XWCHL"; *EXR ST
+        A:=1; T+"XWTCR-XWTTC"; *EXR ST
+        EXIT
+ RBUS
+ %
+ %
+ %      ENABLE INTERFACE TO SEE R = HIGH
+
+ SUBR   X21SH
+ X21SH: A:=0; T:=X2DHD+XWRTC; *EXR ST             % DEVICE CLEAR
+        A:=40; *EXR ST
+        *AAT 6; EXR ST                            % CLEAR DMA ALSO *H*
+        A:=107; T:=X2DHD+XWPCR; *EXR ST           % BCP MODUS, NO VCR CONTROL
+                                                  % STRIP ONLY TWO SYN
+        377; T:=X2DHD+XWSAR; *EXR ST              % SPECIFY SYNC CHAR
+        A:=0; T:=X2DHD+XWCHL; *EXR ST             % CHARACTER LENGTH = 8 BITS
+        EXIT
+ RBUS
+
+
+ %===========================================================
+ % 40.26      X 2 1 1 9    X 2 1 2 0    X 2 1 2 1    X 2 1 1 6
+
+ %*************************************************
+ %
+ %      DTE/DCE CLEARING STATES  (16,17,19,20,21)
+ %
+ %*************************************************
+
+ SUBR X2119,X2120,X2121,X2116
+
+
+
+
+ %      DCE CLEAR INDICATION                     ** STATE 19 **
+ %      D = 0  I = OFF
+
+ X2119: A:=L=:X2DSR; 23=:X2DST; CALL STORE
+        A:=X2DSR=:P
+
+
+
+ %      CLEAR (DTE UNCONTROLLED)                 ** STATE 20 **
+ %      T = 0  C = OFF
+
+ X2120: A:=L=:X2DSR; 24=:X2DST; CALL STORE
+        CALL X21SH                                % SYN = HIGH TO DETECT STATE 21
+        140; T:=X2DHD+XWTTC; *EXR ST              % T = 0
+        7=:X2D11; T+"XWRTC-XWTTC"; *EXR ST        % C = OFF
+        A:=X2DSR=:P                               % EXIT
+
+
+ %      DCE READY (DTE UNCONTROLLED)             ** STATE 21 **
+
+ X2121: A:=L=:X2DSR; 25=:X2DST; CALL STORE
+        DO CALL X2GET; A=:A                       %
+        WHILE T=0 OR X2D00><"X21EN" OR X2D10 BIT "6" OR X2DDF NBIT 17
+                                                  % WAIT FOR R = 1, C = OFF,ST 21
+        OD
+        0=:TMR
+        A:=X2DSR=:P                               % EXIT
+
+
+ %      DTE CLEAR REQUEST
+ %      T = 0  C = OFF
+
+ X2116: A:=L=:X2DSR; 20=:X2DST; CALL STORE        % RETURN ADDR
+        CALL X21SH                                % SYN = HIGH,
+        140; T:=X2DHD+XWTTC; *EXR ST              % T = 0
+        207=:X2D11; X21T5=:TMR                    % C = OFF, TIMING UNTIL ST. 21
+        A:=X2DSR=:P                               % EXIT
+ RBUS
+
+
+
+
+
+ %====================
+ % 40.27      X 2 1 2
+
+ %************************************************************
+ %
+ %      DTE CALL REQUEST ROUTINES  (STATE 2,3,4,5)
+ %
+ %************************************************************
+
+ SUBR X212
+ %
+ %      DTE CALL REQUEST                         ** STATE 2 **
+ %      T = 0  C = ON
+
+ %
+ X212:  A:=L=:X2DSR; 2=:X2DST; CALL STORE
+        X21T1=:TMR; 307=:X2D11                    % C = ON
+        140; T:=X2DHD+XWTTC; *EXR ST              % T = 0
+
+ %      PROCEED TO SELECT ( WAIT FOR "+" )
+
+        3=:X2DST
+        DO
+           CALL X2GET; *JMP *-1                   % WAIT FOR DATA
+        WHILE X2D00><"X21PL"  OD                  % WAIT FOR "+"
+        0=:TMR                                    % RECEIVED "+"
+
+
+ %      SEND SELECTOR SIGNALS                    ** STATE 4 **
+ %      T = IA5  C = ON
+
+        300; T:=X2DHD+XWRTC; *EXR ST              % MUST SEE DCE CLEAR REQUEST
+        X21TB=:TMR; 4=:X2DST; CALL STORE
+        IF X2DMP.X2MFA NBIT X21C3 THEN            % SKIP ALL THIS IF DIRECT CALL
+        CALL X2SSS                                % SEND "SYN,SYN"
+        IF X2DMP.X2MFA /\ 7 >< 0 THEN             % ANY PREFIX ?
+           IF A BIT X21C1 THEN                    % CHARGING REQUEST ?
+              ##6; CALL X2SND                     % YES, PREFIX = "61"
+              ##1; CALL X2SND
+           FI
+           IF X2DMP.X2MFA BIT X21C2 THEN          % CALLED LINE ID ?
+              IF A BIT X21C1 THEN
+                 ##,; CALL X2SND
+              FI
+              ##6; CALL X2SND                     % YES, SEND ",62"
+              ##2; CALL X2SND
+           FI
+ %         IF X2DMP.X2MFA BIT X21C4 THEN          % THE USER MAY DO THIS
+ %            IF A /\ 3 >< 0 THEN                 % EXPLISIT BY PREFIXING
+ %               ##,; CALL X2SND                  % WITH "."
+ %            FI
+ %            ##.; CALL X2SND
+ %         FI
+           ##-; CALL X2SND                        % TERMINATION OF PREFIX
+        FI
+        0=:X2DPC
+           DO                                     % NO, SEND SELECTION SIGNALS
+              X:=X2DPC; T:=X2DMP+X2M3; *LBYT
+              CALL X2SND
+              MIN X2DPC
+           WHILE X2D05><"X21PP" OD                % LAST CHAR IS "+"
+ %      FI
+        FI
+        0=:TMR
+        X:=X2DMP
+        300=:A; T:=X2DHD+XWRTC; *EXR ST             % GET RID OF OVERRUN SITUATION
+        T:=X2DHD+XRRDR; *EXR ST
+        A=:X2D00
+        T:=X2DHD+XRRTS; *EXR ST
+        A:=X2D10; T:=X2DHD+XRRSR; *EXR ST
+        A=:X2D02; CALL STORE
+
+
+ %      DTE WAITING                              ** STATE 5 **
+ %      T = 1  C = ON
+
+        5=:X2DST; 0=:A; T:=X2DHD+XWTTC; *EXR ST   % T = 1
+        X21T2=:TMR; A:=X2DSR=:P                   % EXIT
+ RBUS
+
+
+
+ %==========================================================
+ % 40.28      X 2 1 7    X 2 1 1 0    X 2 1 1 2    X 2 1 R T
+ %******************************************
+ %
+ %      INFORMATION FROM DCE
+ %
+ %*******************************************
+
+ %
+ %
+ %     CALL PROGRESS SIGNALS                     ** STATE 7 **
+ %      T-REG AT EXIT:
+ %      T = CODE GROUP NO
+ %      T < 0 MEANS  T = ERRORCODE-
+
+ SUBR X217
+ X217:  T:=7=:X2DST; A:=L=:X2DSR; CALL STORE      % ENTERING STATE 7
+        0=:X2DPC=:X2DPS
+        DO WHILE X2D00><"X21PL"
+           IF T:=X2DBC<0 THEN
+              X:=X2DPC
+              T:=X2DMP+X2M2; *SBYT                % SAVE BYTE IN MESSAGE
+           ELSE
+              T:=X2FSM; GO OUT                    % MESSAGE TOO SMALL
+           FI
+           MIN X2DPC; P+0
+           MIN X2DBC; P+0
+           IF X2D00><"X21PL" OR ><"X21KO" THEN
+              X2DPS*12=:T; X2D00-60\/T=:X2DPS     % CONVERT FROM ASCII
+           FI
+           IF X2D00="X21KO" AND X2DPS<=24 THEN    % IMPORTENT CP SIGNAL?
+              0=:X2DPS=:X2DPC                     % NO, FOREGET IT
+           FI
+           CALL X2GET; *JMP *-1                   % GET NEXT CHARACTER
+        OD
+        IF X2DPS>=24 THEN T:=X2FCP; GO OUT FI     % SERIOUS CP  STOPP
+        IF X2DPC > 2 THEN T:=X2FEC; GO OUT FI     % EXTENDED CP SIGNAL
+        T:=0
+ OUT:   X:=X2DMP; A:=X2DSR=:P
+ RBUS
+
+
+ %      TAKE ACTION ACCORDING TO CALL PROGRESS SIGNAL
+
+
+ %
+ %
+ %      CALLED/CALLING LINE IDENTIFICATION        ** STATE 10
+ %      OR DCE PROVIDED INFORMATION
+
+ SUBR X2110
+ X2110: T:=12=:X2DST:=L=:X2DSR; CALL STORE        % ENTERING STATE 10
+        X:=0=:X2DPC
+           DO WHILE X2D00><"X21PL"
+              X:=X2DPC
+              T:=X2DMP+X2M3; *SBYT                % STORE IN MESSAGE
+              MIN X2DBC; P+0                      % MESSAGE LENGTH INCREMENTED
+              MIN X2DPC; P+0
+              IF X2DBC = 0 THEN T:=X2FSM; GO OUT FI % NO MORE SPACE IN MESSAGE
+              CALL X2GET; *JMP *-1
+           OD
+           X:=X2DPC; T:=X2DMP+X2M3; A:="X21PL"; *SBYT
+           T:=0
+ OUT:   A:=X2DSR=:P                               % EXIT
+ RBUS
+
+
+
+
+ %***********************************
+ %
+ %      READY FOR DATA, AND LEAVE X21
+ %
+ %************************************
+
+ SUBR X2112,X21RT
+
+ %
+ %
+ %      READY FOR DATA
+
+ X2112: 0=:TMR; 14=:X2DST                         % POSSIBLE DELAY HERE ?????
+        304; T:=X2DHD+XWRTC; *EXR ST              % TAKE CARE OF MODEM STATUS
+        CALL STORE
+
+ %
+ %
+ %      LEAVE X21
+
+ X21RT: IF X2DMP.X2MFA BIT X21C1 THEN 1=:X2DCC FI % MARK IF CHARGING REQUEST
+        IF X2DCC = 2 THEN 0=:X2DCC FI             % WILL NOT SAVE OLD CHARGING
+        X21OP=:X2DUI.HXDOK=:X2DUO.HXDOK             % OPEN LOCK IN USER DRIVER
+        X2FOK; CALL X21UT
+
+ RBUS
+
+
+
+ %============================================
+ % 40.29      X 2 1 8         X 2 1 9
+
+ %*******************************
+ %
+ %      CALLED DTE
+ %
+ %*******************************
+
+ SUBR X218,X219
+ %      INCOMMING CALL                            ** STATE 8 **
+
+ X218:  10=:X2DST; A:=L=:X2DSR; CALL STORE
+        CALL XTSTC; GO NOMES; CALL X2STA          % ANY NEW MESSAGES ON MY WAY IN HERE ?
+ NOMES: 0=:WAKEF                                  % WAKE ME IF ANY MESSAGES
+        7=:X2D11                                  % C= OFF
+        DO WHILE X2D00><"X21BL"                   % WAIT FOR BELL
+           CALL X2GET; *JMP *-1
+        OD
+
+
+ %
+ %      CALL ACCEPTED
+ %      T = 1, C = ON, R = BEL, I = OFF
+ %
+ X219:  1=:WAKEF; 307=:X2D11; 11=:X2DST           % C = ON, ENABLE RECEIVER
+        X21T4=:TMR; CALL STORE
+        X2DSR=:P
+ RBUS
+ *"
+"
+ *"8C1X2
+" INTEGER ARRAY X2S01(200)
+ INTEGER ARRAY X2E01(0)
+ *"
+" *"8C2X2
+" *"8C3X2
+" *"8C4X2
+" *"8C5X2
+" *"8C6X2
+"
+ *"8UDMA+8PUDM+8VICO+8PVIC
+"
+ *"8DILG
+"""131435
+ *"8FTS
+" %===========================================================================
+ %      P R V T T A B L E
+ %
+ % TABLE FOR SAVING VARIABLES FROM THE SYSTEM SEGMENT
+ % USED BY BACKGROUND PROCESS ALLOCATION SYSTEM
+ %
+ INTEGER PRVTTABLE(0)
+
+ @MAC
+
+)9SCLC
+)MCDEF MPRVT $FLG
+0;0;0;12;0;0;$FLG ;0
+]
+
+"
+
+)9RCLC
+)9SLPL
+ *"
+" INTEGER EPRVTTABLE(0)
+
+ @EOF
+
+ %
+

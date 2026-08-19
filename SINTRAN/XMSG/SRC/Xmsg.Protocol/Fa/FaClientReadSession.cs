@@ -333,7 +333,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
                 return FaClientAction.Wait;
             }
 
-            return FaClientAction.SendClose;
+            return FaClientAction.SendRelease;
         }
 
         /// <summary>
@@ -590,7 +590,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
         /// <summary>
         /// Records that the close has been sent, finishing the session.
         /// </summary>
-        public void OnCloseSent()
+        public void OnReleaseSent()
         {
             _closed = true;
         }

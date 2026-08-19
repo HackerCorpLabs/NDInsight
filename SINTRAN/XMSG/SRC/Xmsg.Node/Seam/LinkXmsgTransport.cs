@@ -12,7 +12,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Seam
     /// This is the single wire between the pure protocol seam (which knows only
     /// <see cref="IXmsgTransport"/>) and the link seam (which knows LAPB). Keeping it a one-line
     /// adapter means the codec never depends on <c>Xmsg.Live</c>, and the whole protocol stack
-    /// migrates without touching this class — only the <see cref="ILink"/> implementation swaps.
+    /// migrates without touching this class - only the <see cref="ILink"/> implementation swaps.
     /// </remarks>
     public sealed class LinkXmsgTransport : IXmsgTransport
     {

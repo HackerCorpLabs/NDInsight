@@ -28,12 +28,12 @@ namespace NDInsight.Sintran.Xmsg.Packet
         public ushort SourceNode;
 
         /// <summary>
-        /// Flags 1 — the per-direction datagram sequence (offsets 8-9).
+        /// Flags 1 - the per-direction datagram sequence (offsets 8-9).
         /// </summary>
         public ushort Flags1;
 
         /// <summary>
-        /// Flags 2 (offsets 10-11) — a COPY of the 16-bit XMCSM; <c>0x0400</c> on the setup frames.
+        /// Flags 2 (offsets 10-11) - a COPY of the 16-bit XMCSM; <c>0x0400</c> on the setup frames.
         /// </summary>
         /// <remarks>
         /// <para>

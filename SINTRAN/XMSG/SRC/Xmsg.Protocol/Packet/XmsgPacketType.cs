@@ -1,7 +1,7 @@
 namespace NDInsight.Sintran.Xmsg.Packet
 {
     /// <summary>
-    /// Transport-level XMSG packet type — the SINTRAN header packet-subtype (offset 3),
+    /// Transport-level XMSG packet type - the SINTRAN header packet-subtype (offset 3),
     /// surfaced as the seam's L2/L3 packet classifier (the XMSG counterpart of an
     /// <c>X25PacketType</c>).
     /// </summary>
@@ -10,7 +10,7 @@ namespace NDInsight.Sintran.Xmsg.Packet
     /// This is deliberately the transport granularity: the wire subtype byte, not
     /// the higher-level XMCSM service class (connect / terminal-data / control / routing).
     /// Service-class dispatch happens INSIDE <c>XmsgLayer</c> once a packet is parsed, exactly
-    /// as the plan's decision table specifies — the enum stays at the shape the wire gives us.
+    /// as the plan's decision table specifies - the enum stays at the shape the wire gives us.
     /// </para>
     /// <para>
     /// Values are the verified SINTRAN subtypes from XMSG-PROTOCOL.md section 4.1 plus the

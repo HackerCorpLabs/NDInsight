@@ -45,8 +45,28 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         private const string D9ReconnectConnectHex =
             "2113000E0066006400160400D9FE210086E40066000000640290040000410010FF072A54414441444D00FE0444313032";
 
+        /// <summary>
+        /// A restart reads back a value at or AHEAD of what was saved - never behind - and the live
+        /// value inside one process stays exact.
+        /// </summary>
+        /// <remarks>
+        /// <para><b>This test used to demand an exact round-trip. That contract was wrong.</b></para>
+        /// <para>
+        /// MEASURED 2026-08-11 against a real D100: a datagram whose Flags 1 is AHEAD of the peer's
+        /// expectation draws a XENSE (<c>0xFFDE</c>) naming the offending number, which can be
+        /// recovered from. One that is BEHIND is dropped in SILENCE - no acknowledgement, no error -
+        /// and the conversation simply stops with nothing to diagnose. So when the stored number
+        /// cannot be exact it must err HIGH, and the file is written with
+        /// <see cref="FileResponderSequenceStore.LookaheadFrames"/> added precisely so that a
+        /// process killed between writes resumes ahead rather than short.
+        /// </para>
+        /// <para>
+        /// Asserting equality here would forbid the very behaviour that keeps a restarted node
+        /// talking, so the assertion is a RANGE.
+        /// </para>
+        /// </remarks>
         [Fact]
-        public void FileStore_PersistsAcrossInstances()
+        public void FileStore_ResumesAtOrAheadOfWhatWasSaved()
         {
             string path = Path.Combine(Path.GetTempPath(), "xmsg-seq-test-" + Guid.NewGuid().ToString("N") + ".state");
             try
@@ -56,9 +76,24 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
                 Assert.Equal(0x0000, a.LoadNextFlags1(100));   // first-ever contact starts at 0
                 a.SaveNextFlags1(100, 0x0007);
 
-                // Second "process" (new instance = a restart): must read back 0x0007.
+                // Within the SAME process the live value is exact - the lookahead is a property of
+                // the file, not of the counter.
+                Assert.Equal(0x0007, a.LoadNextFlags1(100));
+
+                // Second "process" (new instance = a restart): at or ahead, never behind.
                 FileResponderSequenceStore b = new FileResponderSequenceStore(path);
-                Assert.Equal(0x0007, b.LoadNextFlags1(100));
+                ushort resumed = b.LoadNextFlags1(100);
+
+                Assert.True(
+                    resumed >= 0x0007,
+                    "a restart must never resume BEHIND what was saved - behind is dropped in "
+                    + "silence. Resumed at 0x" + resumed.ToString("X4"));
+                Assert.True(
+                    resumed <= 0x0007 + FileResponderSequenceStore.LookaheadFrames,
+                    "the lookahead is bounded; resuming further ahead than "
+                    + FileResponderSequenceStore.LookaheadFrames + " wastes numbers. Resumed at 0x"
+                    + resumed.ToString("X4"));
+
                 Assert.Equal(0x0000, b.LoadNextFlags1(102));   // an unseen node is still fresh
             }
             finally
@@ -75,7 +110,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         {
             // The accept CONTINUES our persisted per-link outgoing Flags1 (GOD-LLM S6a MEASUREMENT:
             // continuation is right; its values are capture-legal at any epoch/channel; "echo crashes" was
-            // disproven). ConnectHex is a 100<->103 connect (seed 0x13), so the wrap boundary is F1 0x14;
+            // disproven). ConnectHex is a 100-103 connect (seed 0x13), so the wrap boundary is F1 0x14;
             // 0x0004 is a normal non-boundary value and must be used verbatim.
             MemoryStore store = new MemoryStore();
             store.SaveNextFlags1(100, 0x0004);   // continued value from prior sessions on this link

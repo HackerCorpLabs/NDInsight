@@ -168,7 +168,28 @@ namespace NDInsight.Sintran.Xmsg.Sync
                 string ignored;
                 SintranFileName.TryConvert(LeafName(file.Path), out name, out type, out ignored);
 
-                bool exists = ExistsRemotely(remote, name, type);
+                // DOES THE FILE ALREADY EXIST ON THE MACHINE? The listing is the authority when we
+                // have one. When we have NONE - and the daemon has no listing at all today - an
+                // empty array is indistinguishable from a genuinely empty directory, so everything
+                // read as new and every push after a restart went out as a CREATE of a name that
+                // already existed, which SINTRAN refuses.
+                //
+                // The ledger settles it without asking anybody: it holds an entry for this path
+                // only if we have ACTUALLY carried that file to or from this machine. Either way
+                // the file was there. That is real evidence, and it is the only evidence available
+                // when there is no listing.
+                //
+                // It can still be wrong in exactly one way - somebody deleted the file on the
+                // machine since - which is precisely what a listing would tell us. So the ledger is
+                // consulted ONLY as a fallback, never to overrule a listing we actually have.
+                // KnownToExistRemotely, not HasCarried. HasCarried is only ever true for files WE
+                // moved, so a file somebody else created - or one that outlived a deleted ledger -
+                // was invisible here, the plan said CREATE, and SINTRAN refused it. The ledger now
+                // also remembers what the machine has TOLD us exists, which it does by refusing a
+                // create with error 62.
+                bool exists = ExistsRemotely(remote, name, type)
+                    || (remote.Length == 0 && _ledger.KnownToExistRemotely(file.Path));
+
                 if (exists)
                 {
                     actions.Add(new SyncAction(

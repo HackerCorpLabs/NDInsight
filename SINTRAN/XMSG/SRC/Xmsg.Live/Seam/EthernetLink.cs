@@ -14,7 +14,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
     /// <remarks>
     /// <para>
     /// This is the Ethernet sibling of <see cref="LapbLayerAdapter"/>. Both present the identical
-    /// seam, so everything above the link — the codec, the node, the servers — is unchanged whether
+    /// seam, so everything above the link - the codec, the node, the servers - is unchanged whether
     /// the peer is reached over HDLC or over Ethernet. That is exactly what the wire evidence says
     /// should be true: the SINTRAN header and its word-6 checksum are transport-independent
     /// (128/128 frames including relayed ones), so no byte above this class depends on which
@@ -30,11 +30,11 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
     /// Without that filter a single <see cref="NdLinkLayer"/> would re-learn its peer from any
     /// frame ADDRESSED TO US, whoever sent it, and so flip-flop between the stations on the
     /// segment. That is not a hypothetical: D19999 is defined as a remote system on both D100 and
-    /// D102, so both will unicast to it. (This has nothing to do with broadcast — no captured
+    /// D102, so both will unicast to it. (This has nothing to do with broadcast - no captured
     /// COSMOS frame uses a broadcast destination, and whether COSMOS ever sends one is UNKNOWN.)
     /// To speak to several peers, create several links sharing one backend.
     /// </para>
-    /// <para><b>The link cannot speak first — by design, not by oversight</b></para>
+    /// <para><b>The link cannot speak first - by design, not by oversight</b></para>
     /// <para>
     /// A data frame carries the peer's link id in its receiver field, and that id is UNKNOWN in
     /// origin: it is neither the node number nor the system number in the MAC, so it can only be
@@ -47,7 +47,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
     /// <para>
     /// <b>UNVERIFIED:</b> whether a real ND node will spontaneously address a newly defined remote
     /// system, and so how long that wait is in practice, has not been observed. If it turns out a
-    /// node never speaks first, learning the peer's link id needs a separate experiment — not a
+    /// node never speaks first, learning the peer's link id needs a separate experiment - not a
     /// guessed constant here.
     /// </para>
     /// <para><b>Buffer ownership</b></para>
@@ -61,7 +61,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
     {
         /// <summary>
         /// Link id placed in the sender field of our outgoing frames when the caller does not choose
-        /// one. The origin of these ids is UNKNOWN — they are learned from the peer, never derived —
+        /// one. The origin of these ids is UNKNOWN - they are learned from the peer, never derived -
         /// so this value is ARBITRARY and carries no meaning. It is non-zero only because zero is
         /// <see cref="NdLinkLayer.UnknownPeerLinkId"/> and would be ambiguous in a trace.
         /// </summary>
@@ -93,6 +93,17 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
         /// surfaced rather than silently dropped.
         /// </summary>
         public event UnknownFrameKindReceived? OnUnknownFrameKindReceived;
+
+        /// <summary>
+        /// Occurs when the peer re-sends a data frame this link has already taken.
+        /// </summary>
+        /// <remarks>
+        /// <b>Never normal.</b> A peer repeats because it has not seen our acknowledgement, which
+        /// on 2026-08-10 meant we were sending far ahead of the link's window and every repeat
+        /// reached the file server as a fresh request. It looked like a pile of file-access defects
+        /// and was one link-layer fault. Log it loudly.
+        /// </remarks>
+        public event DuplicateDataFrameReceived? OnDuplicateDataFrameReceived;
 
         /// <summary>
         /// Occurs when the peer sends a disconnect request - any ND frame kind whose high nibble
@@ -170,6 +181,11 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
             _linkLayer.PayloadReceived += DeliverPayload;
             _linkLayer.OnUnknownFrameKindReceived += RaiseUnknownFrameKind;
             _linkLayer.OnDisconnectRequested += RaiseDisconnectRequested;
+            _linkLayer.StaleAcknowledgement += delegate (byte acknowledged, byte expected, byte next, int queued)
+            {
+                StaleAcknowledgement?.Invoke(this, acknowledged, expected, queued);
+            };
+            _linkLayer.OnDuplicateDataFrameReceived += RaiseDuplicateDataFrame;
 
             // Go Active the INSTANT the peer is known, which is before the frame that taught us is
             // delivered upward. Waiting for HandleFrame to return instead was a real defect: the
@@ -268,6 +284,23 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
             return _backend.IsActive;
         }
 
+        /// <summary>
+        /// Asks the peer to open the link from scratch, so it forgets what it remembers about us.
+        /// </summary>
+        /// <returns>
+        /// True when the request was sent.
+        /// </returns>
+        /// <remarks>
+        /// The peer's station address is derived from its system number, so this can be sent before
+        /// the peer has said anything - which is the point, because the state that needs clearing
+        /// is the state it kept from our LAST run. See <c>NdLinkLayer.SendConnectionRequest</c> for
+        /// what it is for and what about it is unverified.
+        /// </remarks>
+        public bool RequestConnection()
+        {
+            return _linkLayer.SendConnectionRequest(_peerMac);
+        }
+
         /// <inheritdoc />
         public void Stop()
         {
@@ -303,6 +336,68 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
             }
         }
 
+        /// <summary>
+        /// Raised when the link accepted a datagram but has NOT sent it.
+        /// </summary>
+        /// <param name="link">
+        /// The link holding the datagram.
+        /// </param>
+        /// <param name="byteCount">
+        /// How many bytes were parked.
+        /// </param>
+        /// <param name="queueDepth">
+        /// How many datagrams are now waiting, this one included.
+        /// </param>
+        public delegate void NdDatagramParked(EthernetLink link, int byteCount, int queueDepth);
+
+        /// <summary>
+        /// Raised when the peer acknowledges something behind where we already believe it to be.
+        /// </summary>
+        /// <param name="link">
+        /// The link that refused it.
+        /// </param>
+        /// <param name="acknowledged">
+        /// The sequence the peer acknowledged.
+        /// </param>
+        /// <param name="peerNextExpected">
+        /// Where we already believe the peer to be.
+        /// </param>
+        /// <param name="queued">
+        /// How many datagrams are parked behind the window.
+        /// </param>
+        public delegate void NdStaleAcknowledgement(
+            EthernetLink link, byte acknowledged, byte peerNextExpected, int queued);
+
+        /// <summary>
+        /// Raised when an acknowledgement is refused for being stale.
+        /// </summary>
+        /// <remarks>
+        /// Paired with <see cref="DatagramParked"/> on purpose: one of these alone is a duplicate in
+        /// flight and means nothing, but a run of them WITH a climbing park queue is a deadlock -
+        /// the frames the peer needs in order to move forward are the ones stuck behind the window.
+        /// </remarks>
+        public event NdStaleAcknowledgement? StaleAcknowledgement;
+
+        /// <summary>
+        /// The window state at the moment of the most recent park.
+        /// </summary>
+        /// <remarks>
+        /// "The window is full" says nothing on its own: full at six is a busy link, full at ONE is
+        /// a peer that has never placed us. This carries the numbers so the log line can tell them
+        /// apart.
+        /// </remarks>
+        public string ParkedDetail { get; private set; } = string.Empty;
+
+        /// <summary>
+        /// Raised when a datagram is parked behind a full send window instead of being sent.
+        /// </summary>
+        /// <remarks>
+        /// Queueing on its own is normal - it is how the send window is respected. What is worth
+        /// watching is a depth that climbs and never falls, which means the peer has stopped
+        /// acknowledging us and nothing further will leave this node.
+        /// </remarks>
+        public event NdDatagramParked? DatagramParked;
+
         /// <inheritdoc />
         public bool SendData(ReadOnlySpan<byte> payload)
         {
@@ -325,7 +420,19 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
             {
                 // SendDatagram copies the span into its own frame buffer before returning, so the
                 // caller's buffer is free the moment this call ends.
-                return _linkLayer.SendDatagram(payload);
+                NdSendOutcome outcome = _linkLayer.SendDatagram(payload);
+
+                // PARKED IS NOT SENT, and this is the only place that can tell. ILink.SendData
+                // answers "did you take it", which is true either way, so a frame waiting behind a
+                // closed window would otherwise leave no trace anywhere - that is exactly how a live
+                // TAD connect came to hang while every log line said the reply had gone out.
+                if (outcome == NdSendOutcome.Queued)
+                {
+                    DatagramParked?.Invoke(this, payload.Length, _linkLayer.QueuedDatagrams);
+                    ParkedDetail = $"window {_linkLayer.Window}, outstanding {_linkLayer.OutstandingFrames}, peer placed us: {_linkLayer.HasLearnedPeerPosition}";
+                }
+
+                return outcome != NdSendOutcome.Refused;
             }
         }
 
@@ -428,6 +535,20 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
         private void RaiseUnknownFrameKind(byte kind)
         {
             OnUnknownFrameKindReceived?.Invoke(kind);
+        }
+
+        /// <summary>
+        /// Forwards the link layer's duplicate-frame diagnostic to this link's own event.
+        /// </summary>
+        /// <param name="sequence">
+        /// The sequence the repeated frame carried.
+        /// </param>
+        /// <param name="expected">
+        /// The sequence this link was waiting for.
+        /// </param>
+        private void RaiseDuplicateDataFrame(byte sequence, byte expected)
+        {
+            OnDuplicateDataFrameReceived?.Invoke(sequence, expected);
         }
 
         /// <summary>

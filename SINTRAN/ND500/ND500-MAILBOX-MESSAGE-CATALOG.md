@@ -175,10 +175,13 @@ flags, ALWAYS preserved (`A/\160000\/MSGN500`, MP:992) | `>100B` = restart-ND-10
 ## 6. UNKNOWNS - carve before coding (no guessing)
 
 1. `3MONO=34B`, `33MON=46B` microcode semantics.
-2. **The "answer result block at message offsets 40B-47B" has NO symbol evidence** - the FUNCS
-   bodies' `,X 40/41/43/46/47` stores are frame/descriptor-relative, NOT proven message offsets.
-   Treat as NON-EXISTENT until byte-carved. (Corrects earlier working assumption in the RetroCore
-   test plan / STATUS answer-block test - flagged there.)
+2. **RESOLVED 2026-08-10 (`CARVE-ANSWER-RESULT-BLOCKS-2026-08-10.md`):** the "answer result block
+   at 40B-47B" is NOT a message structure - the FUNCS `,X 40/41/43/46/47` stores are the MON 60
+   **info block** parameter records `5DD1..5DD5` (values @ 40/43/46/51/54B) + `5P1..5P5` (user
+   addresses @ 42/45/50/53/56B), base `B-11 = S500DF-ZPREG = 165777B` [V bytes + L07 SYMBOL].
+   The per-command mailbox ANSWER offsets (what the emulated microcode must write) are in that
+   carve doc: 16B/17B register value @ msg 10B-11B, examine answers @ msg 11B-12B, 3RMICV
+   version @ msg 7 + CPU parameter @ msg 10B (cached to CPUDF[20B] by CSLOA's post-load verify).
 3. `TPSTRA=65` stop reason - UNVERIFIED.
 4. Exact microcode step sequence per MICFU - DERIVED only; the C# model is constrained by what
    SINTRAN reads back. Pull ND-05.012.01 sec 13 full text if more fidelity is needed.

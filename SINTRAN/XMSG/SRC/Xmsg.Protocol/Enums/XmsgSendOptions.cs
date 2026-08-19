@@ -109,6 +109,23 @@ namespace NDInsight.Sintran.Xmsg
         /// <summary>
         /// XFWAK wake-on-status (bit 6, <c>0x40</c>).
         /// </summary>
+        /// <remarks>
+        /// <para><b>The ND documentation numbers this bit 14, and both are right</b></para>
+        /// <para>
+        /// <c>XMSG-PL-VALUES-M.INCL</c> declares <c>XFWAK=14</c> and <c>XFWTF=15</c>, and the
+        /// COSMOS guide's PLANC samples build their flags word as <c>2**XFWTF</c>. Those are bit
+        /// positions in the 16-bit options WORD a MON 200B caller passes.
+        /// </para>
+        /// <para>
+        /// This enum is the ROLE BYTE on the wire, which is the HIGH BYTE of that word - so word
+        /// bit 14 is byte bit 6, and word bit 15 is byte bit 7. Same wire bits, two widths.
+        /// </para>
+        /// <para>
+        /// DO NOT "correct" one to match the other. They disagree only in the way a byte offset
+        /// disagrees with a word offset, and making them numerically equal would move every option
+        /// eight bits and break frames that are verified against real machines.
+        /// </para>
+        /// </remarks>
         WakeOnStatus = 1 << 6,
 
         /// <summary>

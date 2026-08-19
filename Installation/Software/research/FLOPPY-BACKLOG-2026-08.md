@@ -95,18 +95,37 @@ confirmed by mounting in this session.
 
 ## Flagged as directly useful for development documentation (pull these in first, when resuming this backlog)
 
-1. `ND-210336F` Symbolic Debugger — being actioned now as `ND-10336`/`ND-210336`.
-2. `ND-10340D`/`ND-210340F` SIBAS-II for ND-500 — completes the ND-500 side; only ND-100 is
-   documented so far ([ND-10166](../ND-10166/README.md)/[ND-210166](../ND-210166/README.md)).
-3. `ND-10730A` UNIQUE II for ND-500 — first floppy found for any `ND-210730`-family article, see
-   [ND-210729](../ND-210729/README.md).
-4. `ND-10309A` + `PLANC-SCREEN-H` — an unidentified PLANC screen-handling variant.
-5. `ND-10745A` ND Ada — matches the 22-item sweep list's already-flagged undocumented product.
-6. `ND-10013K` NORD Screen Handling System, `ND-10511A` Exception Handling System (likely
-   `EXCEPT-LIB`), `ND-10609B` COSMOS Programmer Library, `ND-250007A` MLE editor, `ND-210080J` PED
-   editor, `ND-210628F` SINTRAN Utility Programs — genuine dev-tool/utility products.
-7. `ND-10343G`/`ND-10073G` ISAM — additional copies/revisions of the already-documented
-   [ND-210073](../ND-210073/README.md).
+**Status as of 2026-08-10: all 7 items below have been pulled into the main catalog as far as
+possible without the actual floppy image files** (which exist only on the friend's imaging
+equipment / local drive, not in this repo's 899-entry `floppies.json` reference library and not
+supplied to this session). Where a PD or PI sheet existed, a STUB entry with real feature content
+was written; where nothing existed, a bare STUB records the article number so it isn't lost.
+**If the friend's image files themselves can be supplied** (copied in, or hosted with an MD5 for
+the `ndlib.hackercorp.no` mechanism), every one of these STUBs can be completed to VERIFIED.
+
+1. `ND-210336F` Symbolic Debugger — **done**, documented as [ND-210336](../ND-210336/README.md).
+2. `ND-10340D`/`ND-210340F` SIBAS-II for ND-500 — **STUB written**, [ND-10340](../ND-10340/README.md)
+   (PI-sheet only; completes the ND-500 side of [ND-10166](../ND-10166/README.md)/[ND-210166](../ND-210166/README.md)).
+3. `ND-10730A` UNIQUE II for ND-500 — **STUB written**, [ND-10730](../ND-10730/README.md) (no
+   PD/PI sheet at all; first floppy found for any `ND-210730`-family article, see
+   [ND-210729](../ND-210729/README.md)).
+4. `ND-10309A` — already documented, cross-check not yet done (no image available). `PLANC-SCREEN-H`
+   — still unidentified against any article number; not written up as its own product entry.
+5. `ND-10745A` ND Ada — **STUB written**, [ND-10745](../ND-10745/README.md) (PI-sheet only;
+   PI content **confirms this is a genuinely different, subset compiler**, not just an older
+   revision of [ND-211114](../ND-211114/README.md)).
+6. `ND-10013K` NORD Screen Handling System — **STUB written**, [ND-10013](../ND-10013/README.md)
+   (PI-sheet only, a real second UI-building answer alongside VTM). `ND-10511A` Exception Handling
+   System — **STUB written**, [ND-10511](../ND-10511/README.md) (no PD/PI, suspected `EXCEPT-LIB`
+   match unconfirmed). `ND-10609B` COSMOS Programmer Library — **STUB written**,
+   [ND-10609](../ND-10609/README.md) (PI-sheet only; XMSG/TLIB call libraries for PLANC/FORTRAN).
+   `ND-250007A` MLE editor — **STUB written**, [ND-250007](../ND-250007/README.md) (no PD/PI).
+   `ND-210080J` PED editor — folded into [ND-10080](../ND-10080/README.md)'s STUB as a
+   related-but-unsourced later article; not its own entry. `ND-210628F` SINTRAN Utility Programs —
+   **STUB written**, [ND-210628](../ND-210628/README.md) (no PD/PI; possibly a later article for
+   the already-documented [ND-10022](../ND-10022/README.md)).
+7. `ND-10343G`/`ND-10073G` ISAM — **done**, both folded as older-article cross-references into the
+   existing [ND-210073](../ND-210073/README.md) entry rather than given separate pages.
 
 ## Explicitly lower priority (office/document suite, games, unidentified)
 

@@ -22,7 +22,9 @@ namespace NDInsight.Sintran.Xmsg.Chat
     {
         private readonly XmsgKernel _kernel;
         private readonly XroutDirectory _directory;
-        private readonly string _nickname;
+        // NOT readonly: a rename the server accepted changes it - see Poll. The chosen name at
+        // construction is only the opening bid.
+        private string _nickname;
         private readonly byte[] _scratch;
 
         private XmsgPortNumber _port;
@@ -160,6 +162,64 @@ namespace NDInsight.Sintran.Xmsg.Chat
         }
 
         /// <summary>
+        /// Asks to be known by a different name from now on.
+        /// </summary>
+        /// <param name="nickname">
+        /// The wanted name.
+        /// </param>
+        /// <returns>
+        /// <see langword="true"/> when the request was sent. NOT whether it was accepted - the
+        /// server decides, and says so with a <see cref="ChatMessageKind.Renamed"/> everybody sees
+        /// or a <see cref="ChatMessageKind.Reject"/> to the asker.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="nickname"/> is null.
+        /// </exception>
+        /// <remarks>
+        /// The local nickname is NOT changed here. It is changed when the server's answer arrives,
+        /// in <see cref="Poll"/> - otherwise a refused rename would leave this client calling
+        /// itself something the room does not know it by, and every later line would be attributed
+        /// wrongly on this screen alone.
+        /// </remarks>
+        public bool Rename(string nickname)
+        {
+            if (nickname == null)
+            {
+                throw new ArgumentNullException(nameof(nickname));
+            }
+
+            if (!_joined)
+            {
+                return false;
+            }
+
+            SendToServer(new ChatMessage(ChatMessageKind.Rename, nickname, string.Empty));
+            return true;
+        }
+
+        /// <summary>
+        /// Asks the room who is in it.
+        /// </summary>
+        /// <returns>
+        /// True when the question was sent; false when this client has not joined a room.
+        /// </returns>
+        /// <remarks>
+        /// The answer comes back as an ordinary arrival of kind <see cref="ChatMessageKind.Who"/>
+        /// carrying the names in its text, separated by single spaces - it is not returned from
+        /// here, because nothing in this client blocks waiting for the server.
+        /// </remarks>
+        public bool Who()
+        {
+            if (!_joined)
+            {
+                return false;
+            }
+
+            SendToServer(new ChatMessage(ChatMessageKind.Who, _nickname, string.Empty));
+            return true;
+        }
+
+        /// <summary>
         /// Leaves the room and closes the port.
         /// </summary>
         /// <remarks>
@@ -221,6 +281,16 @@ namespace NDInsight.Sintran.Xmsg.Chat
                     // client sends from now on goes straight there, with no name lookup.
                     _server = sender;
                     _joined = true;
+                }
+
+                // OUR OWN rename, confirmed. The server broadcasts the new name with the old one in
+                // the text, so this client recognises its own by the OLD name - which is still what
+                // it is calling itself at this moment. Changing the local name any earlier would
+                // leave a refused rename showing lines under a name the room never agreed to.
+                if (message.Kind == ChatMessageKind.Renamed
+                    && string.Equals(message.Text, _nickname, StringComparison.OrdinalIgnoreCase))
+                {
+                    _nickname = message.Nickname;
                 }
 
                 received.Add(message);

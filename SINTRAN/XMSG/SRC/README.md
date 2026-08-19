@@ -20,13 +20,14 @@ dotnet build   XMSG/SRC
 dotnet test    XMSG/SRC
 ```
 
-**660 tests green** as of 2026-08-06.
+**1001 tests green** as of 2026-08-11.
 
 ---
 
 ## Size and shape
 
-72,866 lines across 307 files; 33,021 of them code.
+90,075 lines across 401 files, in 26 projects. The per-project table below is older than
+that total and is indicative rather than exact - the total is the number that gets re-counted.
 
 | | Files | Total lines | Code |
 |---|---:|---:|---:|
@@ -54,7 +55,7 @@ behavioural assertion - see "How this library is tested" below.
 | **Xmsg.Live.Runner** | 2,132 | 1,119 | The harness that talks to a real D100 |
 | **Xmsg.Ndfs** | 1,808 | 646 | The file store the FA server serves from |
 | **Xmsg.Hdlc** | 1,711 | 736 | HDLC framing, FCS-16, LAPB frame parsing and control constants |
-| Xmsg.Hub, Xmsg.Chat, Xmsg.Diagnostics, Xmsg.Api.Node, and their tests | ~4,600 | ~2,600 | Hub mode, a chat demo, the frame decoder, a node-level API facade |
+| Xmsg.Hub, Xmsg.Chat, Xmsg.Diagnostics, Xmsg.Api.Node, and their tests | ~4,600 | ~2,600 | Hub mode, the chat system (rooms, aliases, channels), the frame decoder, a node-level API facade |
 
 `Xmsg.Protocol` is the striking one: 12,654 lines carrying only 4,100 of code, a 3:1
 comment ratio. That is the carving work. Every constant records where it was measured,

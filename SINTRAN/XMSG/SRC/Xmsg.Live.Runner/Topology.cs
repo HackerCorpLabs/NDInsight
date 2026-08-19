@@ -336,7 +336,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
     /// with its alias, reachability and optional direct-TCP endpoint.
     /// </summary>
     /// <remarks>
-    /// The file is written from the runner's own ("self") perspective — each node states how it is reached
+    /// The file is written from the runner's own ("self") perspective - each node states how it is reached
     /// FROM us. This is what feeds the XSGSY routing table, so it must be self-consistent: our own node is
     /// always local, and we never advertise a route to ourselves via another machine (that is the loop the
     /// old hardcoded table produced when run as node 102).
@@ -344,7 +344,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
     internal sealed class TopologyConfig
     {
         /// <summary>
-        /// Gets or sets the runner's own node (CPU) number — the id we present on the wire by default.
+        /// Gets or sets the runner's own node (CPU) number - the id we present on the wire by default.
         /// </summary>
         public ushort Self { get; set; }
 
@@ -729,7 +729,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
             {
                 TopologyNode node = Nodes[i];
 
-                // Our own node is always directly local — this is the entry that stops 100 routing to us
+                // Our own node is always directly local - this is the entry that stops 100 routing to us
                 // via 100 (the *->102->100->102... loop the fixed table produced when run as node 102).
                 if (node.Id == self)
                 {

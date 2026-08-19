@@ -1,0 +1,570 @@
+145663  "8TR5
+145663  ITB12+43/DT05R
+145723  "
+145723  "8TR6
+145723  ITB12+44/DT06R
+145724  "8TR7
+145724  ITB12+45/DT07R
+145725  "8TR8
+145725  ITB12+46/DT08R
+145726  "8TR9
+145726  ITB12+47/DT09R
+145727  "8TR10
+145727  ITB12+50/DT10R
+145730  "8TR11
+145730  ITB12+51/DT11R
+145731  "8TR12
+145731  ITB12+52/DT12R
+145732  "
+145732  ITB12+117/DT01R
+145777  "8C1HD;ITB12+147/HDOF1
+146027  "8C2HD;ITB12+150/HDOF2
+146030  "8HMO3;ITB12+151/UDHM3
+146031  "8HMO4;ITB12+152/UDHM4
+146032  "
+146032  MAX12=*-ITB12
+146032  
+146032  
+146032  %==============================================================================
+146032  % 42.16      I T E 1 0
+146032  %
+146032  ITE10=*
+146032  
+146032  *+XID10/
+146044  -1
+146045  %==============================================================================
+146045  % 42.17      I T E 1 1
+146045  %
+146045  ITE11=*
+146045  
+146045  
+146045  
+146045  
+146045  *+XID11/
+146057  -1
+146060  %==============================================================================
+146060  % 42.18      I T E 1 2
+146060  %
+146060  ITE12=*
+146060  "8PC01; 140002; PIO01
+146062  "
+146062  *+XID12/
+146074  -1
+146075  
+146075  %==============================================================================
+146075  % 42.19      I T E 1 3
+146075  %
+146075  ITE13=*;
+146075  *+XID13/
+146101  -1
+146102  IT13E=*
+146102  
+146102  %==============================================================================
+146102  % 42.20      I T B 1 3
+146102  %
+146102  ITB13, CLCFI
+146103  "8C1HD;ITB13+147/HDIF1
+146252  "8C2HD;ITB13+150/HDIF2
+146253  "8HMO3;ITB13+151/IDHM3
+146254  "8HMO4;ITB13+152/IDHM4
+146255  "
+146255  
+146255  MAX13=*-ITB13
+146255  
+146255  %============================================================================
+146255  %            I D 1 0 T
+146255  %
+146255  % IDENT CODE TABLE FOR TERMINAL 65-128 OUTPUT (LEVEL 10)
+146255  
+146255  ID10T=*
+146255  "9TR27;ID10T+76/T127W
+146354  "9TR28;ID10T+77/T128W
+146355  "
+146355  MXX10=*-ID10T
+146355  
+146355  %============================================================================
+146355  %            I D 1 2 T
+146355  %
+146355  % IDENT CODE TABLE FOR TERMINAL 65-128 INPUT (LEVEL 12)
+146355  
+146355  ID12T=*
+146355  "9TR27;ID12T+76/T127R
+146454  "9TR28;ID12T+77/T128R
+146455  "
+146455  MXX12=*-ID12T
+146455   
+146455  
+
+146455  %%%%%%%%%%%%%%%%%%%%%%%%%   B U F F E R S   %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+146455  %=======================================================================
+146455  %      LINE-PRINTER AND/OR VERSATEC BUFFERS
+146455  %
+146455  
+146455  
+146455  
+146455  
+146455  )LINE
+
+
+146455  %=============================================================================
+146455  %      M 1 D R I V E R S
+146455  %=============================================================================
+146455  
+146455  %============================================================================
+146455  % 43.0       N O R D   1 0 0   D R I V E R S   F O R   D M A   D E V I C E S
+146455  
+146455  "
+146455  
+146455  )LINE
+
+
+146455  %=============================================================================
+146455  %      M 2 D R I V E R S
+146455  %=============================================================================
+146455  
+146455  "8FDI1+8FDI2+8BFD1+8BFD2
+146455  
+146455  )KILL RDAT  RSR1 RSR2 WCWD WDAD WSCT INTEN BBUSY
+146455  )KILL ENINT DVCL BCLBU WRDAT WRDEL RDID FREAD SEEK
+146455  )KILL RECAL
+146455  )KILL 9TREG 9AREG 9DREG 9XREG 9LREG
+146455  
+146455  "
+146455  %
+
+146455  
+146455  )LINE
+146455   *"8BFD1+8BFD2
+"146455   
+146455   SUBR BFDIS
+146455   %=========================================================================
+146455   %  43.9      B F D I S
+146455   %
+146455   % F L O P P Y   D I S K   D R I V E R   F O R   S I N G L E /
+146455   % D O U B L E  D E N S I T Y  &  S I D E
+146455   %
+146455   % MODIFIED: 3/6 -81
+146455   % MODIFIED: 24/2-82 BY TP
+146455   %
+146455   %       CALLING SEQUENCE:
+146455   %       JPL I (BFDIS
+146455   %       JMP   ERROR           ERROR EXIT
+146455   %       JMP   BUSY            BUSY EXIT
+146455   %       JMP   FIN             FINISHED
+146455   %
+146455   %
+146455   %       REGISTER CONTENT WHEN CALLING BFDIS:
+146455   %
+146455   %       X- NUMBER OF SECTORS TO TRANSFER
+146455   %       T- BIT 0-5: FUNCTION CODE
+146455   %
+146455   %              0 - READ
+146455   %              1 - WRITE
+146455   %              7 - ERASE TAPE                          *
+146455   %             10 - ADVANCE TO EOF
+146455   %             11 - REVERCE TO EOF
+146455   %             12 - WRITE EOF
+146455   %             13 - REWIND TO BOT
+146455   %             20 - READ STATUS
+146455   %             36 - READ EXTENDED STATUS                *
+146455   %             41 - FORMAT FLOPPY                       *
+146455   %             42 - READ FORMAT                         *
+146455   %             43 - READ DELETED RECORD
+146455   %             44 - WRITE DELETED RECORD
+146455   %             54 - COPY FLOPPY                         *
+146455   %             55 - FORMAT TRACK (FLOPPY)
+146455   %             56 - CHECK CARTRIDGE (READ AND TEST CRC) *
+146455   %             57 - TEST CARTRIDGE CAPASITY (WRITE)     *
+146455   %             70 - RETENSION CARTRIDGE                 *
+146455   %             71 - PERFORM TEST                        *
+146455   %             72 - ILLEGAL COMMAND                     *
+146455   %             73 - CLEAR                               *
+146455   %             74 - Continious Read                     *
+146455   %             75 - Continious Write                    *
+146455   %
+146455   %       BIT 6-7: UNIT NUMBER  (0,1,2,3)
+146455   %
+146455   %       BIT 8-9: BYTES/SECTOR:  0 = 512
+146455   %                               1 = 256
+146455   %                               2 = 128
+146455   %                               3 = 1024
+146455   %
+146455   %       BIT 10: DOUBLE SIDED DRIVE & DISKETTE
+146455   %
+146455   %       BIT 11: DUAL DENSITY DISKETTE
+146455   %
+146455   %       POSSIBLE FORMATS (BITS 8-9-10-11):
+146455   %
+146455   %             0- IBM SYS-32-II  512 BYTES/SECTOR    SINGLE SIDE, SINGLE DENSITY
+146455   %             1- IBM 3600       256 BYTES/SECTOR    SINGLE SIDE, SINGLE DENSITY
+146455   %             2- IBM 3740       128 BYTES/SECTOR    SINGLE SIDE, SINGLE DENSITY
+146455   %             3- ILLEGAL
+146455   %             4- NON IBM        512 BYTES/SECTOR    DOUBLE SIDE, SINGLE DENSITY
+146455   %             5- NON  IBM       256 BYTES/SECTOR    DOUBLE SIDE, SINGLE DENSITY
+146455   %             6- NON  IBM       128 BYTES/SECTOR    DOUBLE SIDE, SINGLE DENSITY
+146455   %             7- ILLEGAL
+146455   %            10- NON  IBM       512 BYTES/SECTOR    SINGLE SIDE, DOUBLE DENSITY
+146455   %            11- IBM SYS-34     256 BYTES/SECTOR    SINGLE SIDE, DOUBLE DENSITY
+146455   %            12- ILLEGAL
+146455   %            13- NON  IBM      1024 BYTES/SECTOR    SINGLE SIDE, DOUBLE DENSITY
+146455   %            14- NON  IBM       512 BYTES/SECTOR    DOUBLE SIDE, DOUBLE DENSITY
+146455   %            15- IBM SYS-34     256 BYTES/SECTOR    DOUBLE SIDE, DOUBLE DENSITY
+146455   %            16- ILLEGAL
+146455   %            17- NON IBM       1024 BYTES/SECTOR    DOUBLE SIDE, DOUBLE DENSITY
+146455   %
+146455   %
+146455   %       BIT 12: STREAMER CASSET
+146455   %
+146455   %       BIT 14-15: DESTINATION UNIT DURING COPY COMMAND
+146455   %
+146455   %       D- DISK ADDRESS (LOGIC SECTOR ADDRESS)
+146455   %
+146455   %       ADDRESS RANGE:
+146455   %
+146455   %             0-1150  FORMAT  0   232     PAGES
+146455   %             0-2203  FORMAT  1   220.375 PAGES
+146455   %             0-3722  FORMAT  2   175.125 PAGES
+146455   %                     FORMAT  3
+146455   %             0-2320  FORMAT  4   464     PAGES
+146455   %             0-4406  FORMAT  5   440.75  PAGES
+146455   %             0-7644  FORMAT  6   372.25  PAGES
+146455   %                     FORMAT  7
+146455   %             0-2203  FORMAT 10   440.75  PAGES
+146455   %             0-3722  FORMAT 11   372.25  PAGES
+146455   %                     FORMAT 12
+146455   %             0-1150  FORMAT 13   464     PAGES
+146455   %             0-4406  FORMAT 14  1101.5   PAGES
+146455   %             0-7644  FORMAT 15   764.5   PAGES
+146455   %                     FORMAT 16
+146455   %             0-2320  FORMAT 17  1150     PAGES
+146455   %
+146455   %  EXIT INFORMATION:
+146455   %
+146455   %       IF NORMAL OPERATIONS
+146455   %         T-REG = HARDWARE STATUS
+146455   %         X-REG = STATUS 1 (FROM FSTAT+0):
+146455   %         D-REG = STATUS 2 (FROM FSTAT+1):
+146455   %
+146455   %       IF TEST OPERATIONS
+146455   %         T-REG = HARDWARE STATUS
+146455   %         X-REG = HARDWARE STATUS
+146455   %         D-REG = 177777
+146455   %
+146455   %                 STATUS 1 (FROM FSTAT+0):
+146455   %                                 BIT 0 - NOT USED
+146455   %                                     1 - INT. ENABLED
+146455   %                                     2 - CONTROLLER BUSY
+146455   %                                     3 - CONTROLLER READY
+146455   %                                     4 - OR OF ERRORS
+146455   %                                     5 - DELETED RECORD
+146455   %                                     6 - INTERNAL RETRIES (NO ERROR)
+146455   %                                     7 - SERIOUS ERROR, NO MEMORY CONTACT
+146455   %                                     8 - NOT USED
+146455   %
+146455   %                              BIT 9-15 - ERROR CODE:
+146455   %                                     0 - TRANSFER OK
+146455   %                                     5 - CRC ERROR
+146455   %                                     6 - SECTOR NOT FOUND
+146455   %                                     7 - TRACK NOT FOUND
+146455   %                                    10 - FORMAT NOT FOUND
+146455   %                                    11 - DISKETTE DEFECT (IMPOSSIBLE TO FORMAT)
+146455   %                                    12 - FORMAT MISMATCH
+146455   %                                    13 - ILLEGAL FORMAT SPECIFIED
+146455   %                                    14 - SINGLE SIDED DISKETTE INSERTED
+146455   %                                    15 - DOUBLE SIDED DISKETTE INSERTED
+146455   %                                    16 - WRITE PROTECTED DISKETTE/CARTRIGE
+146455   %                                    17 - DELETED RECORD
+146455   %                                    20 - DRIVE NOT READY
+146455   %                                    21 - CONTROLLER BUSY ON START
+146455   %                                    22 - LOST DATA (OVER OR UNDERRUN)
+146455   %                                    23 - TRACK ZERO NOT DETECTED
+146455   %                                    24 - VCO FREQUENCY OUT OF RANGE
+146455   %                                    25 - MICROPROGRAM OUT OF RANGE
+146455   %                                    26 - TIMEOUT
+146455   %                                    27 - UNDEFINED ERROR
+146455   %                                    30 - TRACK OUT OF RANGE
+146455   %                                    32 - COMPARE ERROR (DURING COMPARE OF DATA)
+146455   %                                    33 - INTERNAL DMA ERRORS
+146455   %                                    40 - ND-100 BUS ERROR COMMAND FETCH
+146455   %                                    41 - ND-100 BUS ERROR STATUS TRANSFER
+146455   %                                    42 - ND-100 BUS ERROR DATA TRANSFER
+146455   %                                    43 - ILLEGAL COMMAND
+146455   %                                    44 - WORDCOUNT NOT ZERO
+146455   %                                    45 - ILLEGAL COMPETION (CONT. TRANSF)
+146455   %                                    46 - ADR-REG ERROR
+146455   %                                    50 - NO BOOTSTRAP FOUND ON DISKETTE
+146455   %                                    51 - WRONG BOOTSTRAP (TOO OLD FLO-MON VERSION)
+146455   %                                    60 - STREAMER HANDSHAKE ERROR
+146455   %                                    61 - STREAMER STATUS TRANSFER ERROR
+146455   %                                    62 - BAD CARTRIGE
+146455   %                                    63 - NO CARTRIGE INSTALLED
+146455   %                                    64 - END OF TAPE, CARTRIGE FULL
+146455   %                                    65 - STREAMER DRIVE ERROR
+146455   %                                    66 - UNIDENTIFIED EXCEPTION
+146455   %                                    67 - ILLEGAL COMMAND TO STREAMER
+146455   %                                    70 - PROM CHECKSUM ERROR
+146455   %                                    71 - RAM ERROR
+146455   %                                    72 - CTC ERROR
+146455   %                                    73 - DMACTRL ERROR
+146455   %                                    74 - VCO ERROR
+146455   %                                    75 - FLOPPY CONTROLLER ERROR
+146455   %
+146455   %
+146455   %                 STATUS 2 (FROM FSTAT+1):
+146455   %                       BIT   0-3  - IF READ FORMAT COMMAND OR FORMAT ERROR:
+146455   %                                    FORMAT READ FROM DISKETTE, OTHERWISE = 0
+146455   %                             4-5  - NOT USED
+146455   %                               6  - TRUE IBM FORMAT (128 B/S ON TR. 0 SIDE 0)
+146455   %                               7  - NOT USED
+146455   %                             8-9  - LAST ACCESSED UNIT
+146455   %                            10-15 - NOT USED
+146455   %
+146455   %                 HARDWARE STATUS (HDEV+2):
+146455   %                         BIT 0-6 - EQUAL TO STATUS 1 (FROM FSTAT+0)
+146455   %                               7 - SERIOUS ERROR !!!!!!!!!!!!
+146455   %                            8-14 - ALWAYS 0
+146455   %                              15 - ALWAYS 1 ( = NEW CONTROLLER)
+146455   %
+146455   
+
+146455   %      USE OF BUFFER WHILE RUNNING TESTS
+146455   %
+146455   %            *********************************************
+146455   % BUFFER +00 * TEST NO                                   *
+146455   % BUFFER +01 * BITS SET COROSPONDING TO IOX'S TO PERFORM *
+146455   % BUFFER +02 * DATA READ FROM        IOX DEVNO +0        *
+146455   % BUFFER +03 * DATA TO BE WRITHEN TO IOX DEVNO +1        *
+146455   % BUFFER +04 * DATA READ FROM        IOX DEVNO +2        *
+146455   % BUFFER +05 * DATA TO BE WRITHEN TO IOX DEVNO +3        *
+146455   % BUFFER +06 * DATA READ FROM        IOX DEVNO +4        *
+146455   % BUFFER +07 * DATA TO BE WRITHEN TO IOX DEVNO +5        *
+146455   % BUFFER +06 * DATA READ FROM        IOX DEVNO +4        *
+146455   % BUFFER +10 * DATA READ FROM        IOX DEVNO +6        *
+146455   % BUFFER +11 * DATA TO BE WRITHEN TO IOX DEVNO +7        *
+146455   %            *********************************************
+146455   %            *  USE USER SPESIFYED CCB                   *
+146455   %            *********************************************
+146455   % BUFFER +12 *  CCBWO,  COMMAND WORD                     *
+146455   % BUFFER +13 *  BFDEV,  DEVICE ADDRESS                   *
+146455   % BUFFER +14 *  FMEMH,  MEMORY ADDRESS ( HIGH )          *
+146455   % BUFFER +15 *  FMEML,  MEMORY ADDRESS ( LOW )           *
+146455   % BUFFER +16 *  OPWCH,  OPTIONS AND WORD COUNT ( HIGH )  *
+146455   % BUFFER +17 *  WCOUN,  WORD/RECORD COUNT ( LOW )        *
+146455   % BUFFER +20 *  FSTA1,  STATUS 1                         *
+146455   % BUFFER +21 *  FSTA2,  STATUS 2                         *
+146455   % BUFFER +22 *  LASMH,  LAST MEMORY ADDRESS ( HIGH )     *
+146455   % BUFFER +23 *  LASML,  LAST MEMORY ADDRESS ( LOW )      *
+146455   % BUFFER +24 *  MREMW,  MOUST REMAINING WORDS            *
+146455   % BUFFER +25 *  LREMW,  LEAST REMAINING WORDS            *
+146455   %            *********************************************
+146455   % BUFFER +26 *  FUTHER EXTENTIONS                        *
+146455   % BUFFER +27 *  FUTHER EXTENTIONS                        *
+146455   %            *********************************************
+146455   % BUFFER +30 *  REAL BUFFER START                        *
+146455   %            *********************************************
+146455   
+
+146455   
+146455   SYMBOL IOXIN=164000
+146455   %SYMBOL RDATA=0               % READ DATA
+146455   SYMBOL RSTAT=2               % READ STATUS
+146455   SYMBOL LCONT=3               % LOAD CONTROL WORD
+146455   SYMBOL LHPOI=5               % LOAD POINTER HIG
+146455   SYMBOL LLPOI=7               % LOAD POINTER LOW
+146455   SYMBOL LDATA=7               % LOAD DATA
+146455   
+146455   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+146455   %                              %
+146455   %  OPERATION DECLARATIONS      %
+146455   %  *):NEW                      %
+146455   %                              %
+146455   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+146455   
+146455   SYMBOL RSSTA=20              %   READ STATUS
+146455   SYMBOL PTEST=71              % * PERFORM TEST
+146455   SYMBOL FCLEAR=73             % * CLEAR
+146455   
+146455   SYMBOL FOCCU=2, INERR=4, SEERR=7                            %
+146455                                                               %
+146455   INTEGER TEARG                                               %   TEMPRARY SAVED A-REG DORING TEST IOXS
+146456   INTEGER TETRG                                               %   TEMPRARY SAVED T-REG DORING TEST IOXS
+146457                                                               %
+146457   BFDIS: TAD=:TADRG      ; X=:XRG                             %
+146461                                                               %
+146461          IF A:=77 /\ T-FCLEAR >< 0 THEN                       %
+146465                                                               %
+146465            A:=HDEV+RSTAT   ; * EXR SA                         %   READ STATUS
+146470            IF A BIT FOCCU GO HBUSY                            %   CONTROLLER BUSY
+146472                                                               %
+146472            X:=A                                               %
+146473            K:="0"                                             %
+146474            IF A:=BUSFL><0        THEN K:=1 FI                 %   PREVIOUS TRANSFER TO BE CHECKED ?
+146477                                                               %   OR
+146477            IF A:=77 /\ T-RSSTA=0 THEN K:=1 FI                 %   OPER. READ STATUS ON FLOPPY?
+146504            IF K THEN                                          %
+146506                                                               %   YES, PREVIOUS TRANSFER TO BE CHECKED
+146506              X=:XRG                                           %
+146507              T:=HDEV ; * EXR ST                               %   READ STATUS 1
+146511              D:=A                                             %
+146512              IF X BIT INERR THEN                              %   ERRORS
+146514                                                               %
+146514                IF A:=TRG NBIT 14  THEN                        %   IF NOT STREAMER
+146517                  T+LCONT                                      %
+146520                  A:=22 ; * EXR ST                             %   CLEAR DEVICE
+146522                FI                                             %
+146522                L-1                                            %   ERROR RETUR
+146523                                                               %
+146523              ELSE                                             %   NO ERRORS, FINISHED
+146524                                                               %
+146524                IF A:=77 /\ TRG -PTEST=0 THEN                  %   IF PERFORME TEST
+146530                                                               %
+146530                  X:=HDEV                                      %
+146531                  AD:=MEMAD ; D+1 ; A:=A+C ; * EXAM            %
+146535                  T BZERO 10                                   %
+146536                  DO                                           %
+146536                    D+1 ; A:=A+C                               %
+146540                    IF T BIT "0" THEN                          %
+146542                      T=:TETRG ; A=:TEARG                      %
+146544                      * EXR SX                                 %   EXIQUTE THE INPUT IOX
+146545                      T:=A ; A:=TEARG                          %
+146547                      * DEPO                                   %   STORE THE READ DATA
+146550                      T:=TETRG                                 %
+146551                    FI                                         %
+146551                  WHILE T SHZ -2 ><0                           %
+146554                    X+2 ; D+1 ; A:=A+C                         %
+146557                  OD                                           %
+146560                                                               %
+146560                FI                                             %
+146560                                                               %
+146560   RETFI:       L+1                                            %   FINISED RETUR
+146561                                                               %
+146561              FI                                               %
+146561              T:=FSTA2                                         %   STATUS 2 (ERROR CODE & FORMAT NO.)
+146562              X:=XRG:=:D                                       %   HWSTAT IN D, FSTA1 IN X
+146564              IF A:=77 /\ TRG -PTEST=0  AND D NBIT INERR THEN  %   IF PREFORME TEST WENT OK
+146572                X:=D                                           %   HWSTAT TO X
+146573                T:=-1                                          %
+146574              FI                                               %
+146574              T:=:D                                            %   HWSTAT TO T, FSTA2/-1 TO D
+146575              A:=ARG                                           %
+146576              0=:BUSFL                                         %
+146577              GO RETUR                                         %
+146600                                                               %
+146600   HBUSY:     GO BUSYR                                         %   BUSY RETURN
+146601                                                               %
+146601            FI                                                 %
+146601          FI                                                   %
+146601   
+                                                           %
+146601                                                               %   START NEW OPERATION
+146601          * BLDA 140 DT                                        %   SET K IF STREAMER
+146602                                                               %   START CREATING THE CONTROLLWORD IN D
+146602          IF A:=77 /\ T -PTEST=0 THEN                          %
+146606                                                               %
+146606            AD:=MEMAD ; * EXAM                                 %
+146610            T SHZ 11                                           %   SHIFT TEST NO. IN PLACE
+146611            T BONE 10 BONE 3                                   %
+146613            T BONE 1 ; * BSTA 60 DT                            %   TAKE STERAMING FROM K
+146615            T=:SFCOM                                           %
+146616            X:=HDEV+1                                          %
+146620            D+1 ; A:=A+C ; * EXAM ; BLDA 100 DT                %   GET IOX BITS, SAVE USE USER SPESIFYED CCB IN K
+146624            T BZERO 10                                         %
+146625            DO                                                 %
+146625              D+1 ; A:=A+C                                     %
+146627              D+1 ; A:=A+C                                     %
+146631              IF T  BIT 1 THEN                                 %
+146633                T=:TETRG                                       %
+146634                * EXAM ; SWAP SA DT                            %
+146636                * EXR SX                                       %   EXEQUTE THE WANTED OUTPUT IOX
+146637                T=:A:=TETRG                                    %
+146641              FI                                               %
+146641            WHILE T SHZ -2><0                                  %
+146644              X+2                                              %
+146645            OD                                                 %
+146646            IF K THEN                                          %
+146650              T:=HDEV+LLPOI                                    %
+146652              AD:=MEMAD  ; A:=:D+12        ; * EXR ST          %   LOAD CCB POINTER LOW
+146656              A:=:D:=A+C ; T+"LHPOI-LLPOI" ; * EXR ST          %   LOAD CCB POINTER HIG
+146662              A:=:D+16:=:D:=A+C                                %
+146666            FI                                                 %
+146666                                                               %
+146666          ELSE                                                 %
+146667                                                               %
+146667            IF A:=77 /\ T -FCLEAR=0 THEN                       %
+146673              A:=22 ; * BSTA 50 DA                             %   CLEAR + STREAMER IF STREAMER IN USE
+146675              A=:SFCOM                                         %   SAVE COMMAND
+146676            ELSE                                               %
+146677                                                               %
+146677              T BZERO 14 =:CCBWO                               %
+146701              0=:OPWCH                                         %
+146702              X:=XRG=:WCOUN                                    %   NO. OF SECTORS TO TRANSFER
+146704              A:=D=:BFDEV                                      %
+146706              A:=0         ; T:=HDEV+"LHPOI" ; * EXR ST        %   LOAD COMMAND POINTER, UPPER ADDR
+146712              A:="CCBWO"+B ; T+"LLPOI-LHPOI" ; * EXR ST        %   LOWER
+146716              D:=0 BONE 10 BONE 1 ; * BSTA 50 DD               %   SET ACTVATE AND ENABELE INTERUPT BITS, BIT  6 IF STREAMER
+146722                                                               %
+146722              IF  D NBIT 5 THEN                                %   IF NOT STREAMER
+146724                                                               %
+146724                A:=CCBWO SHZ 10 SHZ -16 =:X                    %   UNIT NO. TO X
+146730                                                               %
+146730                IF A:=STEPR(X)><0 THEN D BONE 11 FI            %   SET BIT  9 IF STEP RATE
+146733                IF A:=DOORL(X)><0 THEN D BONE 12 FI            %   SET BIT 10 IF DOOR LOCK
+146736                IF A:=PRECP(X)><0 THEN D BONE 13 FI            %   SET BIT 11 IF DISABLE PRECOMP
+146741                IF A:=DTRCK(X)><0 THEN D BONE 14 FI            %   SET BIT 12 IF DUAL TRACK DENSITY (FUTURE!!)
+146744                IF A:=COMFL   ><0 THEN D BONE 15 FI            %   SET BIT 13 IF HARDWARE COMPARE
+146747                                                               %
+146747              FI                                               %
+146747              A:=D=:SFCOM                                      %   SAVE COMMAND
+146751              AD:=MEMAD                                        %
+146752            FI                                                 %
+146752                                                               %
+146752          FI                                                   %
+146752                                                               %
+146752          AD=:FMEMD                                            %   MEMORY ADDRESS
+146753          T:=HDEV+LCONT                                        %
+146755          A:=SFCOM ; * EXR ST                                  %   ACTIVATE
+146757          A=:T                                                 %
+146760          IF A:=77/\TRG-FCLEAR=0 THEN                          %
+146764            T:=0; L+1                                          %   FINISHED!!!
+146766            A:=HDEV+RSTAT   ; * EXR SA                         %   READ STATUS
+146771            A=:XRG                                             %
+146772          FI                                                   %
+146772          A:=T                                                 %
+146773   BUSYR: A=:BUSFL                                             %   BUSY
+146774          X:=XRG                                               %
+146775          TAD:=TADRG                                           %
+146776   RETUR: EXITA                                                %
+146777                                                               %
+146777   RBUS                                                        %
+147000   
+147000   *"
+"147000   
+147000   @EOF
+147000  
+147000   %
+
+147000   %==============================================================================
+147000   %  PIT3-POF-CODE
+147000   %
+147000   %==============================================================================
+147000   %                    
+147000   *)KILL 3PITU 3POFU
+147000   *"8UDMA+8VICO 3PIT
+"147000   *"8PUDM+8PVIC -3PIT
+"147000   
+147000   *"3PITU+3POFU
+"147000   
+147000   *)KILL 3PITP 3POFP
+147000   *"8PIOC 3PIT
+"147000   *"8PPIO -3PIT
+"147000   *"3PITP+3POFP
+"147000   
+147000   *"3PIT
+"147000                      
+147000   *"-3PIT
+"147000   * 3PIT; *-1/       % MARK THAT NEXT TIME WE ARE ON PIT 3
+147000   *"
+"147000   @EOF
+147000  
+
+147000  % 

@@ -10,7 +10,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
 {
     /// <summary>
     /// Proves the typed TAD message API encodes each message correctly and, critically, keeps the
-    /// chain word-aligned (spec TAD-Message-Formats.md section 1) — the missing alignment pad after an
+    /// chain word-aligned (spec TAD-Message-Formats.md section 1) - the missing alignment pad after an
     /// odd-length BDAT is what hung odd-length terminal replies (the menu and the Echo reply).
     /// </summary>
     public sealed class TadMessageBuilderTests
@@ -21,7 +21,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         [Fact]
         public void OddLengthBdat_InsertsPadBeforeRfi()
         {
-            // "\r\nIPSUM LORUM\r\n# " is 17 bytes (odd) — the Echo reply that hung.
+            // "\r\nIPSUM LORUM\r\n# " is 17 bytes (odd) - the Echo reply that hung.
             byte[] chain = new TadMessageBuilder()
                 .BdatText("\r\nIPSUM LORUM\r\n# ")
                 .Rfi()
@@ -43,7 +43,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         [Fact]
         public void EvenLengthBdat_NoPadBeforeRfi()
         {
-            // "\r\n22:27:22\r\n# " is 14 bytes (even) — a reply that worked.
+            // "\r\n22:27:22\r\n# " is 14 bytes (even) - a reply that worked.
             byte[] chain = new TadMessageBuilder()
                 .BdatText("\r\n22:27:22\r\n# ")
                 .Rfi()
@@ -51,7 +51,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
 
             Assert.Equal(0x01, chain[0]);
             Assert.Equal(0x0E, chain[1]);        // count = 14
-            Assert.Equal(0x02, chain[16]);       // RFI directly at offset 16 — NO pad
+            Assert.Equal(0x02, chain[16]);       // RFI directly at offset 16 - NO pad
             Assert.Equal(0x00, chain[17]);
             Assert.Equal(18, chain.Length);
         }
@@ -68,7 +68,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
 
         /// <summary>
         /// The verified section 21 logged-in steady-state tail (SYCN 000A + BDAT "R@" + RFI) is built
-        /// byte-for-byte by the API — a parity check against the documented capture.
+        /// byte-for-byte by the API - a parity check against the documented capture.
         /// </summary>
         [Fact]
         public void LoggedInPromptTail_MatchesCapturedBytes()
@@ -79,7 +79,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
                 .Rfi()
                 .Build();
 
-            // 13 02 000A | 01 02 5240 | 02 00 — all even-aligned, no pads (spec section 21).
+            // 13 02 000A | 01 02 5240 | 02 00 - all even-aligned, no pads (spec section 21).
             Assert.Equal(new byte[] { 0x13, 0x02, 0x00, 0x0A, 0x01, 0x02, 0x52, 0x40, 0x02, 0x00 }, chain);
         }
 
@@ -128,7 +128,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         }
 
         /// <summary>
-        /// The typed API rebuilds the real captured MOTD banner byte-for-byte — proving the intrinsic
+        /// The typed API rebuilds the real captured MOTD banner byte-for-byte - proving the intrinsic
         /// 0x00-prefix (ECKM/BMMX) plus the even-offset alignment model reproduces the wire exactly.
         /// </summary>
         [Fact]
@@ -157,7 +157,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
 
         /// <summary>
         /// The real captured MOTD greeting decodes to the expected message sequence, ending at SYCN
-        /// 0002 (waiting for username) — validating our decode against a genuine capture payload.
+        /// 0002 (waiting for username) - validating our decode against a genuine capture payload.
         /// </summary>
         [Fact]
         public void CapturedMotd_DecodesToExpectedMessages()

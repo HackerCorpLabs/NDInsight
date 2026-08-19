@@ -95,8 +95,12 @@ parts: a **screen layout** (`start-form`...`end-form`) and a **database mapping*
 +-------------------+
 ```
 
-Reading it: each `A....` run in the form is a field placeholder — its actual type, length, and
-display format come from the data dictionary, not from this file. In `start-fields`,
+Reading it: each `A....` run in the form is a field placeholder (the manual's own typeset
+convention) — its actual type, length, and display format come from the data dictionary, not from
+this file. **A real shipped sample application confirms the actual on-disk placeholder is `^`
+followed by a repeated type letter** (`^N`=numeric, `^A`=alphanumeric), not `A....` or the `°`
+seen in the second example below — see the real, complete `CUSTOMER-REG-A00:UNIQ` file decoded in
+[ND-10730](../ND-10730/README.md#a-real-complete-worked-unique-application--customer-reg-a00uniq-verbatim). In `start-fields`,
 `data-base-name`/`register-name` name the SIBAS realm this form is bound to (a "register" here
 = a SIBAS realm — see [SIBAS-DATABASE-PROGRAMMING.md](../../../Developer/Workflow/SIBAS-DATABASE-PROGRAMMING.md)),
 and each `field = "<item>"` line maps one database item to one form position, optionally marked

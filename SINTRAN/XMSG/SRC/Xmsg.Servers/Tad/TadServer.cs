@@ -19,15 +19,15 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// <summary>
         /// N consecutive COMPLETE BDAT segments (each at most <c>SegmentChunk</c> bytes), window-of-1,
         /// only the final segment carrying SYCN 000A + prompt + RFI. Backed by the Ghidra decode of the
-        /// receiver (no count==0xFF semantics; each element renders its own bytes) — see
-        /// COS-CONN-TO-E02-Analysis.md §5b. Default: the 255-sentinel stream never rendered on real 100.
+        /// receiver (no count==0xFF semantics; each element renders its own bytes) - see
+        /// COS-CONN-TO-E02-Analysis.md section 5b. Default: the 255-sentinel stream never rendered on real 100.
         /// </summary>
         CompleteSegments,
 
         /// <summary>
         /// Bare 255-byte continuation pairs (count 0xFF) spaced ~46 ms, then a short final frame with
-        /// SYCN + prompt + RFI (TAD-Message-Formats.md §22.16). Byte-faithful to the real host capture
-        /// but empirically renders ONLY the final chunk on real 100 — retained for A/B comparison.
+        /// SYCN + prompt + RFI (TAD-Message-Formats.md section 22.16). Byte-faithful to the real host capture
+        /// but empirically renders ONLY the final chunk on real 100 - retained for A/B comparison.
         /// </summary>
         SentinelStream,
     }
@@ -80,8 +80,8 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
 
         /// <summary>
         /// How multi-buffer logged-in replies are streamed. Defaults to
-        /// <see cref="TadOutputMode.CompleteSegments"/> — the receiver decode (COS-CONN-TO-E02-Analysis.md
-        /// §5b) shows the client has no 255-sentinel concept and renders each BDAT element's bytes, so N
+        /// <see cref="TadOutputMode.CompleteSegments"/> - the receiver decode (COS-CONN-TO-E02-Analysis.md
+        /// section 5b) shows the client has no 255-sentinel concept and renders each BDAT element's bytes, so N
         /// complete segments should each render; the old <see cref="TadOutputMode.SentinelStream"/> is kept
         /// for A/B testing against real 100.
         /// </summary>
@@ -108,12 +108,48 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         private const byte RecoOpcode = 0x17;   // 7RECO - reset confirm (bring-up steps 3/4)
         private const byte DummOpcode = 0x18;   // 7DUMM - 100's per-continuation consumption/display signal
         private const byte OpsvOpcode = 0x1F;
+        private const byte IsrqOpcode = 0x22;   // 7ISRQ - the peer asks how many input characters are waiting
+        private const byte RlocOpcode = 0x27;   // 7RLOC - remote-local / rubout, handled in the ESCA branch
+        private const byte RejeOpcode = 0xFE;   // 7REJE - the peer refused a message we sent
 
-        // The port-assign 7LUN value byte (the TAD Logical Unit index; LU = 768 + value). Real captures
-        // carry 0x04 (conn-to-d102) and 0x02 (new-conn) — the allocation rule is UNKNOWN, but 0x00 was
-        // NEVER observed, so emit a real observed value rather than zero
-        // (XMSG-TAD-REAL-SETUP-REFERENCE-2026-07-07.md checklist point 3).
-        private const byte LunIndexByte = 0x02;
+        // The port-assign 7LUN value byte (the TAD Logical Unit index; LU = 768 + value).
+        //
+        // "0x00 was NEVER observed" was carried here for a long time and is WRONG - corrected
+        // 2026-08-17 by sweeping every capture for the trailer pattern. Five values are observed:
+        //
+        //   0x00  conn-to-102-from103-via100          0x01  ethernet-conn-to-D100-from-102-WORKING
+        //   0x02  new-conn                            0x03  ALLTEST-fa-connectto-102-100-103
+        //   0x04  conn-to-d102-from-100
+        //
+        // and D102 is the server in BOTH the 0x00 and the 0x04 capture. The same machine hands out
+        // different indices to different sessions, so this is free-slot state on that machine - not
+        // a constant, not a per-machine value, and not derivable from the session ordinal. Zero is
+        // as legitimate as any other.
+        //
+        // IT MUST BE PER SESSION. This was a compile-time constant until 2026-08-17, when two real
+        // terminals connected at once and BOTH were told "TAD LOGICAL UNIT NO: 770" - we sent
+        // 0B 02 03 02 twice while our own side held two distinct sessions, tty1 and tty2. The unit
+        // number is how the far end names the line, so handing the same one to two sessions is
+        // wrong however the real machine picks its values.
+        //
+        // The offset keeps tty1 on 0x02, the value every working login has used, and simply makes
+        // later sessions distinct. That the FIRST session matches a captured value is evidence;
+        // that the SECOND is 0x03 is not - it is only guaranteed unique.
+        private const byte LunIndexBase = 0x01;
+
+        /// <summary>
+        /// The 7LUN index for a session - <c>LU = 768 + index</c> as seen by the far terminal.
+        /// </summary>
+        /// <param name="tadNumber">
+        /// The session's tty number, allocated from 1 upwards.
+        /// </param>
+        /// <returns>
+        /// The index byte to place after the <see cref="TadOp.Lun"/> tag.
+        /// </returns>
+        private static byte LunIndexFor(int tadNumber)
+        {
+            return (byte)(LunIndexBase + tadNumber);
+        }
 
         // XMCSM control/service words (their high half is the frame class). VERIFIED from captures.
         private const uint XsletLetterControlService = (uint)XmcsmService.XsletLetter;      // connect / accept (0x04000041)
@@ -134,9 +170,9 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
 
         // Segmented-output mode chunk size (mode CompleteSegments). Any value < 255 works: the connect-to
         // RECEIVER (cos-conn-to-e02.prog, tad_rx_BDAT_01 @ram:2b62, Ghidra-decoded 2026-07-08) renders
-        // `count` bytes per BDAT element with NO special-casing of count==0xFF — i.e. the "255 = more
+        // `count` bytes per BDAT element with NO special-casing of count==0xFF - i.e. the "255 = more
         // follows" sentinel is a fiction, the binary has no such concept. 240 is even and leaves headroom
-        // for the trailing SYCN/prompt/RFI on the final segment. See COS-CONN-TO-E02-Analysis.md §5b.
+        // for the trailing SYCN/prompt/RFI on the final segment. See COS-CONN-TO-E02-Analysis.md section 5b.
         private const int SegmentChunk = 240;
 
         // Intra-pair spacing for streamed terminal output. The real host transmits the two 255-byte
@@ -151,25 +187,94 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         // itself is now generated per-session (dynamic date, configurable MOTD line, HOST id) by
         // BuildMotdPayload; the surrounding chain and its pads are reproduced byte-for-byte by the builder.
 
-        // The connect-accept parameter trailer, VERIFIED from the 102 capture: two parameter blocks
-        // 01 02 0000 (param 1 = 0) and 02 02 000A (param 2 = 0x000A).
-        private static readonly byte[] AcceptTrailer = { 0x01, 0x02, 0x00, 0x00, 0x02, 0x02, 0x00, 0x0A };
+        // The connect-accept parameter trailer: two parameter blocks, 01 02 <p1> and 02 02 <p2>.
+        //
+        // NOT a constant, though it was recorded as one from a single capture. A census of nine
+        // archived connects shows D100 sending BOTH 0/10 and 1/9 - and sending each of them at
+        // different times, so it is not a per-machine constant either. The pairs sum to ten, which
+        // reads as sessions-in-use against sessions-free out of a pool of ten.
+        //
+        // We emitted 0/10 unconditionally, which is a lie the moment we hold a session. MEASURED
+        // 2026-08-17: with tty1 open we still claimed nothing in use, and D100's CONNECT-TO stalled
+        // straight after this frame - everything before it acknowledged, nothing after it happening.
+        //
+        // So the count is derived from the live session table. It is NOT shown that D100 reads the
+        // field; what IS shown is that our value was untrue exactly when the exchange stopped.
+        private const int SessionPoolSize = 10;
+
+        /// <summary>
+        /// Builds the connect-accept parameter trailer from the live session count.
+        /// </summary>
+        /// <param name="inUse">
+        /// The number of sessions currently held.
+        /// </param>
+        /// <returns>
+        /// The eight-byte trailer: parameter 1 is the count in use, parameter 2 the count free.
+        /// </returns>
+        private static byte[] BuildAcceptTrailer(int inUse)
+        {
+            // Clamped rather than allowed to go negative: a pool of ten is itself an inference from
+            // two samples, so an eleventh session must not put a wrapped 0xFFFF on the wire.
+            if (inUse < 0)
+            {
+                inUse = 0;
+            }
+
+            if (inUse > SessionPoolSize)
+            {
+                inUse = SessionPoolSize;
+            }
+
+            int free = SessionPoolSize - inUse;
+
+            return new byte[]
+            {
+                0x01, 0x02, (byte)(inUse >> 8), (byte)(inUse & 0xFF),
+                0x02, 0x02, (byte)(free >> 8), (byte)(free & 0xFF),
+            };
+        }
 
         // The command registry: the single source of truth the "help" command lists. Descriptions are terse
         // and 1..4 are grouped so the whole listing fits ONE < 255-byte terminal frame - multi-chunk
         // terminal output is not rendered by 100 (it displays only the final chunk), so every command reply
         // must stay under one buffer. Numbered aliases (1..4) dispatch through the terminal menu; the rest
         // are handled directly in HandleCommand.
+        // The chat room a terminal user can join. The RULES come from Xmsg.Chat.ChatRoom, the same
+        // ones the port-to-port chat server uses - who is in, which names are free, who is told
+        // what. Only the plumbing differs: here a member is a tty number and the room speaks by
+        // queueing text to a screen.
+        //
+        // NO SEAT LIMIT on this path. The port path is bounded by the XROUT free-connection count
+        // before a join ever arrives; a terminal user does not come through XROUT, so nothing
+        // bounds this. That is a real difference, said out loud rather than papered over.
+        private readonly NDInsight.Sintran.Xmsg.Chat.ChatRoom _chatRoom
+            = new NDInsight.Sintran.Xmsg.Chat.ChatRoom();
+
         private static readonly CommandDoc[] CommandRegistry =
         {
-            new CommandDoc("1-4", "time / date / echo / disc"),
+            new CommandDoc("1-4", "time/date/echo/disc"),
             new CommandDoc("stat", "session info"),
             new CommandDoc("who", "list users"),
-            new CommandDoc("tell N txt", "message a user"),
-            new CommandDoc("wall txt", "broadcast"),
-            new CommandDoc("list", "servers | service | route"),
+            new CommandDoc("tell N", "msg a user"),
+            new CommandDoc("wall", "broadcast txt"),
+            new CommandDoc("list", "servers|service|route"),
+            new CommandDoc("chat", "join|say|who|nick|part"),
             new CommandDoc("help", "this list"),
         };
+
+        // THE HELP LISTING HAS A HARD BYTE BUDGET, and it is nearly full.
+        //
+        // 100 renders only the FINAL chunk of a multi-frame terminal reply, so the whole listing
+        // must fit one buffer under 255 bytes. Each row costs 2 + this column width + the
+        // description + 2, and the header and prompt cost 25 between them.
+        //
+        // MEASURED 2026-08-11: with a 12-wide column the listing was already 242 bytes - thirteen
+        // to spare - so adding the "chat" row took it to 280 and the reply stopped carrying its
+        // ready-for-input. Narrowing the column to 8 and trimming the wordiest descriptions brings
+        // it to about 240 with room for one more row. Anything added here must be measured, not
+        // eyeballed; the test that guards it is
+        // TwoNodeTerminalTests.ServerHost_IntrospectionCommand_IsSingleFrame.
+        private const int HelpNameColumn = 8;
 
         /// <summary>
         /// Notifies a listener that a TAD session opened or closed (for observability and swap-out).
@@ -336,10 +441,10 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
                 return OnTerminalSetup(session, incoming, transport);
             }
 
-            // Bring-up ladder, client-driven (XMSG-TAD-REAL-SETUP-REFERENCE-2026-07-07.md §1, VERIFIED
+            // Bring-up ladder, client-driven (XMSG-TAD-REAL-SETUP-REFERENCE-2026-07-07.md section 1, VERIFIED
             // in both reference captures): the client's ESCA is answered with ESRS + RESE#1; its first
             // RECO with RESE#2; its second RECO with the MOTD banner. The real host NEVER volunteers
-            // these — each step waits for the client frame.
+            // these - each step waits for the client frame.
             if (HasOpcode(incoming, EscaOpcode) && !session.MotdSent)
             {
                 return OnEscape(session, transport);
@@ -354,6 +459,47 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
             {
                 CloseSession(session);
                 return Array.Empty<XmsgFrame>();
+            }
+
+            // A REJE (0xFE) from the peer: its driver refused something we sent and failed its own
+            // caller with TER01. Record the offending type so a stalled session has a cause instead of
+            // just going quiet. No reply - REJECT in 20-COS-TAD-POF-CODE.NPL is one-way.
+            if (HasOpcode(incoming, RejeOpcode))
+            {
+                session.LastRejectedOpcode = FirstDataByte(incoming, RejeOpcode);
+                return Array.Empty<XmsgFrame>();
+            }
+
+            // ISRQ (0x22): the peer's program called ISIZE / IBRSIZ and found its own input buffer
+            // empty, so it is asking US how many characters are waiting, and it is SUSPENDED until the
+            // answer arrives (BISIZ/OISIZ, 06-COS-TAD-RES-CODE.NPL). Silence hangs that program until
+            // its timeout, which is what we used to do.
+            //
+            // We hold no per-session input buffer - every BDAT is consumed the moment it arrives - so
+            // the honest answer is zero. The two data bytes are big-endian, the order the driver reads
+            // them back in.
+            if (HasOpcode(incoming, IsrqOpcode))
+            {
+                List<XmsgFrame> isizeReply = new List<XmsgFrame>();
+                isizeReply.Add(BuildSession(session, transport, BareTadControlService,
+                    (byte)XmsgFrameFlags.Setup, (byte)XmsgSendOptions.None,
+                    new TadMessageBuilder().Isrs(0).Build()));
+                return isizeReply;
+            }
+
+            // ESCA after the bring-up ladder. Which response goes back depends on OUR escape state,
+            // not on the message: ESCDIS (20-COS-TAD-POF-CODE.NPL) answers ESRS when escape is enabled
+            // and EDRS when it is inhibited, and in the disabled case it runs no escape handling at
+            // all. We announce that state with every CESC we send, so the session already knows it.
+            if (HasOpcode(incoming, EscaOpcode) || HasOpcode(incoming, RlocOpcode))
+            {
+                List<XmsgFrame> escapeReply = new List<XmsgFrame>();
+                byte[] answer = session.EscapeEnabled
+                    ? new TadMessageBuilder().Esrs().Build()
+                    : new TadMessageBuilder().Edrs().Build();
+                escapeReply.Add(BuildSession(session, transport, BareTadControlService,
+                    (byte)XmsgFrameFlags.Setup, (byte)XmsgSendOptions.None, answer));
+                return escapeReply;
             }
 
             if (HasOpcode(incoming, BdatOpcode))
@@ -372,8 +518,99 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
                 return drained;
             }
 
+            // A message type we cannot even NAME: answer REJE (0xFE 0x01 type), as a real TAD does.
+            //
+            // The version J driver never ignores a message it does not understand - NXMES falls through
+            // to CALL REJECT and ESCDIS turns an unrecognised high-priority head into one
+            // (20-COS-TAD-POF-CODE.NPL). Staying silent leaves the peer's program suspended until its
+            // own timeout. See TadRejectPolicy for why we reject on "not in TadOp" rather than on J's
+            // much narrower accept list - copying that list verbatim would reject OPSV, which every
+            // real client we have captured sends.
+            byte unknown;
+            if (TryFindUnknownOpcode(incoming, out unknown))
+            {
+                List<XmsgFrame> reject = new List<XmsgFrame>();
+                reject.Add(BuildSession(session, transport, BareTadControlService,
+                    (byte)XmsgFrameFlags.Setup, (byte)XmsgSendOptions.None,
+                    TadRejectPolicy.BuildReject(unknown)));
+                return reject;
+            }
+
             // CERS / DUMM and other bare control frames need no reply (the node ACKs them).
             return Array.Empty<XmsgFrame>();
+        }
+
+        /// <summary>
+        /// Finds the first message in a frame's TAD chain whose opcode <see cref="TadOp"/> does not
+        /// name.
+        /// </summary>
+        /// <param name="frame">
+        /// The frame.
+        /// </param>
+        /// <param name="opcode">
+        /// Receives the offending opcode when one is found.
+        /// </param>
+        /// <returns>
+        /// True when the chain holds an opcode we cannot name.
+        /// </returns>
+        private static bool TryFindUnknownOpcode(XmsgFrame frame, out byte opcode)
+        {
+            opcode = 0;
+            if (frame.Tad == null)
+            {
+                return false;
+            }
+
+            IReadOnlyList<TadMessage> messages = frame.Tad.Messages;
+            for (int i = 0; i < messages.Count; i++)
+            {
+                if (!TadRejectPolicy.IsKnownOpcode(messages[i].Opcode))
+                {
+                    opcode = messages[i].Opcode;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Reads the first data byte of the first message with the given opcode.
+        /// </summary>
+        /// <param name="frame">
+        /// The frame.
+        /// </param>
+        /// <param name="opcode">
+        /// The opcode to find.
+        /// </param>
+        /// <returns>
+        /// The first data byte, or -1 when the message is absent or carries no data.
+        /// </returns>
+        private static int FirstDataByte(XmsgFrame frame, byte opcode)
+        {
+            if (frame.Tad == null)
+            {
+                return -1;
+            }
+
+            IReadOnlyList<TadMessage> messages = frame.Tad.Messages;
+            for (int i = 0; i < messages.Count; i++)
+            {
+                if (messages[i].Opcode != opcode)
+                {
+                    continue;
+                }
+
+                ReadOnlySpan<byte> data = messages[i].Data;
+                if (data.Length == 0)
+                {
+                    return -1;
+                }
+
+                return data[0];
+            }
+
+            return -1;
         }
 
         /// <summary>
@@ -518,8 +755,13 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
             outgoing.Add(transport.BuildDatagram(
                 session.RemoteNode, session.ClientSystem, session.ClientPort,
                 TadAdminWirePort, XsletLetterControlService,
-                (byte)XmsgFrameFlags.Setup, (byte)XmsgSendOptions.WakeOnStatus, AcceptTrailer,
-                request.Header!.Flags1));
+                (byte)XmsgFrameFlags.Setup, (byte)XmsgSendOptions.WakeOnStatus,
+                BuildAcceptTrailer(_sessions.Count),
+                // The connect-accept ORIGINATES too, for the same reason as the port assignment
+                // below: in conn-to-d102-from-100 the real server answers a connect letter numbered
+                // 00f8 with an accept numbered 012f. All three of its setup frames are its own
+                // consecutive numbers - 012f, 0130, 0131 - and none of them is the asker's.
+                XmsgAnsweredFlags1.None));
             return outgoing;
         }
 
@@ -544,17 +786,32 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
 
             // Captured 102 trailer (24 bytes) with our system + session-port bytes substituted:
             //   00 | 07 05 00 00 <sys> <portHi> <portLo> | 1F 03 4C 00 00 | 00 | 0B 02 03 00 | 15 02 01 08 | FF 00
-            byte sysByte = (byte)transport.NodeNumber;
+            // THE SYSTEM NUMBER IS SIXTEEN BITS, NOT EIGHT. It used to be written as
+            // (byte)transport.NodeNumber, which is correct for every node in the captures - 102 is
+            // 0x0066 and fits - and silently wrong for ours: 19999 is 0x4E1F and truncates to 0x1F,
+            // so we told the peer the session lived on system 31.
+            //
+            // CARVED from conn-to-d102-from-100.pcapng, where a REAL server answers the same
+            // session-setup. Its parameter block reads 07 05 | 00 | 00 66 | 04 c2 - tag, length
+            // five, a zero, the system as TWO bytes, then the port. Ours read 00 | 00 1F | 02 11.
+            //
+            // This is why the port assignment was acknowledged and nothing followed: the frame is
+            // well-formed, so LAPB and XMSG both accept it, and only the connect program above them
+            // notices that the session it was handed is on a system that does not exist.
+            byte sysHi = (byte)(transport.NodeNumber >> 8);
+            byte sysLo = (byte)(transport.NodeNumber & 0xFF);
             byte portHi = (byte)(session.SessionWirePort >> 8);
             byte portLo = (byte)(session.SessionWirePort & 0xFF);
             byte[] trailer =
             {
                 0x00,
-                0x07, 0x05, 0x00, 0x00, sysByte, portHi, portLo,
+                0x07, 0x05, 0x00, sysHi, sysLo, portHi, portLo,
                 0x1F, 0x03, 0x4C, 0x00, 0x00,
                 0x00,
-                0x0B, 0x02, 0x03, LunIndexByte,
-                0x15, 0x02, 0x01, 0x08,
+                // 7LUN then 7FBSI, named from SINTRAN's own symbol table rather than left as magic
+                // numbers - see TadOp.Lun for where that table is and why it is the authority.
+                (byte)TadOp.Lun, 0x02, 0x03, LunIndexFor(session.TadNumber),
+                (byte)TadOp.Fbsi, 0x02, 0x01, 0x08,
                 0xFF, 0x00,
             };
 
@@ -566,12 +823,33 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
             // F1=0022 -> f57 priming DUMM F1=0023. Exactly this split. See the fuller note and its
             // limit on the connect-accept above, and
             // DOC/captures/ARCHIVE-2026-07/ethernet-conn-to-D100-from-102-WORKING-2026-08-01.pcapng.
+            // RESOLVED 2026-08-17: THE PORT ASSIGNMENT DOES NOT ECHO. It takes our own next number,
+            // like every other frame we originate.
+            //
+            // The note above says the 2026-08-09 measurement cannot separate "echo" from "own counter
+            // that happens to line up", because the server's frames ran 0021/0022/0023 and an own
+            // counter starting at 0x21 produces the same bytes. It asks for a capture where the two
+            // sides' counters have diverged. That capture is already in the archive -
+            // conn-to-d102-from-100.pcapng, where a REAL ND answers this same rung:
+            //
+            //   client 100:   connect 00f8   session-setup 00f9   reply 00fa
+            //   server 102:   accept  012f   port-assign   0130   DUMM  0131
+            //
+            // The port assignment ANSWERS a session-setup numbered 00f9 and goes out as 0130. The two
+            // counters are 0x37 apart, so this is decisive: it is the server's own counter.
+            //
+            // WHAT THE ECHO COST US, measured the same day: our three frames went out 0000, 0001,
+            // 0000 - the echo pulled the port assignment up to the asker's 0001 while our own counter
+            // sat at 0, so the priming DUMM REPEATED the accept's 0000. A number the peer has already
+            // seen is dropped in silence, which is exactly what D100 did: it acknowledged all three
+            // frames at the link layer and its CONNECT-TO program then did nothing, because the DUMM
+            // that should have started its TMOD/TTYP negotiation never reached it as a new datagram.
             List<XmsgFrame> outgoing = new List<XmsgFrame>();
             outgoing.Add(transport.BuildDatagram(
                 session.RemoteNode, session.ClientSystem, session.ClientPort,
                 TadAdminWirePort, SessionSetupControlService,
                 (byte)XmsgFrameFlags.Setup, (byte)XmsgSendOptions.WakeOnStatus, trailer,
-                request.Header!.Flags1));
+                XmsgAnsweredFlags1.None));
 
             // Post-port-assign bring-up: the priming DUMM (terminal-data class 0x0108) so 100 drives its
             // TMOD/TTYP negotiation, which we then answer with the MOTD burst (OnTerminalSetup). This was
@@ -583,11 +861,11 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         }
 
         /// <summary>
-        /// Captures 100's terminal-setup (TMOD chain) parameters. The real host answers NOTHING here —
+        /// Captures 100's terminal-setup (TMOD chain) parameters. The real host answers NOTHING here -
         /// the bring-up continues only when the client sends its ESCA (see <see cref="OnEscape"/>).
         /// The earlier one-shot burst (0x20 + RESE + RESE + MOTD, all unprompted) deviated from every
         /// captured session, where each step is client-driven
-        /// (XMSG-TAD-REAL-SETUP-REFERENCE-2026-07-07.md §1).
+        /// (XMSG-TAD-REAL-SETUP-REFERENCE-2026-07-07.md section 1).
         /// </summary>
         /// <param name="session">
         /// The session.
@@ -599,7 +877,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// The node transport.
         /// </param>
         /// <returns>
-        /// No frames — the host is silent until the client's ESCA.
+        /// No frames - the host is silent until the client's ESCA.
         /// </returns>
         private IReadOnlyList<XmsgFrame> OnTerminalSetup(TadServerSession session, XmsgFrame request, IXmsgServerTransport transport)
         {
@@ -609,7 +887,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
 
         /// <summary>
         /// Answers the client's ESCA (bring-up): ESRS (0x20, class 0x0008, ff 0x86) followed by RESE #1
-        /// (class 0x0108, ff 0x96), both from the session port — the exact reply pair in both reference
+        /// (class 0x0108, ff 0x96), both from the session port - the exact reply pair in both reference
         /// captures (ESRS answers the escape; the RESE opens the reset/confirm exchange).
         /// </summary>
         /// <param name="session">
@@ -630,7 +908,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
                 (byte)XmsgFrameFlags.Setup, (byte)XmsgSendOptions.None,
                 new TadMessageBuilder().Raw((TadOp)0x20, ReadOnlySpan<byte>.Empty).Build()));
 
-            // RESE #1 (XMCSM 0x01080000), ff 0x96 (DataA) — first of the observed 96/92 alternation.
+            // RESE #1 (XMCSM 0x01080000), ff 0x96 (DataA) - first of the observed 96/92 alternation.
             outgoing.Add(BuildTerminal(session, transport, (byte)XmsgFrameFlags.DataA,
                 new TadMessageBuilder().Rese().Build()));
 
@@ -640,8 +918,8 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
 
         /// <summary>
         /// Advances the bring-up on the client's RECO: the first RECO is answered with RESE #2
-        /// (ff 0x92), the second with the MOTD banner (ff 0x96) — completing the captured ladder
-        /// ESCA → ESRS+RESE, RECO → RESE, RECO → BANNER.
+        /// (ff 0x92), the second with the MOTD banner (ff 0x96) - completing the captured ladder
+        /// ESCA -> ESRS+RESE, RECO -> RESE, RECO -> BANNER.
         /// </summary>
         /// <param name="session">
         /// The session.
@@ -659,7 +937,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
 
             if (session.BringupRecoCount == 1)
             {
-                // RESE #2, ff 0x92 (DataB) — the second of the observed 96/92 alternation.
+                // RESE #2, ff 0x92 (DataB) - the second of the observed 96/92 alternation.
                 outgoing.Add(BuildSession(session, transport, TerminalDataControlService,
                     (byte)XmsgFrameFlags.DataB, (byte)XmsgSendOptions.None,
                     new TadMessageBuilder().Rese().Build()));
@@ -817,6 +1095,9 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
             }
 
             // Ask for the password with echo off (ECKM FF). No logged-in state asserted yet.
+            // The CESC 00 in this chain ANNOUNCES that we have inhibited escape while the password is
+            // typed, so record it - an ESCA arriving now must be answered EDRS, not ESRS.
+            session.EscapeEnabled = false;
             outgoing.Add(BuildTerminal(session, transport, (byte)XmsgFrameFlags.DataA, new TadMessageBuilder()
                 .BdatText("\r\n").Sycn(SycnState.UsernameAccepted).Cesc(CescState.EscapeDisabled).Build()));
             outgoing.Add(BuildTerminal(session, transport, (byte)XmsgFrameFlags.DataA, new TadMessageBuilder()
@@ -891,6 +1172,8 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
             session.Phase = TadServerLoginPhase.LoggedIn;
             session.Username = user.Username;
 
+            // The CESC 01 here re-enables escape now the password is in - back to answering ESRS.
+            session.EscapeEnabled = true;
             outgoing.Add(BuildTerminal(session, transport, (byte)XmsgFrameFlags.DataA, new TadMessageBuilder()
                 .BdatText("\r\n").Eckm(EchoStrategy.LocalEcho).BdatText("OK")
                 .Sycn(SycnState.PasswordAccepted).Cesc(CescState.EscapeEnabled).Build()));
@@ -962,6 +1245,12 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
             if (StartsWithCommand(line, "list"))
             {
                 EmitMenuReply(session, transport, outgoing, BuildListReport(line.Substring(4).Trim()));
+                return;
+            }
+
+            if (StartsWithCommand(line, "chat"))
+            {
+                HandleChat(session, transport, outgoing, line.Substring(4).Trim());
                 return;
             }
 
@@ -1139,6 +1428,168 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         }
 
         /// <summary>
+        /// The terminal side of the chat room: join, say, who, nick and part.
+        /// </summary>
+        /// <param name="caller">
+        /// The session typing.
+        /// </param>
+        /// <param name="transport">
+        /// The transport, for the reply to the caller.
+        /// </param>
+        /// <param name="outgoing">
+        /// The frames being built for the caller.
+        /// </param>
+        /// <param name="rest">
+        /// Whatever followed the word "chat".
+        /// </param>
+        /// <remarks>
+        /// <para>
+        /// The rules are NOT implemented here - they are <c>ChatRoom</c>, shared with the
+        /// port-to-port server, so a duplicate nickname or a colliding rename is decided the same
+        /// way whichever door somebody came in by.
+        /// </para>
+        /// <para>
+        /// What the room says to everybody is delivered by the same queueing the "tell" and "wall"
+        /// commands already use, which is the part proven to reach a live SINTRAN terminal. The
+        /// caller gets its own confirmation as a command reply; everybody else is pushed to
+        /// asynchronously.
+        /// </para>
+        /// </remarks>
+        private void HandleChat(
+            TadServerSession caller, IXmsgServerTransport transport, List<XmsgFrame> outgoing, string rest)
+        {
+            long me = caller.TadNumber;
+
+            if (StartsWithCommand(rest, "join"))
+            {
+                string wanted = rest.Substring(4).Trim();
+                if (wanted.Length == 0)
+                {
+                    wanted = caller.Username.Length != 0 ? caller.Username : ("TTY" + caller.TadNumber);
+                }
+
+                string refusal;
+                if (!_chatRoom.TryJoin(me, wanted, out refusal))
+                {
+                    EmitMenuReply(caller, transport, outgoing, "\r\ncannot join: " + refusal + "\r\n# ");
+                    return;
+                }
+
+                AnnounceToRoom(me, wanted + " joined");
+                EmitMenuReply(caller, transport, outgoing,
+                    "\r\nyou are in the room as " + wanted + "\r\n# ");
+                return;
+            }
+
+            if (StartsWithCommand(rest, "say"))
+            {
+                string speaker;
+                if (!_chatRoom.TryGetNickname(me, out speaker))
+                {
+                    EmitMenuReply(caller, transport, outgoing, "\r\njoin the room first: chat join <name>\r\n# ");
+                    return;
+                }
+
+                string text = rest.Substring(3).Trim();
+                if (text.Length == 0)
+                {
+                    EmitMenuReply(caller, transport, outgoing, "\r\nusage: chat say <text>\r\n# ");
+                    return;
+                }
+
+                AnnounceToRoom(me, "<" + speaker + "> " + text);
+                EmitMenuReply(caller, transport, outgoing, "\r\n<" + speaker + "> " + text + "\r\n# ");
+                return;
+            }
+
+            if (StartsWithCommand(rest, "nick"))
+            {
+                string previous;
+                string refusal;
+                string wanted = rest.Substring(4).Trim();
+
+                if (!_chatRoom.TryRename(me, wanted, out previous, out refusal))
+                {
+                    string why = refusal.Length != 0 ? refusal : "nothing changed";
+                    EmitMenuReply(caller, transport, outgoing, "\r\ncannot rename: " + why + "\r\n# ");
+                    return;
+                }
+
+                AnnounceToRoom(me, previous + " is now " + wanted);
+                EmitMenuReply(caller, transport, outgoing, "\r\nyou are now " + wanted + "\r\n# ");
+                return;
+            }
+
+            if (string.Equals(rest, "part", StringComparison.OrdinalIgnoreCase))
+            {
+                string nickname;
+                if (!_chatRoom.TryLeave(me, out nickname))
+                {
+                    EmitMenuReply(caller, transport, outgoing, "\r\nyou are not in the room\r\n# ");
+                    return;
+                }
+
+                AnnounceToRoom(me, nickname + " left");
+                EmitMenuReply(caller, transport, outgoing, "\r\nyou have left the room\r\n# ");
+                return;
+            }
+
+            if (string.Equals(rest, "who", StringComparison.OrdinalIgnoreCase))
+            {
+                string[] names = _chatRoom.CopyNicknames();
+                System.Text.StringBuilder sb = new System.Text.StringBuilder(128);
+                sb.Append("\r\nin the room: ");
+                if (names.Length == 0)
+                {
+                    sb.Append("nobody");
+                }
+                else
+                {
+                    for (int i = 0; i < names.Length; i++)
+                    {
+                        if (i != 0) { sb.Append(", "); }
+                        sb.Append(names[i]);
+                    }
+                }
+
+                sb.Append("\r\n# ");
+                EmitMenuReply(caller, transport, outgoing, sb.ToString());
+                return;
+            }
+
+            EmitMenuReply(caller, transport, outgoing,
+                "\r\nusage: chat join <name> | say <text> | who | nick <name> | part\r\n# ");
+        }
+
+        /// <summary>
+        /// Pushes a line to everybody in the room except the member who caused it.
+        /// </summary>
+        /// <param name="exceptId">
+        /// The member NOT to tell - they get a direct confirmation instead.
+        /// </param>
+        /// <param name="text">
+        /// The line.
+        /// </param>
+        /// <remarks>
+        /// A member whose terminal session has since gone is simply not found by
+        /// <c>InjectToTad</c>, which returns zero and carries on. Their name stays in the room
+        /// until they part; tidying that up on disconnect is worth doing and is not done here.
+        /// </remarks>
+        private void AnnounceToRoom(long exceptId, string text)
+        {
+            long[] ids = _chatRoom.CopyMemberIds();
+            for (int i = 0; i < ids.Length; i++)
+            {
+                if (ids[i] == exceptId)
+                {
+                    continue;
+                }
+
+                InjectToTad((int)ids[i], "\r\n" + text + "\r\n");
+            }
+        }
+
+        /// <summary>
         /// Handles "wall text": broadcasts the message to every logged-in session (sender included)
         /// and confirms to the caller.
         /// </summary>
@@ -1216,7 +1667,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
             sb.Append("\r\n----- COMMANDS -----\r\n");
             for (int i = 0; i < CommandRegistry.Length; i++)
             {
-                sb.Append("  ").Append(CommandRegistry[i].Name.PadRight(12))
+                sb.Append("  ").Append(CommandRegistry[i].Name.PadRight(HelpNameColumn))
                   .Append(CommandRegistry[i].Description).Append("\r\n");
             }
 
@@ -1337,12 +1788,16 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// </param>
         private void AppendTeardownLadder(TadServerSession session, IXmsgServerTransport transport, List<XmsgFrame> outgoing, string farewell)
         {
+            // The ladder inhibits escape for the two teardown frames and re-enables it at the end;
+            // mirror that here so the receive side answers EDRS in between (see TadServerSession).
+            session.EscapeEnabled = false;
             outgoing.Add(BuildTerminal(session, transport, (byte)XmsgFrameFlags.DataA, new TadMessageBuilder()
                 .BdatText(farewell).Cesc(CescState.EscapeDisabled).Build()));
             outgoing.Add(BuildTerminal(session, transport, (byte)XmsgFrameFlags.DataA, new TadMessageBuilder()
                 .Bmmx(0x00, 0x0000).Eckm(EchoStrategy.Teardown).Cesc(CescState.EscapeDisabled).Build()));
             outgoing.Add(BuildTerminal(session, transport, (byte)XmsgFrameFlags.DataA, new TadMessageBuilder()
                 .BdatText("\r\n--EXIT--\r\n").Sycn(SycnState.LoggedOut).Build()));
+            session.EscapeEnabled = true;
             outgoing.Add(BuildTerminal(session, transport, (byte)XmsgFrameFlags.DataA, new TadMessageBuilder()
                 .Cesc(CescState.EscapeEnabled).Build()));
             outgoing.Add(BuildFdNotification(session, transport));
@@ -1524,9 +1979,9 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
         /// (next segment only after the previous is ACKed) keeps 100's element buffer from overrunning.
         /// </summary>
         /// <remarks>
-        /// Rationale [Ghidra 2026-07-08, COS-CONN-TO-E02-Analysis.md §5b]: the connect-to receiver
+        /// Rationale [Ghidra 2026-07-08, COS-CONN-TO-E02-Analysis.md section 5b]: the connect-to receiver
         /// (<c>tad_rx_BDAT_01</c>) renders <c>count</c> bytes per BDAT element with no special handling of
-        /// <c>count==0xFF</c> — there is no "255 = more follows" concept in the binary. So a long reply
+        /// <c>count==0xFF</c> - there is no "255 = more follows" concept in the binary. So a long reply
         /// delivered as consecutive complete elements should render each element, exactly like the login
         /// banner and command replies (which already render). This is the untested construct the decode
         /// points to, distinct from the sentinel stream that renders only its final chunk on real 100.
@@ -1752,6 +2207,55 @@ namespace NDInsight.Sintran.Xmsg.Servers.Tad
                 session.RemoteNode, session.ClientSystem, session.ClientPort,
                 session.SessionWirePort, controlService, frameFlags, role, payload,
                 XmsgAnsweredFlags1.None);
+        }
+
+        /// <summary>
+        /// Tears every open session down, as if each user had logged out, and returns the frames.
+        /// </summary>
+        /// <param name="transport">
+        /// The node transport used to build the teardown frames.
+        /// </param>
+        /// <returns>
+        /// The teardown ladder and DCON for each session that was open; empty when none were.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="transport"/> is null.
+        /// </exception>
+        /// <remarks>
+        /// <para><b>What this is for</b></para>
+        /// <para>
+        /// A session is live state on BOTH sides. MEASURED 2026-08-17: the runner was stopped with
+        /// three TAD sessions open and D100's XMSG died with a fatal internal inconsistency, left
+        /// holding half a session each; recovery was an emulator restart. Call this from the link's
+        /// <c>Stopping</c> event, which fires while the pump can still transmit.
+        /// </para>
+        /// <para>
+        /// The frames are the SAME ladder a user's own logout produces, so this adds no new wire
+        /// behaviour - it only makes shutdown take the path that already works. It cannot help a
+        /// forced kill, which runs none of our code.
+        /// </para>
+        /// </remarks>
+        public IReadOnlyList<XmsgFrame> ShutdownAllSessions(IXmsgServerTransport transport)
+        {
+            if (transport == null)
+            {
+                throw new ArgumentNullException(nameof(transport));
+            }
+
+            List<XmsgFrame> outgoing = new List<XmsgFrame>();
+
+            // Copy first: CloseSession mutates _sessionList, so walking it directly would skip
+            // sessions - the same reason that list is kept alongside the dictionary.
+            TadServerSession[] open = _sessionList.ToArray();
+            for (int i = 0; i < open.Length; i++)
+            {
+                TadServerSession session = open[i];
+                AppendTeardownLadder(session, transport, outgoing, "\r\nSERVER STOPPING - GOODBYE\r\n");
+                outgoing.Add(BuildDconIndication(session, transport));
+                CloseSession(session);
+            }
+
+            return outgoing;
         }
 
         /// <summary>

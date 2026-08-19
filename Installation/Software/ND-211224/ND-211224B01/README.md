@@ -75,7 +75,9 @@ SPECIAL-LOAD  (SYSTEM)EXCEPT-LIB   LIBRARY
 This **confirms** `EXCEPT-LIB` — the library referenced by name only (no file) in this catalog's
 [ND-210177J02 COBOL install](../../ND-210177/ND-210177J02/README.md) — is a standard, shared
 runtime exception-handling library that every language's auto-job loads via `SPECIAL-LOAD`, not
-something specific to COBOL.
+something specific to COBOL. Its source product is `ND-10511` **Exception Handling System** — see
+[../../ND-10511/README.md](../../ND-10511/README.md), a bare two-`:NRF`-file floppy
+(`EXCEPTION-LIB-A:NRF`/`EXCEPTION-TPS-A:NRF`) decoded from a real image in this catalog.
 
 ## Installation procedure
 

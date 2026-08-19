@@ -120,7 +120,7 @@ namespace NDInsight.Sintran.Xmsg.Tests
 
         /// <summary>
         /// Sanity check that test1.pcapng yields more than 4000 raw TCP payload bytes worth
-        /// of frames — that is, the pcapng/Ethernet/IP/TCP parse actually produced packets.
+        /// of frames - that is, the pcapng/Ethernet/IP/TCP parse actually produced packets.
         /// </summary>
         [Fact]
         public void Test1Capture_YieldsFcsValidFrames()

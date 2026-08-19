@@ -26,17 +26,17 @@ namespace NDInsight.Sintran.Xmsg
         SessionSetup = 0x04000000u,
 
         /// <summary>
-        /// Terminal data control word (<c>0x01080000</c>) — the TAD terminal-data class.
+        /// Terminal data control word (<c>0x01080000</c>) - the TAD terminal-data class.
         /// </summary>
         TerminalData = 0x01080000u,
 
         /// <summary>
-        /// Bare-TAD control word (<c>0x00080000</c>) — TAD control frames with no data class.
+        /// Bare-TAD control word (<c>0x00080000</c>) - TAD control frames with no data class.
         /// </summary>
         BareTadControl = 0x00080000u,
 
         /// <summary>
-        /// Session-state notification control word (<c>0x00060000</c>) — carries the 0xFD notification.
+        /// Session-state notification control word (<c>0x00060000</c>) - carries the 0xFD notification.
         /// </summary>
         SessionNotify = 0x00060000u,
 

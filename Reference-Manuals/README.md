@@ -6,7 +6,7 @@
 
 ## 📖 Overview
 
-This folder contains **91 complete reference manuals** (in the root) spanning system architecture,
+This folder contains **94 complete reference manuals** (in the root) spanning system architecture,
 ND-100/ND-110 hardware, the SINTRAN III operating system, database systems, programming languages,
 assemblers, editors, compilers, linkers, debuggers, diagnostics/test programs, and development
 tools. Five further sub-collections (NORD-1, NORD-10, ND-500/ND-5000, Device Controllers, and the
@@ -31,7 +31,7 @@ each with its own index:
 |----------------|-------|---------|-------|
 | **NORD-1 Manuals** | [1/README.md](1/README.md) | 5 | NORD-1 reference manual, two-volume hardware manual, connectors/I-O/power system, peripheral binder |
 | **NORD-10 Manuals** | [10/README.md](10/README.md) | 13 | NORD-10 / NORD-10-S CPU reference & microprogram, NORD-50 communication, operator's guides, verification programs, disc system, drawings/wiring |
-| **ND-500 / ND-5000 Manuals** | [500/README.md](500/README.md) | 17 | ND-500/ND-5000 CPU & microprogram, ND-5000 hardware, DOMINO/NUCLEUS, multiport memory, array processing, course material |
+| **ND-500 / ND-5000 Manuals** | [500/README.md](500/README.md) | 20 | ND-500/ND-5000 CPU & microprogram (incl. ND-5000 microprogram guide and microcode field/mnemonic references), ND-5000 hardware, DOMINO/NUCLEUS, multiport memory, array processing, course material |
 | **Device Controllers** | [Devices/README.md](Devices/README.md) | 7 | Ethernet II Controller manual and its unit-test specification; ECC, 15 MHz SMD, Winchester (ST506/8"), Floppy and NORD-10/HAWK disk-controller manuals |
 | **NOTIS Office System** | [Notis/README.md](Notis/README.md) | 31 | NOTIS office-automation suite (WP, TF, DS, IR, ID, RG, CALC, BG, DRAW, PM), reference cards, diskette listings, notes |
 
@@ -44,7 +44,7 @@ each with its own index:
 | **System & CPU Architecture** | 5 |
 | **Hardware Documentation** | 1 |
 | **ND-100 / ND-110 Hardware & Architecture** | 6 |
-| **SINTRAN III System & OS** | 24 |
+| **SINTRAN III System & OS** | 27 |
 | **Database Systems (SIBAS)** | 6 |
 | **Assemblers** | 7 |
 | **Intel-8080 Cross-Tools** | 2 |
@@ -56,7 +56,7 @@ each with its own index:
 | **Office Software (NOTIS-1)** | 1 |
 | **Diagnostics & Test Programs** | 4 |
 | **Documentation & Catalogues** | 1 |
-| **Total** | **91** |
+| **Total** | **94** |
 
 ---
 
@@ -142,11 +142,13 @@ The core SINTRAN III operating-system manual set. (The **SINTRAN III Monitor Cal
 | **SINTRAN Utility Programs** | ND-10022S | 1,158 | SINTRAN utility programs package (version S) |
 | **List of special commands for communicating with SINTRAN III** | - | 1,083 | NDIX FE device-call reference (feclos/feopen/etc.) for communicating with SINTRAN III sub-devices |
 | **SINTRAN III-VSX Fatal Error Routine Addresses** | ND-820059.1 EN | 953 | Fatal-error routine address list for SINTRAN III-VSX |
+| **WinLink User Guide** | ND-860452EN1 | 919 | WinLink (ND 230210), 1991: connect a PC running Microsoft Windows 3 to a SINTRAN host - terminal emulation, EasyLink file transfer PC ↔ host, host selection (Ethernet), screen colours/fonts, communication settings (serial). Companion install folder: ND-891092EN1 below |
 | **SINTRAN III Accounting System** | ND-10315B | 584 | Accounting system for SINTRAN III |
 | **SINTRAN III Quick Reference Card** | ND-60.174.Q01 | 537 | Quick reference card |
 | **SINTRAN III Configuration Program** | 211024C | 205 | System configuration program note |
+| **How to install WinLink** | ND-891092EN1 | 89 | One-folder install guide for WinLink: prerequisites (PC Starter Kit ND 230123, ND Connect Module ND 230125, OWS Access/Terminal Server), required install order, multi-user (network server) installation |
 
-**Key Topics:** SINTRAN III commands, real-time programming, RT loader, timesharing/batch, communications, accounting, utilities, system data fields, VSX, operations administration
+**Key Topics:** SINTRAN III commands, real-time programming, RT loader, timesharing/batch, communications, WinLink PC connection, accounting, utilities, system data fields, VSX, operations administration
 
 **Related:**
 - [SINTRAN/OS/README.md](../SINTRAN/OS/README.md) - Operating system internals
@@ -363,6 +365,7 @@ Test-program and diagnostic documentation for the ND-100/ND-110/ND-120 processor
 | **Test Program Description for ND-100/110** | ND-830005.3 EN | 10,075 | Test-program description for ND-100/ND-110 |
 | **Test Programs for ND-100/110/120 - Software Library** | ND-210523G | 1,932 | Library diskette listing of test programs for ND-100/110/120 |
 | **Test Program Description for ND-100/ND-110 - Addendum (December 1998)** | ND-899159.1 EN | 1,423 | Addendum to the ND-100/ND-110 test-program description (merged from two OCR passes) |
+| **ND-500 Micro Test Programs** | ND-10321D | 257 | Software-library diskette listing for the ND-500 micro test programs (two diskette parts, March 1982) |
 
 **Key Topics:** hardware diagnostics, test programs, ND-100/110/120, acceptance/verification testing
 
@@ -520,7 +523,7 @@ All manuals are high-quality OCR-scanned versions from original NORD/SINTRAN doc
 | System & CPU Architecture | 5 |
 | Hardware Documentation | 1 |
 | ND-100 / ND-110 Hardware | 6 |
-| SINTRAN III System & OS | 24 |
+| SINTRAN III System & OS | 27 |
 | Database (SIBAS) | 6 |
 | Assemblers | 7 |
 | Intel-8080 Cross-Tools | 2 |
@@ -532,17 +535,19 @@ All manuals are high-quality OCR-scanned versions from original NORD/SINTRAN doc
 | Office Software (NOTIS-1) | 1 |
 | Diagnostics & Test Programs | 4 |
 | Documentation & Catalogues | 1 |
-| **Total (Root)** | **90** |
+| **Total (Root)** | **94** |
 
 ### Whole Collection
 
 | Location | Manuals |
 |----------|---------|
-| Root | 90 |
-| [500/](500/README.md) - ND-500 / ND-5000 | 17 |
+| Root | 94 |
+| [1/](1/README.md) - NORD-1 | 5 |
+| [10/](10/README.md) - NORD-10 | 13 |
+| [500/](500/README.md) - ND-500 / ND-5000 | 20 |
 | [Devices/](Devices/README.md) - Device Controllers | 7 |
 | [Notis/](Notis/README.md) - NOTIS Office System | 31 |
-| **Grand Total** | **141** |
+| **Grand Total** | **170** |
 
 ### By Era
 
@@ -551,7 +556,7 @@ All manuals are high-quality OCR-scanned versions from original NORD/SINTRAN doc
 | **Early (1972-1975)** | Assembler for NORD-5 (1972), NORD Standard FORTRAN (1974), SIBAS Introduction (1974), NORD BASIC (1975), CF20 Assembly course (1975) |
 | **Mid (1976-1980)** | Intel-8080 cross-tools, NORD-10 FORTRAN/PASCAL/COBOL, PASCAL software library |
 | **Late (1981-1987)** | SINTRAN III manuals, C compiler, PLANC, VSX documentation, NOTIS-1 |
-| **1990s** | Test Program Description addendum (1998) |
+| **1990s** | WinLink User Guide + install folder (1991), Test Program Description addendum (1998) |
 
 ---
 
@@ -634,6 +639,8 @@ All manuals are high-quality OCR-scanned versions from original NORD/SINTRAN doc
 | ND-860117-6 | PLANC - User Guide and Reference | Language (PLANC) | 12,731 |
 | ND-860228-2 | SINTRAN III Monitor Calls (std / web) | System | 31,268 / 30,666 |
 | ND-860289-2 | ND Linker User Guide | Tools | 11,721 |
+| ND-860452EN1 | WinLink User Guide | SINTRAN III | 919 |
+| ND-891092EN1 | How to install WinLink | SINTRAN III | 89 |
 | ND-899159.1 | Test Program Description Addendum (1998) | Diagnostics | 1,423 |
 | ND-SIBAS-01 | Parametere i SIBAS-kall (NO) | Database | 406 |
 | ND-US05-1 | US05 SINTRAN III Workshop | SINTRAN III | 3,178 |
@@ -688,9 +695,9 @@ When adding new reference manuals:
 
 ---
 
-**Last Updated**: 2026-07-19
-**Total Manuals (Root)**: 90
-**Total Manuals (All Collections)**: 141
+**Last Updated**: 2026-08-17
+**Total Manuals (Root)**: 94
+**Total Manuals (All Collections)**: 170
 **Status**: ✅ Complete Collection
 
 ---

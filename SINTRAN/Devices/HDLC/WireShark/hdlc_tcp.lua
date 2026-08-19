@@ -395,12 +395,15 @@ pf.snt_flags1 = ProtoField.uint16("sintran.flags1", "Flags 1 (datagram seq)", ba
 pf.snt_flags2 = ProtoField.uint16("sintran.flags2", "Flags 2 (class word)",   base.HEX)
 pf.snt_proto  = ProtoField.uint8 ("sintran.proto",  "Protocol ID (derived channel)", base.HEX, vs_proto)
 
--- Envelope arithmetic (derived from the seed model, spec §18.5 / §6 / §5.1)
-pf.env_seed   = ProtoField.uint8 ("xmsg.seed",      "Derived link seed", base.HEX)
-pf.env_epoch  = ProtoField.uint8 ("xmsg.epoch",     "Epoch (counter wraps)", base.DEC)
-pf.env_chan   = ProtoField.uint8 ("xmsg.expchan",   "Expected channel",  base.HEX)
+-- Trailing bytes, shown as the bytes they are.
+--
+-- The "derived link seed", "epoch", "expected channel" and "S_ack" fields that
+-- used to sit here went with the ACK check on 2026-08-11 - see the note in the
+-- subtype-0x03 branch. They were the seed/epoch/channel model, which this file
+-- already records as disproved at the top: offset 12 is the checksum high byte,
+-- and there is no channel, no epoch and no per-link seed. A field labelled
+-- "Expected channel" states that model as fact every time a frame is opened.
 pf.ack_trail  = ProtoField.uint8 ("xmsg.acktrail",  "ACK trailing byte", base.HEX)
-pf.ack_sack   = ProtoField.uint8 ("xmsg.sack",      "S_ack (= seed + 0x0B)", base.HEX)
 pf.reach_trail= ProtoField.uint8 ("xmsg.reachtrail","Reachability trailing byte", base.HEX)
 
 -- TAD
@@ -464,8 +467,7 @@ lapb_proto.fields = {
     pf.snt_mark1, pf.snt_mark2, pf.snt_pkt, pf.snt_len,
     pf.snt_dest, pf.snt_src,
     pf.snt_flags1, pf.snt_flags2, pf.snt_proto,
-    pf.env_seed, pf.env_epoch, pf.env_chan,
-    pf.ack_trail, pf.ack_sack, pf.reach_trail,
+    pf.ack_trail, pf.reach_trail,
     pf.tad_type, pf.tad_count, pf.tad_data, pf.tad_text, pf.tad_ctrl,
     pf.tad_opsv_osver, pf.tad_opsv_ossub, pf.tad_opsv_proto,
     pf.tad_ttyp_id, pf.tad_tmod_flags, pf.tad_cmd_word, pf.tad_sycn,
@@ -1220,14 +1222,26 @@ local function dissect_sintran_info(tvb, pinfo, frame_tree)
     -- ── Subtype semantics (VERIFIED against the X25Emulator pcaps) ────────────
 
     if subtype == 0x03 then
-        -- ── ACK (delivery acknowledgment), spec §6 closed form ────────────────
+        -- ── ACK (delivery acknowledgment) ─────────────────────────────────────
         -- Sent OPPOSITE to the data frame it acknowledges; Flags1 ECHOES that
-        -- frame's datagram sequence. The single trailing byte is derived state:
-        --   S_ack    = (trailing + Flags1 + F2low) & 0xFF  == link seed + 0x0B
-        --   baseLow  = (S_ack − F2low) & 0xFF
-        --   epoch    = (Flags1 − baseLow + 0xFF) >> 8
-        --   channel  = 0xDE − epoch     (the peer VALIDATES this channel!)
+        -- frame's datagram sequence.
         -- Flags2 may be 0x0001 or 0x0002 (both valid; receivers accept both).
+        --
+        -- The seed / epoch / channel closed form that used to be worked out here
+        -- IS GONE, removed 2026-08-11. This file already says why at the top:
+        -- offset 12 is the checksum HIGH byte, and there is NO channel, NO epoch
+        -- and NO per-link seed - the whole baseLow/epoch construction was fitted
+        -- to a corpus and does not describe what the machines do.
+        --
+        -- It ended with an expert WARN, "ACK channel mismatch ... peer validates
+        -- this". That warning stayed quiet on real ND-to-ND traffic only because
+        -- none of it decoded this far. Once the ND link layer was added on
+        -- 2026-08-11 our own captures started decoding, and it fired several
+        -- hundred times per capture against a model known to be wrong - burying
+        -- the link-layer expert items that ARE measured. A check for a rule we
+        -- have disproved is worse than no check.
+        --
+        -- The trailing byte itself is still shown, plainly, as the byte it is.
         sub_item:append_text("  [ACK / delivery acknowledgment]")
         f1_item:append_text(string.format("  [acknowledged datagram seq = %d]", flags1))
         hdr:append_text(string.format("  ACK seq=%d", flags1))
@@ -1236,25 +1250,9 @@ local function dissect_sintran_info(tvb, pinfo, frame_tree)
                 "Unusual ACK Flags2 (corpus shows only 0x0001 / 0x0002)")
         end
         if len >= SINTRAN_HDR + 1 then
-            local trailing = tvb(SINTRAN_HDR, 1):uint()
-            local f2low   = band(flags2, 0xFF)
-            local sack    = band(trailing + flags1 + f2low, 0xFF)
-            local baselow = band(sack - f2low, 0xFF)
-            local epoch   = rshift(flags1 - baselow + 0xFF, 8)
-            local expchan = band(0xDE - epoch, 0xFF)
-            local seed    = band(sack - 0x0B, 0xFF)
-
-            local at = frame_tree:add(pf.ack_trail, tvb(SINTRAN_HDR, 1))
-            at:append_text(string.format(
-                "  [S_ack=0x%02X (link seed 0x%02X + 0x0B), epoch=%d, expected ack chan=0x%02X]",
-                sack, seed, epoch, expchan))
-            local sa = frame_tree:add(pf.ack_sack, tvb(SINTRAN_HDR, 1), sack)
-            sa:set_generated()
-            if proto_id ~= expchan then
-                at:add_expert_info(PI_PROTOCOL, PI_WARN, string.format(
-                    "ACK channel mismatch: Protocol ID 0x%02X but closed form expects 0x%02X (peer validates this)",
-                    proto_id, expchan))
-            end
+            -- Shown as the byte on the wire. What it MEANS is not established -
+            -- see the note above for the model that was removed and why.
+            frame_tree:add(pf.ack_trail, tvb(SINTRAN_HDR, 1))
         end
 
     elseif subtype == 0x19 or subtype == 0x13 then
@@ -1475,6 +1473,549 @@ local function dissect_lapb_frame(unstuffed, pinfo, frame_tree)
     return summary
 end
 
+-- ═════════════════════════════════════════════════════════════════════════════
+-- ND LINK LAYER over the COSMOS Ethernet hub (TCP 5010)      [added 2026-08-11]
+-- ═════════════════════════════════════════════════════════════════════════════
+--
+-- SCOPE NOTE, so nobody looks for this in the wrong half of the file: everything
+-- above is HDLC. On HDLC the link layer is LAPB (address + control + FCS). The ND
+-- link layer decoded below is a DIFFERENT link layer that exists only on the
+-- Ethernet path - COSMOS carries its own sequenced, acknowledged link protocol
+-- inside the LLC payload rather than relying on LLC1. The two never appear in the
+-- same stream, which is why this is a second Proto with its own port binding and
+-- not an extension of the LAPB path.
+--
+-- Everything ABOVE the ND link header is identical on both transports, so the
+-- SINTRAN datagram is handed straight to dissect_sintran_info - the same code that
+-- decodes it out of a LAPB I-frame, including the word-6 checksum validator.
+--
+-- TCP payload layout (verified against the captures listed below, and against the
+-- working Python decoder kept beside them,
+-- SINTRAN/XMSG/DOC/captures/ND-TO-ND-WRITE-2026-08-10/decode_hub.py):
+--
+--     0-1     hub framing: 2-byte BE length of the Ethernet frame that follows
+--     +0-5    802.3 destination MAC
+--     +6-11   802.3 source MAC        08:00:26 | system number LE | physical user
+--     +12-13  802.3 length            = 3 (LLC) + 11 (ND link) + payload
+--     +14-16  LLC  A8 A8 03
+--     +17-27  the 11-byte ND link header
+--     +28..   the SINTRAN datagram, exactly as on HDLC
+--
+-- Wireshark claims TCP 5010 as IPSICTL, so without the binding at the bottom of
+-- this file a hub capture shows nothing useful.
+--
+-- ND link header layout - the field-by-field provenance is in the C# reference
+-- implementation SINTRAN/XMSG/SRC/Xmsg.Ethernet/NdLinkHeader.cs, which this
+-- decode is written to agree with (VERIFIED there over 96 frames, both
+-- directions), and in
+-- SINTRAN/XMSG/DOC/COSMOS-ETHERNET-LINK-CONTROL-FRAMES-2026-08-03.md:
+--
+--     +0   0x0B = 11 = the LENGTH of this header, NOT a magic constant. Every
+--          earlier hunt for a fixed 0B02 in an ND binary failed because the sender
+--          computes it. Still used as a signature byte here because it is 11 on
+--          every frame observed.
+--     +1   0x02, constant on every observed frame, meaning UNKNOWN
+--     +2   the frame kind; its HIGH NIBBLE is the NPDU type, its low nibble is
+--          NOT explained (three known kinds end in 0xF, data ends in 0x0)
+--     +3   0x00, constant on every observed frame
+--     +4   the send sequence number
+--     +5-6 the SENDER's link id   (0x0000 on a connection request - no link yet)
+--     +7-8 the RECEIVER's link id
+--     +9-10 MEANING DEPENDS ON THE KIND: the payload length on a 0x20 data frame,
+--          the sender's own system number on a 0x0F connection request, 0x0101
+--          (UNKNOWN) on a 0x6F disconnect, 0x0000 on every acknowledgement. The
+--          802.3 length is the authority on how many payload bytes are present.
+--
+-- Link ids are per-session and are neither the node number nor the system number
+-- in the MAC. Where they come from is UNKNOWN.
+
+local ndlink_proto = Proto("ndlink", "COSMOS ND link over the XMSG Ethernet hub")
+
+-- Frame kinds with a CONFIRMED wire byte. Four more NPDU types exist whose wire
+-- byte has never been captured, so they are deliberately absent rather than
+-- guessed - an unrecognised value is shown raw, never rejected.
+local vs_nd_kind = {
+    [0x0F] = "CR  connection request (no payload; sender link id 0)",
+    [0x20] = "DT  data (carries the SINTRAN datagram)",
+    [0x3F] = "AK  acknowledge (carries the NEXT EXPECTED sequence)",
+    [0x60] = "DR  disconnect request (low nibble UNVERIFIED)",
+    [0x6F] = "DR  disconnect request by the network service",
+}
+
+-- The NPDU type index in the kind byte's high nibble. VERIFIED 2026-08-03 by
+-- carving the ENCOS monitor encos-mon-ii-b01.prog: its trace decoder dispatches
+-- through an eight-entry jump table at ram:26ae. Indices 0 and 1 were read off the
+-- code; 2-7 follow the format-string blob order and are STRONGLY INDICATED but not
+-- individually read.
+local vs_nd_npdu = {
+    [0] = "CR (connection request)",
+    [1] = "CC (connection confirm) - wire byte never captured",
+    [2] = "DT (data)",
+    [3] = "AK (acknowledge)",
+    [4] = "WO (window) - wire byte never captured",
+    [5] = "DR (disconnect request, by user) - never captured",
+    [6] = "DR (disconnect request, by network service)",
+    [7] = "DC (disconnect confirm) - never captured",
+}
+
+-- ── The two measured link-layer constants ────────────────────────────────────
+-- MEASURED 2026-08-11 over the three real machine-to-machine captures in
+-- SINTRAN/XMSG/DOC/captures/FA-READ-WRITE-2026-08-04/ (capture-list-files.txt 887
+-- frames, capture-read.txt, capture-write.txt). Pinned in code by
+-- NdLinkHeader.SequenceModulus / NdLinkLayer.SendWindow and held to the captures
+-- by NdLinkCaptureConformanceTests.
+--
+-- SEVEN BITS, not eight: the highest sequence anywhere in the three captures is
+-- 0x7F and not one frame has bit 7 set. The wrap is visible in
+-- capture-list-files.txt at 02:20:10.52, where D102 sends 0x7F and its next data
+-- frame is 0x00.
+local ND_SEQ_MODULUS = 128
+
+-- AT MOST FOUR frames go out before a side waits for an acknowledgement. The
+-- four-frame burst is one request's whole answer arriving at once
+-- (capture-read.txt 02:29:50):
+--     .792  D102 -> D100  seq 44   36 bytes  short acknowledgement
+--     .803                seq 45   52 bytes  reply
+--     .810                seq 46  622 bytes  content, fragment 1
+--     .810                seq 47  452 bytes  content, fragment 2
+--     .827  D100 -> D102  acknowledges up to 44
+--     .844                acknowledges up to 47
+--
+-- SIX. The four-frame read above is the widest in the TEXT captures, not overall:
+-- a real D100 sends six before waiting in
+-- DOC\captures\ND-TO-ND-WRITE-2026-08-10\readback-proves-content.pcapng (D100 to
+-- D102, no emulated node involved). That is the widest across every pcapng under
+-- DOC\captures\ with both ends real, and this dissector is what found it -
+-- confirmed independently by decode_hub.py in Python.
+--
+-- A CAPTURE CANNOT TELL YOU THIS NUMBER. It moved three times in one day: 2 from
+-- capture-list-files.txt alone (a listing sends no content message, so it tops out
+-- at the short acknowledgement and the reply), 4 from all three text captures, 5
+-- from one hub capture, 6 from all of them. Each time the reasoning was "this is
+-- the largest a real machine sends", and each time a wider capture disagreed.
+-- A capture shows what the traffic NEEDED, never what the protocol ALLOWS. So this
+-- is a FLOOR on the real limit, not the limit. The true limit is in the ENCOS
+-- firmware, not in any capture.
+--
+-- A window below the real value is not incorrect, only slower, so everything still
+-- works and the error stays hidden - which is exactly why it survived three
+-- corrections. Sweep the whole corpus in one pass; do not read one capture and
+-- conclude.
+--
+-- There is NO credit field: the acknowledgement's trailing word is 0000 on every
+-- captured acknowledgement from both machines, so the window cannot be negotiated.
+-- A window NPDU does exist (index 4 above) and has never been captured.
+--
+-- Keep this equal to NdLinkLayer.SendWindow in SINTRAN\XMSG\SRC\Xmsg.Ethernet.
+local ND_SEND_WINDOW = 6
+
+-- Hub framing constants (offsets within one length-prefixed Ethernet frame).
+local ND_LLC_OFFSET     = 14    -- after the two MACs and the 802.3 length
+local ND_LINK_OFFSET    = 17    -- after the 3-byte LLC header
+local ND_LINK_LENGTH    = 11
+local ND_PAYLOAD_OFFSET = ND_LINK_OFFSET + ND_LINK_LENGTH   -- = 28
+local ND_HUB_PORT       = 5010
+
+-- ── ND link ProtoFields ──────────────────────────────────────────────────────
+local nf = {}
+nf.hublen    = ProtoField.uint16("ndlink.hublen",   "Hub frame length",      base.DEC)
+nf.dstmac    = ProtoField.ether ("ndlink.dstmac",   "Destination MAC")
+nf.srcmac    = ProtoField.ether ("ndlink.srcmac",   "Source MAC")
+nf.len8023   = ProtoField.uint16("ndlink.len8023",  "802.3 length",          base.DEC)
+nf.llc       = ProtoField.bytes ("ndlink.llc",      "LLC header (A8 A8 03)")
+nf.hdrlen    = ProtoField.uint8 ("ndlink.hdrlen",   "Header length",         base.DEC)
+nf.sig1      = ProtoField.uint8 ("ndlink.sig1",     "Constant 0x02 (meaning unknown)", base.HEX)
+nf.kind      = ProtoField.uint8 ("ndlink.kind",     "Frame kind",            base.HEX, vs_nd_kind)
+nf.npdu      = ProtoField.uint8 ("ndlink.npdu",     "NPDU type (kind high nibble)", base.DEC, vs_nd_npdu)
+nf.kindlow   = ProtoField.uint8 ("ndlink.kindlow",  "Kind low nibble (NOT explained)", base.HEX)
+nf.pad3      = ProtoField.uint8 ("ndlink.pad3",     "Constant 0x00",         base.HEX)
+nf.seq       = ProtoField.uint8 ("ndlink.seq",      "Send sequence (7-bit)", base.DEC)
+nf.srclink   = ProtoField.uint16("ndlink.srclink",  "Sender link id",        base.HEX)
+nf.dstlink   = ProtoField.uint16("ndlink.dstlink",  "Receiver link id",      base.HEX)
+nf.trailing  = ProtoField.uint16("ndlink.trailing", "Trailing field (meaning depends on kind)", base.HEX)
+nf.plen      = ProtoField.uint16("ndlink.plen",     "Payload length",        base.DEC)
+nf.sysno     = ProtoField.uint16("ndlink.sysno",    "Sender system number (from MAC)", base.DEC)
+nf.backlog   = ProtoField.uint16("ndlink.backlog",  "Unacknowledged frames from this sender", base.DEC)
+nf.dupof     = ProtoField.framenum("ndlink.dupof",  "Retransmission of frame")
+
+ndlink_proto.fields = {
+    nf.hublen, nf.dstmac, nf.srcmac, nf.len8023, nf.llc,
+    nf.hdrlen, nf.sig1, nf.kind, nf.npdu, nf.kindlow, nf.pad3, nf.seq,
+    nf.srclink, nf.dstlink, nf.trailing, nf.plen, nf.sysno,
+    nf.backlog, nf.dupof,
+}
+
+-- ── Per-direction link state ─────────────────────────────────────────────────
+--
+-- TWO-PASS SAFETY. Wireshark dissects every frame at least twice (a first scan,
+-- then again to build the detail pane), and applying a display filter starts the
+-- whole sequence over. Counting a frame twice would invent a backlog that never
+-- existed, which is exactly the fault this decode is meant to FIND - so:
+--
+--   • ndlink_frame_result caches the computed answer under the Wireshark frame
+--     number. The link state is advanced ONLY when there is no cached answer for
+--     that frame number, so a re-visit displays the stored answer instead of
+--     re-counting.
+--   • ndlink_proto.init() clears both tables. Wireshark calls it once at the start
+--     of a dissection sequence, so a reload or a filter change rebuilds the state
+--     from frame 1 rather than continuing on top of the previous scan's numbers.
+--
+-- ONE COPY PER FRAME. The hub is a BROADCAST hub: a frame sent once is forwarded
+-- to every other member, so the same bytes appear on several TCP streams. Counting
+-- all the copies is what made the ETH-WRITE-2026-08-09 numbers unusable.
+--
+-- decode_hub.py de-duplicates by keeping only the machine->hub direction
+-- (destination port 5010), which is the originator. THAT RULE IS NOT SAFE HERE and
+-- was tried first: it silently drops a whole direction whenever the capture holds
+-- only ONE member's connection. Measured on
+-- X25Emulator/pcap/ALLTEST-fa-connectto-102-100-103-2026-08-01.pcapng, which has a
+-- single hub connection (TCP 41107): node 102's frames are all machine->hub and
+-- node 100's arrive only as hub->machine, so 100's acknowledgements were never
+-- read, 102's backlog climbed to 280 and every sequence past 128 was reported as a
+-- retransmission of the one 128 frames earlier. Both symptoms were fabricated by
+-- the counting rule, not present on the wire.
+--
+-- The rule used instead: for each MAC-to-MAC direction, remember the FIRST TCP
+-- stream that carried it and count that direction only on that stream. Copies of
+-- the same frame on the other streams are then skipped whatever the capture holds -
+-- with every member captured the first-seen stream is the originator's own, and
+-- with a single member captured it is the only copy there is. Either way each frame
+-- is counted exactly once. The skipped copies are still decoded and displayed; they
+-- just carry no backlog line.
+local ndlink_state = {}         -- direction key -> { outstanding = { ... }, stream = n }
+local ndlink_frame_result = {}  -- Wireshark frame number -> list of per-frame results
+
+-- Identity of the TCP connection a copy arrived on, built from the port pair.
+-- The Field extractor "tcp.stream" was tried first and is NOT reliable here: under
+-- tshark -2 it does not yield a value at the point this dissector runs, so every
+-- direction bound to the same placeholder, nothing was recognised as a fan-out copy
+-- and the two passes disagreed. The port pair is on pinfo, always present, and each
+-- hub member holds its own connection - which is the only distinction needed.
+local function nd_stream_key(pinfo)
+    return string.format("%d:%d", pinfo.src_port, pinfo.dst_port)
+end
+
+function ndlink_proto.init()
+    ndlink_state = {}
+    ndlink_frame_result = {}
+end
+
+-- An acknowledgement carries the NEXT EXPECTED sequence, not the one being
+-- acknowledged (VERIFIED on every data frame in the captures; the same rule is
+-- NdLinkHeader.AcknowledgeFor). So everything strictly BEFORE that value is
+-- acknowledged. "Before" in a 128-value space is the half-space behind it -
+-- anything further away is read as still ahead rather than as a huge backlog.
+local function nd_seq_is_acknowledged(seq, next_expected)
+    local dist = (next_expected - seq) % ND_SEQ_MODULUS
+    return dist >= 1 and dist <= (ND_SEQ_MODULUS / 2)
+end
+
+local function nd_direction_state(key)
+    local st = ndlink_state[key]
+    if st == nil then
+        st = { outstanding = {}, stream = nil }
+        ndlink_state[key] = st
+    end
+    return st
+end
+
+-- True when this stream is the one that owns the direction, i.e. the first stream
+-- the direction was ever seen on. See the de-duplication note above.
+local function nd_owns_direction(key, stream)
+    local st = nd_direction_state(key)
+    if st.stream == nil then
+        st.stream = stream
+    end
+    return st.stream == stream
+end
+
+-- Short fingerprint of a frame's payload, so a repeat can be reported as
+-- "identical bytes" rather than merely "same sequence". The skill's diagnosis
+-- order is explicit that the raw bytes are what settles it: identical sequence AND
+-- identical bytes is a retransmission, not a repeated request.
+local function nd_fingerprint(tvb, off, len)
+    if len <= 0 then return "" end
+    local n = math.min(len, 24)
+    if off + n > tvb:len() then return "" end
+    return string.format("%d:%s", len, tostring(tvb(off, n):bytes()))
+end
+
+-- Advance the link state for ONE originator frame and return what to display.
+local function nd_advance_state(dirkey, revkey, kind, seq, framenum, finger)
+    local result = {}
+    if kind == 0x20 then
+        local st = nd_direction_state(dirkey)
+        -- A repeat of a sequence still sitting in the backlog is never normal
+        -- here: it means the sender has not seen an acknowledgement. This one
+        -- distinction collapsed what looked like a pile of file-access defects
+        -- into a single link-layer fault, and it cost two nights to find by hand.
+        for i = 1, #st.outstanding do
+            local e = st.outstanding[i]
+            if e.seq == seq then
+                result.dup_of = e.frame
+                result.dup_identical = (e.finger == finger)
+                break
+            end
+        end
+        st.outstanding[#st.outstanding + 1] =
+            { seq = seq, frame = framenum, finger = finger }
+        result.backlog = #st.outstanding
+    elseif kind == 0x3F then
+        -- The acknowledgement travels in the OPPOSITE direction to the frames it
+        -- clears, so it is the reverse key's backlog that shrinks.
+        local st = nd_direction_state(revkey)
+        local kept = {}
+        for i = 1, #st.outstanding do
+            local e = st.outstanding[i]
+            if not nd_seq_is_acknowledged(e.seq, seq) then
+                kept[#kept + 1] = e
+            end
+        end
+        st.outstanding = kept
+        result.peer_backlog = #kept
+    end
+    return result
+end
+
+-- Dissect ONE length-prefixed Ethernet frame out of the hub stream.
+-- Returns a short summary string for the Info column.
+local function dissect_nd_hub_frame(tvb, pinfo, tree, off, flen, result)
+    local ft = tree:add(ndlink_proto, tvb(off - 2, flen + 2), "ND hub frame")
+
+    ft:add(nf.hublen, tvb(off - 2, 2))
+    if flen < ND_PAYLOAD_OFFSET then
+        ft:append_text(string.format("  [too short for an ND link frame: %d bytes]", flen))
+        return nil
+    end
+
+    ft:add(nf.dstmac,  tvb(off,      6))
+    local mac_item = ft:add(nf.srcmac, tvb(off + 6,  6))
+    ft:add(nf.len8023, tvb(off + 12, 2))
+
+    -- The MAC carries the sender's system number in bytes 3-4 in REVERSED byte
+    -- order (ND-60.197.01 section 2.4), i.e. little-endian - the opposite order to
+    -- the same number in the SINTRAN header two layers up.
+    local sysno = tvb(off + 9, 1):uint() + tvb(off + 10, 1):uint() * 0x100
+    local sys_item = ft:add(nf.sysno, tvb(off + 9, 2), sysno)
+    sys_item:set_generated()
+    mac_item:append_text(string.format("  [system %d]", sysno))
+
+    if tvb(off + ND_LLC_OFFSET, 3):bytes():tohex() ~= "A8A803" then
+        ft:append_text("  [not an ND/COSMOS LLC frame - no A8 A8 03]")
+        return nil
+    end
+    ft:add(nf.llc, tvb(off + ND_LLC_OFFSET, 3))
+
+    local h = off + ND_LINK_OFFSET
+    local hdrlen   = tvb(h,     1):uint()
+    local kind     = tvb(h + 2, 1):uint()
+    local seq      = tvb(h + 4, 1):uint()
+    local srclink  = tvb(h + 5, 2):uint()
+    local dstlink  = tvb(h + 7, 2):uint()
+    local trailing = tvb(h + 9, 2):uint()
+
+    local kind_nm = vs_nd_kind[kind] or string.format("kind 0x%02X (never captured)", kind)
+    local lt = ft:add(ndlink_proto, tvb(h, ND_LINK_LENGTH),
+                  string.format("ND link header  [%s  seq %d]", kind_nm, seq))
+
+    local hl_item = lt:add(nf.hdrlen, tvb(h, 1))
+    hl_item:append_text("  [the header LENGTH, not a magic constant]")
+    if hdrlen ~= ND_LINK_LENGTH then
+        hl_item:add_expert_info(PI_MALFORMED, PI_WARN, string.format(
+            "ND link header length byte is %d, expected %d", hdrlen, ND_LINK_LENGTH))
+    end
+    lt:add(nf.sig1,  tvb(h + 1, 1))
+    lt:add(nf.kind,  tvb(h + 2, 1))
+    local npdu_item = lt:add(nf.npdu, tvb(h + 2, 1), (kind >> 4) & 0x0F)
+    npdu_item:set_generated()
+    local low_item = lt:add(nf.kindlow, tvb(h + 2, 1), kind & 0x0F)
+    low_item:set_generated()
+    lt:add(nf.pad3,  tvb(h + 3, 1))
+
+    local seq_item = lt:add(nf.seq, tvb(h + 4, 1))
+
+    -- ── Check 1: the sequence is SEVEN bits ──────────────────────────────────
+    -- No real ND puts bit 7 on the wire (see ND_SEQ_MODULUS above). The check is
+    -- deliberately limited to DATA frames: those are the ones our own layer used to
+    -- mint, and it wrapped at 256 until 2026-08-11 - the live run of 2026-08-10
+    -- reached 124 and stopped four frames short of emitting a 0x80. Acknowledgement
+    -- sequences were also all inside seven bits in the three captures, but an
+    -- acknowledgement only ever echoes a number the peer chose, so flagging it
+    -- would report the same fault twice.
+    if (seq & 0x80) ~= 0 then
+        seq_item:append_text("  [bit 7 SET]")
+        if kind == 0x20 then
+            seq_item:add_expert_info(PI_PROTOCOL, PI_WARN, string.format(
+                "ND link data sequence 0x%02X has bit 7 set - the sequence is SEVEN bits " ..
+                "(measured: highest value in three real captures is 0x7F, wrap 0x7F -> 0x00). " ..
+                "No real ND emits this.", seq))
+        end
+    end
+
+    lt:add(nf.srclink, tvb(h + 5, 2))
+    lt:add(nf.dstlink, tvb(h + 7, 2))
+
+    -- Offsets +9..+10 are only a length on a data frame. On a connection request
+    -- they carried the sender's own system number, on a 0x6F disconnect 0x0101, and
+    -- 0x0000 on every acknowledgement - reading them as a length on a connection
+    -- request would try to parse 102 bytes of Ethernet padding as a message.
+    local plen = 0
+    if kind == 0x20 then
+        plen = trailing
+        lt:add(nf.plen, tvb(h + 9, 2))
+    else
+        local tr_item = lt:add(nf.trailing, tvb(h + 9, 2))
+        if kind == 0x3F then
+            tr_item:append_text("  [always 0000 - there is NO credit field, the window cannot be negotiated]")
+        elseif kind == 0x0F then
+            tr_item:append_text("  [connection request: the sender's own system number, NOT a length]")
+        else
+            tr_item:append_text("  [meaning UNKNOWN for this kind - the 802.3 length is the authority]")
+        end
+    end
+
+    -- ── Checks 2 and 3: backlog and retransmission ───────────────────────────
+    if result ~= nil then
+        if result.backlog ~= nil then
+            local bl = lt:add(nf.backlog, tvb(h + 4, 1), result.backlog)
+            bl:set_generated()
+            bl:append_text(string.format("  [send window is %d]", ND_SEND_WINDOW))
+            if result.backlog > ND_SEND_WINDOW then
+                bl:add_expert_info(PI_PROTOCOL, PI_WARN, string.format(
+                    "%d frames unacknowledged from this sender - the widest any real ND has been " ..
+                    "seen to send before waiting is %d. A backlog that CLIMBS and never comes " ..
+                    "down is THE symptom: the peer starts retransmitting everything and it reads " ..
+                    "as a pile of application defects one layer up.",
+                    result.backlog, ND_SEND_WINDOW))
+            end
+        end
+        if result.dup_of ~= nil then
+            local du = lt:add(nf.dupof, tvb(h + 4, 1), result.dup_of)
+            du:set_generated()
+            du:add_expert_info(PI_SEQUENCE, PI_WARN, string.format(
+                "ND link sequence %d was already sent in frame %d and is still unacknowledged%s. " ..
+                "A peer repeating a data frame is never normal here - it means it has not seen " ..
+                "an acknowledgement. Check the backlog before looking any higher up.",
+                seq, result.dup_of,
+                result.dup_identical and " (BYTE-FOR-BYTE IDENTICAL)"
+                                      or " (same sequence, DIFFERENT bytes)"))
+        end
+        if result.hub_copy then
+            lt:append_text("  [hub fan-out copy - counted on the stream that owns this direction]")
+        end
+    end
+
+    -- ── Payload: the ordinary SINTRAN datagram ───────────────────────────────
+    -- Only a data frame carries one. Control frames have 802.3 length 0x000E =
+    -- 3 + 11 + 0 and every byte after the eleventh is Ethernet padding to the
+    -- 60-byte minimum; earlier readings that assigned meaning to that tail were
+    -- reading padding.
+    local summary = string.format("%s seq=%d", kind_nm:match("^(%S+)") or "?", seq)
+    if kind == 0x20 and plen > 0 then
+        local avail = math.min(plen, flen - ND_PAYLOAD_OFFSET)
+        if avail > 0 then
+            local payload = tvb(off + ND_PAYLOAD_OFFSET, avail):tvb("SINTRAN")
+            local snt = dissect_sintran_info(payload, pinfo, ft)
+            if snt then summary = summary .. "  " .. snt end
+        end
+    end
+    return summary
+end
+
+function ndlink_proto.dissector(buffer, pinfo, tree)
+    pinfo.cols.protocol = "ND-LINK"
+
+    local length = buffer:len()
+    if length < 2 then return 0 end
+
+    local root = tree:add(ndlink_proto, buffer(), "COSMOS ND link over the XMSG Ethernet hub")
+    local offset = 0
+
+    -- The link opens with a 5-byte greeting "RETH" + a version byte, which is NOT
+    -- length-prefixed. A decoder that assumes frames from byte zero desynchronises
+    -- and then reads a "frame length" out of the middle of a MAC address. It only
+    -- shows on a connection that OPENS during the capture - machines already
+    -- connected are joined mid-stream with no greeting in sight, so a decoder can
+    -- look perfect and still be broken.
+    if length >= 5 and buffer(0, 4):string() == "RETH" then
+        root:add(ndlink_proto, buffer(0, 5),
+            string.format("Hub greeting  [\"RETH\" version %d]", buffer(4, 1):uint()))
+        offset = 5
+    end
+
+    local stream = nd_stream_key(pinfo)
+
+    local results = ndlink_frame_result[pinfo.number]
+    local computing = false
+    if results == nil then
+        results = {}
+        ndlink_frame_result[pinfo.number] = results
+        computing = true
+    end
+
+    local idx = 0
+    local summaries = {}
+
+    while offset + 2 <= length do
+        local flen = buffer(offset, 2):uint()
+        if flen == 0 or flen > 2000 then
+            -- Not a length we can trust. Say so rather than silently resyncing on
+            -- a guess - a wrong resync produces output that reads like data.
+            root:add(ndlink_proto, buffer(offset),
+                string.format("[Implausible hub frame length %d - stream out of step]", flen))
+            break
+        end
+        if offset + 2 + flen > length then
+            pinfo.desegment_len    = DESEGMENT_ONE_MORE_SEGMENT
+            pinfo.desegment_offset = offset
+            break
+        end
+
+        idx = idx + 1
+        local result
+        if computing then
+            -- Read the fields the state machine needs before advancing it.
+            local body = offset + 2
+            if flen >= ND_PAYLOAD_OFFSET
+                and buffer(body + ND_LLC_OFFSET, 3):bytes():tohex() == "A8A803" then
+                local h    = body + ND_LINK_OFFSET
+                local kind = buffer(h + 2, 1):uint()
+                local seq  = buffer(h + 4, 1):uint()
+                -- Direction key: the two MACs, so a frame is tracked by WHO sent it
+                -- rather than by which TCP stream carried the copy.
+                local dirkey = tostring(buffer(body + 6, 6):bytes()) .. ">" ..
+                               tostring(buffer(body,     6):bytes())
+                local revkey = tostring(buffer(body,     6):bytes()) .. ">" ..
+                               tostring(buffer(body + 6, 6):bytes())
+                if nd_owns_direction(dirkey, stream) then
+                    local plen = (kind == 0x20) and buffer(h + 9, 2):uint() or 0
+                    local finger = nd_fingerprint(buffer, body + ND_PAYLOAD_OFFSET,
+                                       math.min(plen, flen - ND_PAYLOAD_OFFSET))
+                    result = nd_advance_state(dirkey, revkey, kind, seq, pinfo.number, finger)
+                else
+                    result = { hub_copy = true }
+                end
+            else
+                result = {}
+            end
+            results[idx] = result
+        else
+            result = results[idx]
+        end
+
+        local summary = dissect_nd_hub_frame(
+            buffer, pinfo, root, offset + 2, flen, result)
+        if summary then summaries[#summaries + 1] = summary end
+
+        offset = offset + 2 + flen
+    end
+
+    if #summaries > 0 then
+        pinfo.cols.info:set(table.concat(summaries, " | "))
+    end
+    return length
+end
+
 -- ── TCP dissector ─────────────────────────────────────────────────────────────
 
 function lapb_proto.dissector(buffer, pinfo, tree)
@@ -1610,6 +2151,14 @@ lapb_proto:register_heuristic("tcp", lapb_heuristic)
 -- Keep both: port binding for known ports, heuristic for unknown ports.
 
 local tcp_table = DissectorTable.get("tcp.port")
+
+-- The COSMOS Ethernet hub. Wireshark's own table claims 5010 as IPSICTL, so this
+-- binding is what makes a hub capture readable at all. Do NOT instead force
+-- "-d tcp.port==5010,hdlc_lapb": it looks like it works - thousands of frames turn
+-- into LAPB - but the decode is misaligned and the output is noise that reads like
+-- data (node numbers come out as 53306 -> 1 instead of 100/102/103).
+tcp_table:add(ND_HUB_PORT, ndlink_proto)
+
 tcp_table:add(10362, lapb_proto)
 tcp_table:add(10364, lapb_proto)
 tcp_table:add(24182, lapb_proto)

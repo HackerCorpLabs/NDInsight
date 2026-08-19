@@ -7,6 +7,11 @@ This directory contains the complete documentation for all 230 SINTRAN III Monit
 **To browse monitor calls:**
 - Read `ND MON Calls.md` for comprehensive documentation with indexes and examples
 
+**To CALL a monitor call from a language:**
+- PLANC: [../Languages/Application/PLANC-MONITOR-CALLS.md](../Languages/Application/PLANC-MONITOR-CALLS.md)
+  - the named `MONn` routines, why `MONITOR_CALL` fails on D100, error handling, and the
+  library load order.
+
 **To update documentation:**
 1. Edit YAML files in `calls/` directory
 2. Run `python3 generate_mon_calls_markdown.py`

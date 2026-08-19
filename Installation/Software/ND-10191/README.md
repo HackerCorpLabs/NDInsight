@@ -35,20 +35,19 @@ The D-revision files were also **renamed** — `FORTRAN-1BANK-A`/`F32FORT-1BANK-
 `FORT48-1BANK-D00`/`FORT32-1BANK-D00` (D) — a naming-convention change, not just a version-letter
 bump, which is consistent with PART2/PART3 having been reworked independently of PART1.
 
-**Working hypothesis, not confirmed:** the compiler (PART1) was never revised past A, while the
-floating-point runtime banks (PART2/PART3) were later patched to D. Under this hypothesis, your
-physical set — `ND-10191A-PART1` + `ND-10191D-PART2` + `ND-10191D-PART3` — is a normal, correct
-combination (the latest of each part), not a mismatched/broken set. This is **not proven**: it is
-equally possible a `D`-revision PART1 exists and simply wasn't found in the reference library used
-here. If you find or acquire a floppy labeled `ND-10191D-PART1` (or any other PART1 letter later
-than A), that would resolve the question either way.
+**Resolved, 2026-08:** a real, complete, matched 3-part set was found at intermediate revision
+`E00` — see [ND-10191E00](ND-10191E00/README.md). Its `FORTRAN-100-E00:PROG` compiler binary is a
+real, distinct file, proving the compiler *was* revised past `A`. The D-revision's missing PART1
+is therefore almost certainly just an unfound floppy, not evidence of a frozen compiler. `E00`'s
+runtime naming (`FORT48-1BANK-E0`/`FORT32-1BANK-E0`) already matches D's post-rename convention.
 
 ## Versions
 
 | Version | Subfolder | Status | Notes |
 |---------|-----------|--------|-------|
 | A | [ND-10191A](ND-10191A/README.md) | IN-PROGRESS — no PD sheet, procedure inferred | full matched 3-part set: `ND-10191A-PART1/2/3` |
-| D | [ND-10191D](ND-10191D/README.md) | IN-PROGRESS — PART1 missing/unconfirmed, see above | `ND-10191D-PART2/3` only; pairs with A's PART1 in practice |
+| E (rev 00) | [ND-10191E00](ND-10191E00/README.md) | IN-PROGRESS — full matched 3-part set, real floppies decoded | `10191E00-1S/2S/3S` + a bundled `-1D`; resolves the A/D PART1 question, see above |
+| D | [ND-10191D](ND-10191D/README.md) | IN-PROGRESS — PART1 missing/unconfirmed, see above | `ND-10191D-PART2/3` only |
 
 ## Documentation
 - Program Description (PD-sheet): not located

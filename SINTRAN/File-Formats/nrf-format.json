@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "formatName": "NRF",
+  "fullName": "ND Relocatable Format",
+  "description": "Relocatable object-code format produced by ND-500(0) compilers/assemblers and consumed by the old Linkage-Loader (NLL) and the ND Linker.",
+  "docFile": "NRF-FILE-FORMAT.md",
+  "byteOrder": "big-endian",
+  "verification": {
+    "status": "control byte bit order VERIFIED against a real compiler-produced file (nd-500-apf-lib-e.nrf)",
+    "sourceFile": "E:\\Dev\\Ronny\\ND500\\Microcode\\nd-500-apf-lib-e.nrf",
+    "date": "2026-08-10"
+  },
+  "structure": {
+    "kind": "sequence-of-groups",
+    "group": {
+      "controlByte": {
+        "size": 1,
+        "bitFields": [
+          { "name": "controlNumber", "bits": "7:3", "widthBits": 5, "description": "high 5 bits, octal 0-37" },
+          { "name": "numericLength", "bits": "2:0", "widthBits": 3, "description": "NL, 0-7, low 3 bits" }
+        ],
+        "packFormula": "controlByte = (controlNumber << 3) | numericLength"
+      },
+      "numericField": {
+        "sizeBytes": "NL (0-7)",
+        "signed": true,
+        "encoding": "twos-complement"
+      },
+      "symbolicField": {
+        "presentWhen": "control number has symbolic=true",
+        "lengthField": { "name": "SL", "size": 1, "type": "uint8" },
+        "data": { "sizeBytes": "SL (0-255)", "type": "ascii", "note": "parity bit cleared; leading '#' marks a hidden symbol" }
+      }
+    }
+  },
+  "controlNumbers": [
+    { "octal": "0", "decimal": 0, "name": "NUL", "symbolic": false, "description": "Ignored. NL must be 0." },
+    { "octal": "1", "decimal": 1, "name": "BEG", "symbolic": false, "description": "Start of module.", "numericFieldBytes": [
+      { "index": 1, "name": "priority", "description": "real-time priority" },
+      { "index": 2, "name": "language", "description": "see languageCodes table" },
+      { "index": 3, "name": "adl", "description": "address length, default 1" },
+      { "index": 4, "name": "targetMachine", "description": "newer Linker-manual revision only" },
+      { "index": 5, "name": "osId", "description": "newer Linker-manual revision only" }
+    ]},
+    { "octal": "2", "decimal": 2, "name": "END", "symbolic": false, "description": "End of module. NL = checksum size (0=no test, 2=default). Checksum = sum of BEG..END bytes, 2's complement." },
+    { "octal": "3", "decimal": 3, "name": "MSA", "symbolic": false, "description": "Main start address := current BP (+ numeric value)." },
+    { "octal": "4", "decimal": 4, "name": "LIB", "symbolic": true, "description": "Library conditional-load symbol." },
+    { "octal": "5", "decimal": 5, "name": "DEF", "symbolic": true, "description": "Program symbol definition. NL=0: value:=PP. NL!=0: value:=numeric field." },
+    { "octal": "6", "decimal": 6, "name": "REF", "symbolic": true, "description": "Program symbol reference at current BP." },
+    { "octal": "7", "decimal": 7, "name": "LRF", "symbolic": true, "description": "Like REF if symbol already defined; else stores zero." },
+    { "octal": "10", "decimal": 8, "name": "DDF", "symbolic": true, "description": "Data symbol definition (DEF for DP)." },
+    { "octal": "11", "decimal": 9, "name": "DRF", "symbolic": true, "description": "Data symbol reference (REF for DP)." },
+    { "octal": "12", "decimal": 10, "name": "RMV", "symbolic": true, "description": "Remove symbol from loader table." },
+    { "octal": "13", "decimal": 11, "name": "SLA", "symbolic": true, "description": "Set load address. BP := numeric value (+ symbol value if SL!=0)." },
+    { "octal": "14", "decimal": 12, "name": "AJS", "symbolic": false, "description": "Adjust. BP += signed numeric value." },
+    { "octal": "15", "decimal": 13, "name": "PMO", "symbolic": false, "description": "Set program mode. PP += numeric value; BP:=PP." },
+    { "octal": "16", "decimal": 14, "name": "DMO", "symbolic": false, "description": "Set data mode. DP += numeric value; BP:=DP." },
+    { "octal": "17", "decimal": 15, "name": "FMO", "symbolic": true, "description": "Set free mode. BP:=XP:=BP+numeric value (or symbol value + numeric value)." },
+    { "octal": "20", "decimal": 16, "name": "REP", "symbolic": false, "description": "Repeat next group N times (numeric value)." },
+    { "octal": "21", "decimal": 17, "name": "LDI", "symbolic": false, "description": "Load NL immediate bytes at BP; BP+=NL. Max 7 bytes." },
+    { "octal": "22", "decimal": 18, "name": "ADI", "symbolic": false, "description": "Add numeric value into NL bytes at BP; BP+=NL." },
+    { "octal": "23", "decimal": 19, "name": "APA", "symbolic": false, "description": "PP+numeric value stored into next ADL bytes; BP+=ADL." },
+    { "octal": "24", "decimal": 20, "name": "ADA", "symbolic": false, "description": "DP+numeric value stored into next ADL bytes; BP+=ADL." },
+    { "octal": "25", "decimal": 21, "name": "IHB", "symbolic": false, "description": "Execution inhibit - NRF incomplete due to compile errors." },
+    { "octal": "26", "decimal": 22, "name": "EOF", "symbolic": false, "description": "End of NRF file." },
+    { "octal": "27", "decimal": 23, "name": "DBG", "symbolic": false, "description": "Debug start/stop marker." },
+    { "octal": "30", "decimal": 24, "name": "LBB", "aliasName": "LMB", "symbolic": true, "description": "Library module byte-pointer (fast-load vector entry)." },
+    { "octal": "31", "decimal": 25, "name": "MSG", "symbolic": true, "description": "Print symbolic field's ASCII string; '$' (36 dec) -> CR+LF." },
+    { "octal": "32", "decimal": 26, "name": "MIS", "symbolic": false, "description": "Miscellaneous; numeric field = subcontrol number.", "subcontrols": [
+      { "value": 0, "name": "CGR0", "description": "Start of compound group." },
+      { "value": 1, "name": "CGR1", "description": "End of compound group." },
+      { "value": 2, "name": "ADD", "description": "Add next referenced symbol's value at BP." },
+      { "value": 3, "name": "SUB", "description": "Subtract next referenced symbol's value at BP." },
+      { "value": 4, "name": "MUL", "description": "Multiply value at BP by next referenced symbol." },
+      { "value": 5, "name": "DIV", "description": "Divide value at BP by next referenced symbol." }
+    ]},
+    { "octal": "33", "decimal": 27, "name": "LDN", "symbolic": false, "description": "Load N bytes immediately, no symbolic field." },
+    { "octal": "34", "decimal": 28, "name": "IL1", "symbolic": false, "description": "Illegal (reserved)." },
+    { "octal": "35", "decimal": 29, "name": "IL2", "symbolic": false, "description": "Illegal (reserved)." },
+    { "octal": "36", "decimal": 30, "name": "IL3", "symbolic": false, "description": "Illegal (reserved)." },
+    { "octal": "37", "decimal": 31, "name": "IL4", "symbolic": false, "description": "Illegal (reserved)." }
+  ],
+  "languageCodes": [
+    { "code": 0, "name": "ASSEMBLY" },
+    { "code": 1, "name": "FORTRAN" },
+    { "code": 2, "name": "PLANC" },
+    { "code": 3, "name": "COBOL" },
+    { "code": 4, "name": "PASCAL" },
+    { "code": 5, "name": "SIMULA", "note": "newer Linker-manual revision only" },
+    { "code": 6, "name": "ADA", "note": "newer Linker-manual revision only" },
+    { "code": 7, "name": "CORAL", "note": "newer Linker-manual revision only" },
+    { "code": 8, "name": "C", "note": "newer Linker-manual revision only" },
+    { "code": 9, "name": "BASIC", "note": "newer Linker-manual revision only" }
+  ],
+  "symbolTypeBits": [
+    { "bit": 0, "name": "UDEF", "description": "false = undefined element" },
+    { "bit": 1, "name": "DREF", "description": "false = program memory reference, true = data memory reference" },
+    { "bit": 2, "name": "DSYM", "description": "false = program label, true = data label" },
+    { "bit": 3, "name": "CLAB", "description": "true = common label" },
+    { "bit": 4, "name": "DMPF", "description": "true = symbol is written (list handling)" },
+    { "bit": 5, "name": "GLOB", "description": "true = symbol survives a loader-table save" },
+    { "bit": 6, "name": "SELECT", "description": "true = module must be loaded" },
+    { "bit": 7, "name": "OMIT", "description": "true = module must not be loaded" }
+  ]
+}

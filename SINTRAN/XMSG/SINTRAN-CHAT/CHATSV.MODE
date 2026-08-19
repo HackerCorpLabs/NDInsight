@@ -1,0 +1,116 @@
+@cc ===========================================================================
+@cc CHATSV:MODE - build the PLANC chat ROOM SERVER on D100.
+@cc
+@cc   @MODE CHATSV:MODE,,
+@cc
+@cc The name is short on purpose. Our file transfer opens a file with a QFORM
+@cc string of at most 15 bytes holding the specification, an apostrophe and the
+@cc access letter - so 13 characters of name - and a CREATE carries its own
+@cc quotes inside that budget. "CHAT-CC:MODE" is 14 with the quotes and is
+@cc refused before a byte goes out; "CHATCC:MODE" is 13 and fits.
+@cc
+@cc Needs these under SYSTEM:
+@cc
+@cc   CHATSV:PLNC            the client, carried over by our own file transfer
+@cc   XMP-B02:DEFS         the constants          )  the real COSMOS binding,
+@cc   XMP-B02:IMPT         the declarations       )  product ND-10609, put on
+@cc   XMP-100-1-B02:BRF    the code               )  by COS-LIB-IN-B02:PROG
+@cc
+@cc Our own XMPIMP:INCL and the (UTILITY)XMSG-PL-VALUES-L:INCL copy are NO
+@cc longer used by this build. XMPIMP was written from the manual to stand in
+@cc for the missing XMP:IMPT; the real file is here now and is the better
+@cc source. Do not include XMSG-PL-VALUES-L alongside XMP-B02:DEFS - they share
+@cc 184 constant names.
+@cc
+@cc THREE THINGS THIS BUILD GETS RIGHT AND A HAND-TYPED ONE USUALLY DOES NOT:
+@cc
+@cc 1. THE SOURCE MUST BE CRLF. A file carried over with bare LF makes the
+@cc    compiler answer "LINE IS TOO LONG" on EVERY line, including a line one
+@cc    character long - it never finds an end-of-line and fills its buffer. The
+@cc    files on the machine are the proof: XMSG-PL-VALUES-L:INCL came off D100
+@cc    with 383 CR and 383 LF, and no byte with bit 7 set. Text files here are
+@cc    plain 7-bit ASCII with CRLF; the even-parity rule is for terminal INPUT,
+@cc    not for files.
+@cc
+@cc 2. EVERY INCLUDED FILE MUST END WITH $EOF. Without it the compiler runs off
+@cc    the end of the include and takes that as the end of the WHOLE compile -
+@cc    and reports 0 DIAGNOSTICS while doing it. That reads as a clean build
+@cc    that quietly skipped the entire program. The tell is the line count: it
+@cc    stops at exactly the line of the $INCLUDE, and the next command answers
+@cc    COMMAND NOT PERMITTED WITHIN MODULES because the module never closed.
+@cc
+@cc 3. THE XMP LIBRARY IS LINKED IN A SEPARATE STEP, BY BRF-LINKER-C01.
+@cc    Nothing pulls it in on its own, so every XMPF... call stays unresolved
+@cc    and the build ends with "- LOADER MESSAGE: UNDEFINED ENTRIES".
+@cc
+@cc    AND IT MUST BE XMP-100-1-B02, NOT XMSG-LIBRARY-L03. The latter was
+@cc    tried first and holds no XMPF code at all - asked with
+@cc    LIST-BRF-ENTRIES it answers eleven internal entries (XBINI, XQVER,
+@cc    XMRER, XMERR and friends) and loading it moves the free address by
+@cc    exactly nothing. It is the NPL-level support library. The XMPF code
+@cc    comes only from the ND-10609 product.
+@cc
+@cc    Both ways of doing it inside the compiler were tried on D100 and both
+@cc    fail, which is why this build has two steps:
+@cc
+@cc      LOAD before COMPILE is ACCEPTED AND DOES NOTHING. A library supplies
+@cc      only the units something already refers to, and at that point nothing
+@cc      refers to anything. It prints no message at all - the worst kind of
+@cc      wrong, because the build looks the same as a good one.
+@cc
+@cc      LOAD after COMPILE is REFUSED with COMMAND NOT PERMITTED WITHIN
+@cc      MODULES. Ending the source with $EOF does not rescue it: $EOF in the
+@cc      MAIN source ends the compiler SESSION, so the LOAD is handed to
+@cc      SINTRAN instead, which answers ILLEGAL COMMAND and aborts the job.
+@cc
+@cc    So: PROG-FILE is NOT set, the compiler is asked only for a BRF, and
+@cc    BRF-LINKER-C01 puts the three pieces together. That also means the BRF
+@cc    is a real object file - with PROG-FILE set the compiler links straight
+@cc    into the program file and leaves CHATSV:BRF empty, which loads as nothing
+@cc    and reports FREE: P 000000-177777.
+@cc
+@cc    Order inside the linker matters the other way round: the program first,
+@cc    THEN the libraries that satisfy it.
+@cc ===========================================================================
+
+@cc --- clear the old build; a "NO SUCH FILE NAME" on a first run is expected --
+@DELETE-FILE CHATSV:PROG
+@DELETE-FILE CHATSV:LIST
+@DELETE-FILE CHATSV:BRF
+
+@cc --- step 1: compile to an object file ------------------------------------
+@cc Quoting: no quotes means the file must already exist, "quotes" means create.
+@cc No PROG-FILE here on purpose - see note 3.
+@PLANC-100-F00
+COMPILE CHATSV:PLNC,"CHATSV:LIST","CHATSV"
+EXIT
+
+@cc --- step 2: link the program, the XMSG library and the PLANC runtime -----
+@cc 5MON_P comes from PLANC-1BANK-F00 - it is what MONITOR_CALL compiles into,
+@cc so the runtime is needed even though this program calls nothing else in it.
+@BRF-LINKER-C01
+PROGRAM-FILE "CHATSV"
+LOAD CHATSV
+LIBRARY-MODE ON
+LOAD XMP-100-1-B02
+LOAD PLANC-1BANK-F00
+LIST-ENTRIES-UNDEFINED
+EXIT
+
+@cc ===========================================================================
+@cc CHECK THE LISTING BEFORE BELIEVING THE BUILD.
+@cc
+@cc   @LIST-FILE CHATSV:LIST,,       and look for "*** ERROR"
+@cc
+@cc The compiler prints its diagnostics as it goes, and on a long source they
+@cc scroll off the top of a 24-line screen long before the summary appears - so
+@cc "0 DIAGNOSTICS" at the bottom of the SECOND pass can sit directly under a
+@cc compile that had three. The count that matters is the one on the COMPILE
+@cc line, not the one after EXIT, and the listing has both plus the offending
+@cc lines. Not one "*** ERROR" in CHATSV:LIST is the only green light here.
+@cc ===========================================================================
+@cc Built CHATSV:PROG. Run it with @CHATSV
+@cc
+@cc If the count of LINES COMPILED is far short of the source, look for the
+@cc missing $EOF before looking at the program.
+@cc ===========================================================================

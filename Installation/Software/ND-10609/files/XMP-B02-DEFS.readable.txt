@@ -1,0 +1,481 @@
+%=============================================================================%
+%                                                                             %
+%                             X M S G                                         %
+%                                                                             %
+%                      D E F I N I T I O N S                                  %
+%                                                                             %
+%                              F O R                                          %
+%                                                                             %
+%                   P L A N C    I N T E R F A C E                            %
+%                                                                             %
+%                                                                             %
+%          NOTE: the PLANC XMSG library returns STANDARD errors               %
+%                the STANDARD value symbols are the normal XMSG               %
+%                symbols prefixed by XM-                                      %
+%                                                                             %
+%                this file also provides some further definitions for         %
+%                PLANC users                                                  %
+%                                                                             %
+%  VERSION/REVISION:  -B02  02.06.86   THNH                                   %
+%                                                                             %
+%                                                                             %
+%=============================================================================%
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%                         XMSG FUNCTION VALUES                                %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+
+CONSTANT XFDUM=0             % Dummy function
+CONSTANT XFDCT=1             % Disconnect from message system
+CONSTANT XFGET=2             % Get message space
+CONSTANT XFREL=3             % Release message space
+CONSTANT XFRHD=4             % Read header from a message (6 bytes)
+CONSTANT XFWHD=5             % Write header to a message (6 bytes)
+CONSTANT XFREA=6             % Read from message to user buffer
+CONSTANT XFWRI=7             % Write from user to message
+CONSTANT XFSCM=8             % Set current message
+CONSTANT XFMST=9             % Get message status
+CONSTANT XFOPN=10            % Open port
+CONSTANT XFCLS=11            % Close port
+CONSTANT XFSND=12            % Send message to a remote port
+CONSTANT XFRCV=13            % Receive a message on a given port
+CONSTANT XFPST=14            % Get local port status
+CONSTANT XFGST=15            % General status or wait
+CONSTANT XFSIN=16            % Service initialisation function
+%        XFSRL=17            % Service release function (obsolete)
+CONSTANT XFABR=18            % Absolute read block from POF area
+%        XFABW=19            % Absolute write block to POF area (obsolete)
+%        XFMLK=20            % Lock message system (obsolete)
+%        XFMUL=21            % Unlock message system (obsolete)
+CONSTANT XFM2P=22            % Magic number to port id.
+CONSTANT XFP2M=23            % Port to magic number
+%        XFRIN=24            % Routing initialise (obsolete)
+CONSTANT XFCRD=25            % Create driver with context
+CONSTANT XFSTD=26            % Start driver
+%        XFDIB=27            % Define indirect buffer (obsolete)
+%        XFRIB=28            % Read from indirect buffer (obsolete)
+%        XFWIB=29            % Write to indirect buffer (obsolete)
+CONSTANT XFPRV=30            % Request privilege
+CONSTANT XFRTN=31            % Write word 0 and return message
+CONSTANT XFRRH=32            % Receive message and read word 0
+CONSTANT XFDUB=33            % Define user buffer area for current message
+CONSTANT XFWDF=34            % Define wake-up context (drivers only!)
+CONSTANT XFDBK=35            % Define bank no (drivers only)
+CONSTANT XFSMC=36            % start multi-function call
+CONSTANT XFDMM=37            % define max memory for a task
+CONSTANT XFALM=38            % allocate messages to a task
+CONSTANT XFFRM=39            % free allocated messages
+CONSTANT XFLMP=40            % list messages and ports
+CONSTANT XFRRE=41            % receive and read message 
+CONSTANT XFCPV=42            % check system and/or user privileges
+CONSTANT X5FUN=43            % == END MARKER == LEAVE ME HERE PLEASE
+
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%                         XMSG OPTION BITS (FLAGS)                            %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+
+CONSTANT XFWTF=15  % If set then wait if operation not terminated.
+CONSTANT XFWAK=14  % Wake up task on status change.
+%        XFPRM=13  % (Obsolete).
+CONSTANT XFPON=13  % Driver to run with paging on.
+%        XFWOK=13  % (Obsolete).
+CONSTANT XFUSG=13  % (Not yet implemented).
+CONSTANT XFHIP=13  % High-priority message.
+CONSTANT XFRRO=13  % If XFROU then non-local XROUT.
+CONSTANT XFEXC=13  % Allocate/reserve/release exclusive message buffer(s).
+CONSTANT XFOPS=12  % (Not yet implemented).
+CONSTANT XFRES=12  % Reset message length to zero.
+CONSTANT XFBNC=12  % Bounce message.
+CONSTANT XFFWD=11  % Forward message.
+CONSTANT XFROU=10  % Message to be sent to XROUT (see XFRRO).
+CONSTANT XFSEC=9   % Secure message (Return if not delivered).
+CONSTANT XFSYS=7   % Bit set to indicate system mode call (system domain).
+
+
+%----------------------------------------------------------------------------%
+%                                                                            %
+%        MESSAGE TYPES: RETURNED AS SUCCESSFULL STATUS FROM A                %
+%                       RECEIVE MESSAGE CALL                                 %
+%                                                                            %
+%----------------------------------------------------------------------------%
+
+CONSTANT XMTNO=1             % Normal message
+CONSTANT XMROU=2             % Routed message (Via XROUT)
+CONSTANT XMTHI=3             % High priority message
+CONSTANT XMTRE=4             % Return message (Abnormal condition)
+CONSTANT XMKIK=5             % XROUT has been kicked (no message)
+CONSTANT XMTPS=6             % Pseudo message (not used)
+
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%              U S E R    E R R O R    S Y M B O L S                          %
+%                                                                             %
+%                                                                             %
+%               Base value = XKXXX = 16896 = 41000B                           %
+%                                                                             %
+%                                                                             %
+%        Error values returned in the T-register                              %
+%        NOTE that the PLANC XMSG library returns the STANDARD                %
+%        values (see later)                                                   %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+
+CONSTANT XKXXX=16896   % BASE for STANDARD ERROR system (41000B)
+CONSTANT XENOT= -1     % No more XT-blocks free
+CONSTANT XEIRM= -2     % Non-local remote port illegal here
+CONSTANT XETMM= -4     % Task is not allowed any more memory
+CONSTANT XENIM= -5     % Facility not yet implemented
+CONSTANT XEIBP= -6     % Illegal message buffer pointer
+CONSTANT XEBNY= -7     % Message buffer not yours
+CONSTANT XEIRT= -8     % Illegal function for RT-programs (only drivers)
+CONSTANT XENOP= -9     % No more ports available
+CONSTANT XEIDR= -10    % Function not available to drivers
+CONSTANT XENDM= -11    % No default message
+CONSTANT XEMCH= -12    % Message is already chained
+CONSTANT XEBFC= -13    % Message is in a queue
+CONSTANT XEAIN= -14    % XMSG Kernel already initialised
+CONSTANT XEBNC= -15    % Return of a bounce message
+CONSTANT XEWNA= -16    % Write Not Allowed (Indirect buffer)
+CONSTANT XENVI= -17    % No Valid Indirect buffer defined
+CONSTANT XEILF= -18    % Illegal function code in monitor call
+CONSTANT XEIMA= -19    % Invalid magic number
+CONSTANT XEMFL= -20    % Message space full
+CONSTANT XEILM= -21    % Illegal message size or not enough space left
+CONSTANT XEIPN= -22    % Illegal port number
+CONSTANT XEPRV= -23    % Privileged function called without privilege
+CONSTANT XEPVR= -24    % Privilege request refused
+CONSTANT XERNA= -25    % Remote system not available
+CONSTANT XEROV= -26    % Remote task space overflow
+CONSTANT XEXBF= -27    % Message already has XMSG buffer (XFDUB)
+CONSTANT XEDRI= -28    % Driver called XMSG before return from previous
+CONSTANT XENDP= -29    % No port open (so 'default port' param invalid)
+CONSTANT XEITL= -30    % Illegal transfer length for read/write
+CONSTANT XEIDP= -31    % Illegal displacement in read/write
+CONSTANT XEILR= -32    % Illegal use of reentrant segment in XFDIB
+CONSTANT XENOS= -33    % Indirect Buffer not on valid segment
+CONSTANT XENSE= -34    % Network sequencing error
+CONSTANT XERND= -35    % Remote system not defined
+CONSTANT XEPCL= -36    % Remote port closed while message queued
+CONSTANT XENRU= -37    % XMSG not running 
+CONSTANT XENTO= -38    % Timeout detected by network layer
+CONSTANT XENUS= -39    % No user segment info defined (XFUSG option)
+CONSTANT XEREJ= -40    % Network remote reject (request retransmit)
+CONSTANT XEIXT= -41    % Driver called XMSG with illegal XT-block
+CONSTANT XETMU= -42    % Too many multi calls
+CONSTANT XECRA= -63    % XMSG crash (Info in Basefield)
+
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%              U S E R    E R R O R    S Y M B O L S                          %
+%                                                                             %
+%                              A S                                            %
+%                                                                             %
+%                  S T A N D A R D    V A L U E S                             %
+%                                                                             %
+%                 base value = XKXXX = 16896 = 41000B                         %
+%                                                                             %
+%                                                                             %
+%     NB!! note in particular that the STANDARD value for                     %
+%          "not terminated" is NOT zero                                       %
+%          and the standard OK is now zero                                    %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+
+
+CONSTANT XMOK   = 0          % NOTE change from XMSG OK=1
+
+CONSTANT XMXKXXX= 16896      % BASE for STANDARD ERROR system
+
+CONSTANT XMXENTM= XMXKXXX    % NOT an error - simply "not terminated"
+                             % ie same as  XMSG status=0
+
+CONSTANT XMXENOT= 16897      % No more XT-blocks free
+CONSTANT XMXEIRM= 16898      % Non-local remote port illegal here
+
+CONSTANT XMXETMM= 16900      % Task is not allowed any more memory
+CONSTANT XMXENIM= 16901      % Facility not yet implemented
+CONSTANT XMXEIBP= 16902      % Illegal message buffer address
+CONSTANT XMXEBNY= 16903      % Message buffer not yours
+CONSTANT XMXEIRT= 16904      % Illegal function for RT-programs (only drivers)
+CONSTANT XMXENOP= 16905      % No more ports available
+CONSTANT XMXEIDR= 16906      % Function not available to drivers
+CONSTANT XMXENDM= 16907      % No default message
+CONSTANT XMXEMCH= 16908      % Message is already chained
+CONSTANT XMXEBFC= 16909      % Message is in a queue
+CONSTANT XMXEAIN= 16910      % XMSG Kernel already initialised
+CONSTANT XMXEBNC= 16911      % Return of a bounce message
+CONSTANT XMXEWNA= 16912      % Write Not Allowed into Indirect buffer
+CONSTANT XMXENVI= 16913      % No Valid Indirect buffer defined
+CONSTANT XMXEILF= 16914      % Illegal function code in monitor call
+CONSTANT XMXEIMA= 16915      % Invalid magic number
+CONSTANT XMXEMFL= 16916      % Message space full
+CONSTANT XMXEILM= 16917      % Illegal message size or not enough space left
+CONSTANT XMXEIPN= 16918      % Illegal port number
+CONSTANT XMXEPRV= 16919      % Privileged function called without privilege
+CONSTANT XMXEPVR= 16920      % Privilege request refused
+CONSTANT XMXERNA= 16921      % Remote system not available
+CONSTANT XMXEROV= 16922      % Remote task space overflow
+CONSTANT XMXEXBF= 16923      % Message already has XMSG buffer (XFDUB)
+CONSTANT XMXEDRI= 16924      % Driver called XMSG before return from previous
+CONSTANT XMXENDP= 16925      % No port open (so 'default port' param invalid)
+CONSTANT XMXEITL= 16926      % Illegal transfer length for read/write
+CONSTANT XMXEIDP= 16927      % Illegal displacement in read/write
+CONSTANT XMXEILR= 16928      % Illegal use of reentrant segment in XFDIB
+CONSTANT XMXENOS= 16929      % Indirect Buffer not on valid segment
+CONSTANT XMXENSE= 16930      % Network sequencing error
+CONSTANT XMXERND= 16931      % Remote system not defined
+CONSTANT XMXEPCL= 16932      % Remote port closed while message queued
+CONSTANT XMXENRU= 16933      % XMSG not running 
+CONSTANT XMXENTO= 16934      % Timeout detected by network layer
+CONSTANT XMXENUS= 16935      % No user segment info defined (XFUSG option)
+CONSTANT XMXEREJ= 16936      % Network remote reject (request retransmit)
+CONSTANT XMXEIXT= 16937      % driver called XMSG with illegal XT-block  
+CONSTANT XMXETMU= 16938      % too many calls in multi-call              
+
+CONSTANT XMXECRA= 16959      % XMSG crash (Info in Basefield)
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%           X R O U T   -   S E R V I C E    V A L U E S                      %
+%                                                                             %
+%                   Values in byte 1 of message                               %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+
+CONSTANT XSNUL=64      % Null command returns 0 status to sender
+CONSTANT XSLET=65      % Send a letter
+CONSTANT XSNAM=66      % Give name to this port
+CONSTANT XSCNM=67      % Clear name of this port
+CONSTANT XSGNM=68      % Get name of port (param: MAGNO)
+CONSTANT XSGNI=69      % Get name (param: MC/PORTNO)
+CONSTANT XSGMG=71      % Get magic number from name (PRIV)
+CONSTANT XSDRN=73      % Define remote name
+CONSTANT XSDSY=74      % Define routing for system N (PRIV)
+CONSTANT XSDMC=XSDSY   % Define routing for system N (PRIV) - old
+CONSTANT XSGSY=75      % Get routing info for system N
+CONSTANT XSGMC=XSGSY   % Get routing info for system N - old symbol
+CONSTANT XSLKI=76      % Start up specified link
+CONSTANT XSTIN=77      % Initialise tracing (open file, ..)
+CONSTANT XSTCL=78      % Close tracing
+CONSTANT XSTDC=79      % Define tracing conditions
+CONSTANT XSCRS=80      % Create service (name, init no of SP's)
+CONSTANT XSNSP=81      % New service point(s) (increment/decrement in SP's)
+CONSTANT XSGIN=82      % Get information about name
+CONSTANT XSDLO=83      % Define local system
+CONSTANT XSLEK=84      % Send letter and kick if unavailable
+CONSTANT XSNET=85      % Start/stop gateway (network server) (PRIV)
+CONSTANT XSSCI=86      % Set crash information
+CONSTANT XSGAT=87      % Get/check attribute
+CONSTANT XSDAT=88      % Define/remove attribute (privileged)
+CONSTANT XSNSI=89      % Get network server information
+CONSTANT XSMAX=XSNSI   % Maximum legal service value
+                                                                              
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%           X R O U T   -   S U B - S E R V I C E  V A L U E S                %
+%                                                                             %
+%                  Values in parameter 1 of message                           %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+
+% Sub-service definitions for XSSCI
+
+CONSTANT XSDAR=1       % Enable/disable auto-restart of XMSG
+CONSTANT XSDRF=2       % Define/remove restart-files
+CONSTANT XSDDF=3       % Define/remove dump-files
+CONSTANT XSGDF=4       % Get defined dump-files
+CONSTANT XSDUX=5       % Dump XMSG onto files
+CONSTANT XSGRF=6       % Get defined restart-files
+CONSTANT XSGAR=7       % Get auto-restart definition
+
+% Sub-service definitions for XSGAT
+
+CONSTANT XSGXV=1       % Get XMSG version and revision
+CONSTANT XSCMG=2       % Check magic number
+CONSTANT XSGCN=3       % Get complete system or port name (deabbreviate name)
+CONSTANT XSGFR=4       % Get friend information (privileged!)
+
+% Sub-service definitions for XSDAT (privileged)
+
+CONSTANT XSDFR=1       % Define friend system
+CONSTANT XSRFR=2       % Remove friend system
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%          X R O U T  /  F I L E   S E R V E R   -    E R R O R S             %
+%                                                                             %
+%             Error values returned in byte 1 of return message               %
+%                                                                             %
+%                                                                             %
+%      These are the values in the message header itself which the            %
+%      user sees when the XROUT header is manipulated directly by the         %
+%      user.                                                                  %
+%      The PLANC XMSG library returns the STANDARD values (see later)         %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+
+CONSTANT XRXXX=16960   % Base for XROUT errors: 41100B
+CONSTANT XRSOK=0       % OK - not an error!
+CONSTANT XRISN=1       % Illegal service number
+CONSTANT XRUNN=2       % Unknown name (of server or system)
+CONSTANT XRDDF=3       % Another port already has this name
+CONSTANT XRNSP=4       % No space left for names
+CONSTANT XRIPT=5       % Illegal parameter type
+CONSTANT XRMMP=6       % Missing mandatory parameter
+CONSTANT XRUNM=7       % Unknown magic number
+CONSTANT XRMTL=8       % Too short message (or message buffer)
+CONSTANT XRSMF=9       % Standard message format not handled
+CONSTANT XRPRV=10      % Caller was not privileged
+CONSTANT XRISY=11      % Illegal system number parameter
+CONSTANT XRNRO=12      % No access to remote system
+CONSTANT XRIIV=13      % Illegal integer value
+CONSTANT XRNEI=14      % Cannot define route to a neighbour
+CONSTANT XRNXM=15      % Invalid service request - no intersystem XMSG
+CONSTANT XRILN=16      % Illegal/Reserved Log. unit no. for link
+CONSTANT XRNXL=17      % No more XL-Blocks (Link Descriptors)
+CONSTANT XRNXD=18      % Not enough XD-Blocks for LKINI
+CONSTANT XRNTR=19      % No trace generated
+CONSTANT XRTRA=20      % Trace already active
+CONSTANT XRTRP=21      % Trace passive
+CONSTANT XRTFE=22      % Trace/dump file open error (see param 1)
+CONSTANT XRTRT=23      % Trace RT-prog (XTRACE) not found
+CONSTANT XRTIS=24      % Illegal trace system number
+CONSTANT XRBLK=25      % Bad link - open unsuccessful
+CONSTANT XRSYD=26      % Local system number already defined
+CONSTANT XRNLS=27      % No local system number defined yet
+CONSTANT XRTRE=28      % Too many remote names to this system
+CONSTANT XRRNA=29      % Old service calls (<64) cannot go remote
+CONSTANT XRBUS=30      % Service busy - try later!
+CONSTANT XRNSE=31      % This is not a service port
+CONSTANT XRRPN=32      % Remote port statically declared
+CONSTANT XRUKS=33      % Unknown remote system name
+CONSTANT XRMFL=34      % Not enough message table space in remote system
+CONSTANT XRROV=35      % Remote task space overflow when forwarding
+CONSTANT XRRFU=36      % Routing table space full (too many systems def.)
+CONSTANT XRNRB=37      % No remote batch service available here
+CONSTANT XRURT=38      % Unknown RT program name
+CONSTANT XRSNR=39      % This server is not running
+CONSTANT XRRND=40      % Netserver: remote system is not defined
+CONSTANT XRNNA=41      % Netserver: network not available
+CONSTANT XRISE=42      % Netserver: internal server error
+CONSTANT XRIRQ=43      % Netserver: invalid request
+CONSTANT XRNGA=44      % XMSG not congfigurated with gateway code
+CONSTANT XRRNL=45      % Remote system not on same LAN
+CONSTANT XRNCO=46      % No connection to this system (unknown status)
+CONSTANT XRAMB=47      % Ambiguous name
+CONSTANT XRFFU=48      % Friend system table full (too many friends)
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%         X R O U T  /  F I L E   S E R V E R   -    E R R O R S              %
+%                                                                             %
+%                             A S                                             %
+%                                                                             %
+%                  S T A N D A R D   V A L U E S                              %
+%                                                                             %
+%             These are returned by the PLANC XMSG library                    %
+%             when the routine involves an XROUT service.                     %
+%                                                                             %
+%                 base value = XRXXX = 16960 = 41100B                         %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+
+CONSTANT XMXRXXX= 16960      % BASE for STANDARD ERROR system
+
+CONSTANT XMXRISN= 16961      % Illegal service number
+CONSTANT XMXRUNN= 16962      % Unknown name (of server or system)
+CONSTANT XMXRDDF= 16963      % Another port already has this name
+CONSTANT XMXRNSP= 16964      % No space left for names
+CONSTANT XMXRIPT= 16965      % Illegal parameter type
+CONSTANT XMXRMMP= 16966      % Missing mandatory parameter
+CONSTANT XMXRUNM= 16967      % Unknown magic number
+CONSTANT XMXRMTL= 16968      % Too short message (or message buffer)
+CONSTANT XMXRSMF= 16969      % Standard message format not handled
+CONSTANT XMXRPRV= 16970      % Caller was not privileged
+CONSTANT XMXRISY= 16971      % Illegal system number parameter
+CONSTANT XMXRNRO= 16972      % No access to remote system
+CONSTANT XMXRIIV= 16973      % Illegal integer value
+CONSTANT XMXRNEI= 16974      % Cannot define route to a neighbour
+CONSTANT XMXRNXM= 16975      % Invalid service request - no intersystem XMSG
+CONSTANT XMXRILN= 16976      % Illegal/Reserved Log. unit no. for link
+CONSTANT XMXRNXL= 16977      % No more XL-Blocks (Link Descriptors)
+CONSTANT XMXRNXD= 16978      % Not enough XD-Blocks for LKINI
+CONSTANT XMXRNTR= 16979      % No trace generated
+CONSTANT XMXRTRA= 16980      % Trace already active
+CONSTANT XMXRTRP= 16981      % Trace passive
+CONSTANT XMXRTFE= 16982      % Trace/dump file open error (see param 1)
+CONSTANT XMXRTRT= 16983      % Trace RT-prog (XTRACE) not found
+CONSTANT XMXRTIS= 16984      % Illegal trace system number
+CONSTANT XMXRBLK= 16985      % Bad link - open unsuccessful
+CONSTANT XMXRSYD= 16986      % Local system number already defined
+CONSTANT XMXRNLS= 16987      % No local system number defined yet
+CONSTANT XMXRTRE= 16988      % Too many remote names to this system
+CONSTANT XMXRRNA= 16989      % Old service calls (<64) cannot go remote
+CONSTANT XMXRBUS= 16990      % Service busy - try later!
+CONSTANT XMXRNSE= 16991      % This is not a service port
+CONSTANT XMXRRPN= 16992      % Remote port statically declared
+CONSTANT XMXRUKS= 16993      % Unknown remote system name
+CONSTANT XMXRMFL= 16994      % Not enough message table space in remote system
+CONSTANT XMXRROV= 16995      % Remote task space overflow when forwarding
+CONSTANT XMXRRFU= 16996      % Routing table space full (too many systems def.)
+CONSTANT XMXRNRB= 16997      % No remote batch service available here
+CONSTANT XMXRURT= 16998      % Unknown RT-program name
+CONSTANT XMXRSNR= 16999      % this server is not running
+CONSTANT XMXRRND= 17000      % Netserver: remote system is not defined
+CONSTANT XMXRNNA= 17001      % Netserver: network not available
+CONSTANT XMXRISE= 17002      % Netserver: internal server error
+CONSTANT XMXRIRQ= 17003      % Netserver: invalid request
+CONSTANT XMXRNGA= 17004      % XMSG not configured with gateway code
+CONSTANT XMXRRNL= 17005      % remote system not on same LAN
+CONSTANT XMXRNCO= 17006      % no connection to this system(unknown status)
+CONSTANT XMXRAMB= 17007      % ambiguous name
+CONSTANT XMXRFFU= 17008      % friend system table full (too many friends)
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%                    format of XROUT messages                                 %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+
+%
+% maximum XMSG name length
+%
+CONSTANT XMMAXNameLength = 32          % actually installation-dependent!
+
+
+                                       % XROUT header format
+TYPE XROUTHDR = RECORD PACK            % base record for variants
+       BYTE: XRSerialNumber            % serial number for user's use
+       BYTE: XRServiceNumber           % code for required service which is
+       BYTE: XRStatus = XRServiceNumber% replaced with XROUT status code
+       INTEGER2: XRBufferLength = XRServiceNumber % overlay for append routines
+       INTEGER2: XRLengthMsg           % total length of following parameters
+ENDRECORD
+                                       % parameter formats
+TYPE XROUTPARAMHDR = RECORD PACK       % base record for parameter variants
+       BYTE: XRPCode                   % parameter code
+       BYTE: XRPLength                 % parameter length
+ENDRECORD
+TYPE XROUTSTRING = XROUTPARAMHDR RECORD PACKED % string parameter format
+       BYTES: XRPString(0:XMMAXNameLength-1)   % MAXIMUM length shown
+ENDRECORD
+TYPE XROUTINTEGER = XROUTPARAMHDR RECORD PACKED % integer parameter format
+       INTEGER2: XRPInteger
+ENDRECORD
+TYPE XROUTDOUBLE = XROUTPARAMHDR RECORD PACKED % integer4 parameter format
+       INTEGER4: XRPDouble
+ENDRECORD
+
+%-----------------------------------------------------------------------------%
+$EOF
+
+
+
+

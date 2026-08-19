@@ -1,0 +1,81 @@
+%=============================================================================%
+%                                                                             %
+%                              T L I B                                        %
+%                                                                             %
+%                  I M P O R T    S T A T E M E N T S                         %
+%                                                                             %
+%                                                                             %
+%  INITIAL VERSION:  -B00  01.12.84   RGJ                                     %
+%                                                                             %
+%    MODIFICATIONS:                                                           %
+%                                                                             %
+%=============================================================================%
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%                           TLIB ROUTINES                                     %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+
+IMPORT (ROUTINE STANDARD VOID,VOID(TLMD,INTEGER ARRAY,INTEGER WRITE):&
+        TLPinit)
+IMPORT (ROUTINE STANDARD VOID,VOID(INTEGER WRITE):&
+        TLPdone)
+IMPORT (ROUTINE STANDARD VOID,VOID(TLTM,TLEV,INTEGER WRITE,&
+                                   TLEV WRITE):&
+        TLPwait)
+IMPORT (ROUTINE STANDARD VOID,VOID(INTEGER,TLBF,INTEGER,&
+                                   INTEGER WRITE):&
+        TLPprbf)
+IMPORT (ROUTINE STANDARD VOID,VOID(TLAP,INTEGER,&
+                                   INTEGER WRITE,INTEGER WRITE):&
+        TLPstls)
+IMPORT (ROUTINE STANDARD VOID,VOID(INTEGER,INTEGER WRITE):&
+        TLPtmls)
+IMPORT (ROUTINE STANDARD VOID,VOID(TLAP,TLAP,INTEGER,TLQS,TLBF,&
+                                   INTEGER,INTEGER WRITE,INTEGER WRITE):&
+        TLPcnrq)
+IMPORT (ROUTINE STANDARD VOID,VOID(INTEGER,INTEGER WRITE,TLAP WRITE,&
+                                   TLQS WRITE,INTEGER WRITE,TLBF WRITE,&
+                                   INTEGER WRITE):&
+        TLPcnin)
+IMPORT (ROUTINE STANDARD VOID,VOID(INTEGER,TLQS,TLBF,INTEGER,&
+                                   INTEGER WRITE):&
+        TLPcnrs) 
+IMPORT (ROUTINE STANDARD VOID,VOID(INTEGER,INTEGER WRITE,TLQS WRITE,&
+                                   INTEGER WRITE,&
+                                   TLBF WRITE,INTEGER WRITE):&
+        TLPcncf) 
+IMPORT (ROUTINE STANDARD VOID,VOID(INTEGER,TLBF,&
+                                   INTEGER,INTEGER WRITE):&
+        TLPdcrq)
+IMPORT (ROUTINE STANDARD VOID,VOID(INTEGER,INTEGER WRITE,INTEGER WRITE,&
+                                   TLBF WRITE,INTEGER WRITE):&
+        TLPdcin)
+IMPORT (ROUTINE STANDARD VOID,VOID(INTEGER,TLBF,INTEGER,&
+                                   INTEGER,INTEGER WRITE,INTEGER WRITE):&
+        TLPdarq)
+IMPORT (ROUTINE STANDARD VOID,VOID(INTEGER,INTEGER WRITE,&
+                                   TLBF WRITE,INTEGER WRITE,&
+                                   INTEGER WRITE):&
+        TLPdain)
+IMPORT (ROUTINE STANDARD VOID,VOID(INTEGER,TLBF,INTEGER,&
+                                   INTEGER WRITE):&
+        TLPedrq)
+IMPORT (ROUTINE STANDARD VOID,VOID(INTEGER,INTEGER WRITE,&
+                                   TLBF WRITE,&
+                                   INTEGER WRITE):&
+        TLPedin)
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%   VARIABLES  GIVING  DIAGNOSTIC  INFORMATION  IN  CASE  OF  FATAL  ERROR    %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+
+IMPORT (INTEGER: TLFATerr,&
+                 TLFATinfo)
+
+%-----------------------------------------------------------------------------%
+$EOF
+

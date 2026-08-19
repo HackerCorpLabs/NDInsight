@@ -16,7 +16,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
     /// <summary>
     /// Phase 4 gate for <see cref="XmsgLayer"/>: driven with captured incoming packets through the
     /// real codec seam, the layer must emit the byte-exact responses the live-verified path produces
-    /// — reachability reply, list-route (XSGSY) reply, TAD connect ACK + accept, and port-assign —
+    /// - reachability reply, list-route (XSGSY) reply, TAD connect ACK + accept, and port-assign -
     /// and raise the matching up-events. This proves the seam packaging did not alter any wire byte.
     /// </summary>
     public sealed class XmsgLayerTests

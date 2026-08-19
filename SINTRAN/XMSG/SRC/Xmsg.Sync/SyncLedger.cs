@@ -49,16 +49,58 @@ namespace NDInsight.Sintran.Xmsg.Sync
         private readonly Dictionary<string, Entry> _entries;
 
         /// <summary>
+        /// Paths the far machine has told us about, which we never carried ourselves.
+        /// </summary>
+        /// <remarks>
+        /// <para><b>Existence is not the same as having been synced</b></para>
+        /// <see cref="_entries"/> answers "we carried this, and here is the content we carried".
+        /// This answers only "it is over there". They are kept apart deliberately: putting a made-up
+        /// hash into the entries to record existence would tell <see cref="NeedsTransfer"/> that the
+        /// file is already up to date, and the file would never be sent.
+        /// <para><b>Not persisted, and that is a choice rather than an omission</b></para>
+        /// It is re-learned the first time a create is refused, which costs one round trip per file
+        /// per daemon restart and cannot go stale - the alternative is a ledger-file format change
+        /// carrying a fact the machine will happily tell us again for free.
+        /// </remarks>
+        private readonly HashSet<string> _knownRemote;
+
+        /// <summary>
+        /// Bumped by every call that changes what the ledger knows. See <see cref="Revision"/>.
+        /// </summary>
+        private int _revision;
+
+        /// <summary>
         /// Creates an empty ledger.
         /// </summary>
         public SyncLedger()
         {
+            _knownRemote = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             _entries = new Dictionary<string, Entry>(StringComparer.OrdinalIgnoreCase);
         }
 
         /// <summary>
         /// Gets how many paths the ledger knows about.
         /// </summary>
+        /// <summary>
+        /// Gets a number that changes whenever the ledger learns anything.
+        /// </summary>
+        /// <remarks>
+        /// <para><b>So the daemon can tell "worth writing" from "nothing happened"</b></para>
+        /// It used to save only when a TRANSFER completed. That misses the other thing the ledger
+        /// learns - that a file is already on the machine - which is recorded when a create is
+        /// refused. MEASURED 2026-08-18: the daemon learned it, was killed before the following
+        /// overwrite finished, and the fact was gone; the next run paid the same refusal again.
+        /// <para>
+        /// A counter rather than a dirty flag, so a caller compares it with what it last saw and
+        /// nothing has to be reset. Wrapping is harmless: the comparison is for INEQUALITY, so the
+        /// only cost of a wrap landing exactly on the previous value is one skipped save.
+        /// </para>
+        /// </remarks>
+        public int Revision
+        {
+            get { return _revision; }
+        }
+
         public int Count
         {
             get { return _entries.Count; }
@@ -144,6 +186,7 @@ namespace NDInsight.Sintran.Xmsg.Sync
 
             entry.Hash = copy;
             entry.Direction = direction;
+            _revision++;
         }
 
         /// <summary>
@@ -176,6 +219,171 @@ namespace NDInsight.Sintran.Xmsg.Sync
                 return true;
             }
 
+            direction = SyncDirection.None;
+            return false;
+        }
+
+        /// <summary>
+        /// Whether this path has ever been carried, whatever its content was at the time.
+        /// </summary>
+        /// <param name="path">
+        /// The path to ask about.
+        /// </param>
+        /// <returns>
+        /// <see langword="true"/> when a transfer of this path has been recorded.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="path"/> is null.
+        /// </exception>
+        /// <remarks>
+        /// Deliberately NOT about content - <see cref="NeedsTransfer"/> answers that. This answers
+        /// a different question: has this file ever been on the machine? A recorded transfer is
+        /// evidence that it was, which is what lets the planner choose between creating a file and
+        /// replacing one when it has no directory listing to consult.
+        /// </remarks>
+        public bool HasCarried(string path)
+        {
+            if (path == null)
+            {
+                throw new ArgumentNullException(nameof(path));
+            }
+
+            return _entries.ContainsKey(path);
+        }
+
+        /// <summary>
+        /// Records that a file is on the far machine although we never carried it there.
+        /// </summary>
+        /// <param name="path">
+        /// The local path whose remote twin exists.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="path"/> is null.
+        /// </exception>
+        /// <remarks>
+        /// <para><b>Where this fact comes from</b></para>
+        /// The machine itself, by refusing a create with SINTRAN error 62, "File already exists".
+        /// That refusal IS the directory listing we did not have - see
+        /// <see cref="KnownToExistRemotely"/> for why the planner needs it.
+        /// <para>
+        /// Deliberately records no hash. We know the file is there; we know nothing at all about
+        /// what is in it, and inventing a hash would be worse than knowing nothing.
+        /// </para>
+        /// </remarks>
+        public void RecordRemoteExistence(string path)
+        {
+            if (path == null)
+            {
+                throw new ArgumentNullException(nameof(path));
+            }
+
+            if (_knownRemote.Add(path))
+            {
+                _revision++;
+            }
+        }
+
+        /// <summary>
+        /// Gets whether the file is believed to be on the far machine.
+        /// </summary>
+        /// <param name="path">
+        /// The path to ask about.
+        /// </param>
+        /// <returns>
+        /// <see langword="true"/> when we carried it there, or the machine has told us it is there.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="path"/> is null.
+        /// </exception>
+        /// <remarks>
+        /// <para><b>This is the question the planner actually has</b></para>
+        /// It must choose between CREATE and OVERWRITE, and SINTRAN refuses a create of a file that
+        /// already exists. <see cref="HasCarried"/> was standing in for this and answers a narrower
+        /// question - it is only ever true for files WE moved. A file somebody else put there, or
+        /// one that outlived a deleted ledger, was invisible, so the planner chose create and the
+        /// machine refused it. MEASURED 2026-08-18: before the refusal was read at all that was
+        /// recorded as success and the file was silently never sent; after, it retried for ever.
+        /// </remarks>
+        /// <summary>
+        /// Lists the paths known to be on the machine that we never carried ourselves.
+        /// </summary>
+        /// <returns>
+        /// The paths, in no particular order.
+        /// </returns>
+        /// <remarks>
+        /// Only the ones with no transfer entry. A path we carried is already known to exist by
+        /// virtue of the entry, so writing it twice would say nothing and could disagree with
+        /// itself after an edit.
+        /// </remarks>
+        public string[] CopyRemoteOnlyPaths()
+        {
+            // CopyTo then a for loop: a HashSet cannot be indexed, and foreach is avoided here as
+            // everywhere else in this codebase.
+            string[] all = new string[_knownRemote.Count];
+            _knownRemote.CopyTo(all);
+
+            List<string> only = new List<string>(all.Length);
+
+            for (int i = 0; i < all.Length; i++)
+            {
+                if (!_entries.ContainsKey(all[i]))
+                {
+                    only.Add(all[i]);
+                }
+            }
+
+            return only.ToArray();
+        }
+
+        public bool KnownToExistRemotely(string path)
+        {
+            if (path == null)
+            {
+                throw new ArgumentNullException(nameof(path));
+            }
+
+            return _entries.ContainsKey(path) || _knownRemote.Contains(path);
+        }
+
+        /// <summary>
+        /// Reads back everything recorded for a path.
+        /// </summary>
+        /// <param name="path">
+        /// The path to ask about.
+        /// </param>
+        /// <param name="hash">
+        /// The recorded content hash, or an empty array when the path is unknown.
+        /// </param>
+        /// <param name="direction">
+        /// The recorded direction, or <see cref="SyncDirection.None"/>.
+        /// </param>
+        /// <returns>
+        /// <see langword="true"/> when the path was found.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="path"/> is null.
+        /// </exception>
+        /// <remarks>
+        /// Exists so the ledger can be WRITTEN DOWN. Without the hash a saved ledger could only
+        /// say "this path was carried once", which is not what the ledger promises - it promises
+        /// "this exact CONTENT was carried", and that is the only form of it worth keeping.
+        /// </remarks>
+        public bool TryGetEntry(string path, out byte[] hash, out SyncDirection direction)
+        {
+            if (path == null)
+            {
+                throw new ArgumentNullException(nameof(path));
+            }
+
+            Entry? entry;
+            if (_entries.TryGetValue(path, out entry))
+            {
+                hash = entry.Hash;
+                direction = entry.Direction;
+                return true;
+            }
+
+            hash = Array.Empty<byte>();
             direction = SyncDirection.None;
             return false;
         }

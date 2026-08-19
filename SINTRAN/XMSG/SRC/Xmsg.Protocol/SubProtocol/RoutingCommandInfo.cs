@@ -9,7 +9,7 @@ namespace NDInsight.Sintran.Xmsg.SubProtocol
     /// </summary>
     /// <remarks>
     /// This models the routing control frames handled by hdlc_tcp.lua
-    /// <c>dissect_routing</c> — proxy terminal-parameter negotiation, routing-table
+    /// <c>dissect_routing</c> - proxy terminal-parameter negotiation, routing-table
     /// propagation, and connection-step ACKs. Full XSGSY routing-table replies travel as
     /// XROUT letters and are decoded through <see cref="XmsgFrame.Body"/> instead. This is
     /// a read-only view; byte identity is guaranteed by the owning frame's raw bytes.

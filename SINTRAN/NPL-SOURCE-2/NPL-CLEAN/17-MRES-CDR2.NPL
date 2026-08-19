@@ -1,0 +1,874 @@
+ @DEV 1
+ @DEV (S-S-J)MRES-CDR2
+ %
+
+ %==============================================================================
+ %      M R E S - C D R 2
+ %==============================================================================
+
+
+ *"8MT1+8MT2+8MT3+8MT4
+"
+
+
+
+ *"CAMA
+" %==============================================================================
+ % 39.6       T F D I S K   F D I B U S   F D I F I N   F D I F E I L
+ %            B U F D I S C   F I N F D I S C
+ %
+ %
+ % ROUTINE TO SET UP CALL TO THE FLOPPY DISC DRIVER
+ % LEVEL 11
+ %
+ % ENTRY: B=ADDRESS OF THE DATAFIELD
+ %        X=ADDRESS OF THE PARAMETER LIST
+ %
+ %
+ % PARAMETERS:
+ %
+ %      PAR-0(BIT 0-5)= FUNCTION CODE
+ %
+ %             0 - READ
+ %             1 - WRITE
+ %             2 - TEST PARITY (READ CRC)
+ %             3 - DUMMY
+ %             7 - ERASE TAPE
+ %            10 - ADVANCE TO EOF
+ %            11 - REVERCE TO EOF
+ %            12 - WRITE EOF
+ %            13 - REWIND TO BOT
+ %            14 - ADVANCE ONE RECORD
+ %            15 - REVERCE ONE RECORD
+ %            21 - CLEAR-DEVICE
+ %            20 - READ STATUS
+ %            24 - READ LAST STATUS
+ %            36 - READ EXTENDED STATUS
+ %            41 - FORMAT FLOPPY
+ %            42 - READ FORMAT
+ %            43 - READ DELETED RECORD
+ %            44 - WRITE DELETED RECORD
+ %            46 - READ-CURRENT-ADDRESS
+ %            47 - WRITE-NEW-ADDRESS
+ %            54 - COPY-FLOPPY
+ %            55 - FORMAT-TRACK
+ %            56 - CHECK-CARTRIDGE (READ AND TEST CRC)
+ %            57 - TEST CARTRIDGE CAPASITY (WRITE)
+ %            70 - RETENSION CARTRIDGE
+ %            71 - PERFORM TEST
+ %            72 - ILLEGAL COMMAND
+ %            73 - CLEAR
+ %            74 - CONTINIOUS READ
+ %            75 - CONTINIOUS WRITE
+ %
+ %       BIT 6-7: UNIT NUMBER  (0,1,2,3)
+ %
+ %       BIT 12: STREAMER CASSET
+ %
+ %       PAR-1 (24-BIT MEMORY ADDRESS)
+ %
+ %       PAR-2 (DISK ADDRESS (LOGIC SECTOR ADDRESS))
+ %
+ %       PAR-3 AMOUNT TO TRANSFER (LOGICAL BLOCKS)) IF READ/WRITE
+ %             ELSE PAR-3=FORMAT NO. IF FUNCTION IS SELECT FORMAT
+ %
+ %  THE FUNCTION FLAGS ARE:
+ %
+ %      BITS 0 TO 10   = TIMEOUT IN SECONDS
+ %                          777=MAX (SFTIM(100))
+
+ % SYMBOL  3FLOP = 11 % LEGAL ON FLOPPY
+ % SYMBOL  3STRE = 12 % LEGAL ON STREAMER
+ % SYMBOL  3FLTI = 13 % SHORT FLOPPY TIMEOUT (SFTIM (101)).
+ % SYMBOL  3FRES = 14 % LEGAL ONLY FROM RT-PROGS ON RING 2
+ % SYMBOL  3DOUA = 15 % DOUBLE ADDRESS; BITS 0-5 GIVES NEW FUNCTION TO USE
+ % SYMBOL  3DOUB = 16 % DOUBLE AMOUNT; BITS 0-5 GIVES NEW FUNCTION TO USE
+ % SYMBOL  3ILLF = 17 % ILLEGAL FUNCTION
+
+ @ICR
+
+ INTEGER ARRAY SFTIM := (
+  7170,   7170,  23056,   1001,     -1,     -1,     -1,   2777,
+  3700,   1700,   3020,   7200,     -1,   1001,   1001,     -1,
+  3001,  33073,     -1,     -1,   3001,     -1,     -1,     -1,
+    -1,     -1,     -1,     -1,     -1,     -1,   3010,     -1,
+  1010,   1170,   1010,   1010,   1010,     -1,   1001,   1001,
+    -1,     -1,     -1,     -1,  11400,   1100,   3777,   2777,
+ 21000,  21001,  23003,  21003,  42074,  42075,     -1,     -1,
+  2777,  12777,   2001,   2777,  12200,  12200,     -1,     -1,
+  1400,       % MAX TIMEOUT
+    04);      % SHORT FLOPPY TIMEOUT
+
+ @CR;
+
+ INTEGER SFFUN                % FLAGS AND TIMOUT COUNTER
+
+ SUBR TFDISK,FDIBUS,FDIFIN,FDIFEIL,BUFDISC,FINFDISC,FLV1STFL
+
+ % LOCAL SUBROUTINE TO CHANGE FUNCTION CODE WHEN THIS IS REQUIRED
+ % ENTRY WITH D=DATAFIELD; EXIT WITH X=DATAFIELD
+ CHFFUNC: X:=77; X/\T; X:=:D; X.CTRG/\177700\/D=:X.CTRG     % NEW FUNCTION
+          X:=:D; SFTIM(X)=:SFFUN; X:=D
+          EXIT
+
+ TFDISK: X:=:B
+        0=:X.HSTAT=:X.CERRCODE
+        CALL PICKFPAR; AD=:X.MEMAD; T=:X.CTRG
+        X=:D:=77; X/\T; T:=SFTIM(X)=:SFFUN        % FLAGS ACCORDING TO FUNCTION
+        IF T<0 GO FAR D201ER                      % ILLEGAL FUNCTION
+        IF T BIT 3FRESTRICTED THEN                % FUNCTION ONLY ALLOWED FROM RT-PROGS ON RING 2-3
+           IF D.RTRES=0 GO FAR D201ER             % FLOPPY NOT RESERVED
+           IF A.ACTPRI BIT 5BACKGR OR A/\3<2 GO FAR D201ER  % ONLY LEGAL FOR RT-PROGS ON RING 2
+        FI
+        IF T BIT 3DOUA THEN                       % DOUBLE FLOPPY DISC ADDRESS
+           CALL CHFFUNC                           % USE ANOTHER FUNCTION
+           CALL PICKYLPAR
+           IF A><0 THEN X=:B; GO FAR 100ER FI     % OUTSIDE DEVICE LIMITS
+           A:=D=:X.CDRG                           % FLOPPY DISC ADDRESS
+        ELSE IF T BIT 3DOUB THEN                  % DOUBLE WORDCOUNT
+           CALL CHFFUNC                           % USE ANOTHER FUNCTION
+           CALL PICKXLPAR
+           %% A=:X.DWONO                          % NOT USED NOW
+           A:=D=:X.CXRG                           % WORDCOUNT
+        ELSE
+           X:=D; CALL PICKLPAR
+           A=:X.CDRG:=D=:X."FRETURN"
+        FI; FI; T=:X.CXRG
+        B:=X; GO L1; *)FILL                       % B=ADDR OF DATAFIELD
+
+ L1:    IF CTRG/\700 SHZ -6>MAXUNIT GO FAR 173ER  % ILLEGAL UNIT NUMBER
+        A=:CFLUN
+
+        IF CTRG NBIT 14 AND SFFUN BIT 3FLTI THEN  % NOT STREAMER AND SHORT TIMOUT
+           SFTIM(101)
+        ELSE
+           IF SFFUN/\777=777 THEN SFTIM(100) FI
+        FI; A-=:TTMR                              % TIMEOUT IN SECONDS
+        IF "TRNSF"="BFDIS" THEN -1 ELSE -3 FI
+        A=:TACNS                                  % RETRY COUNTER
+        X:=CFLUN                                  % X=FLOPPY UNIT NUMBER
+        IF CTRG/\77 =24 OR A=20 THEN
+           SHSTAT(X)=:HSTAT; GO FAR FIN           % READ STATUS/LAST STATUS
+        FI
+
+        IF CTRG BIT 14 GO FAR RWOPER              % STREAMER TAPE
+
+        IF A/\77<2 OR A=43 OR A=44 GO FAR RWOPER  % READ & WRITE
+
+        IF A=13 OR A=15 OR A=16 OR A=47 THEN      % POSITION THE DISC
+              IF CTRG/\77=13 THEN A:=0 ELSE       % REWIND
+                 IF A=15 THEN NFDIADR(X)-1 ELSE   % BACKSPACE ONE RECORD
+                    IF A=47 THEN CXRG ELSE        % SET CURRENT DISC ADDR
+                       NFDIADR(X)+1               % ADVANCE ONE RECORD
+                    FI
+                 FI
+              FI; T:=A; X:=FDIFORM(X)             % T=NEW FLOPPY DISC ADDR; X=FLOPPY FORMAT NUMBER
+              X:=LFADDR(X)                        % X=LAST ADDRESS FOR THIS FORMAT
+              IF CTRG/\77-16=0 THEN X+1 FI        % ADVANCE ONE RECORD
+              IF T>>=X GO 100ER                   % OUTSIDE DEVICE LIMITS
+              T=:NFDIADR(CFLUN); GO FIN; *)FILL   % SET NEXT DISC ADDRESS
+        FI
+        IF A=40 THEN                              % SELECT FORMAT
+              IF X:=CXRG>>17 OR LFADDR(X)<0 THEN 174; GO FINER FI    % ILLEGAL FORMAT
+              CXRG=:FDIFORM(CFLUN); GO FIN
+        FI
+        IF A=41 THEN                              % FORMAT FLOPPY
+              FDIFORM(X) SH 10+CTRG=:CTRG
+              1=:CXRG; 0=:CDRG; TAD:=CTADRG; X:=CXRG; CALL CFDISK
+              IF HSTAT BIT 4 THEN 223; GO FINER FI
+              GO FIN
+        FI; GO OVER; *)FILL
+
+ FINFDISC:
+ FIN:   0=:TMR; IF RTRES><0 THEN CALL RTACT FI
+        CALL ID11; GO ERR22
+
+ 173ER:  A:=173; GO FINER
+ D201ER: D=:B; A:=201; GO FINER
+ D100ER: D=:B
+ 100ER:  A:=100                                    % OUTSIDE DEVICE LIMITS
+ FINER:  A=:CERRCODE
+ EFINER: HSTAT BONE 4=:HSTAT; GO FIN
+
+ OVER:  IF A=42 THEN                              % READ FORMAT
+              FDIFORM(X) SH 10+CTRG=:CTRG
+              NFDIADR(X)=:CDRG; 1=:CXRG
+              TAD:=CTADRG; X:=CXRG; CALL CFDISK
+              IF HSTAT BIT 4 GO EFINER
+              IF "TRNSF"="BFDIS" THEN A:=D ELSE A:=DRG FI
+              A/\17=:FRETURN=:FDIFORM(CFLUN); GO FIN
+        FI
+        IF A=12 THEN                              % WRITE EOF
+              FDIFORM(X) SH 10+CTRG/\177700+5=:CTRG % FUNC=5 =WRITE DELETED RECORD
+              1=:CXRG; A:=B=:CARG
+              NFDIADR(X)=:CDRG+1=:NFDIADR(X)
+              X:=FDIFORM(X); T:=LFADDR(X)         % T=LAST ADDRESS FOR THIS FORMAT
+              IF CDRG>>T GO 100ER                 % OUTSIDE DEVICE LIMIT
+              TAD:=CTADRG; X:=CXRG; CALL CFDISK; GO FIN
+        FI
+        IF A=46 THEN                              % READ CURRENT DISC ADDR.
+              NFDIADR(X)=:FRETURN; GO FIN
+        FI
+        IF A=54 THEN                              % COPY FLOPPY DISKETTE
+              CXRG/\3 SHZ 14                      % DESTINATION UNIT
+              A\/CTRG=:CTRG                       % TO BITS 14-15 IN FUNC.
+              GO FAR RWOPER
+        FI
+        IF A=10 THEN A:=1 ELSE                    % ADVANCE TO EOF
+           IF A=11 THEN A:=-1 ELSE                % REVERSE TO EOF
+              IF A=3 GO FIN                       % COMPARE
+              GO RWOPER; *)FILL                   % ILLEGAL FUNCTION??
+           FI
+        FI; A=:FDIMOD
+        FDIFORM(X) SH 10+CTRG/\177700+2=:CTRG
+        1=:CXRG; NFDIADR(X)=:CDRG
+        IF FDIMOD<0 THEN CDRG-1=:CDRG FI
+        DO                                        % UNTIL EOF IS FOUND OR UNTIL ERROR
+              X:=FDIFORM(CFLUN); T:=LFADDR(X)     % T=LAST ADDRESS FOR THIS FORMAT
+              IF CDRG>>T GO FAR 100ER             % OUTSIDE DEVICE LIMITS
+              X:=CXRG; TAD:=CTADRG; CALL CFDISK
+              IF HSTAT BIT 4 GO FAR FIN
+              IF A BIT 5 THEN                     % DELETED RECORD
+                    IF FDIMOD>0 THEN A+CDRG=:CDRG FI
+                    GO OUT
+              FI; CDRG+FDIMOD=:CDRG
+        OD
+ OUT:   CDRG=:NFDIADR(CFLUN)
+        HSTAT BZERO 4=:HSTAT; GO FAR FIN
+ *)FILL
+
+ % READ AND WRITE FUNCTIONS
+
+ RWOPER:IF CTRG NBIT 14 THEN                      % IF NOT STREAMER
+           FDIFORM(X) SH 10+CTRG=:CTRG
+           X:=FDIFORM(X); T:=LFADDR(X)            % T=LAST ADDRESS FOR THIS FORMAT
+           IF CDRG+CXRG>>T GO FAR 100ER           % OUTSIDE DEVICE LIMIT
+        FI; TACNS=:TACOUNT
+        FOR TACOUNT DO
+           AD:=MEMAD=:CMADR; X:=CXRG; TAD:=CTADRG; CALL CFDISK
+           IF CTRG/\77=43 THEN                 % DELETED RECORD
+              IF HSTAT NBIT 5 THEN 231; GO FAR FINER FI  % ERROR, NOT DELETED RECORD
+           ELSE
+              IF HSTAT BIT 5 THEN 3; GO FAR FINER FI     % ERROR: END-OF-FILE
+           FI; IF HSTAT NBIT 4 GO FAR FIN
+        OD; GO FAR FIN
+
+ CFDISK: TAD=:TADRG; X=:XRG; A:=L=:"CFLRG"
+ FLV1STFL: TTMR=:TMR          % RESTARTED HERE FROM RT-PROG WHEN I/O FLOPPY (OLD FLOPPY)
+        DO
+              X:=XRG; TAD:=TADRG
+              CALL TRNSF; GO ERROR; GO BUSY; GO FINISH
+ FDIBUS:      CALL ID11                                     % RETURN HERE WHEN BUSY
+        OD
+
+ % SAVED FOR EACH ERROR RETURN FROM DRIVER
+ INTEGER LEHSTAT                        % HSTAT WHEN LAST ERROR RETURN FROM DRIVER
+ INTEGER LETREG                         % T-REG WHEN LAST ERROR RETURN FROM DRIVER
+ INTEGER LEAREG                         % A-REG WHEN LAST ERROR RETURN FROM DRIVER
+ INTEGER LEDREG                         % D-REG WHEN LAST ERROR RETURN FROM DRIVER
+ INTEGER ECTRG,ECARG,ECDRG,ECXRG        % CALLING PROGRAMS REGISTERS WHEN ERROR OCCURES
+ TRIPLE LETAD=LETREG,FECTREG=ECTRG
+
+ BUFDISC: X BONE 6; GO FDIFEIL                              % TIMEOUT
+
+ FDIFEIL: X BONE 4=:HSTAT=:LEHSTAT                % RETURN HERE WHEN ERROR
+        TAD=:LETAD:=CTADR=:FECTREG; CXRG=:ECXRG
+        HSTAT=:SHSTAT(CFLUN)
+        A\/AERRB=:AERRB; MIN ERCNT; 0/\0
+        GO CFLRG
+
+ FDIFIN: X=:HSTAT                                 % RETURN HERE WHEN FINISHED
+        A:=X=:SHSTAT(CFLUN)
+        GO CFLRG
+
+ RBUS
+
+ *"8DBUG
+"
+ %
+
+ *"8DLP1+8DLP2+8DVE1+8DVE2
+"
+ @LIB CXCPU-,
+ %==============================================================================
+ % 39.10      M 8 8 T E R M
+ %
+ SUBR M8OTERM,M8OINDV
+ DISP -1; INTEGER MN1; PSID
+ INTEGER K377:=377,CBHOLD=?
+ M8OTERM: 0=:D; IF CFREE-10<0 GO WDX
+ M88FELLS: 0=:CBHOLD
+        T:=BUFST; X:=FYLLE; IF X NBIT "0" GO EVEN
+        *IRR ALEVB DA
+        IF A SHZ -10=0 GO OKRET; *SBYT
+        MIN CBHOLD; D-1; X+1; IF MAX=X THEN X:=0 FI
+        *IRR ALEVB DA
+        IF A/\K377=0 GO OKRET; *SBYT
+        MIN CBHOLD; D-1; X+1; IF MAX=X THEN X:=0 FI
+        *IRR ALEVB DD
+        IF A SHZ -10=0 GO OKRET; *SBYT
+        MIN CBHOLD; D-1; X+1; IF MAX=X THEN X:=0 FI
+        *IRR ALEVB DD
+        IF A/\K377=0 GO OKRET; *SBYT
+        MIN CBHOLD; D-1; X+1; IF MAX=X THEN X:=0 FI
+        *IRR ALEVB DL
+        IF A SHZ -10=0 GO OKRET; *SBYT
+        MIN CBHOLD; D-1; X+1; IF MAX=X THEN X:=0 FI
+        *IRR ALEVB DL
+        IF A/\K377=0 GO OKRET; *SBYT
+        MIN CBHOLD; D-1; X+1; IF MAX=X THEN X:=0 FI
+        *IRR ALEVB DX
+        IF A SHZ -10=0 GO OKRET; *SBYT
+        MIN CBHOLD; D-1; X+1; IF MAX=X THEN X:=0 FI
+        *IRR ALEVB DX
+        IF A/\K377=0 GO OKRET; *SBYT
+        MIN CBHOLD; D-1; X+1; IF MAX=X THEN X:=0 FI
+ OKRET: X=:FYLLE; CFREE+D=:CFREE; BHOLD+CBHOLD=:BHOLD
+ GORET: *IRR ALEVB DT; IOF
+        IF A>177 AND A<300 GO FAR RETINDV
+        CALL STDEV; GO MOURET
+ *)FILL
+
+ INTEGER CBHOLD
+ EVEN:  A:=X SHZ -1+T=:X; MAX SHZ -1+T=:L
+        *IRR ALEVB DA
+        D:=0; AD SHZ -10; IF A=0 GO GORET; IF D=0 GO L1
+        *IRR ALEVB DA
+        A=:X.S0; IF X+1=L THEN X:=BUFST FI
+        *IRR ALEVB DD
+        D:=0; AD SHZ -10; IF A=0 GO L2; IF D=0 GO L3
+        *IRR ALEVB DD
+        A=:X.S0; IF X+1=L THEN X:=BUFST FI
+        *IRR ALEVB DL
+        D:=0; AD SHZ -10; IF A=0 GO L4; IF D=0 GO L5
+        *IRR ALEVB DL
+        A=:X.S0; IF X+1=L THEN X:=BUFST FI
+        *IRR ALEVB  DX
+        D:=0; AD SHZ -10; IF A=0 GO L6; IF D=0 GO L7
+        *IRR ALEVB DX
+        A=:X.S0; A:=X-BUFST SHZ 1+1=:X; T:=10
+ FELLS: BHOLD+T=:BHOLD; CFREE-T=:CFREE
+        IF X+1=MAX THEN X:=0 FI; X=:FYLLE
+        GO GORET
+ L1:    A=:T:=X-BUFST SHZ 1=:X:=T; T:=BUFST; *SBYT
+        T:=1; GO FELLS
+ L2:    A:=X-BUFST SHZ 1-1=:X; T:=2; GO FELLS
+ L3:    A=:T:=X-BUFST SHZ 1=:X:=T; T:=BUFST; *SBYT
+        T:=3; GO FELLS
+ L4:    A:=X-BUFST SHZ 1-1=:X; T:=4; GO FELLS
+ L5:    A=:T:=X-BUFST SHZ 1=:X:=T; T:=BUFST; *SBYT
+        T:=5; GO FELLS
+ L6:    A:=X-BUFST SHZ 1-1=:X; T:=6; GO FELLS
+ L7:    A=:T:=X-BUFST SHZ 1=:X:=T; T:=BUFST; *SBYT
+        T:=7; GO FELLS
+ *)FILL
+
+ M8OINDV: IF "IOTRANS"><"IPTCH" GO M88IWORD
+        DFOPP=:B; 0=:D
+        IF CFREE-10<0 THEN
+ NOSPACE:     DFOPP=:B; GO WDX
+        FI; GO FAR M88FELLS
+ @ELIB
+ @LIB CXCPU
+ M8IDRET:
+ RETINDV: IF X:=FYLLE=0 THEN X:=MAX FI; X-1; T:=BUFST; *LBYT
+ INDRET: A=:CHARI; DFOPP=:B; CALL STDEV; GO MOURET
+
+ M88IWORD:  DFOPP=:B; CFREE=:D; IF A-4<0 GO NOSPACE
+        BUFST+FYLLE=:X; MAX+BUFST=:L; *IRR ALEVB DA
+        IF A=0 THEN DFOPP=:B; GO MOURET FI
+        A=:X.S0; IF X+1=L THEN X:=BUFST FI; D-1; MIN BHOLD; *IRR ALEVB DD
+        IF A=0 GO NOMORE; A=:X.S0; IF X+1=L THEN X:=BUFST FI
+        D-1; MIN BHOLD; *IRR ALEVB DL
+        IF A=0 GO NOMORE; A=:X.S0; IF X+1=L THEN X:=BUFST FI
+        D-1; MIN BHOLD; *IRR ALEVB DX
+        IF A=0 GO NOMORE; A=:X.S0; IF X+1=L THEN X:=BUFST FI
+ NOMORE: A:=X-BUFST=:FYLLE; A:=D=:CFREE
+        IF X=BUFST THEN X:=L FI; X.MN1; GO INDRET
+
+ RBUS
+
+ @LIB CXCPU-,
+
+ SUBR B8OTERM,B8OINDV
+ INTEGER CBHOLD=?
+ B8OTERM: IF CFREE-10<0 GO WDX
+ B8FELLS: 0=:CBHOLD
+        IF X:=FYLLE NBIT "0" GO EVEN
+        T:=BUFST
+        *IRR ALEVB DA
+        A SHZ -10; *SBYT
+        X+1; IF MAX=X THEN X:=0 FI; *IRR ALEVB DA; SBYT
+        X+1; IF MAX=X THEN X:=0 FI; *IRR ALEVB DD
+        A SHZ -10; *SBYT
+        X+1; IF MAX=X THEN X:=0 FI; *IRR ALEVB DD; SBYT
+        X+1; IF MAX=X THEN X:=0 FI; *IRR ALEVB DL
+        A SHZ -10; *SBYT
+        X+1; IF MAX=X THEN X:=0 FI; *IRR ALEVB DL; SBYT
+        X+1; IF MAX=X THEN X:=0 FI; *IRR ALEVB DX
+        A SHZ -10; *SBYT
+        X+1; IF MAX=X THEN X:=0 FI; *IRR ALEVB DX; SBYT
+        IF X+1=MAX THEN X:=0 FI; X=:FYLLE
+ GORET: BHOLD+10=:BHOLD; CFREE-10=:CFREE
+        *IRR ALEVB DT
+        IF A>177 AND A<300 THEN
+              *IRR ALEVB DX
+              A/\377; GO RETINDV
+        FI; CALL STDEV; GO MOURET
+ EVEN: FYLLE SHZ -1+BUFST=:X; MAX SHZ -1+BUFST=:T
+        *IRR ALEVB DA
+        A=:X.S0; IF X+1=T THEN X:=BUFST FI
+        *IRR ALEVB DD
+        A=:X.S0; IF X+1=T THEN X:=BUFST FI
+        *IRR ALEVB DL
+        A=:X.S0; IF X+1=T THEN X:=BUFST FI
+        *IRR ALEVB DX
+        A=:X.S0; IF X+1=T THEN X:=BUFST FI
+        A:=X-BUFST SHZ 1=:FYLLE
+        GO GORET
+ INTEGER CBHOLD
+ *)FILL
+
+ B8OINDV: IF "IOTRANS"><"IPTCH" GO B8IWORD
+        DFOPP=:B
+        IF CFREE-10<0 THEN
+ NOSPACE:     DFOPP=:B; GO WDX
+        FI; GO FAR B8FELLS
+ @ELIB
+ @LIB CXCPU
+
+ B8IWORD: DFOPP=:B; IF CFREE-4<0 GO NOSPACE
+        BUFST+FYLLE=:X; BUFST+MAX=:L
+        *IRR ALEVB DA
+        A=:X.S0; IF X+1=L THEN X:=BUFST FI; *IRR ALEVB DD
+        A=:X.S0; IF X+1=L THEN X:=BUFST FI; *IRR ALEVB DL
+        A=:X.S0; IF X+1=L THEN X:=BUFST FI; *IRR ALEVB DX
+        A=:X.S0; IF X+1=L THEN X:=BUFST FI
+        BHOLD+4=:BHOLD; CFREE-4=:CFREE; A:=X-BUFST=:FYLLE
+        *IRR ALEVB DX
+ RETINDV: A=:CHARI; DFOPP=:B; CALL STDEV; GO MOURET
+
+ RBUS
+
+ @LIB CXCPU-,
+
+ SUBR M8INTERM
+ INTEGER CCHAR
+ M8INTERM: CALL IOTRANS; GO WDX; A SHZ 10=:CCHAR; *IRW ALEVB DA;
+        CALL IONIOF           % IN RESIDENT (WITH PAGING ON)
+        X:=1; CALL IOTRANS; GO GORET; A\/CCHAR; *IRW ALEVB DA;
+        CALL IONIOF
+        X+1; CALL IOTRANS; GO GORET; A SHZ 10=:CCHAR; *IRW ALEVB DD;
+        CALL IONIOF
+        X+1; CALL IOTRANS; GO GORET; A \/CCHAR; *IRW ALEVB DD;
+        CALL IONIOF
+        X+1; CALL IOTRANS; GO GORET; A SHZ 10=:CCHAR; *IRW ALEVB DL;
+        CALL IONIOF
+        X+1; CALL IOTRANS; GO GORET; A\/CCHAR; *IRW ALEVB DL;
+        CALL IONIOF
+        X+1; CALL IOTRANS; GO GORET; A SHZ 10=:CCHAR; *IRW ALEVB DX;
+        CALL IONIOF
+        X+1; CALL IOTRANS; GO GORET; A\/CCHAR; *IRW ALEVB DX;
+        CALL IONIOF
+        X+1
+ GORET: A:=X; *IRW ALEVB DT
+        GO MOURET
+ RBUS
+
+ @ELIB
+
+ SUBR NN310
+ INTEGER CCHAR,BR310
+ BRCNN: IF DFLAG BIT 5SPEC THEN 1=:BR310; EXIT FI; EXITA
+ NN310: 0=:BR310; *POF
+        CALL IOTRANS; GO WDX; A SHZ 10=:CCHAR; *IRW ALEVB DA;
+        X:=1; CALL BRCNN; GO GORET
+        CALL IOTRANS; GO GORET; A\/CCHAR; *IRW ALEVB DA;
+        X+1; CALL BRCNN; GO GORET
+        CALL IOTRANS; GO GORET; A SHZ 10=:CCHAR; *IRW ALEVB DD;
+        X+1; CALL BRCNN; GO GORET
+        CALL IOTRANS; GO GORET; A \/CCHAR; *IRW ALEVB DD;
+        X+1; CALL BRCNN; GO GORET
+        CALL IOTRANS; GO GORET; A SHZ 10=:CCHAR; *IRW ALEVB DL;
+        X+1; CALL BRCNN; GO GORET
+        CALL IOTRANS; GO GORET; A\/CCHAR; *IRW ALEVB DL;
+        X+1; CALL BRCNN; GO GORET
+        CALL IOTRANS; GO GORET; A SHZ 10=:CCHAR; *IRW ALEVB DX;
+        X+1; CALL BRCNN; GO GORET
+        CALL IOTRANS; GO GORET; A\/CCHAR; *IRW ALEVB DX;
+        X+1; CALL BRCNN; GO GORET
+ GORET: A:=X; IF X:=BR310><0 THEN A BONE 17 FI; *IRW ALEVB DT
+        GO MOURET
+ RBUS
+
+ @LIB CXCPU-,
+
+ SUBR M8IBTERM
+ INTEGER CCHAR
+ M8IBTERM: CALL TDGET; GO WDX; A SHZ 10=:CCHAR; *IRW ALEVB DA;
+        X:=1; IF T><0 GO BBREK; CALL IONIOF
+        CALL TDGET; GO GORET; A\/CCHAR; *IRW ALEVB DA;
+        X+1; IF T><0 GO BBREK; CALL IONIOF
+        CALL TDGET; GO GORET; A SHZ 10=:CCHAR; *IRW ALEVB DD;
+        X+1; IF T><0 GO BBREK; CALL IONIOF
+        CALL TDGET; GO GORET; A \/CCHAR; *IRW ALEVB DD;
+        X+1; IF T><0 GO BBREK; CALL IONIOF
+        CALL TDGET; GO GORET; A SHZ 10=:CCHAR; *IRW ALEVB DL;
+        X+1; IF T><0 GO BBREK; CALL IONIOF
+        CALL TDGET; GO GORET; A\/CCHAR; *IRW ALEVB DL;
+        X+1; IF T><0 GO BBREK; CALL IONIOF
+        CALL TDGET; GO GORET; A SHZ 10=:CCHAR; *IRW ALEVB DX;
+        X+1; IF T><0 GO BBREK; CALL IONIOF
+        CALL TDGET; GO GORET; A\/CCHAR; *IRW ALEVB DX;
+        X+1; IF T><0; GO BBREK; CALL IONIOF
+ GORET: A:=X; *IRW ALEVB DT
+        GO MOURET
+ BBREK: A:=X BONE 17; *IRW ALEVB DT
+        GO MOURET
+ RBUS
+
+ SUBR B8INTERM,B8IINDV,M8IINDV,IB8INTERM
+ INTEGER CCHAR
+ IB8INTERM:
+ B8INTERM: IF BHOLD=0 GO WDX; A=:D; X:=HENTE; T:=BUFST; MAX=:L; *LBYT
+        A SHZ 10
+        IF D-1=0 THEN
+              *IRW ALEVB DA
+              T:=1; GO GORE1
+        FI; A=:CCHAR; IF X+1=L THEN X:=0 FI; *LBYT
+        A\/CCHAR; *IRW ALEVB DA
+        IF D-1=0 THEN T:=2; GO GORE1 FI; IF X+1=L THEN X:=0 FI; *LBYT
+        A SHZ 10
+        IF D-1=0 THEN
+              *IRW ALEVB DD
+              T:=3; GO GORE1
+        FI; A=:CCHAR; IF X+1=L THEN X:=0 FI; *LBYT
+        A\/CCHAR; *IRW ALEVB DD
+        IF D-1=0 THEN T:=4; GO GORE1 FI; IF X+1=L THEN X:=0 FI
+        A:=D=:BHOLD; CFREE+4=:CFREE; *ION; IOF
+        BHOLD=:D; *LBYT
+        A SHZ 10
+        IF D-1=0 THEN
+              *IRW ALEVB DL
+              T:=1; GO GORE2
+        FI; A=:CCHAR; IF X+1=L THEN X:=0 FI; *LBYT
+        A\/CCHAR; *IRW ALEVB DL
+        IF D-1=0 THEN T:=2; GO GORE2 FI; IF X+1=L THEN X:=0 FI; *LBYT
+        A SHZ 10
+        IF D-1=0 THEN
+              *IRW ALEVB DX
+              T:=3; GO GORE2
+        FI; A=:CCHAR; IF X+1=L THEN X:=0 FI; *LBYT
+        A\/CCHAR; *IRW ALEVB DX
+        D-1; T:=4
+ GORE2: A:=T+4
+ GORET: *IRW ALEVB DT
+        A:=D=:BHOLD; CFREE+T=:CFREE
+        IF X+1=L THEN X:=0 FI; X=:HENTE
+        GO MOURET
+
+ GORE1: A:=T; GO GORET
+
+ *)FILL
+
+ @ELIB
+ @LIB CXCPU
+
+ B8IINDV:
+ M8IINDV: IF BHOLD=0 GO WDX
+        IF "IOTRANS"="IGTCH" GO IB8INTERM
+        BHOLD=:D; MAX+BUFST=:L; HENTE+BUFST=:X
+        X.S0; *IRW ALEVB DA; ION
+        T:=1; IF D-1=0 GO IRET; IF X+1=L THEN X:=BUFST FI; X.S0; *IRW ALEVB DD
+        T:=2; IF D-1=0 GO IRET; IF X+1=L THEN X:=BUFST FI; X.S0; *IRW ALEVB DL
+        T:=3; IF D-1=0 GO IRET; IF X+1=L THEN X:=BUFST FI; X.S0; *IRW ALEVB DX
+        D-1; T:=4
+ IRET:  A:=D=:BHOLD; A:=T; *IRW ALEVB DT
+        CFREE+T=:CFREE; IF X+1=L THEN X:=BUFST FI; A:=X-BUFST=:HENTE
+        GO MOURET
+
+ RBUS
+
+ *"8VIPS
+" @ELIB
+ @LIB CXCPU-,
+ %==============================================================================
+ % 39.11      B 4 I N T E R M   B 4 I I N D V
+ %
+
+ SUBR B4INTERM,B4IINDV,IB4INTERM
+ INTEGER CCHAR
+ IB4INTERM:
+ B4INTERM: IF BHOLD<10 GO WDX           % NOT ENOUGH DATA IN BUFFER
+        IF HENTE NBIT "0" THEN GO EVEN FI
+        X:=HENTE; T:=BUFST; MAX=:L; *LBYT                   % ( 1.BYTE)
+        A SHZ 10; A=:CCHAR; IF X+1=L THEN X:=0 FI; *LBYT    % ( 2.BYTE)
+        A\/CCHAR; *IRW ALEVB DA
+        IF X+1=L THEN X:=0 FI; *LBYT                        % ( 3.BYTE)
+        A SHZ 10; A=:CCHAR; IF X+1=L THEN X:=0 FI; *LBYT    % ( 4.BYTE)
+        A\/CCHAR; *IRW ALEVB DD
+        IF X+1=L THEN X:=0 FI; *LBYT                        % ( 5.BYTE)
+        A SHZ 10; A=:CCHAR; IF X+1=L THEN X:=0 FI; *LBYT    % ( 6.BYTE)
+        A\/CCHAR; *IRW ALEVB DL
+        IF X+1=L THEN X:=0 FI; *LBYT                        % ( 7.BYTE)
+        A SHZ 10; A=:CCHAR; IF X+1=L THEN X:=0 FI; *LBYT    % (10.BYTE)
+        A\/CCHAR; *IRW ALEVB DX
+        T:=10; A:=T; *IRW ALEVB DT
+        BHOLD-T=:BHOLD; CFREE+T=:CFREE
+        IF X+1=L THEN X:=0 FI; X=:HENTE; *ION
+        GO MOURET
+
+ EVEN:  A SHZ -1+BUFST=:X; MAX SHZ -1+BUFST=:L
+        X.S0; *IRW ALEVB DA
+        IF X+1=L THEN X:=BUFST FI; X.S0; *IRW ALEVB DD
+        IF X+1=L THEN X:=BUFST FI; X.S0; *IRW ALEVB DL
+        IF X+1=L THEN X:=BUFST FI; X.S0; *IRW ALEVB DX
+        T:=10; BHOLD-T=:BHOLD; CFREE+T=:CFREE; A:=T; *IRW ALEVB DT
+        IF X+1=L THEN X:=BUFST FI; A:=X-BUFST SHZ 1=:HENTE
+        *ION
+        GO MOURET
+
+ *)FILL
+
+ @ELIB
+ @LIB CXCPU
+
+ B4IINDV: IF BHOLD<4 GO WDX
+        IF "IOTRANS"="IGTCH" GO IB4INTERM
+        MAX+BUFST=:L; HENTE+BUFST=:X
+        X.S0; *IRW ALEVB DA
+        IF X+1=L THEN X:=BUFST FI; X.S0; *IRW ALEVB DD
+        IF X+1=L THEN X:=BUFST FI; X.S0; *IRW ALEVB DL
+        IF X+1=L THEN X:=BUFST FI; X.S0; *IRW ALEVB DX
+        T:=4
+ WORET: BHOLD-T=:BHOLD; A:=T; *IRW ALEVB DT
+        CFREE+T=:CFREE; IF X+1=L THEN X:=BUFST FI; A:=X-BUFST=:HENTE
+        *ION
+        GO MOURET
+
+ RBUS
+
+
+ *"8CXHD+8C1X2+8C2X2+8C3X2+8C4X2
+"
+
+ %========================================================================
+ % 39.12
+ %      H D L C    A C T 1 2    A C T 1 3
+ %      HDLC -  NONE-RESIDENT PART
+ %
+ % ENTRY:  B-REG POINTS TO DATAFIELD
+ %
+ %         POF, ION, LEV 3 DISABLED
+ %
+ INTEGER POLSZ=?
+ SUBR HDLC,ACT12,ACT13,IMHDLC
+ %
+ DISP -1; INTEGER BCOMT; PSID
+ INTEGER MESSM:=0                       %INCREMENTED FOR EACH SEND
+ HDLC:  A:=L=:"RSRET"                   %SAVE RETURN ADDRESS
+        IF HINIF >< -1 THEN             % POOL INITIATED ?
+          MASTB =: XXSBK                % BANKNO TO COPY ROUTINE
+          MAX -1 SHZ -1 + BUFST =: D; A:=BUFST
+          X:=B; T:=MASTB; *AAX XBBNK
+          CALL ZBINI; CALL PZCRA; -1=:HINIF       %MARK AS INITIATED
+        FI
+        IF DDD0 = FSEND THEN
+ %
+ % SEND
+ %
+           IF DDD3 < 0 THEN T:=EMSGS; GO RSRET FI    %ILLEGAL MESSAGE SIZE
+           IF A > DDD4 THEN T:=EMAXS; GO RSRET FI    % MAX SIZE < USED SIZE
+           X:="XBBNK"+B; "BHEAD+BHEAD"+DDD4; CALL ZBGET; CALL ZCRAS  %ALLOCATE BUFFER
+           IF A = 0 THEN T:=ENBUF; GO RSRET FI
+           A=:RSCUR=:X                               %USER PART OF MESSAGE
+           IF MESSM + 1 < 0 THEN 1=:MESSM FI        %ONLY POSITIVE VALUES
+           A=:MESSM=:MESSID; T:=MASTB; * BBID@3 STATX
+           DDD4; * BMBYT@3 STATX                     %MAX BYTECOUNT IN MESSAGE
+           DDD3; * BBYTC@3 STATX
+           "OCHAIN"; *XCAHI@3 STATX                  % NOT XMSG DCB
+           DDD2=:XXUBF; T:=DDD3=:D; X+BHEAD=:XXSBF; *AAB XXUBF
+           CALL Z0PHY; * AAB -XXUBF; IOF             % COPY USER DATA TO BUFFER% SET MESSAGE IN QUEUE
+           X:=RSCUR; CALL ICHAIN; *ION               % SET MESSAGE IN QUEUE
+           CALL STDEV                                % ACTIVATE DRIVER
+           0=:T; GO RSRET;
+        FI
+ %
+ % RECEIVE
+ %
+ REMSG: *IOF
+        CALL DOCHAIN; GO CHEMTY                   %REMOVE MESSAGE FROM QUEUE
+        *ION
+        X=:RSCUR; T:=MASTB; * BBID@3 LDATX
+        A=:MESSID                                 %MESSID OF CURRENT MESSAGE
+        * BBYTC@3 LDATX
+        A=:T
+        IF DDD0-FMXRECV=0 AND DDD3<<T THEN
+           T:=EMSGS=:DDD0; T:=A                   % ERROR, DCB GREATHER THAN SPECIFIED IN PARAMETER #4
+        ELSE
+           0=:DDD0
+        FI; CALL STUSP;                           %BYTECOUNT TO USER
+ IMHDLC:                                          % STUSP GOES HERE
+        DDD2=:XXUBF; T=:D
+        X:=RSCUR; X+BHEAD=:XXSBF; * AAB XXUBF
+        CALL Z0USR
+        * AAB -XXUBF; COPY SB DX; AAX XBBNK
+        RSCUR; CALL ZBREL; CALL ZCRAS             %RELEASE BUFFER
+        T:=DDD0; GO RSRET                         %GO BACK TO RESIDENT PART
+ *)FILL
+ %
+ %
+ CHEMT: DDD4=:XWAITF
+        IF A = 1 THEN
+              X:=CURPR; CALL WDATA
+              *ION
+              B+OFSET; ZPREG-1=:ZPREG
+              CALL RETSTUPR
+        ELSE
+              *ION
+              T:=EEMTY; GO RSRET
+        FI
+        GO RSRET
+ %
+ PZCRA: IF A = 2 THEN T:=ENBUF; GO RSRET; FI
+        CALL ZCRAS
+ %
+ %      ROUTINES FOR ACTIVATION OF DRIVER PART
+ %
+ ACT12: IF WAKEF = 1 THEN EXIT FI
+        T:="STDRIV"; D:=L; CALL STL12; D=:P       %*80B*
+ %
+ %
+ ACT13: IF WAKEF = 1 THEN EXIT FI
+        T:="STDRIV"; D:=L; CALL STL13; D=:P                 %*80B*
+ RBUS
+
+
+ %=======================================================================
+ % 39.14     I C H A I N    O C H A I N
+ %      HDLC - CHAINING ROUTINES
+ %
+ %
+ %PURPOSE: ENTER OR REMOVE ENTRIES IN THE DRIVER QUEUE
+ %
+ %METHOD:     THE QUEUES ARE ARRANGED AS FIFOS.
+ %            THE LINKING IS ONE WAY ONLY.
+ %            0 IN THE LINKWORD IS USED T MARK END OF QUEUE.
+ %            THE HEAD OF THE QUEUES IS IN THE APPROPRIATE DATAFIELD.
+ %            IQUEU FOR INPUT, AND OQUEU FOR OUTPUT.
+
+ %            CHANGED FOR I VERSION:
+ %            THE QUEUES MAY NOW APPEAR OUTSIDE BANK 0
+ %            THE "MASTB" LOCATION IN DATAFIELD HOLDS THE BANK NUMBER
+
+ %ICHAIN: SET MESSAGE IN INPUT QUEUE (TO DRIVER)
+ %OCHAIN: SET MESSAGE IN OUTPUT QUEUE (FROM DRIVER)
+ %
+ %ENTRY:  B-REG   DATAFIELDPOINTER
+ %        X-REG   MESSAGEPOINTER (ICHAIN ONLY)
+ %
+ %EXIT:   B-REG   DATAFIELDPOINTER
+ %        X-REG   MESSAGEPOINTER (OCHAIN ONLY)
+ %
+ SUBR ICHAIN,OCHAIN
+ ICHAIN: IF IQUEU =0 THEN                                   % AM I ALONE ?
+           X=:IQUEU; T:=MASTB; * BCHAI@3 STATX              % YES, 0 IN NEXT POINTER
+           EXIT
+         FI
+         GO ICOC                                            % NO, LINK IN AT END OF LIST
+ OCHAIN: T:=MASTB; * XCHAI@3 LDATX
+         IF A >< "OCHAIN" THEN                              % SPECIAL CHAINING ROUTINE *81F*
+           IF A >> XBSTR AND A << XBEND THEN EXIT FI        % CHECK POINTER
+           *ION; COPY SA DP                                 % RETURN TO "CALL OCHAIN"  *81F*
+         FI
+         IF ISTATE >< 0  THEN L=:D; CALL RTACT; D=:L; FI
+         IF OQUEU =0 THEN                                   % AM I ALONE?
+           X=:OQUEU; T:=MASTB; * BCHAI@3 STATX              % YES, 0 IN LINK WORD
+           EXIT
+         FI
+ ICOC: X=:D:=A; T:=MASTB
+    DO WHILE A >< 0
+        A=:X; * BCHAI@3 LDATX
+    OD
+        A:=D; * BCHAI@3 STATX                     % LINK IN AT END OF LIST
+        A=:X:=0; * BCHAI@3 STATX                  % 0 AT END OF LIST
+        EXIT
+ RBUS
+
+
+ %=======================================================================
+ % 39.15     D I C H A I N    D O C H A I N
+ %
+ %DICHAIN: REMOVE OLDEST ENTRY FROM INPUT QUEUE (TO DRIVER)
+ %DOCHAIN: REMOVE OLDEST ENTRY FROM OUTPUT QUEUE (FROM DRIVER)
+ %TSTCH:   ANY MESSAGE IN DRIVER QUEUE.
+ %
+ %ENTRY:  B-REG  DATAFIELDPOINTER
+ %
+ %EXIT:   B-REG  DATAFIELDPOINTER
+ %        X-REG  MESSAGEPOINTER
+ %
+ %        SKIP RETURN - MESSAGE FOUND
+ %        NO SKIP     - EMTY QUEUE
+ %
+ SUBR DICHAIN,DOCHAIN,TSTCH
+ TSTCH:   IF IQUEU><0 THEN EXITA FI EXIT
+ DICHAIN: IF IQUEU =0 THEN 0=:WAKEF; EXIT FI
+          X:=A; T:=MASTB; * BCHAI@3 LDATX
+          A =:IQUEU; 1=:WAKEF; EXITA;
+ DOCHAIN: IF OQUEU =0 THEN
+              IF DDD4 = 0 THEN -1=:ISTATE FI
+              EXIT
+          FI
+          X:=A; T:=MASTB; * BCHAI@3 LDATX
+          A=:OQUEU; 0=:ISTATE; EXITA;
+ RBUS
+
+
+ %=======================================================================
+ % 39.16
+ %      Z C R A S             INCONSISTENSY IN HDLC NONRESIDENT PART
+ %
+ %      T-REGISTER WILL CONTAIN OLD L-REGISTER WHEN STOP IN ERRFATAL
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ %
+ SUBR ZCRAS
+ INTEGER DHAAA                                  % ERRCODE
+ INTEGER DHLLL                                  % WHERE I COME FROM
+ ZCRAS: A=:DHAAA; A:=L=:DHLLL
+        L=:T; A:=B+OFSET=:B; CALL 9ERR(#33)
+        B-OFSET=:B; T:=HXERF; GO RSRET
+ RBUS
+
+
+ *"
+" *"8PIOC
+" @LIB OLDPIOC
+ *"
+"
+ %==========================================================================
+ %      P R T C G P L O C
+ %
+ % SUBROUTINE TO THE RTCGPLOC IN RESIDENT
+ % MUST BE CALLED IN PIOF.
+ %
+ SUBR PRTCGPLOC
+ INTEGER TREG,AREG,DREG,CCDISP; TRIPLE SVTAD=TREG
+ INTEGER ARRAY POINTER ACCTAB:=CCTAB
+ PRTCGPLOC:
+        TAD=:SVTAD; X=:XRG; A:=X/\1777=:CCDISP:=X SHZ -12+100=:D; X:=0
+        DO WHILE ACCTAB(X)><-1
+           IF A/\377=D THEN
+              X+1; A:=ACCTAB(X)=:D:=0; AD SH 12; X:=CCDISP
+              X+D; T:=A
+              IF TREG=0 THEN
+                 *LDATX; STA AREG
+              ELSE
+                 AREG; *STATX
+              FI; GO  OUT
+           FI; X+2
+        OD; L-1
+ OUT:   TAD:=SVTAD; X:=XRG; EXITA
+ RBUS
+
+
