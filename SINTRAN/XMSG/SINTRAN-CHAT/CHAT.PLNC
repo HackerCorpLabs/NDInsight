@@ -1882,6 +1882,19 @@ $INCLUDE screen
             % the note in setupName for what printing it early looked like.
             OUTPUT(1, 'AL8', 'you are ')
             showMyName
+
+            % AND WHICH MACHINE, when the server said. This is the only place
+            % the line renderer shows it, and without it the fact would be
+            % invisible until the screen renderer is switched on - a feature
+            % you cannot see is a feature you cannot test.
+            IF lenMyMach > 0 THEN
+                OUTPUT(1, 'AL', ' on ')
+                FOR i IN 1:lenMyMach DO
+                    myMachine(i - 1) =: oneChar(0)
+                    OUTPUT(1, 'AL1', oneChar)
+                ENDFOR
+            ENDIF
+
             OUTPUT(1, 'AL20', '  (/nick to change)$')
 
             % RETURN, LIKE EVERY OTHER CASE IN THIS CHAIN.
