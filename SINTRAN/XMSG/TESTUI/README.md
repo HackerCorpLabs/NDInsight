@@ -8,6 +8,34 @@ SINTRAN III VSX/500 K.
 
 ---
 
+## 0. WHICH COPY IS THE MASTER - read this before editing anything
+
+**`SINTRAN/XMSG/TESTUI/TESTUI.PLNC` IS THE SOURCE. Edit it here, and copy it to the sync folder
+afterwards - never the other way round.**
+
+Ronny's rule, 2026-08-25, and it exists because the opposite happened: a whole day of edits were
+made in `SINTRAN/XMSG/sync-testui/`, which is **gitignored**, and only reached git because they
+were copied across by hand before each commit. One forgotten copy is one lost change, and nothing
+would have said so.
+
+| Copy | What it is |
+|---|---|
+| **`SINTRAN/XMSG/TESTUI/TESTUI.PLNC`** | **THE MASTER.** In git. Edit here |
+| `SINTRAN/XMSG/sync-out/TESTUI.PLNC` | a staging copy the daemon carries - written BY the deploy script, never edited |
+| `SINTRAN/XMSG/sync-testui/TESTUI.PLNC` | an older staging folder, gitignored. Not the master |
+| `(PACK-ONE:SYSTEM)TESTUI:PLNC` on D100 | what actually compiles |
+
+**`deploy-over-xmsg.ps1` already enforces this** - it copies FROM this folder INTO `sync-out`, so
+using the script keeps the direction right for free:
+
+```powershell
+.\deploy-over-xmsg.ps1 -SourceOnly      # TESTUI.PLNC + TESTUI.MODE, the rebuild loop
+```
+
+If you stage by hand instead, copy in that direction and no other.
+
+---
+
 ## 1. What the program does
 
 ```
