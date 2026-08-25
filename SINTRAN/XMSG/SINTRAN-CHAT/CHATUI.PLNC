@@ -462,18 +462,21 @@ $INCLUDE screen
     ROUTINE VOID, VOID : drawAll
         INTEGER : at
 
-        % Three frames whose edges TOUCH. frame() draws a box and nothing
-        % else, so a shared edge is the only way a cross-piece gets drawn.
-        winEnter(topRow, 1, topHigh, scrWide)
-        frame(1, 1, topHigh, scrWide, 'SPACE-FILL')
-        winLeave
-
-        winEnter(midRow, 1, midHigh, scrWide)
-        frame(1, 1, midHigh, scrWide, 'SPACE-FILL')
-        winLeave
-
-        winEnter(botRow, 1, botHigh, scrWide)
-        frame(1, 1, botHigh, scrWide, 'SPACE-FILL')
+        % ONE BOX ROUND THE WHOLE SCREEN, then a rule across it for each
+        % separator.
+        %
+        % THREE STACKED FRAMES WAS THE FIRST ATTEMPT AND IT LOOKED WRONG.
+        % frame() draws a box, so where two of them touch you get the TOP
+        % CORNERS of the lower box - a fresh box top sitting inside the
+        % outer one - where the design wants a cross-piece. PLANC-SCREEN-H
+        % has no T-junction verb, so the corners cannot be had that way.
+        %
+        % fullbar is the library's own horizontal rule and is what the
+        % separators are for.
+        winEnter(1, 1, 24, scrWide)
+        frame(1, 1, 24, scrWide, 'SPACE-FILL')
+        fullbar(midRow, 2, 1, scrWide - 2)
+        fullbar(botRow, 2, 1, scrWide - 2)
         winLeave
 
         % The title is PAINTED OVER the top frame's own edge, which is what

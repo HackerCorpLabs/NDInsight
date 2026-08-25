@@ -138,7 +138,7 @@ varying `n` rather than by finding a name for each key.
 | 45 | 162 | |
 | 46 | **191** | HJELP (help), also reachable as grid key G53 |
 | 47 | 165 | |
-| 48 | 163 | grid key G54 |
+| 48 | 163 | grid key G54 - legend not yet identified |
 | 49 | 164 | |
 | 50 | **132** | F1 |
 | 51 | 193 | SHIFT-F1 |
@@ -149,6 +149,22 @@ varying `n` rather than by finding a name for each key.
 | 62 | 204 | F6 |
 | 64 | 220 | F7 |
 | 66 | 221 | F8 |
+
+### A KEY HAS TWO NAMES: ITS LEGEND AND ITS GRID POSITION
+
+**This confused me for half an hour and it is not a defect.** `HJELP` and `G53` send the same
+`ESC[46_` and give the same 191 because **they are the same key**: `HJELP` is the legend printed
+on it, `G53` is where it sits on the keyboard grid. Same for `F1` and `F51`, `F2` and `F52`,
+`F3` and `F53`, `F4` and `F54` - one key, two names, identical bytes.
+
+**And that is why the F-names stop at F54.** The F5..F8 legends sit on grid row **E**, not row F,
+so they are `E51`..`E54`. There is no `F55`. The table is not half filled in; the F row simply has
+four keys on it.
+
+Confirmed by the RetroTerm session on 2026-08-25 from its own key registry - `Reg("F51", "F1")`
+and `Reg("E51", "F5")`. **Do not report the duplication as a bug; it was already reported and it
+is correct behaviour.** What WAS wrong was RetroTerm's parameter text saying "F1..F52", which
+mixes the two naming systems into a range that matches neither. That has been corrected.
 
 ### SHIFT IS IN THE SEQUENCE NUMBER, NOT A MODIFIER
 
