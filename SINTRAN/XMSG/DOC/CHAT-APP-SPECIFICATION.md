@@ -141,7 +141,7 @@ SEATS 0/16  default 200  disk 0KB  empty 13 bounce 1 relay 0 dupe 0 refuse 0
 | `empty` | routed letters with no payload; climbing while quiet is the seat feedback loop |
 | `bounce` | messages home with nobody there - dead clients |
 | `relay` | lines passed ON to a further peer. **Climbing on a middle machine, flat zero on an end one** |
-| `dupe` | repeats recognised and dropped. **Always 0 on a chain - see below** |
+| `dupe` | repeats recognised and dropped. **0 on a CHAIN whatever the code does** - it needs two paths to say anything |
 | `refuse` | joins turned away |
 
 **`START-TRUNK` on a trunk that is already UP knocks it down for about a minute.** Only use it on
@@ -249,12 +249,34 @@ arrived**. `CHAT-HISTORY-DESIGN.md` describes the design.
 one-line check is: join a room, say something, `/quit`, rejoin, and see whether the line comes
 back.
 
-### Built but NOT proved
+### DEDUP IS PROVED - it took a third trunk
 
-**Dedup.** Kind 53 carries the line number the origin stamped and the server remembers the last 64
-`(origin, id)` pairs. It is deployed on all three machines and `dupe` reads 0 - **which is the only
-reading a CHAIN can produce**, because there is exactly one path between any two machines. A
-completely broken implementation would print the same thing. Proving it needs a third trunk.
+Kind 53 carries the line number the origin stamped and each server remembers the last 64
+`(origin, id)` pairs. This sat as "deployed and not proved" for weeks, because on a CHAIN there is
+exactly one path between any two machines, so `dupe` could only ever read 0 - **and a completely
+broken implementation would print the same 0.**
+
+`START-TRUNK 103` on D102 made the triangle and settled it. MEASURED on D102, 2026-08-26, either
+side of one line typed on D103:
+
+```
+before   SEATS 0/16 ... empty 422 bounce 1 relay 0 dupe 0 refuse 0
+after    SEATS 0/16 ... empty 426 bounce 2 relay 1 dupe 1 refuse 0
+```
+
+and the client showed the line **exactly once**:
+
+```
+SYSTEM@SKOGEN: now there is a triangle and this should arrive once
+```
+
+**`dupe 1` IS THE EVIDENCE. The single line on screen is NOT.** One copy on screen is also exactly
+what a machine that only ever received one copy would show. The counter is the only thing that
+says a second copy arrived by the other path, was recognised, and was dropped.
+
+`relay 1` on the same reading says D102 also passed a copy onward - which D100 then dropped as a
+repeat of the one it had already relayed. The loop terminates, which is what the hop count and the
+id are both for.
 
 ### BUILT AND PROVED ON THE MACHINE
 
