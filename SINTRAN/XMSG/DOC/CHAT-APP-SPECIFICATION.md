@@ -157,6 +157,24 @@ Rooms, seats, join/leave/say/nick/topic/who/list/map, the sixteen-seat limit, tr
 machines, `/who` across trunks, relay through a middle machine, automatic trunk re-join, dead-port
 detection, the operator front end, and start-up from a cold boot.
 
+**HISTORY IS BUILT - and an earlier version of this page said it was not.**
+The correction is worth keeping visible because the claim was made from memory rather than from
+the source, which is the exact failure this document exists to prevent.
+
+```planc
+histSave(histSlot, slot, textAt, textLength)     % on every line said
+...
+histReplay(histSlot, senderMagic)                % on every join
+```
+
+Lines are written to a **disk file** (`makeHistFile`, and `STATUS` reports its size as `disk nKB`)
+and replayed to a joiner as `kHist` (16). So **a joiner DOES see what was said before they
+arrived**. `CHAT-HISTORY-DESIGN.md` describes the design.
+
+**NOT verified live by this page's author** - read from the source, not watched on a machine. The
+one-line check is: join a room, say something, `/quit`, rejoin, and see whether the line comes
+back.
+
 ### Built but NOT proved
 
 **Dedup.** Kind 53 carries the line number the origin stamped and the server remembers the last 64
@@ -173,10 +191,7 @@ design note in `CHAT-DIRECT-MESSAGES-AND-CLIENT-CONFIG.md`.
 **This matters for the full-screen design:** the window bar in the mockup shows `4 =KARI 1*` and
 `5 =TERJE`, where `=` marks a direct message. **Those windows have no protocol behind them.**
 
-**Multiple windows.** One room at a time today. The bar is drawn but inert.
-
-**History.** A joiner sees nothing said before they arrived. `kHist` (16) exists and
-`CHAT-HISTORY-DESIGN.md` describes the intent.
+**Multiple windows.** One room at a time. The bar in the mockup is drawn but inert.
 
 ### Known limits
 
