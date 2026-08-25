@@ -1371,6 +1371,26 @@ def check(path):
     raw = io.open(path, 'rb').read()
     eol_crlf = raw.count(bytes([13, 10]))
     eol_bare = raw.count(bytes([10])) - eol_crlf
+    # ---- A CARRIAGE RETURN THAT IS NOT PART OF A LINE ENDING ------------------
+    #
+    # A lone CR, or the CR CR LF that a careless splice leaves behind. The
+    # mixed-endings check above cannot see this one: the file still has ZERO
+    # bare LFs, so by that measure it is perfectly clean CRLF.
+    #
+    # MEASURED 2026-08-25. ONE CR CR LF in CHAT.PLNC made git report the WHOLE
+    # 3467-line file as rewritten - every line deleted and re-added, with the
+    # old and new lines looking identical on screen. A real 178-line change was
+    # completely buried in it, and reviewing that diff would have been
+    # impossible. The compiler has not been asked what it makes of one, and
+    # nobody should have to find out.
+    stray_cr = raw.count(bytes([13])) - eol_crlf
+    if stray_cr > 0:
+        out.append('%s  %d CARRIAGE RETURN(S) NOT FOLLOWED BY A LINE FEED. The '
+                   'mixed-endings check cannot see these - the file still has zero '
+                   'bare line feeds. One of them made git report an entire 3467-line '
+                   'file as rewritten, with every old and new line looking identical, '
+                   'burying a real change completely' % (path, stray_cr))
+
     if eol_crlf and eol_bare:
         out.append('%s  MIXED LINE ENDINGS - %d CRLF and %d bare LF. The compiler does '
                    'NOT report this: it answers 0 DIAGNOSTICS and builds a program that '

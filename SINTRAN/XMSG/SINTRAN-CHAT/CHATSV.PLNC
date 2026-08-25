@@ -204,6 +204,40 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     % said in the text.
     INTEGER : kHist    := 16
 
+    % ----- DIRECT MESSAGES, one person to one person -----------------------
+    %
+    % These four are 17..20, inside the ROOM block (1..31), because a direct
+    % message is ordinary member traffic on the service port - it configures
+    % nothing, so it is not an admin kind.
+    %
+    % kDirect   client to server. The TARGET rides in the TEXT before a '/',
+    %           exactly as kSay's room does on a trunk - one layout for the
+    %           whole family rather than a special case per direction. The
+    %           target is either a bare alias (RONNY) or one qualified by
+    %           machine (D102!RONNY).
+    % kDirected server to the TARGET. The name field holds the sender
+    %           QUALIFIED - D102!KARI, never a bare KARI - because what is
+    %           shown has to be what can be typed back, and a bare name is
+    %           ambiguous the moment two machines each hold one. The text is
+    %           the message alone: the target is whoever is reading it.
+    % kDirSent  server to the SENDER, naming who it actually went to. Sent on
+    %           EVERY delivery and not only on ambiguous ones - refusing an
+    %           ambiguous alias protects the sender when the collision is
+    %           visible, this protects them when it is not, and it costs one
+    %           line to make a wrong delivery visible at once.
+    % kDirBad   server to the SENDER: not delivered, and why. The name field
+    %           holds the target that was tried, the text the reason - and for
+    %           an ambiguous alias the CANDIDATES, so they can be retyped
+    %           straight off the screen.
+    %
+    % THERE IS DELIBERATELY NO STORE AND FORWARD. "not logged in" is a refusal,
+    % not a queue. A message that waits for somebody is a mailbox - a different
+    % product with different rules, and SINTRAN already has mail for that.
+    INTEGER : kDirect   := 17
+    INTEGER : kDirected := 18
+    INTEGER : kDirSent  := 19
+    INTEGER : kDirBad   := 20
+
     % ADMIN kinds - 32 and up, and they belong on the command port. These MUST
     % match DOC/protocols/chat-wire.json and ChatMessageKind.cs; all three move
     % in the same commit, which is constraint 5 of the federation design.
@@ -289,6 +323,15 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     % upgraded would read the two extra bytes as a name length and a name and
     % show its users rubbish. A kind it does not know it just ignores.
     INTEGER : kTrkRelId   := 53
+
+    % A DIRECT MESSAGE CROSSING A TRUNK. Same six-byte header as kTrkRelId -
+    % origin system, hops remaining, line id - so it is relayed and de-duplicated
+    % by the machinery that already exists rather than by a second mechanism.
+    %
+    % The difference is what the text holds: kTrkRelId packs ROOM/message, this
+    % packs TARGET/message, which leaves the name field free for the SENDER -
+    % the one thing the far end has to display.
+    INTEGER : kTrkDirect  := 54
     % How many recent lines we remember in order to spot a repeat. A second
     % copy arrives within a hop or two of the first, so a short window is
     % enough, and a FIXED one cannot be made to grow by a peer sending us
@@ -608,6 +651,20 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     BYTES : slashByte := '/'
     BYTES : zeroByte  := '0'
 
+    % '!', between a MACHINE and a PERSON in a direct message - D102!RONNY.
+    %
+    % NOT '@', and the choice is deliberate rather than a matter of taste. '@'
+    % is the client's short command prefix, so @RONNY@D100 would need a parser
+    % that counts at-signs and decides which one it meant. 'machine!alias'
+    % reads left to right as route-then-person and has precedent in the UUCP
+    % addressing of the same era. The byte is pinned as 0x21 by the C# test
+    % AQualifiedTargetKeepsItsMachineSeparator, so the two ends cannot drift.
+    %
+    % Note that '@' still qualifies a name for DISPLAY - "ANNA@D102" in /who.
+    % Display and addressing are different jobs: one is read by a person, the
+    % other is typed by one.
+    BYTES : bangByte  := '!'
+
     % ':', for the all-rooms /who - "LOBBY: TESTER OLAV". Same reason as every
     % other single character in this list: a string literal cannot be stored
     % into a BYTES element, so it lives in a one-element BYTES and is copied.
@@ -857,6 +914,30 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     %
     % 100 is this machine. Nothing was up; a letter had bounced.
     INTEGER  : mySystem := 0
+
+    % Direct messages delivered, and direct messages refused. On the STATUS
+    % line beside the other counters, because a screen cannot tell you either
+    % of these - a refusal is seen only by the one person who got it, and a
+    % delivery is seen only by two.
+    %
+    % A CLIMBING refuse count with a flat sent count is the shape of a client
+    % or a user getting the address form wrong, which is worth knowing without
+    % having to ask anybody.
+    INTEGER  : dmSent := 0
+    INTEGER  : dmBad  := 0
+
+    % WHAT AN ALIAS RESOLVED TO. Four answers, so they are variables and not a
+    % return value - PLANC returns one thing.
+    %
+    %   dirCount   how many people matched. 0 refuses, 2 or more refuses with
+    %              the candidates, exactly 1 is delivered.
+    %   dirLocal   the local seat, or 0
+    %   dirRemote  the row in the remote table, or 0
+    %   dirSystem  the machine the one match is on
+    INTEGER  : dirCount  := 0
+    INTEGER  : dirLocal  := 0
+    INTEGER  : dirRemote := 0
+    INTEGER  : dirSystem := 0
 
     % For the idle sleep - see the empty-drain branch of the main loop.
     % sleepWhy comes back 0 when the time simply elapsed, 1 when a break
@@ -3619,6 +3700,578 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     % to notice the machine came back, and no operator command is needed. The
     % peer's own hello usually arrives first anyway.
     % -----------------------------------------------------------------------
+    % =======================================================================
+    % DIRECT MESSAGES
+    %
+    % THE ADDRESS FORMS, and what each one costs to resolve:
+    %
+    %   RONNY            a bare alias. Looked for on THIS machine and on every
+    %                    machine we hold a member list for. Exactly one match
+    %                    is delivered; two or more are REFUSED with the list.
+    %   D102!RONNY       qualified. Looked for on that machine alone.
+    %
+    % A BARE ALIAS MATCHING TWO PEOPLE IS NEVER GUESSED AT. Two machines can
+    % each hold a RONNY long before they are ever trunked together, so no
+    % global uniqueness rule could have been applied even in principle - and a
+    % private message delivered to the wrong person is a privacy failure, not
+    % an inconvenience. The refusal carries both candidates so the sender can
+    % retype one of them off the screen.
+    % =======================================================================
+
+    % Where the '/' is that separates the target from the message, counted
+    % from "at". -1 if there is none.
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER) : findSlash(at, length)
+        INTEGER : i
+        IF length < 1 THEN
+            0 - 1 RETURN
+        ENDIF
+        FOR i IN 0:length - 1 DO
+            IF inBuf(at + i) = slashByte(0) THEN
+                i RETURN
+            ENDIF
+        ENDFOR
+        0 - 1 RETURN
+    ENDROUTINE
+
+    % Where the '!' is inside a target, counted from "at". -1 if there is none,
+    % which is what says "this is a bare alias".
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER) : findBang(at, length)
+        INTEGER : i
+        IF length < 1 THEN
+            0 - 1 RETURN
+        ENDIF
+        FOR i IN 0:length - 1 DO
+            IF inBuf(at + i) = bangByte(0) THEN
+                i RETURN
+            ENDIF
+        ENDFOR
+        0 - 1 RETURN
+    ENDROUTINE
+
+    % "D102" or "102" as the number 102.
+    %
+    % trunkNumber already parses digits and is used for the admin commands, but
+    % it REFUSES anything that is not a digit - so it answers 0 for "D102",
+    % which is exactly how people write a machine. Leading letters are skipped
+    % here rather than changing trunkNumber, because the admin commands take a
+    % bare number and loosening that would let a typo through there.
+    %
+    % Answers 0 for anything with no digits at all, and 0 is not a machine.
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER) : machineNum(at, length)
+        INTEGER : i, d, value, seen
+        0 =: value
+        0 =: seen
+        IF length < 1 THEN
+            0 RETURN
+        ENDIF
+        FOR i IN 1:length DO
+            inBuf(at + i - 1) =: d
+            IF d >= 48 THEN
+                IF d <= 57 THEN
+                    (value * 10) + (d - 48) =: value
+                    1 =: seen
+                ENDIF
+            ENDIF
+        ENDFOR
+        IF seen = 0 THEN
+            0 RETURN
+        ENDIF
+        value RETURN
+    ENDROUTINE
+
+    % Does the person we hold in remote row "row" have this name?
+    %
+    % Case folded exactly as sameName does for a local seat. A direct message
+    % that works for a local RONNY and fails for a remote ronny would be a
+    % maddening thing to report and an obvious thing to prevent.
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER, INTEGER) : sameRmt(row, at, length)
+        INTEGER : j, a, b
+        IF rmtNameLen(row) >< length THEN
+            0 RETURN
+        ENDIF
+        FOR j IN 1:length DO
+            rmtName(row, j) =: a
+            inBuf(at + j - 1) =: b
+            IF a > 96 THEN a - 32 =: a ENDIF
+            IF b > 96 THEN b - 32 =: b ENDIF
+            IF a >< b THEN
+                0 RETURN
+            ENDIF
+        ENDFOR
+        1 RETURN
+    ENDROUTINE
+
+    % Who does this alias mean? Answers into the four dir* variables rather
+    % than returning, because it has four things to say and PLANC returns one.
+    %
+    % wantSys = 0 means "any machine"; otherwise only that one is searched.
+    ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER) : &
+            resolveTo(at, length, wantSys)
+        INTEGER : i
+        0 =: dirCount
+        0 =: dirLocal
+        0 =: dirRemote
+        0 =: dirSystem
+
+        IF wantSys = 0 OR wantSys = mySystem THEN
+            FOR i IN 1:maxSeats DO
+                IF memberUsed(i) = 1 THEN
+                    IF sameName(i, at, length) = 1 THEN
+                        dirCount + 1 =: dirCount
+                        IF dirLocal = 0 THEN
+                            i =: dirLocal
+                            mySystem =: dirSystem
+                        ENDIF
+                    ENDIF
+                ENDIF
+            ENDFOR
+        ENDIF
+
+        FOR i IN 1:maxRemote DO
+            IF rmtSystem(i) >< 0 THEN
+                IF wantSys = 0 OR wantSys = rmtSystem(i) THEN
+                    IF sameRmt(i, at, length) = 1 THEN
+                        dirCount + 1 =: dirCount
+                        IF dirRemote = 0 THEN
+                            IF dirLocal = 0 THEN
+                                i =: dirRemote
+                                rmtSystem(i) =: dirSystem
+                            ENDIF
+                        ENDIF
+                    ENDIF
+                ENDIF
+            ENDFOR
+        ENDFOR
+    ENDROUTINE
+
+    % Put "Dnnn!" into outBuf at "at". Answers the new cursor.
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER) : putMachine(sysNum, at)
+        INTEGER : p
+        at =: p
+        dByte(0) =: outBuf(p)
+        p + 1 =: p
+        putNumber(sysNum, p) =: p
+        bangByte(0) =: outBuf(p)
+        p + 1 =: p
+        p RETURN
+    ENDROUTINE
+
+    % "Dnnn!NAME" from a LOCAL seat. Answers the new cursor.
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER, INTEGER) : &
+            putQualSlot(sysNum, slot, at)
+        INTEGER : i, p
+        putMachine(sysNum, at) =: p
+        FOR i IN 1:memberLen(slot) DO
+            memberName(slot, i) =: outBuf(p)
+            p + 1 =: p
+        ENDFOR
+        p RETURN
+    ENDROUTINE
+
+    % "Dnnn!NAME" where the name is sitting in inBuf. Answers the new cursor.
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER, INTEGER, INTEGER) : &
+            putQualIn(sysNum, nameAt, nmLen, at)
+        INTEGER : i, p
+        putMachine(sysNum, at) =: p
+        FOR i IN 1:nmLen DO
+            inBuf(nameAt + i - 1) =: outBuf(p)
+            p + 1 =: p
+        ENDFOR
+        p RETURN
+    ENDROUTINE
+
+    % REFUSED, and here is why.
+    %
+    % The reason's length comes from MAXINDEX rather than being typed beside
+    % the literal - a hand-counted length builds clean and shows only as a
+    % truncated sentence on somebody else's screen.
+    ROUTINE VOID, VOID (INTEGER4, INTEGER, INTEGER, BYTES) : &
+            sendDirBad(magic, tgtAt, tgtLen, reason)
+        INTEGER : i, at, textStart, reasonLen
+
+        kDirBad =: outBuf(0)
+        tgtLen =: outBuf(1)
+        2 =: at
+        FOR i IN 1:tgtLen DO
+            inBuf(tgtAt + i - 1) =: outBuf(at)
+            at + 1 =: at
+        ENDFOR
+
+        0 =: outBuf(at)
+        0 =: outBuf(at + 1)
+        at + 2 =: at
+        at =: textStart
+
+        MAXINDEX(reason, 1) + 1 =: reasonLen
+        FOR i IN 1:reasonLen DO
+            IF at < 250 THEN
+                reason(i - 1) =: outBuf(at)
+                at + 1 =: at
+            ENDIF
+        ENDFOR
+
+        at - textStart =: outBuf(textStart - 1)
+        dmBad + 1 =: dmBad
+        sendTo(magic, at)
+    ENDROUTINE
+
+    % REFUSED BECAUSE THE NAME MEANS MORE THAN ONE PERSON, and here they are.
+    %
+    % Carrying the candidates is what makes this usable rather than merely
+    % annoying: the sender retypes one of them straight off their screen. The
+    % table is walked a second time - resolveTo only kept the FIRST match,
+    % because keeping all of them would need a list for a case that is rare.
+    ROUTINE VOID, VOID (INTEGER4, INTEGER, INTEGER) : &
+            sendDirAmbig(magic, aliasAt, aliasLen)
+        INTEGER : i, j, at, textStart, first
+
+        kDirBad =: outBuf(0)
+        aliasLen =: outBuf(1)
+        2 =: at
+        FOR i IN 1:aliasLen DO
+            inBuf(aliasAt + i - 1) =: outBuf(at)
+            at + 1 =: at
+        ENDFOR
+
+        0 =: outBuf(at)
+        0 =: outBuf(at + 1)
+        at + 2 =: at
+        at =: textStart
+
+        putWord('which one? ', 11, at) =: at
+        1 =: first
+
+        FOR i IN 1:maxSeats DO
+            IF memberUsed(i) = 1 THEN
+                IF sameName(i, aliasAt, aliasLen) = 1 THEN
+                    IF first = 0 THEN
+                        putWord(', ', 2, at) =: at
+                    ENDIF
+                    0 =: first
+                    IF at < 200 THEN
+                        putQualSlot(mySystem, i, at) =: at
+                    ENDIF
+                ENDIF
+            ENDIF
+        ENDFOR
+
+        FOR i IN 1:maxRemote DO
+            IF rmtSystem(i) >< 0 THEN
+                IF sameRmt(i, aliasAt, aliasLen) = 1 THEN
+                    IF first = 0 THEN
+                        putWord(', ', 2, at) =: at
+                    ENDIF
+                    0 =: first
+                    IF at < 200 THEN
+                        putMachine(rmtSystem(i), at) =: at
+                        FOR j IN 1:rmtNameLen(i) DO
+                            rmtName(i, j) =: outBuf(at)
+                            at + 1 =: at
+                        ENDFOR
+                    ENDIF
+                ENDIF
+            ENDIF
+        ENDFOR
+
+        at - textStart =: outBuf(textStart - 1)
+        dmBad + 1 =: dmBad
+        sendTo(magic, at)
+    ENDROUTINE
+
+    % DELIVERED - and this says to whom, in the form it can be typed back in.
+    %
+    % Sent on EVERY delivery and not only the ambiguous ones. Refusing an
+    % ambiguous alias protects the sender when the collision is visible; this
+    % protects them when it is NOT - a machine that just went down, a second
+    % RONNY who logged in a moment ago, a trunk that came back with a different
+    % user list. A wrong delivery becomes visible at once instead of days
+    % later, and it costs one line.
+    ROUTINE VOID, VOID (INTEGER4, INTEGER, INTEGER, INTEGER) : &
+            sendDirSent(magic, sysNum, nameAt, nmLen)
+        INTEGER : at
+
+        kDirSent =: outBuf(0)
+        0 =: outBuf(1)                     % filled in below
+        2 =: at
+        putQualIn(sysNum, nameAt, nmLen, at) =: at
+        at - 2 =: outBuf(1)
+
+        % AN EMPTY TEXT STILL WRITES BOTH LENGTH BYTES. Leaving them out makes
+        % the message one byte short and the reader takes the next field from
+        % the wrong offset - which looks like a corrupt name rather than a
+        % missing length. Pinned by the C# golden test.
+        0 =: outBuf(at)
+        0 =: outBuf(at + 1)
+        at + 2 =: at
+
+        dmSent + 1 =: dmSent
+        sendTo(magic, at)
+    ENDROUTINE
+
+    % HAND IT TO SOMEBODY ON THIS MACHINE.
+    %
+    % The sender is named by their SEAT and never by anything in the message -
+    % otherwise anyone could send a direct message as anyone. That is the same
+    % rule kSay already follows, and it matters more here, not less.
+    ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER, INTEGER) : &
+            deliverLocal(fromSlot, toSlot, msgAt, msgLen)
+        INTEGER : i, at, textStart
+
+        kDirected =: outBuf(0)
+        0 =: outBuf(1)
+        2 =: at
+        putQualSlot(mySystem, fromSlot, at) =: at
+        at - 2 =: outBuf(1)
+
+        0 =: outBuf(at)
+        0 =: outBuf(at + 1)
+        at + 2 =: at
+        at =: textStart
+
+        % CLAMPED. The text came from a client and outBuf is 256 bytes; the
+        % qualified sender has already taken some of it. PLANC checks no bound,
+        % so a long enough message would write straight past the end.
+        FOR i IN 1:msgLen DO
+            IF at < 250 THEN
+                inBuf(msgAt + i - 1) =: outBuf(at)
+                at + 1 =: at
+            ENDIF
+        ENDFOR
+
+        at - textStart =: outBuf(textStart - 1)
+        sendTo(memberMagic(toSlot), at)
+    ENDROUTINE
+
+    % SEND IT ACROSS A TRUNK.
+    %
+    % Same six-byte header as a relayed room line, so the far end can
+    % de-duplicate it with the machinery that already exists. The text is
+    % TARGET/message where a room line carries ROOM/message, which leaves the
+    % name field for the SENDER - the one thing the far end has to display.
+    %
+    % THE TARGET GOES OUT UNQUALIFIED. The letter is addressed to that machine
+    % already, so repeating the machine inside the text would only give the two
+    % copies a chance to disagree.
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, &
+                           INTEGER) : &
+            sendDirTrunk(fromSlot, toSys, aliasAt, aliasLen, msgAt, msgLen)
+        INTEGER : j, at, st, textStart
+
+        % STAMPED HERE, exactly as forwardSaid stamps a room line and for the
+        % same reason: the number has to come from the ORIGIN, or a machine two
+        % hops out cannot tell one message arriving twice from two messages.
+        myLineId + 1 =: myLineId
+        IF myLineId > 32000 THEN
+            1 =: myLineId
+        ENDIF
+
+        kTrkDirect =: outBuf(0)
+        mySystem / 256 =: outBuf(1)
+        mySystem MOD 256 =: outBuf(2)
+        maxHops - 1 =: outBuf(3)
+        myLineId / 256 =: outBuf(4)
+        myLineId MOD 256 =: outBuf(5)
+        memberLen(fromSlot) =: outBuf(6)
+        7 =: at
+        FOR j IN 1:memberLen(fromSlot) DO
+            memberName(fromSlot, j) =: outBuf(at)
+            at + 1 =: at
+        ENDFOR
+
+        0 =: outBuf(at)
+        0 =: outBuf(at + 1)
+        at + 2 =: at
+        at =: textStart
+
+        FOR j IN 1:aliasLen DO
+            inBuf(aliasAt + j - 1) =: outBuf(at)
+            at + 1 =: at
+        ENDFOR
+        slashByte(0) =: outBuf(at)
+        at + 1 =: at
+
+        FOR j IN 1:msgLen DO
+            IF at < 250 THEN
+                inBuf(msgAt + j - 1) =: outBuf(at)
+                at + 1 =: at
+            ENDIF
+        ENDFOR
+
+        at - textStart =: outBuf(textStart - 1)
+        sendToName(toSys, at) =: st
+        st RETURN
+    ENDROUTINE
+
+    % =======================================================================
+    % A DIRECT MESSAGE ARRIVES FROM A CLIENT
+    %
+    % The text is TARGET/message. Everything that can go wrong is answered with
+    % kDirBad and a sentence, because the person who typed it is the only one
+    % who can put it right and they cannot see this machine.
+    % =======================================================================
+    ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER) : &
+            handleDirect(slot, textAt, textLength)
+        INTEGER : cut, tgtAt, tgtLen, msgAt, msgLen
+        INTEGER : bang, sysNum, aliasAt, aliasLen, row, st
+
+        findSlash(textAt, textLength) =: cut
+        IF cut < 1 THEN
+            sendDirBad(memberMagic(slot), textAt, 0, &
+                'a direct message is NAME/text - a name, a slash, then what to say')
+            RETURN
+        ENDIF
+
+        textAt =: tgtAt
+        cut =: tgtLen
+        textAt + cut + 1 =: msgAt
+        textLength - cut - 1 =: msgLen
+        IF msgLen < 1 THEN
+            sendDirBad(memberMagic(slot), tgtAt, tgtLen, &
+                'there was nothing after the slash to send')
+            RETURN
+        ENDIF
+
+        % Qualified by machine, or a bare alias?
+        findBang(tgtAt, tgtLen) =: bang
+        IF bang < 0 THEN
+            tgtAt =: aliasAt
+            tgtLen =: aliasLen
+            0 =: sysNum
+        ELSE
+            machineNum(tgtAt, bang) =: sysNum
+            tgtAt + bang + 1 =: aliasAt
+            tgtLen - bang - 1 =: aliasLen
+            IF sysNum = 0 THEN
+                sendDirBad(memberMagic(slot), tgtAt, tgtLen, &
+                    'that machine has no number in it - try D102!RONNY')
+                RETURN
+            ENDIF
+            IF aliasLen < 1 THEN
+                sendDirBad(memberMagic(slot), tgtAt, tgtLen, &
+                    'there is a machine but no name after it - try D102!RONNY')
+                RETURN
+            ENDIF
+        ENDIF
+
+        resolveTo(aliasAt, aliasLen, sysNum)
+
+        IF dirCount = 0 THEN
+            % NOT A QUEUE. There is deliberately no store and forward: a
+            % message that waits for somebody is a mailbox, a different product
+            % with different rules, and SINTRAN already has mail for that.
+            sendDirBad(memberMagic(slot), tgtAt, tgtLen, &
+                'nobody of that name is here now, and nothing is kept for later')
+            RETURN
+        ENDIF
+
+        IF dirCount > 1 THEN
+            % NEVER GUESSED AT. Two machines can each hold a RONNY long before
+            % they are ever trunked together, so no uniqueness rule could have
+            % been applied even in principle - and a private message delivered
+            % to the wrong person is a privacy failure, not an inconvenience.
+            sendDirAmbig(memberMagic(slot), aliasAt, aliasLen)
+            RETURN
+        ENDIF
+
+        IF dirLocal > 0 THEN
+            deliverLocal(slot, dirLocal, msgAt, msgLen)
+            sendDirSent(memberMagic(slot), mySystem, aliasAt, aliasLen)
+            RETURN
+        ENDIF
+
+        % ---- ON ANOTHER MACHINE -------------------------------------------
+        %
+        % ONE HOP ONLY, AND THAT IS A DELIBERATE FIRST CUT.
+        %
+        % A room line is FLOODED to every peer and de-duplicated at the far
+        % end. A private message must NOT be: flooding one hands it to machines
+        % that have no business seeing it, which is a privacy failure dressed
+        % up as routing. So this sends only to the machine that holds the
+        % person, and refuses when that machine is not a direct peer.
+        %
+        % On the D102 - D100 - D103 chain that means D100 reaches both ends and
+        % each end reaches only D100. THAT LIMIT IS REAL AND IT IS VISIBLE: the
+        % sender is told in words rather than the message quietly vanishing.
+        % Routing onward by the target machine - each hop forwarding to the
+        % peer that matches - is the next step, and it needs a way to carry a
+        % refusal back, which no kind does yet.
+        findPeer(dirSystem) =: row
+        IF row = 0 THEN
+            sendDirBad(memberMagic(slot), tgtAt, tgtLen, &
+                'they are on a machine this one has no trunk to')
+            RETURN
+        ENDIF
+        IF peerState(row) >< peerUp THEN
+            sendDirBad(memberMagic(slot), tgtAt, tgtLen, &
+                'the trunk to their machine is down just now')
+            RETURN
+        ENDIF
+
+        sendDirTrunk(slot, dirSystem, aliasAt, aliasLen, msgAt, msgLen) =: st
+        sendDirSent(memberMagic(slot), dirSystem, aliasAt, aliasLen)
+    ENDROUTINE
+
+    % A DIRECT MESSAGE THAT ARRIVED OVER A TRUNK, addressed to somebody here.
+    %
+    % The text is TARGET/message with the target UNQUALIFIED - the letter was
+    % addressed to this machine, so the machine is not repeated inside it.
+    %
+    % THE SENDER IS QUALIFIED WITH THE ORIGIN, not with the machine the letter
+    % came from. On a relayed message those are different, and naming the relay
+    % would tell the reader to type a reply to the wrong place. The origin
+    % travels in the header for exactly this reason.
+    %
+    % NOT FOUND HERE MEANS DROPPED, and that is worth being honest about: the
+    % sender was already told DirectSent by their own server, so a person who
+    % logged out in the second between the two ends disagreeing loses the
+    % message with nobody told. Closing that needs a refusal that can travel
+    % back over a trunk, and no kind carries one yet.
+    ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER, INTEGER, INTEGER) : &
+            takeRemDirect(origSys, nameAt, nameLength, textAt, textLength)
+        INTEGER : cut, tgtAt, tgtLen, msgAt, msgLen, i, at, textStart
+
+        findSlash(textAt, textLength) =: cut
+        IF cut < 1 THEN
+            RETURN
+        ENDIF
+        textAt =: tgtAt
+        cut =: tgtLen
+        textAt + cut + 1 =: msgAt
+        textLength - cut - 1 =: msgLen
+        IF msgLen < 1 THEN
+            RETURN
+        ENDIF
+
+        % THIS MACHINE ONLY. Asking for any machine would find the sender's own
+        % entry in our remote table and send the message straight back where it
+        % came from.
+        resolveTo(tgtAt, tgtLen, mySystem)
+        IF dirLocal = 0 THEN
+            RETURN
+        ENDIF
+
+        kDirected =: outBuf(0)
+        0 =: outBuf(1)
+        2 =: at
+        putQualIn(origSys, nameAt, nameLength, at) =: at
+        at - 2 =: outBuf(1)
+
+        0 =: outBuf(at)
+        0 =: outBuf(at + 1)
+        at + 2 =: at
+        at =: textStart
+
+        FOR i IN 1:msgLen DO
+            IF at < 250 THEN
+                inBuf(msgAt + i - 1) =: outBuf(at)
+                at + 1 =: at
+            ENDIF
+        ENDFOR
+
+        at - textStart =: outBuf(textStart - 1)
+        sendTo(memberMagic(dirLocal), at)
+    ENDROUTINE
+
     ROUTINE VOID, VOID : peerTick
         INTEGER : i, st
 
@@ -3901,7 +4554,11 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         % read as a name length, and a plausible-looking line built out of
         % rubbish. Note it needs SIX, not four - a message long enough to
         % satisfy the kind 52 test above can still be too short for this.
-        IF kind = kTrkRelId THEN
+        % kTrkDirect CARRIES THE SAME SIX-BYTE HEADER, so it is stripped by
+        % the same code rather than by a copy that could drift from it. What
+        % differs is only what the text holds - TARGET/message here, and
+        % ROOM/message for a room line - which its own handler deals with.
+        IF kind = kTrkRelId OR kind = kTrkDirect THEN
             IF readLength > 6 THEN
                 inBuf(1) * 256 + inBuf(2) =: relayOrig
                 inBuf(3) =: relayHops
@@ -4326,6 +4983,33 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         ENDIF
 
         % ---- A PEER TELLS US WHO IS ON IT -----------------------------------
+        % A DIRECT MESSAGE FROM ANOTHER MACHINE.
+        %
+        % Deduplicated by the same window as a relayed room line, because it
+        % carries the same origin and id. NOT RELAYED ONWARD: a room line is
+        % passed to every peer and sorted out at the far end, but doing that
+        % with a private message would hand it to machines that have no
+        % business seeing it. It arrived here because it was addressed here.
+        IF kind = kTrkDirect THEN
+            IF NOT fromTrunk THEN
+                RETURN
+            ENDIF
+            IF msgType = XMTRE THEN
+                RETURN
+            ENDIF
+
+            markPeerUp(senderSystem)
+
+            IF lineIsNew(relayOrig, relayId) = 0 THEN
+                nDupes + 1 =: nDupes
+                RETURN
+            ENDIF
+
+            takeRemDirect(relayOrig, nameAt, nameLength, &
+                textAt, textLength)
+            RETURN
+        ENDIF
+
         IF kind = kTrkMbrs THEN
             IF NOT fromTrunk THEN
                 RETURN
@@ -4513,6 +5197,15 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
             % means the ninth keeps no history; it does not lose its messages.
             claimTopic(slot) =: histSlot
             histSave(histSlot, slot, textAt, textLength)
+            RETURN
+        ENDIF
+
+        % A DIRECT MESSAGE. A SEAT IS REQUIRED - not because the target needs
+        % to be in a room, they do not, but because the SENDER has to have a
+        % name for the message to be from. This sits below the slot = 0 test
+        % with kSay for that reason.
+        IF kind = kDirect THEN
+            handleDirect(slot, textAt, textLength)
             RETURN
         ENDIF
 

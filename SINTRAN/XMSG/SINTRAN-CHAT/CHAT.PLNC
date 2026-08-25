@@ -286,6 +286,15 @@ $INCLUDE XMP-B02:IMPT
     % join. RECEIVE ONLY - the client never sends it.
     INTEGER : kHist    := 16
 
+    % DIRECT MESSAGES - one person to one person. kDirect goes out, and the
+    % other three come back: the message itself to the person it is FOR, a
+    % receipt to the sender naming who it actually reached, and a refusal with
+    % the reason when it reached nobody.
+    INTEGER : kDirect   := 17
+    INTEGER : kDirected := 18
+    INTEGER : kDirSent  := 19
+    INTEGER : kDirBad   := 20
+
     INTEGER : ownTerminal := 1        % FILE number of your own terminal - MON1 only
 
     % THE LDN OF THIS TERMINAL, WHICH IS NOT 1 AND NEVER WAS.
@@ -421,6 +430,12 @@ $INCLUDE XMP-B02:IMPT
     % a STRING, and handing it a byte prints the byte's NUMBER instead. See
     % showArrived, where that turned RONNY into 8279787889 on screen.
     BYTES : oneChar(0:0)
+
+    % A STRING LITERAL CANNOT BE STORED INTO A BYTES ELEMENT and the compiler
+    % blames the ARRAY when you try, so every literal character written into a
+    % buffer lives in a one-element BYTES and is copied byte to byte.
+    BYTES : spaceByte := ' '
+    BYTES : slashByte := '/'
 
     % TWENTY-ONE BYTES OF STORAGE, NOT A LITERAL - and this was a live defect,
     % not tidying. It was BYTES : roomName := 'CHAT-LOBBY', exactly ten bytes,
@@ -780,6 +795,48 @@ $INCLUDE XMP-B02:IMPT
         at + 2 =: at
         FOR i IN 1:textLength DO
             typed(from + i - 1) =: outBuf(at)
+            at + 1 =: at
+        ENDFOR
+        at RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Build a DIRECT MESSAGE out of "NAME rest of the line".
+    %
+    % THE WIRE WANTS "TARGET/message" AND THE USER TYPES "TARGET message", so
+    % the first space becomes a slash. That is the whole conversion, and doing
+    % it here rather than asking the user to type the slash is deliberate: the
+    % slash is a protocol detail, and a person should not have to know one to
+    % send somebody a line.
+    %
+    % A TARGET CONTAINING A SLASH IS REFUSED by the caller, because it would
+    % split in the wrong place at the far end and deliver to a name nobody has.
+    %
+    % from is a ZERO-BASED index into typed, matching buildOwn.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER, INTEGER) : &
+            buildTell(from, tgtLen, msgLen)
+        INTEGER : i, at
+        kDirect =: outBuf(0)
+        lenMyName =: outBuf(1)
+        2 =: at
+        FOR i IN 1:lenMyName DO
+            myName(i - 1) =: outBuf(at)
+            at + 1 =: at
+        ENDFOR
+
+        0 =: outBuf(at)
+        tgtLen + 1 + msgLen =: outBuf(at + 1)
+        at + 2 =: at
+
+        FOR i IN 1:tgtLen DO
+            typed(from + i - 1) =: outBuf(at)
+            at + 1 =: at
+        ENDFOR
+        slashByte(0) =: outBuf(at)
+        at + 1 =: at
+        FOR i IN 1:msgLen DO
+            typed(from + tgtLen + i) =: outBuf(at)
             at + 1 =: at
         ENDFOR
         at RETURN
@@ -2064,6 +2121,69 @@ $INCLUDE XMP-B02:IMPT
         % if the program says so itself. tools/planc-lint.py now flags a kind that
         % is declared and never used again, which would have caught all three
         % before they reached the machine.
+        % A DIRECT MESSAGE, ADDRESSED TO ME PERSONALLY.
+        %
+        % MARKED SO IT CANNOT BE MISTAKEN FOR ROOM TRAFFIC, and that is not
+        % decoration: a reply typed as an ordinary line would go to the whole
+        % room, which is a privacy failure caused entirely by the display.
+        % The stars say it was private, and the name is printed QUALIFIED -
+        % D102!KARI - because that is exactly what has to be typed back.
+        IF kind = kDirected THEN
+            OUTPUT(1, 'AL1', '$')
+            OUTPUT(1, 'AL2', '*(')
+            FOR i IN 1:nameLength DO
+                inBuf(2 + i - 1) =: oneChar(0)
+                OUTPUT(1, 'AL1', oneChar)
+            ENDFOR
+            OUTPUT(1, 'AL2', ') ')
+            FOR i IN 1:textLength DO
+                inBuf(textAt + i - 1) =: oneChar(0)
+                OUTPUT(1, 'AL1', oneChar)
+            ENDFOR
+            OUTPUT(1, 'AL1', '$')
+            RETURN
+        ENDIF
+
+        % DELIVERED, AND HERE IS WHO TO.
+        %
+        % Shown on EVERY direct message and not only the ambiguous ones. The
+        % server refuses an ambiguous name outright, which protects you when
+        % the collision is visible; this protects you when it is not - a second
+        % RONNY who logged in a moment ago, a machine that just went down. One
+        % line is a cheap price for a wrong delivery being visible at once
+        % rather than days later.
+        IF kind = kDirSent THEN
+            OUTPUT(1, 'AL1', '$')
+            OUTPUT(1, 'AL', 'sent to: ')
+            FOR i IN 1:nameLength DO
+                inBuf(2 + i - 1) =: oneChar(0)
+                OUTPUT(1, 'AL1', oneChar)
+            ENDFOR
+            OUTPUT(1, 'AL1', '$')
+            RETURN
+        ENDIF
+
+        % NOT DELIVERED, AND HERE IS WHY.
+        %
+        % The reason is printed as it arrived. For a name that means more than
+        % one person it is the CANDIDATE LIST, which is what makes the refusal
+        % usable: the sender retypes one of them straight off the screen.
+        IF kind = kDirBad THEN
+            OUTPUT(1, 'AL1', '$')
+            OUTPUT(1, 'AL', 'not sent to ')
+            FOR i IN 1:nameLength DO
+                inBuf(2 + i - 1) =: oneChar(0)
+                OUTPUT(1, 'AL1', oneChar)
+            ENDFOR
+            OUTPUT(1, 'AL2', ': ')
+            FOR i IN 1:textLength DO
+                inBuf(textAt + i - 1) =: oneChar(0)
+                OUTPUT(1, 'AL1', oneChar)
+            ENDFOR
+            OUTPUT(1, 'AL1', '$')
+            RETURN
+        ENDIF
+
         IF kind = kSaid THEN
             OUTPUT(1, 'AL1', '$')
             FOR i IN 1:nameLength DO
@@ -2681,6 +2801,8 @@ $INCLUDE XMP-B02:IMPT
     % -----------------------------------------------------------------------
     ROUTINE VOID, VOID : handleCommand
         INTEGER : at, argLen, i, length
+        % Where the name ends and the message begins in a /tell.
+        INTEGER : cut
 
         IF cmdIs('HELP', 4) = 1 THEN
             OUTPUT(1, 'AL15', 'CHAT commands:$')
@@ -2694,6 +2816,7 @@ $INCLUDE XMP-B02:IMPT
             OUTPUT(1, 'AL47', '  /map           the machines and their trunks$')
             OUTPUT(1, 'AL37', '  /topic         show the room topic$')
             OUTPUT(1, 'AL24', '  /topic <text>  set it$')
+            OUTPUT(1, 'AL', '  /tell <name> <text>  a message to one person$')
             OUTPUT(1, 'AL32', '  /leave         leave the room$')
             OUTPUT(1, 'AL32', '  /quit          leave and stop$')
             OUTPUT(1, 'AL36', '  anything else is said to the room$')
@@ -2920,6 +3043,61 @@ $INCLUDE XMP-B02:IMPT
             sendToServer(length)
 
             % Our own name changes only when the room says so, with kRenamed.
+            RETURN
+        ENDIF
+
+        % /TELL NAME what to say - a message to ONE person.
+        %
+        % A SEAT IS REQUIRED, and not because the other person has to be in a
+        % room - they do not, and that is half the point of the feature. It is
+        % because the SENDER needs a name for the message to be from, which is
+        % the same reason the server refuses this below its own seat test.
+        IF cmdIs('TELL', 4) = 1 THEN
+            IF NOT joined THEN
+                OUTPUT(1, 'AL34', 'not in a room yet - wait or /join$')
+                RETURN
+            ENDIF
+
+            % 6 = past "/TELL ". Exactly "/TELL" is typedLen 5, so argLen comes
+            % out negative - hence "< 1" rather than "= 0".
+            6 =: at
+            typedLen - at =: argLen
+            IF argLen < 1 THEN
+                OUTPUT(1, 'AL', '/tell NAME what to say - or D102!NAME$')
+                RETURN
+            ENDIF
+
+            % THE FIRST SPACE SEPARATES THE NAME FROM THE MESSAGE.
+            0 - 1 =: cut
+            FOR i IN 0:argLen - 1 DO
+                IF cut < 0 THEN
+                    IF typed(at + i) = spaceByte(0) THEN
+                        i =: cut
+                    ENDIF
+                ENDIF
+            ENDFOR
+
+            IF cut < 1 THEN
+                OUTPUT(1, 'AL', 'who to? /tell NAME what to say$')
+                RETURN
+            ENDIF
+            IF argLen - cut - 1 < 1 THEN
+                OUTPUT(1, 'AL', 'nothing to say to them$')
+                RETURN
+            ENDIF
+
+            % A SLASH IN THE NAME WOULD SPLIT IN THE WRONG PLACE at the far
+            % end, and the message would go to a name nobody has. Said out
+            % loud rather than sent and lost.
+            FOR i IN 0:cut - 1 DO
+                IF typed(at + i) = slashByte(0) THEN
+                    OUTPUT(1, 'AL', 'a name cannot have a slash in it$')
+                    RETURN
+                ENDIF
+            ENDFOR
+
+            buildTell(at, cut, argLen - cut - 1) =: length
+            sendToServer(length)
             RETURN
         ENDIF
 
