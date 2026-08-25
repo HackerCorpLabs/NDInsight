@@ -184,6 +184,30 @@ kept the older build, and `LIST-TRUNKS` on D100 answered `102 up 103 up` through
 Same property `kTrkRelay` was given, and it is what lets three running machines be upgraded one at
 a time.
 
+### PROVED BOTH WAYS BETWEEN TWO MACHINES, 2026-08-25
+
+D100 named FJELL, D102 named VIDDA, both running the same server built once on D100 and carried
+over as `CHATSV:BRF` - byte identical at 29541 on both, which is the proof the copy carried the
+new build and not a stale one.
+
+```
+on D100                          on D102
+-------                          -------
+C-M: LIST-TRUNKS                 C-M: LIST-TRUNKS
+102 VIDDA up 103 down            100 FJELL up
+
+SYSTEM@VIDDA: hello from         SYSTEM: hello from the other machine
+             the other machine   TESTER@FJELL: and hello back from this one
+```
+
+**Each machine's own speaker stays bare** - `SYSTEM:` on D102, not `SYSTEM@VIDDA:`. The `@name`
+means "somewhere else", which is the only reason it is worth printing.
+
+**THE CLIENT ON D102 IS THE OLD BUILD.** Only the server and CHAT-MON were carried across, and the
+chat is flagged correctly anyway - because the SERVER decides what a speaker is called and the
+client prints what it is given. That is the whole reason the qualification was never left to the
+client.
+
 ### The client is TOLD which machine it is on
 
 The **welcome's text** carries it. That field was always empty and the client ignored it, so
