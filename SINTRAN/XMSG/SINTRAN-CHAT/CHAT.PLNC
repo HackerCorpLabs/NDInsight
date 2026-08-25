@@ -111,6 +111,74 @@ MODULE chat
 $INCLUDE XMP-B02:DEFS
 $INCLUDE XMP-B02:IMPT
 
+% ---- THE SCREEN HALF -----------------------------------------------------
+%
+% EVERY IMPORT MUST BE UP HERE, BEFORE ANY ROUTINE. These arrived with the
+% screen renderer and were first spliced in beside it, just above PROGRAM -
+% which is after every routine this client already had. The compiler answered
+% MISPLACED STATEMENT "IMPORT" twenty-six times, once per line, and not one
+% of those messages says WHERE an import is supposed to go.
+% --------------------------------------------------------------------------
+$INCLUDE screen
+
+    % ---- MONITOR CALLS ---------------------------------------------------
+    % MON72 EESCF - give the escape key back to SINTRAN.
+    IMPORT ( ROUTINE VOID, VOID (INTEGER) : MON72 )
+    % MON71 DESCF - take the escape key AWAY from SINTRAN, so ESC arrives here
+    % as an ordinary byte instead of aborting the program.
+    IMPORT ( ROUTINE VOID, VOID (INTEGER) : MON71 )
+    % MON3 ECHOM - the echo. Strategy below zero means NO echo.
+    IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, BOOLEAN ARRAY PACKED) : MON3 )
+    % MON16 MGTIY - the packed CTYTP word. ONLY valid after VTM's first call.
+    IMPORT ( ROUTINE VOID, INTEGER (INTEGER) : MON16 )
+    % MON1 is NOT imported here - the client already imports it further up.
+    % A second IMPORT of the same name is ILLEGAL PREDECLARATION, which is
+    % an ERROR and not a warning.
+    % MON66 ISIZE - how many bytes are WAITING. This is what makes a poll
+    % possible, and with it a timer.
+    IMPORT ( ROUTINE VOID, INTEGER (INTEGER) : MON66 )
+    % MON11 TIME - basic time units, a fiftieth of a second each.
+    IMPORT ( ROUTINE VOID, INTEGER4 : MON11 )
+    % MN104 HOLD - sleep. The O drops at three digits.
+    IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER) : MN104 )
+    % MN113 CLOCK - seven elements. Element 6 is the FULL year, 1998 not 98.
+    IMPORT ( ROUTINE VOID, VOID (INTEGER ARRAY WRITE) : MN113 )
+
+    % ---- VTM -------------------------------------------------------------
+    % VTPCUR is (LINE, POSITION) - row first. MEASURED; two vendor programs
+    % name the arguments the other way round and the machine disagrees.
+    IMPORT ( ROUTINE VOID, INTEGER (INTEGER, INTEGER) : VTPCUR )
+    % VTDSCR is the VIEWPORT. It moves VTM's origin, it CLIPS, and it does NOT
+    % nest - a second call replaces the first and reads its rectangle against
+    % the physical screen.
+    IMPORT ( ROUTINE VOID, INTEGER (INTEGER, INTEGER, INTEGER, INTEGER) : VTDSCR )
+    % VTCREC clears a rectangle, viewport-relative.
+    IMPORT ( ROUTINE VOID, INTEGER (INTEGER, INTEGER, INTEGER, INTEGER) : VTCREC )
+    % VTWBUF FLUSHES. No arguments. Without it, anything drawn without a
+    % keystroke behind it sits in VTM's buffer and the program looks dead.
+    IMPORT ( ROUTINE VOID, INTEGER : VTWBUF )
+    % VTINBT - READ ONE KEY, DECODED BY VTM.
+    %
+    % THIS IS WHY THE PROGRAM DOES NOT LOOK AT BYTES. A function key is an
+    % escape sequence and every terminal sends a different one; decoding it
+    % here would mean a table per terminal, which is precisely VTM's job and
+    % VTM already has one. Hand-decoding also silently breaks the moment
+    % somebody runs this on a Tandberg.
+    %
+    % Shape from the STAR-TREK sources: IVTINBT(INP, 2, GETCTRL, 3). Three
+    % values IN, one result OUT - and getting that typing right is the whole
+    % trick. MEASURED 2026-08-25: declared with every argument WRITE, PAGE UP
+    % came back as FOUR raw bytes 27 91 53 126 and it looked as though VTM
+    % decoded nothing. A PLANC WRITE parameter is passed by ADDRESS, so the
+    % by-value arguments were being handed pointers. Typed properly, the same
+    % key comes back as ONE call with the code 201.
+    IMPORT ( ROUTINE VOID, INTEGER (INTEGER, INTEGER, &
+                                    INTEGER WRITE, INTEGER) : VTINBT )
+
+
+    % ---- CTYTP BITS ------------------------------------------------------
+    % Ask what a terminal can DO, never what number it is.
+
     % MON1 IS INBIT - read one byte from a device. This is how PLANC reaches a
     % monitor call: the runtime provides them as ordinary routines named MONn,
     % declared exactly like this, and the COSMOS guide's own sample does the
@@ -3214,65 +3282,6 @@ $INCLUDE XMP-B02:IMPT
     % ===================================================================
 
 
-$INCLUDE screen
-
-    % ---- MONITOR CALLS ---------------------------------------------------
-    % MON72 EESCF - give the escape key back to SINTRAN.
-    IMPORT ( ROUTINE VOID, VOID (INTEGER) : MON72 )
-    % MON71 DESCF - take the escape key AWAY from SINTRAN, so ESC arrives here
-    % as an ordinary byte instead of aborting the program.
-    IMPORT ( ROUTINE VOID, VOID (INTEGER) : MON71 )
-    % MON3 ECHOM - the echo. Strategy below zero means NO echo.
-    IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, BOOLEAN ARRAY PACKED) : MON3 )
-    % MON16 MGTIY - the packed CTYTP word. ONLY valid after VTM's first call.
-    IMPORT ( ROUTINE VOID, INTEGER (INTEGER) : MON16 )
-    % MON1 INBIT - one byte. BLOCKS, so it is only ever called when MON66 has
-    % already said there is one waiting.
-    IMPORT ( ROUTINE VOID, BYTE (INTEGER) : MON1 )
-    % MON66 ISIZE - how many bytes are WAITING. This is what makes a poll
-    % possible, and with it a timer.
-    IMPORT ( ROUTINE VOID, INTEGER (INTEGER) : MON66 )
-    % MON11 TIME - basic time units, a fiftieth of a second each.
-    IMPORT ( ROUTINE VOID, INTEGER4 : MON11 )
-    % MN104 HOLD - sleep. The O drops at three digits.
-    IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER) : MN104 )
-    % MN113 CLOCK - seven elements. Element 6 is the FULL year, 1998 not 98.
-    IMPORT ( ROUTINE VOID, VOID (INTEGER ARRAY WRITE) : MN113 )
-
-    % ---- VTM -------------------------------------------------------------
-    % VTPCUR is (LINE, POSITION) - row first. MEASURED; two vendor programs
-    % name the arguments the other way round and the machine disagrees.
-    IMPORT ( ROUTINE VOID, INTEGER (INTEGER, INTEGER) : VTPCUR )
-    % VTDSCR is the VIEWPORT. It moves VTM's origin, it CLIPS, and it does NOT
-    % nest - a second call replaces the first and reads its rectangle against
-    % the physical screen.
-    IMPORT ( ROUTINE VOID, INTEGER (INTEGER, INTEGER, INTEGER, INTEGER) : VTDSCR )
-    % VTCREC clears a rectangle, viewport-relative.
-    IMPORT ( ROUTINE VOID, INTEGER (INTEGER, INTEGER, INTEGER, INTEGER) : VTCREC )
-    % VTWBUF FLUSHES. No arguments. Without it, anything drawn without a
-    % keystroke behind it sits in VTM's buffer and the program looks dead.
-    IMPORT ( ROUTINE VOID, INTEGER : VTWBUF )
-    % VTINBT - READ ONE KEY, DECODED BY VTM.
-    %
-    % THIS IS WHY THE PROGRAM DOES NOT LOOK AT BYTES. A function key is an
-    % escape sequence and every terminal sends a different one; decoding it
-    % here would mean a table per terminal, which is precisely VTM's job and
-    % VTM already has one. Hand-decoding also silently breaks the moment
-    % somebody runs this on a Tandberg.
-    %
-    % Shape from the STAR-TREK sources: IVTINBT(INP, 2, GETCTRL, 3). Three
-    % values IN, one result OUT - and getting that typing right is the whole
-    % trick. MEASURED 2026-08-25: declared with every argument WRITE, PAGE UP
-    % came back as FOUR raw bytes 27 91 53 126 and it looked as though VTM
-    % decoded nothing. A PLANC WRITE parameter is passed by ADDRESS, so the
-    % by-value arguments were being handed pointers. Typed properly, the same
-    % key comes back as ONE call with the code 201.
-    IMPORT ( ROUTINE VOID, INTEGER (INTEGER, INTEGER, &
-                                    INTEGER WRITE, INTEGER) : VTINBT )
-
-
-    % ---- CTYTP BITS ------------------------------------------------------
-    % Ask what a terminal can DO, never what number it is.
     CONSTANT bitEsc=1024
     CONSTANT bitCpos=2048
     CONSTANT bitVdu=16384
@@ -3360,7 +3369,8 @@ $INCLUDE screen
     % error names the ARRAY, which sends you to the declaration where nothing
     % is wrong.
     BYTES : digits := '0123456789'
-    BYTES : spaceByte := ' '
+    % spaceByte is NOT declared again here - the client already has one,
+    % and a second draws IDENTIFIER ALREADY SPECIFIED/DECLARED.
     BYTES : colonByte := ':'
     BYTES : starByte := '*'
     BYTES : atByte := '@'
@@ -3967,7 +3977,11 @@ $INCLUDE screen
     % not have to know how many the key will turn out to be.
     ROUTINE VOID, INTEGER : pollKey
         INTEGER : waiting
-        INTEGER : ch
+        % NOT "ch" - the client already has one and the compiler answers
+        % IDENTIFIER ALREADY SPECIFIED/DECLARED. It is only a warning, and that
+        % is exactly why it is worth fixing rather than leaving: a shadowed
+        % name compiles and then behaves in whichever way nobody expected.
+        INTEGER : keyByte
         INTEGER : st
         INTEGER : dev
         INTEGER : mode
@@ -3988,9 +4002,9 @@ $INCLUDE screen
         1 =: dev
         2 =: mode
         3 =: arg4
-        0 =: ch
-        VTINBT(dev, mode, ch, arg4) =: st
-        ch RETURN
+        0 =: keyByte
+        VTINBT(dev, mode, keyByte, arg4) =: st
+        keyByte RETURN
     ENDROUTINE
 
     % =====================================================================

@@ -1110,6 +1110,59 @@ def check(path):
                            'mis-parses the rest of the routine. Rename the '
                            'parameter.' % (path, r['start'], r['name'], nm5))
 
+    # ---- EVERY IMPORT BELONGS ABOVE THE FIRST ROUTINE -------------------------
+    #
+    # MEASURED on D100 2026-08-25, merging a screen renderer into the chat
+    # client. The renderer's imports were spliced in beside its own code, which
+    # sat just above PROGRAM - after every routine the client already had. The
+    # compiler answered
+    #
+    #     MISPLACED STATEMENT "IMPORT"
+    #
+    # TWENTY-SIX TIMES, once per line, and not one of those messages says where
+    # an import is supposed to go. Two full compiles of a 4400-line source to be
+    # told a block of declarations is in the wrong half of the file.
+    #
+    # A DUPLICATE IMPORT IS WORSE THAN MISPLACED, because it is an ERROR and not
+    # a warning: importing MON1 a second time answers ILLEGAL PREDECLARATION.
+    # That is the one a merge produces without anybody noticing - both halves
+    # legitimately needed MON1, and each had said so.
+    first_routine = None
+    for n, code in joined:
+        stripped = code.strip()
+        if re.match(r'^\s*(?:ROUTINE|PROGRAM)\b', stripped, re.IGNORECASE):
+            first_routine = n
+            break
+
+    if first_routine is not None:
+        for n, code in joined:
+            if n <= first_routine:
+                continue
+            if re.match(r'^\s*IMPORT\b', code.strip(), re.IGNORECASE):
+                out.append('%s:%d  IMPORT after the first routine (line %d). PLANC '
+                           'answers MISPLACED STATEMENT "IMPORT" - once per line, and '
+                           'the message never says that imports belong above every '
+                           'routine. Move it up with the others'
+                           % (path, n, first_routine))
+
+    # The same name imported twice.
+    seen_import = {}
+    for n, code in joined:
+        stripped = code.strip()
+        if not re.match(r'^\s*IMPORT\b', stripped, re.IGNORECASE):
+            continue
+        m = re.search(r':\s*([A-Za-z][A-Za-z0-9_]*)\s*\)\s*$', stripped)
+        if not m:
+            continue
+        nm = m.group(1).upper()
+        if nm in seen_import:
+            out.append('%s:%d  "%s" is IMPORTed here and again on line %d. A second '
+                       'IMPORT of one name is ILLEGAL PREDECLARATION, which is an '
+                       'ERROR - not the warning a repeated declaration usually gives'
+                       % (path, n, m.group(1), seen_import[nm]))
+        else:
+            seen_import[nm] = n
+
     # ---- EVERY BLOCK MUST BE CLOSED BY ITS OWN KEYWORD ------------------------
     #
     # PLANC has a separate closer per block - ENDIF, ENDFOR, ENDDO - and closing
