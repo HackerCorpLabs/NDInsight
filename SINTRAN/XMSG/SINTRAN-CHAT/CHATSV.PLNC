@@ -3840,7 +3840,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
                         ENDIF
                     ENDIF
                 ENDIF
-            ENDFOR
+            ENDIF
         ENDFOR
     ENDROUTINE
 

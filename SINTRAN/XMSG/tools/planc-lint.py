@@ -1110,6 +1110,98 @@ def check(path):
                            'mis-parses the rest of the routine. Rename the '
                            'parameter.' % (path, r['start'], r['name'], nm5))
 
+    # ---- EVERY BLOCK MUST BE CLOSED BY ITS OWN KEYWORD ------------------------
+    #
+    # PLANC has a separate closer per block - ENDIF, ENDFOR, ENDDO - and closing
+    # one with another's keyword is a pure counting mistake that a machine
+    # should never have had to find.
+    #
+    # MEASURED on D100 2026-08-25. resolveTo closed an IF with an ENDFOR:
+    #
+    #     4503  (3843)/RESOLVETO  *** ERROR - EXPECTS "ENDIF" ILLEGAL SYNTAX "ENDFOR"
+    #     4504  (3844)/RESOLVETO  *** ERROR - ILLEGAL SYNTAX "ENDFOR"
+    #
+    # An 88-second compile to be told a keyword was miscounted. Worse, the
+    # BRF-LINKER RAN ANYWAY AND WROTE A PROGRAM FILE, so the build looked
+    # finished - CHATSV:BRF had a fresh timestamp and the linker had read it.
+    # Only the listing said otherwise, and nothing makes you read it.
+    #
+    # THE FIRST VERSION OF THIS CHECK REPORTED 405 PROBLEMS ACROSS SIX FILES
+    # THAT ALL COMPILE, and every one was this check being wrong. Two reasons,
+    # both worth writing down because they are what makes the rule non-obvious:
+    #
+    #   - "FOR i IN 1:n DO" holds BOTH keywords, and the DO belongs to the FOR.
+    #     It is closed by the ENDFOR, not by an ENDDO. Only a DO with no FOR in
+    #     front of it on the same line opens a block of its own.
+    #   - CASE, ON and RECORD are left out entirely rather than guessed at.
+    #     Their closers are ignored too, so the count stays balanced whatever
+    #     a file does with them.
+    #
+    # Only IF, FOR and DO are tracked. That covers every block in this project
+    # and cannot be fooled by a construct nobody here writes.
+    for r in routines:
+        if r['end'] is None:
+            continue
+        stack = []
+        for n, code in joined:
+            if n <= r['start'] or n >= r['end']:
+                continue
+            stripped = code.strip()
+            if not stripped:
+                continue
+
+            # Comments are already gone and strings are already masked - see
+            # where "joined" is built - so every word here is real code.
+            words = re.findall(r'[A-Za-z_]+', stripped.upper())
+
+            skip_next_do = False
+            for w in words:
+                if w == 'ENDIF' or w == 'ENDFOR' or w == 'ENDDO':
+                    want = {'ENDIF': 'IF', 'ENDFOR': 'FOR', 'ENDDO': 'DO'}[w]
+                    if not stack:
+                        out.append('%s:%d  %s in %s closes a block that was never '
+                                   'opened. The BRF-LINKER still writes a program '
+                                   'file after this, so the build looks finished'
+                                   % (path, n, w, r['name']))
+                    elif stack[-1][0] != want:
+                        opener = stack[-1][0]
+                        need = {'IF': 'ENDIF', 'FOR': 'ENDFOR', 'DO': 'ENDDO'}[opener]
+                        out.append('%s:%d  %s in %s closes a %s that was opened on '
+                                   'line %d - it needs %s. The compiler answers '
+                                   'EXPECTS "%s" ILLEGAL SYNTAX "%s", and then the '
+                                   'LINKER RUNS ANYWAY and writes a program file, so '
+                                   'nothing about the build looks wrong'
+                                   % (path, n, w, r['name'], opener, stack[-1][1],
+                                      need, need, w))
+                        stack.pop()
+                    else:
+                        stack.pop()
+                elif w == 'IF':
+                    stack.append(('IF', n))
+                elif w == 'FOR':
+                    stack.append(('FOR', n))
+                    # The DO that follows on this line is the FOR's own.
+                    skip_next_do = True
+                elif w == 'ON':
+                    # ON ROUTINEERROR DO ... ENDON. The DO belongs to the ON and
+                    # is closed by the ENDON, which is not tracked - so the DO
+                    # must not be pushed either, or it is left open for ever.
+                    # This is the same shape as FOR, and it is why logOpen and
+                    # readLine were both reported as having an unclosed DO while
+                    # compiling perfectly.
+                    skip_next_do = True
+                elif w == 'DO':
+                    if skip_next_do:
+                        skip_next_do = False
+                    else:
+                        stack.append(('DO', n))
+
+        if stack:
+            top = stack[-1]
+            need = {'IF': 'ENDIF', 'FOR': 'ENDFOR', 'DO': 'ENDDO'}[top[0]]
+            out.append('%s:%d  %s in %s is never closed - it wants a %s before '
+                       'ENDROUTINE' % (path, top[1], top[0], r['name'], need))
+
     # A name is only inspected when it is READ or WRITTEN in a way that cannot be
     # anything else: "x =: y", "x(i) =: y", or a bare use as a subscript or in a
     # comparison. Keeping the shapes narrow is what keeps this quiet.

@@ -50,12 +50,11 @@ Typed at the client. Matched on a prefix by `cmdIs`, so `/j` works for `/join`.
 | `/list` | what rooms exist |
 | `/map` | how the machines are wired |
 | `/topic <text>` | set the room's topic; everyone is told |
+| `/tell <name> <text>` | a message to ONE person - `RONNY`, or `D102!RONNY` for another machine. Section 6. |
 | `/leave` | leave the room |
 | `/quit` | leave and exit the client |
 
 Anything not starting with `/` is said to the room.
-
-**There is no `/tell` and no private message.** See section 6.
 
 ---
 
@@ -182,16 +181,68 @@ back.
 reading a CHAIN can produce**, because there is exactly one path between any two machines. A
 completely broken implementation would print the same thing. Proving it needs a third trunk.
 
+### BUILT AND PROVED ON THE MACHINE
+
+**Private messages.** `/tell NAME text`, or `/tell D102!NAME text` for somebody on another
+machine. Proved on D100 2026-08-25 against server segment 2605B, START ADDRESS 32255B:
+
+```
+[TESTER/LOBBY] /tell NOBODYHERE are you there
+not sent to NOBODYHERE: nobody of that name is here now, and nothing is kept for later
+
+[TESTER/LOBBY] /tell TESTER talking to myself
+*(D100!TESTER) talking to myself
+sent to: D100!TESTER
+
+[TESTER/LOBBY] /tell D102!GHOST hei
+not sent to D102!GHOST: nobody of that name is here now, and nothing is kept for later
+```
+
+All four kinds exercised: 17 sent, 18 delivered, 19 receipt, 20 refusal.
+
+| What | Rule |
+|---|---|
+| a bare alias | searched on THIS machine and on every machine we hold a member list for |
+| exactly one match | delivered |
+| two or more | **REFUSED with both names**, never guessed at |
+| nobody | refused - and **nothing is kept**, see below |
+| `D102!NAME` | searched on that machine alone |
+
+**The sender arrives QUALIFIED** - `D100!TESTER`, not a bare `TESTER` - because what is displayed
+has to be what can be typed back. **The client marks it** (`*(...)`), and that is not decoration:
+a reply typed as an ordinary line would go to the whole room, which would be a privacy failure
+caused entirely by the display.
+
+**A DELIVERY RECEIPT IS SENT EVERY TIME**, not only on ambiguous names. Refusing an ambiguous alias
+protects the sender when the collision is visible; the receipt protects them when it is not - a
+second RONNY who logged in a moment ago, a machine that just went down. One line makes a wrong
+delivery visible at once instead of days later.
+
+**THERE IS DELIBERATELY NO STORE AND FORWARD.** "nobody of that name is here now" is a refusal, not
+a queue. A message that waits for somebody is a mailbox - a different product with different rules,
+and SINTRAN already has mail for that.
+
+### BUILT BUT NOT PROVED - a direct message CROSSING a trunk
+
+Kind 54 carries a direct message to another machine, with the same six-byte header as a relayed
+room line so it is de-duplicated by machinery that already exists. **The code is on D100 and no
+direct message has ever crossed a trunk** - proving it needs a client joined on D102 at the same
+time, which has not been done.
+
+**ONE HOP ONLY, AND THAT IS DELIBERATE.** A room line is flooded to every peer and sorted out at
+the far end. A private message must not be: flooding one hands it to machines that have no business
+seeing it, which is a privacy failure dressed up as routing. So it goes only to the machine holding
+the person, and anything further is **refused in words**.
+
+On the D102 - D100 - D103 chain that means D100 reaches both ends and each end reaches only D100.
+**That limit is real and it is visible** - the sender is told, rather than the message vanishing.
+Routing onward by the target's machine is the next step and needs a way to carry a refusal back,
+which no kind does yet.
+
 ### Designed, NOT built
 
-**Private messages.** There is no person-to-person kind anywhere in the server - the kinds are
-1-16 (room), 32-38 (admin) and 48-53 (trunk), and none of them is a direct message. There is a
-design note in `CHAT-DIRECT-MESSAGES-AND-CLIENT-CONFIG.md`.
-
-**This matters for the full-screen design:** the window bar in the mockup shows `4 =KARI 1*` and
-`5 =TERJE`, where `=` marks a direct message. **Those windows have no protocol behind them.**
-
-**Multiple windows.** One room at a time. The bar in the mockup is drawn but inert.
+**Multiple windows.** One room at a time. The bar in the full-screen mockup is drawn but inert, and
+its `=KARI` entries now have a protocol behind them even though no window does.
 
 ### Known limits
 

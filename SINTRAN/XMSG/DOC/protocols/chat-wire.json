@@ -287,28 +287,28 @@
         "value": "17",
         "meaning": "Client to server: send this text to ONE person, who need not be in the sender's room or in any room. The name field carries the target as typed - a bare alias (RONNY) or one qualified by machine (D102!RONNY). The separator is '!' and NOT '@' deliberately: '@' is the short command prefix, so @RONNY@D100 would need a parser that counts at-signs, whereas machine!alias reads left to right as route-then-person and has precedent in UUCP addressing of the same era. A bare alias matching more than one person in the federation is REFUSED with DirectBad and the candidate list, never guessed at - two machines can each hold a RONNY long before they trunk to each other, so no global uniqueness rule could ever have been applied, and a direct message delivered silently to the wrong person is a privacy failure rather than an inconvenience.",
         "status": "DESIGNED",
-        "evidence": "ChatMessageKind.Direct = 17, with ADirectMessageHasExactlyTheseBytes and ThoseExactBytesDecodeBackToADirectMessage pinning both directions. The '!' between machine and person is pinned as byte 0x21, NOT 0x40. ENCODER AND DECODER BUILT AND TESTED; the PLANC server does not handle it yet and no direct message has ever been sent. The design is DOC/CHAT-DIRECT-MESSAGES-AND-CLIENT-CONFIG.md."
+        "evidence": "ChatMessageKind.Direct = 17, with ADirectMessageHasExactlyTheseBytes and ThoseExactBytesDecodeBackToADirectMessage pinning both directions. The '!' between machine and person is pinned as byte 0x21, NOT 0x40. BUILT AND PROVED ON D100 2026-08-25 with server segment 2605B, START ADDRESS 32255B. The PLANC client sends it from /tell and the server answers. The design is DOC/CHAT-DIRECT-MESSAGES-AND-CLIENT-CONFIG.md."
       },
       {
         "name": "Directed",
         "value": "18",
         "meaning": "Server to client: a direct message addressed to this user personally. The name field carries the sender QUALIFIED (D102!KARI) so that what is displayed is also what can be typed back. A client marks these so they cannot be mistaken for room traffic.",
         "status": "DESIGNED",
-        "evidence": "ChatMessageKind.Directed = 18, pinned by ADirectedMessageCarriesTheSenderQualified - the name field holds 'D102!KARI' and the text is the message alone, because what is displayed must also be what can be typed back. ENCODER AND DECODER BUILT AND TESTED; no PLANC server handler yet."
+        "evidence": "ChatMessageKind.Directed = 18, pinned by ADirectedMessageCarriesTheSenderQualified - the name field holds 'D102!KARI' and the text is the message alone, because what is displayed must also be what can be typed back. BUILT AND PROVED ON D100 2026-08-25 - see the run recorded in CHAT-APP-SPECIFICATION.md section 6."
       },
       {
         "name": "DirectSent",
         "value": "19",
         "meaning": "Server to client: the direct message was delivered, and this is the QUALIFIED name it went to. Sent on every delivery, not only ambiguous ones. Refusing an ambiguous alias protects the sender when the collision is visible; this protects them when it is not - a machine that just went Down, a second RONNY who logged in a moment ago, a trunk that came back with a different user list. A wrong delivery becomes visible immediately instead of days later, for one line.",
         "status": "DESIGNED",
-        "evidence": "ChatMessageKind.DirectSent = 19, pinned by ADirectSentReceiptNamesTheTargetAndHasNoText, which also pins that an EMPTY text still writes BOTH length bytes - a PLANC encoder that omits them makes a message one byte short and the receiver reads the next field from the wrong offset, which looks like a corrupt name rather than a missing length. ENCODER AND DECODER BUILT AND TESTED; no PLANC server handler yet."
+        "evidence": "ChatMessageKind.DirectSent = 19, pinned by ADirectSentReceiptNamesTheTargetAndHasNoText, which also pins that an EMPTY text still writes BOTH length bytes - a PLANC encoder that omits them makes a message one byte short and the receiver reads the next field from the wrong offset, which looks like a corrupt name rather than a missing length. BUILT AND PROVED ON D100 2026-08-25 - see the run recorded in CHAT-APP-SPECIFICATION.md section 6."
       },
       {
         "name": "DirectBad",
         "value": "20",
         "meaning": "Server to client: the direct message was NOT delivered, and why. The name field carries the target that was tried; the text carries the reason, and for an ambiguous alias the candidate list ('which RONNY? D100!RONNY, D102!RONNY'). Carrying the candidates is what makes the refusal usable rather than merely annoying. 'not logged in' is a refusal too: there is deliberately NO store and forward, because a message that waits for somebody is a mailbox - a different product with different rules, and SINTRAN already has mail for that.",
         "status": "DESIGNED",
-        "evidence": "ChatMessageKind.DirectBad = 20, pinned by ADirectBadCarriesTheCandidateList - the name field holds the target that was tried and the text holds the reason, which for an ambiguous alias is the candidate list the sender can retype straight off the screen. ENCODER AND DECODER BUILT AND TESTED; no PLANC server handler yet."
+        "evidence": "ChatMessageKind.DirectBad = 20, pinned by ADirectBadCarriesTheCandidateList - the name field holds the target that was tried and the text holds the reason, which for an ambiguous alias is the candidate list the sender can retype straight off the screen. BUILT AND PROVED ON D100 2026-08-25 - see the run recorded in CHAT-APP-SPECIFICATION.md section 6."
       },
       {
         "name": "AdminInitialize",

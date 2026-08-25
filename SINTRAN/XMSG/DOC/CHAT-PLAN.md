@@ -102,16 +102,36 @@ person typing never approaches it. **The tell is the typed line sitting in the i
 nothing said, which reads exactly like a broken RETURN key.** It is not - KEYPROB answers 13 for
 RETURN every time. The RETURN never arrived.
 
-### PHASE 3 - private messages, which need PROTOCOL work first
+### PHASE 3 - private messages - **DONE for one machine, proved on D100 2026-08-25**
 
-**Nothing here can start until the server has a person-to-person kind.** The `=KARI` windows in
-the mockup have nothing behind them.
+10. **The kinds** went into `chat-wire.json` with golden bytes FIRST, then the server, then the
+    client - the order the registry enforces. DONE.
+11. **The routing question is answered, and the answer is NOT what a room line does.** A room line
+    is flooded to every peer and de-duplicated at the far end. Flooding a PRIVATE message would
+    hand it to machines with no business seeing it - a privacy failure dressed up as routing. So a
+    direct message goes ONLY to the machine holding the person, ONE HOP, and anything further is
+    refused in words. Kind 54 still carries the same origin/hops/id header as `kTrkRelId` so the
+    de-duplication machinery is shared rather than duplicated.
 
-10. **Add the kind** to `chat-wire.json` first, with golden bytes in both directions, then the
-    server, then the client - the order the registry already enforces.
-11. **Decide the routing question**: a direct message to somebody on ANOTHER machine has to cross
-    a trunk, so it needs the same origin-and-hops treatment as `kTrkRelId`. That is a real design
-    decision, not a small addition.
+Proved on the machine, server segment 2605B, START ADDRESS 32255B:
+
+```
+[TESTER/LOBBY] /tell NOBODYHERE are you there
+not sent to NOBODYHERE: nobody of that name is here now, and nothing is kept for later
+
+[TESTER/LOBBY] /tell TESTER talking to myself
+*(D100!TESTER) talking to myself
+sent to: D100!TESTER
+
+[TESTER/LOBBY] /tell D102!GHOST hei
+not sent to D102!GHOST: nobody of that name is here now, and nothing is kept for later
+```
+
+The middle one is the whole feature in three lines: the message came back MARKED and with the
+sender QUALIFIED, and the receipt named who it actually reached.
+
+**STILL NOT PROVED: a direct message CROSSING a trunk.** Kind 54 is built at both ends and no
+direct message has ever gone over one. It needs a client joined on D102 at the same time.
 
 ### PHASE 4 - multiple windows
 
