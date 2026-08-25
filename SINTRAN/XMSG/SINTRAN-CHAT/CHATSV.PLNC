@@ -75,6 +75,64 @@ MODULE chatsv
 $INCLUDE XMP-B02:DEFS
 $INCLUDE XMP-B02:IMPT
 
+% ---------------------------------------------------------------------------
+% FILE MONITOR CALLS, for the log. Same three CHAT.PLNC uses for CHAT:CNFG,
+% declared the same way, because that pair has been working on D100 since
+% 2026-08-19 and a second spelling of a proven call is a second thing to get
+% wrong.
+%
+%   MON50  OpenFile   name, type, access -> device number. RAISES ROUTINEERROR
+%                     on failure, and leaves 46 in the device number when the
+%                     file is not there - NOT zero. Never test the number.
+%   MON2   OutByte    the byte is the IN-VALUE: "b MON2(dev)".
+%   MON43  CloseFile  and it is 43, not 54 - 54 is DELETE.
+%
+% They come from MON-CALL-1B-A00, which this program already links for
+% MONITOR_CALL - see the LOAD line in CHATSV:MODE.
+% ---------------------------------------------------------------------------
+IMPORT ( ROUTINE VOID, INTEGER (BYTES, BYTES, INTEGER) : MON50 )
+IMPORT ( ROUTINE BYTE, VOID (INTEGER) : MON2 )
+IMPORT ( ROUTINE VOID, VOID (INTEGER) : MON43 )
+
+% ---------------------------------------------------------------------------
+% RANDOM BLOCK ACCESS, for the per-room history ring.
+%
+%   MN117  ReadFromFile  (RFILE 117B)
+%   MN120  WriteToFile   (WFILE 120B)
+%
+%     (dev, zero, dadr, bl, words)
+%      dev    the device number MON50 gave back
+%      zero   the WAIT flag: 0 suspends until the transfer is done, which is
+%             what we want - anything else means checking with AwaitFileTransfer
+%      dadr   the buffer, an INTEGER ARRAY. WORDS, not bytes.
+%      bl     the block to start at. The FIRST BLOCK IS 0, and -1 means "the
+%             next one".
+%      words  how many words to move.
+%
+% THE NAME LOSES ITS "O" ABOVE 76, and this is not a typo. Asked the library
+% itself rather than guessed:
+%
+%   Brl: LIST-BRF-ENTRIES PLANC-1BANK-F00,,
+%        ... MON73 MON74 MON75 MON76  MN104 MN113 MN114 MN117 MN120 MN122 ...
+%
+% "MON104" would be six characters and an ND symbol is five, so the O goes.
+% The PLANC manual's appendix looks self-contradictory for the same reason -
+% its HEADING says "MON117" and the routine it declares is "MN117". The
+% routine name is the one to import. One command settled it; the alternative
+% was a guessed name and a four-minute compile to find out.
+%
+% WHY RANDOM AND NOT THE SEQUENTIAL PAIR ABOVE: MON1/MON2 move one byte and
+% cannot overwrite in place, so a ring built on them means rewriting the whole
+% file - on every message, or on every N with a compaction step. One message
+% per 512-byte block makes an append a SINGLE MN120 at block (id MOD N): no
+% read-modify-write, no compaction, and a file whose size is fixed the day the
+% room is created.
+% ---------------------------------------------------------------------------
+IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
+    INTEGER) : MN117 )
+IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
+    INTEGER) : MN120 )
+
     % ----- message kinds, mirroring ChatMessageKind.cs ----------------------
     INTEGER : kJoin    := 1
     INTEGER : kWelcome := 2
@@ -90,6 +148,157 @@ $INCLUDE XMP-B02:IMPT
     % ONE KIND, BOTH DIRECTIONS: the member asks with an empty text, the room
     % answers with the same kind and the names in the text. See buildWho.
     INTEGER : kWho     := 11
+
+    % ALSO ONE KIND BOTH DIRECTIONS, same shape as kWho.
+    %
+    % kTopic  ask: empty text.  set: the new topic in the text.
+    %         answer: the ROOM NAME in the name field, the topic in the text.
+    %         A SET is broadcast to the room; an ASK goes to the asker alone.
+    % kRooms  ask: empty text. answer: "NAME(count)" per room, space separated.
+    %
+    % Room kinds live in 1..31 and admin starts at 32 - see the note there.
+    % These MUST match DOC/protocols/chat-wire.json and ChatMessageKind.cs, and
+    % all three move in the same commit.
+    % 12 IS NOT FREE - it is Map, reserved for /map (task #77). The registry
+    % had already allocated all three when this was written, and taking 12 for
+    % the topic would have put /topic and /map on the same number. Read
+    % DOC/protocols/chat-wire.json BEFORE picking a kind, not after.
+    % /map - the machines and their trunks, for an ordinary member. A ROOM kind
+    % and not an admin one on purpose: SEEING how the network is wired is not
+    % the same right as REWIRING it. Reserved here since 2026-08-20; built
+    % 2026-08-22. See buildMap.
+    INTEGER : kMap     := 12
+
+    INTEGER : kRooms   := 13
+    INTEGER : kTopic   := 14
+
+    % THE ANSWER TO /who WHEN THE ASKER IS IN NO ROOM.
+    %
+    % Ronny, 2026-08-22: "running /who when not in a room should list all rooms
+    % and all people in the rooms." A person who has left, or who was refused a
+    % nickname, has no seat and therefore no room to filter by - and the useful
+    % answer to them is the whole house, not silence.
+    %
+    % A SEPARATE KIND, NOT kWho, because the client LABELS a kWho answer with
+    % the room it thinks it is in - "in (LOBBY): ..." - and putting every room's
+    % people under that label would print something FALSE, which is the exact
+    % mistake /who itself made until 2026-08-22 (see buildWho). A different kind
+    % costs one number and makes the label impossible to get wrong.
+    %
+    % ONE DIRECTION ONLY, unlike its neighbours: the client never sends 15. It
+    % sends kWho and the SERVER decides which answer fits, because the server is
+    % the one that knows whether the asker has a seat.
+    INTEGER : kAllWho  := 15
+
+    % REPLAYED HISTORY - one of these per remembered message, sent to a joiner
+    % before the room hears they arrived.
+    %
+    % A DISTINCT KIND AND NOT kSaid, decided 2026-08-22 and written into the
+    % registry with the reason. Replaying kSaid would be less code and the
+    % client already renders it - but then a client CANNOT TELL history from
+    % live traffic, and the difference matters the moment it timestamps, beeps
+    % or counts unread. Taking the cheap option here would be choosing to make
+    % those features wrong later.
+    %
+    % Same shape as kSaid otherwise: the speaker in the name field, what they
+    % said in the text.
+    INTEGER : kHist    := 16
+
+    % ADMIN kinds - 32 and up, and they belong on the command port. These MUST
+    % match DOC/protocols/chat-wire.json and ChatMessageKind.cs; all three move
+    % in the same commit, which is constraint 5 of the federation design.
+    INTEGER : kAdmStat := 32
+    INTEGER : kAdmRepl := 33
+    INTEGER : kAdmStop := 34
+
+    % Trunk configuration, from CHAT-MON on the command port. These CONFIGURE the
+    % network, which is why they are admin kinds and not room kinds - seeing how
+    % the network is wired (/map, kind 12) is not the same right as rewiring it.
+    % All three answer with kAdmRepl, so CHAT-MON needs no new decoding.
+    INTEGER : kAdmTrunk   := 35
+    INTEGER : kAdmUntrnk  := 36
+
+    % INITIALIZE <room> <n> - how many messages a room remembers.
+    %
+    % An ADMIN kind because it configures the server, and it is the one thing
+    % the history design asked for that the ring itself did not provide: "a
+    % CONSTANT, default around 50 messages per room, CONFIGURABLE PER ROOM ...
+    % not a hard-coded 50 buried in the source".
+    INTEGER : kAdmInit    := 38
+    INTEGER : kAdmTrunks  := 37
+
+    % SERVER TO SERVER, on the trunk port. 48 and up, left clear of the admin
+    % block so a future admin verb cannot collide with a trunk one.
+    %
+    % ONE KIND, BOTH DIRECTIONS, and the TEXT'S FIRST BYTE says which way: 0 is
+    % "I am here, are you?" and 1 is "I am here, and I am answering you". Without
+    % that byte two servers answering each other's HELLO would say hello for
+    % ever. An ANSWER is never answered.
+    INTEGER : kTrkHello   := 48
+    INTEGER : trkAsk      := 0
+    INTEGER : trkAnswer   := 1
+
+    % Phase C - "tell me who is on you" and the answer.
+    %
+    % TWO KINDS, NOT ONE, unlike the hello. The hello could share a kind because
+    % its two directions carry the same thing; these do not - the ask is empty
+    % and the answer is a list - so a receiver would have to look at the length
+    % to know which it had. A kind per direction is cheaper to read and cannot
+    % be got wrong.
+    %
+    % THE ANSWER'S TEXT is "NAME/ROOM NAME/ROOM ...", space between people and a
+    % slash between a person and their room. Readable on a trace, and it needs
+    % no length table - the same shape /who already sends to a client.
+    INTEGER : kTrkWho     := 49
+    INTEGER : kTrkMbrs    := 50
+
+    % Phase D - somebody spoke on another machine.
+    %
+    % NAME field = the speaker, unqualified, as their own machine knows them.
+    % TEXT = "ROOM/what they said". The receiving machine adds the "@Dnnn",
+    % because only IT knows which system the letter came from - taken from the
+    % magic, not from anything the sender claimed. A speaker cannot forge the
+    % machine they are on.
+    %
+    % NOT RELAYED ONWARD. A message received on a trunk is delivered to local
+    % members and stops. With two machines that is complete; with three it will
+    % need a hop count and an origin, which is the rest of phase D and is not
+    % built. Forwarding blindly now would loop the moment a third machine
+    % appeared.
+    INTEGER : kTrkSaid    := 51
+    % A line being RELAYED onward. Same shape as kTrkSaid with three bytes in
+    % front: the origin system, big-endian, then how many hops it may still
+    % take. A SEPARATE kind rather than extra fields on kTrkSaid so a server
+    % that has not been upgraded keeps handling its direct trunks unchanged -
+    % these machines are upgraded one at a time.
+    INTEGER : kTrkRelay   := 52
+    % How far a line may travel from the machine it was typed on. Three is
+    % ample for D100/D102/D103 and bounds the damage if a future mesh ever
+    % loops: the count is what makes the loop terminate, not the topology.
+    INTEGER : maxHops     := 3
+    % A relayed line that also carries the number its ORIGIN gave it. Same
+    % shape as kTrkRelay with two more bytes after the hop count.
+    %
+    % THE ID MUST COME FROM THE ORIGIN. It cannot be handed out by a relay: a
+    % machine with two peers sends one line to both, each would stamp its own
+    % number, and a machine further out would see two names for one line and
+    % show it twice - which is the very thing this exists to stop.
+    %
+    % A SEPARATE kind rather than a longer kTrkRelay header, for the same
+    % reason kTrkRelay is separate from kTrkSaid: a server that has not been
+    % upgraded would read the two extra bytes as a name length and a name and
+    % show its users rubbish. A kind it does not know it just ignores.
+    INTEGER : kTrkRelId   := 53
+    % How many recent lines we remember in order to spot a repeat. A second
+    % copy arrives within a hop or two of the first, so a short window is
+    % enough, and a FIXED one cannot be made to grow by a peer sending us
+    % traffic.
+    INTEGER : maxSeen     := 64
+
+    % Set by an AdminStop. Checked at the bottom of the loop rather than acted
+    % on where it arrives, so the reply path and the reaping finish first - a
+    % stop that abandons a half-sent message is not a clean stop.
+    BOOLEAN : stopWanted := FALSE
 
     % THERE IS NO ELEVENTH KIND, and the reason is worth keeping.
     %
@@ -114,7 +323,10 @@ $INCLUDE XMP-B02:IMPT
     % drew IDENTIFIER ALREADY SPECIFIED/DECLARED "XFWTF", and the compiler then
     % fell over with ASSERT VIOLATION AT 136747B and took the batch job with it.
     % A redeclaration is not a warning you can carry on past in this compiler.
-    INTEGER : waitFlags := 0       % 2**XFWTF, computed at start
+    % ZERO, and it stays zero - see the PROGRAM body for the measurement. Flags
+    % zero is XMSG's own no-wait: XFRCV returns at once whether or not a message
+    % was there, which is the only way one loop can poll TWO ports.
+    INTEGER : waitFlags := 0
 
     % 2**XFSEC, computed at start. SECURE, and the reason is a measurement.
     %
@@ -203,6 +415,140 @@ $INCLUDE XMP-B02:IMPT
     % thing safe to do at that depth; the acting happens back at the top.
     INTEGER ARRAY  : memberDead(1:16)
 
+    % ---- WHICH ROOM EACH MEMBER IS IN ------------------------------------
+    %
+    % The room used to be a PORT NAME - the client built "CHAT-" plus the room
+    % and addressed that - so the server never had to know: whoever reached
+    % this port was, by definition, in this room. One port now, so the room is
+    % a field in the Join and the server has to remember it per member.
+    %
+    % Sixteen characters, same as a nickname. A room is a name a person types.
+    BYTES ARRAY    : mbrRoom(1:16, 1:16)
+    INTEGER ARRAY  : mbrRoomLen(1:16)
+
+    % Where a member goes when the Join names no room - see copyRoomIn.
+    BYTES          : homeRoom := 'LOBBY'
+    INTEGER        : lenHomeRoom := 5
+
+    % ---- ROOM TOPICS -----------------------------------------------------
+    %
+    % A SEPARATE TABLE, NOT A COLUMN IN THE MEMBER TABLE, and the reason is
+    % that a topic OUTLIVES the people who set it. Hanging it off a seat would
+    % throw it away the moment the last person left, which is exactly when a
+    % topic is doing its job: telling the next person what the room is for.
+    %
+    % Keyed by ROOM NAME, because that is all a room is here - there is no room
+    % id and no room record. An entry is made the first time somebody sets a
+    % topic, and once made it stays for the life of the server.
+    %
+    % EIGHT rooms, not sixteen. Sixteen seats could in principle be sixteen
+    % rooms of one person each, so this table CAN fill up - and when it does,
+    % setTopic refuses in the open rather than silently dropping the topic. A
+    % refusal a user can read beats a feature that quietly does nothing.
+    INTEGER        : maxTopics := 8
+    BYTES ARRAY    : topicRoom(1:8, 1:16)
+    INTEGER ARRAY  : topicRoomLen(1:8)
+
+    % 64 characters. The whole message must fit outBuf's 250-byte text field
+    % alongside the room name, and a topic is a headline, not an essay.
+    INTEGER        : maxTopicLen := 64
+    BYTES ARRAY    : topicText(1:8, 1:64)
+    INTEGER ARRAY  : topicTextLen(1:8)
+
+    % ----- the per-room history ring ---------------------------------------
+    %
+    % Ronny, 2026-08-20: somebody joining should see what was just said instead
+    % of an empty screen, and it should survive the server being stopped.
+    %
+    % IT SHARES THE TOPIC TABLE'S SLOTS, AND THAT IS THE WHOLE STRUCTURE. The
+    % design note used to say this needed a room table first, because rooms are
+    % DERIVED from the seats and there is no per-room anything. There already
+    % is one: topicRoom/topicRoomLen with findTopic and claimTopic is a room
+    % table under another name. Using the same index for history means the two
+    % can never disagree about what a room is - and a room that has neither a
+    % topic nor a history needs no entry at all.
+    %
+    % ONE 512-BYTE BLOCK PER MESSAGE, block = id MOD histSize. An append is a
+    % single MN120 - no read-modify-write, no compaction, and the file's size is
+    % fixed the day the room is created. See the note beside the imports.
+    %
+    % THE FILE IS NAMED FROM THE INDEX, NEVER THE ROOM NAME: CHATH1:DATA up to
+    % CHATH8:DATA. Room names are chosen by users and a SINTRAN file name is
+    % short, case-folded and must be unique - deriving one from arbitrary text
+    % invites collisions and illegal names with no good failure mode. The room
+    % NAME is written into block 0 so the file is still self-describing.
+    INTEGER        : maxHistRooms := 8
+
+    % The next id to be written, per room. IT ONLY EVER GOES UP: it is what
+    % makes "block = id MOD size" a ring, and it is the same number the unread
+    % count will need - the server reports the room's latest, the client
+    % subtracts its own anchor. One number doing two jobs, so it has to be right.
+    INTEGER ARRAY  : histNext(1:8)
+
+    % How many messages this room keeps. Per room, not one constant for the
+    % whole server, because that is what was asked for. 50 until CHAT-MON can
+    % set it.
+    % 200, Ronny 2026-08-23. It is also maxHistSize, so the default IS the
+    % ceiling and INITIALIZE can only ever lower a room - which is the right way
+    % round: the limit exists to stop a typo asking for megabytes, not to stop
+    % anybody keeping what they meant to keep.
+    %
+    % 200 messages is 200 blocks is 100KB a room, and eight rooms is 800KB -
+    % the same figure the no-total decision was taken against, so the bound has
+    % not moved. It is now the ordinary case rather than the worst one.
+    INTEGER        : histDefault := 200
+
+    % AND A CEILING, because INITIALIZE takes a number from an operator and a
+    % ring of 30000 blocks is 15 megabytes of disk asked for by a typo. 200 is
+    % well past anything a room needs to show a new arrival and still only
+    % 100KB a room.
+    INTEGER        : maxHistSize := 200
+    INTEGER ARRAY  : histSize(1:8)
+
+    % CreateFile's page count. INTEGER4 because that is what 221B's parameter
+    % is - startAddr beside it is INTEGER4 for the same reason, and passing a
+    % plain INTEGER to a call that wants a double word is the kind of mistake
+    % that compiles and then writes somewhere unintended.
+    INTEGER4       : histPages := 0
+
+    % The open file, or 0 for "not opened yet". Opened once and left open: a
+    % room is written to on every message, and opening per message would put a
+    % file open and close in the path of every line anybody types.
+    INTEGER ARRAY  : histDev(1:8)
+
+    % One block, as WORDS, because that is what MN117 and MN120 move.
+    % 256 words = 512 bytes = one SINTRAN block.
+    INTEGER        : histWords := 256
+    INTEGER ARRAY  : histBlock(0:255)
+
+    % The file name being built.
+    %
+    % IT NAMES THE USER, AND THAT IS NOT DECORATION: "(SYSTEM)CHATH1".
+    %
+    % MEASURED ON D100, 2026-08-23. With a bare "CHATH1" the server created
+    % nothing and opened nothing - and after (SYSTEM)CHATH1:DATA was created BY
+    % HAND from the terminal, 50 pages, FILE-STATISTICS still said
+    % "OPENED 0 TIMES". The program was looking somewhere that is not SYSTEM.
+    %
+    % Which somewhere is not settled: an RT program does not run as the user
+    % who loaded it, and "CREATE-FILE (RT)CHATH1:DATA,50" typed as SYSTEM is
+    % refused with NOT DIRECTORY ACCESS, so that guess cannot even be tested
+    % from a terminal.
+    %
+    % NAMING THE USER REMOVES THE QUESTION rather than answering it. A server
+    % that keeps its files somewhere definite is better than one that depends
+    % on whatever user SINTRAN decides an RT program is - and the files then
+    % sit beside CHATSV:PROG where anybody looking for them would look.
+    %
+    % 22 bytes: "(SYSTEM)CHATH1" is 14, and the quoted form that means CREATE
+    % is 16. Room to spare rather than a count that has to be re-derived if the
+    % stem ever changes.
+    BYTES          : histName(0:21)
+    BYTES          : histUser := '(SYSTEM)'
+    INTEGER        : lenHistUser := 8
+    BYTES          : histStem := 'CHATH'
+    BYTES          : histType := 'DATA'
+
     % Is there anything to reap? Kept so the common case - nothing died - costs
     % one compare per message instead of a walk of the whole room.
     INTEGER        : deadFound := 0
@@ -237,8 +583,288 @@ $INCLUDE XMP-B02:IMPT
     % byte-to-byte.
     BYTES : spaceByte := ' '
 
+    % Same trick, for the room counts /list writes - "LOBBY(2)". Brackets are
+    % held as one-element BYTES for exactly the reason spaceByte is.
+    BYTES : openParen  := '('
+    BYTES : closeParen := ')'
+
+    % '@', for qualifying a remote member - "ANNA@D102". Two machines can each
+    % have an ANNA, and a bare name would make them look like one person.
+    BYTES : atByte     := '@'
+
+    % '0' as a NUMBER, because a digit is computed rather than copied: the
+    % count is arithmetic, so the character is digitZero + the value. Held as
+    % an INTEGER and not a BYTES for that reason - it is added to, not copied.
+    INTEGER : digitZero := 48
+
+    % Same reason as spaceByte: a string literal cannot be stored into a BYTES
+    % element, so every literal character this program writes into a buffer
+    % lives in a one-element BYTES and is copied byte to byte.
+    % A LOCAL CANNOT CARRY AN INITIALISER. "BYTES : oneByte := ' '" inside
+    % showName drew *** ERROR - INITIAL VALUE ILLEGAL HERE, while the identical
+    % line at MODULE level compiles - which is why the same declaration works in
+    % CHATMON and failed here. Module level it is, beside the others.
+    BYTES : oneByte   := ' '
+    BYTES : slashByte := '/'
+    BYTES : zeroByte  := '0'
+
+    % ':', for the all-rooms /who - "LOBBY: TESTER OLAV". Same reason as every
+    % other single character in this list: a string literal cannot be stored
+    % into a BYTES element, so it lives in a one-element BYTES and is copied.
+    BYTES : colonByte := ':'
+
+    % '"', and it is not decoration: quoting a file name is how you say CREATE
+    % to MON50, which would otherwise require the file to exist already. See
+    % histOpen, where the plain name is tried first and the quoted one only if
+    % that fails.
+    BYTES : quoteByte := '"'
+
+    % The fixed part of the status line. Held as bytes for the same reason.
+    BYTES : statusWord := 'SEATS '
+
     INTEGER  : myPort
     INTEGER  : msgType
+
+    % ---- COUNTED, NOT PRINTED ---------------------------------------------
+    % These three used to print a line each, every time, straight to terminal 1.
+    % Two of them are EXPECTED events, so the terminal filled with them and the
+    % rare interesting line was buried:
+    %
+    %   nEmptyLet  a routed letter with no payload. XROUT's ANSWER to a seat
+    %              return arrives on our own port looking exactly like this, so
+    %              there is one per seat returned - see the note by the drop.
+    %   nBounced   a message that came home because nobody was there. One per
+    %              dead client, and clients die in bursts when a terminal goes.
+    %   nRefused   a join we turned away, whatever the reason.
+    %
+    % A count answers the question the flood was trying to answer - "is this
+    % happening more than it should" - and STATUS shows all three on demand.
+    %
+    % WHAT A RISING nEmptyLet ACTUALLY MEANS - measured 2026-08-24 from a hub
+    % capture, and it is NOT a fault. The trunk exchanges a burst of about 24
+    % frames every 2 to 3 minutes when nobody is typing at all: kTrkHello, then
+    % kTrkWho, then kTrkMbrs, both directions. Every letter we send that way
+    % draws an XROUT answer back onto our own port with no payload, so the count
+    % tracks the TRUNK's idle cycle, not the clients. 712 on D100 after an
+    % afternoon with one idle client is normal.
+    %
+    % So read it as a liveness number: climbing steadily means the trunk is up.
+    % FLAT while a trunk is supposed to be up is the interesting case.
+    INTEGER  : nEmptyLet
+    INTEGER  : nBounced
+    INTEGER  : nRefused
+    % How many lines this machine has passed ON to a further peer. A machine in
+    % the MIDDLE of a chain should show this climbing; an end machine should
+    % show it flat at zero, and a non-zero count on an end machine means the
+    % topology is not what somebody thinks it is.
+    INTEGER  : nRelayed
+
+    % How many repeats we recognised and threw away. On a CHAIN this stays at
+    % ZERO for ever - there is only one path between any two machines, so no
+    % line can arrive twice. It only starts moving once somebody wires a
+    % second path, and that is exactly when you want to see it moving.
+    INTEGER  : nDupes
+
+    % The number we put on the next line typed HERE. Only this machine ever
+    % sets it; a relay passes an id on untouched.
+    %
+    % It wraps at 65536 and that is harmless: a number can only be mistaken
+    % for a live one if we sent 65536 lines while the first was still inside
+    % a 64-entry window, which cannot happen.
+    INTEGER  : myLineId
+
+    % The lines we have already seen, as two parallel rows - the machine it
+    % came from and the number that machine gave it. BOTH are needed: every
+    % machine numbers from its own counter, so id 1 exists on all of them at
+    % once, and matching on the id alone would silently swallow other
+    % machines' lines.
+    INTEGER ARRAY  : seenSys(1:64)
+    INTEGER ARRAY  : seenId(1:64)
+    % Where the next one goes, 1..maxSeen, and how many rows are real.
+    % seenUsed matters because a fresh table is all zeros, and (0,0) is a pair
+    % a real line could otherwise be mistaken for.
+    INTEGER  : seenAt
+    INTEGER  : seenUsed
+
+    % ---- THE COMMAND PORT, AND WHY THE LOOP HAD TO CHANGE ------------------
+    %
+    % XFRCV RECEIVES ON ONE NAMED PORT. There is no receive-on-any-port form -
+    % ND-60.134.2 section 4.3.2.10. This program used to block on myPort with
+    % XFWTF, and a server that keeps doing that NEVER SEES a message on a
+    % second port. Not failing, not logging: sitting in the lobby wait while
+    % CHATMON waits for an answer that cannot come.
+    %
+    % The manual's answer is XFWAK: a non-blocking receive arms a wake-up
+    % instead, and "this 'wake up' option can be enabled on more than one port
+    % at a time". MON 100B is StartRTProgram, so that wake-up RT-STARTS this
+    % program - which means there is no wait to choose at all. Drain both
+    % ports, and when both are empty, TERMINATE. A transmission to either one
+    % starts us again.
+    %
+    % AND THE TRAP FROM THE SAME PARAGRAPH: "when the 'wake up' is done, the
+    % message is not received, and so the receive must be repeated." The
+    % wake-up is a DOORBELL, NOT A DELIVERY.
+    INTEGER  : adminPort
+
+    % CHAT-ADMIN is a NORMAL named port (XMPOPNM), NOT a connection port.
+    % CHAT-LOBBY is a connection port and every arrival there spends one of the
+    % free connections - a seat a human then cannot have. An operator asking
+    % for STATUS must not cost the room a seat, and must still get in when the
+    % room is full, which is exactly when they would want to ask.
+    BYTES    : admName := 'CHAT-ADMIN'
+    INTEGER  : lenAdmName := 10
+
+    % ---- THE TRUNK PORT, AND WHY IT IS A THIRD PORT --------------------------
+    %
+    % Server-to-server traffic. Also XMPOPNM, and for the SAME reason the command
+    % port is: a trunk must cost the room NO SEATS. A peer that is switched off
+    % gets a HELLO every so often for as long as it is away, and if that spent a
+    % free connection each time the room would fill up with machines that are not
+    % there. The design calls this constraint 1: the trunk must never point at
+    % the room port.
+    %
+    % A TRUNK IS NOT A CONNECTION. XMSG named ports are message passing - there is
+    % no session to open, nothing to hold, and nothing that drops. A trunk is a
+    % BELIEF that a peer is reachable, held as soft state and refreshed. Neither
+    % side is the client: each is a server when a letter arrives and a client when
+    % it sends one.
+    BYTES    : trkName := 'CHAT-TRUNK'
+    INTEGER  : lenTrkName := 10
+    INTEGER  : trunkPort
+
+    % The XSLET letter header XMPBLET builds when this server ORIGINATES a
+    % message to another machine. Replies do not need it - they go straight to
+    % the magic the message arrived with - so this exists only for trunks.
+    BYTES    : letterBuf(0:63)
+
+    % The peer's SYSTEM NAME, built at runtime from its number: 'D' and the
+    % decimal digits. XMPBLET's system parameter is a NAME as BYTES, never a
+    % number - see the long note on sendToName for the three compile cycles that
+    % established it. Declared with explicit BOUNDS because it is filled at
+    % runtime, which is also why it is passed as a subarray.
+    BYTES    : peerName(0:15)
+    BYTES    : dByte := 'D'
+
+    % ---- THE PEER TABLE ------------------------------------------------------
+    %
+    % One row per trunked machine. SOFT STATE: nothing here is a connection, it
+    % is what we currently BELIEVE about a peer, and the belief is refreshed by
+    % anything arriving from it.
+    %
+    % EIGHT is plenty and the bound is deliberate. Trunks are configured by an
+    % operator one at a time, not discovered, so a table that cannot overflow
+    % quietly is worth more than a big one. TRUNK refuses out loud when it is
+    % full.
+    INTEGER        : maxPeers := 8
+    INTEGER ARRAY  : peerSystem(1:8)      % XMSG system number, 0 = free row
+    INTEGER ARRAY  : peerState(1:8)       % see the three constants below
+    INTEGER ARRAY  : peerHeard(1:8)       % loop ticks since we last heard from it
+
+    % Peer states. NOT a BOOLEAN pair, because "we have never heard from it" and
+    % "we heard from it and then it went quiet" are different things to an
+    % operator reading LIST-TRUNKS: the first is probably a configuration
+    % mistake, the second is a machine that went away.
+    INTEGER        : peerUnknown := 0
+    INTEGER        : peerUp      := 1
+    INTEGER        : peerDown    := 2
+
+    % How many idle loop ticks before a peer we have heard nothing from is
+    % declared Down, and how often we say HELLO to one that is not Up.
+    %
+    % BACKOFF IS REQUIRED, NOT OPTIONAL - a machine that is switched off must not
+    % be probed every few seconds for a week. This first cut uses a flat retry;
+    % the design asks for 15s/30s/60s/5min and that is worth doing once the flat
+    % one is proved on the wire. Written down here so it is not forgotten.
+    % Seconds of silence before a peer we HAD is declared Down.
+    INTEGER        : peerDeadAfter := 60
+
+    % ---- BACKOFF, AND WHY IT IS NOT A FIXED INTERVAL ------------------------
+    %
+    % "Backoff is required, not optional" - the design, and it is right: a
+    % machine that is switched off must not be probed every few seconds for a
+    % week. Two peers left down over a weekend at a flat 20s would be about
+    % 30,000 pointless letters.
+    %
+    % So the wait DOUBLES after every unanswered try, from 15 seconds up to a
+    % cap of five minutes: 15, 30, 60, 120, 240, 300, 300, ... A machine that
+    % comes back is found within five minutes at worst, and usually far sooner
+    % because ITS OWN hello reaches us the moment it starts - the retry is the
+    % fallback, not the mechanism.
+    %
+    % RESET ON EVERY transition to Up, not just the first, so a peer that flaps
+    % does not inherit a five-minute wait from its last absence.
+    INTEGER        : peerFirstWait := 15
+    INTEGER        : peerMaxWait   := 300
+    INTEGER ARRAY  : peerWait(1:8)        % seconds to wait before the next try
+    INTEGER ARRAY  : peerCount(1:8)       % seconds left of that wait
+
+    % ---- WHO IS ON THE OTHER MACHINES ---------------------------------------
+    %
+    % Phase C. A copy of what each peer last told us about its members, so /who
+    % can answer across machines.
+    %
+    % ENTIRELY DERIVED, NEVER AUTHORITATIVE. Every row here was sent by the
+    % machine that owns it, and is replaced wholesale the next time that machine
+    % speaks. We never add, edit or reason about another machine's members - if
+    % this disagrees with the far end, the far end is right and this is stale.
+    %
+    % KEYED BY THE OWNING SYSTEM so a peer going away can have all of its rows
+    % dropped in one pass. A peer that is Down must not leave people apparently
+    % chatting from a machine that is not there.
+    INTEGER        : maxRemote := 32
+    INTEGER ARRAY  : rmtSystem(1:32)      % owning machine, 0 = free row
+    BYTES ARRAY    : rmtName(1:32, 1:16)
+    INTEGER ARRAY  : rmtNameLen(1:32)
+    BYTES ARRAY    : rmtRoom(1:32, 1:16)
+    INTEGER ARRAY  : rmtRoomLen(1:32)
+
+    % TRUE once the ports are open. MODULE data lives in the RT segment and
+    % SURVIVES the terminate above - the member table, the port numbers and the
+    % magic are all still here on the next start. INISTACK is not: it runs
+    % every time. So the opening work must happen ONCE, or the second start
+    % tries to re-open a name this program already holds and fails.
+    BOOLEAN  : portsOpen := FALSE
+
+    % Which port the message being handled arrived on. Admin kinds are refused
+    % on the lobby and room kinds on the command port - sharing one vocabulary
+    % is not sharing the authority to use any of it anywhere.
+    BOOLEAN  : fromAdmin := FALSE
+
+    % Same idea for the trunk port. A kTrkHello arriving on the ROOM port is not
+    % a trunk message, it is a member sending something they should not, and the
+    % handler drops it rather than trusting it.
+    BOOLEAN  : fromTrunk := FALSE
+
+    % Which SYSTEM the message being handled came from, taken apart from the
+    % sender's magic number with XMPFM2P. The trunk needs it because a peer is
+    % identified by system number, and because an unsolicited HELLO has to be
+    % answerable without anything having been configured first.
+    INTEGER  : senderSystem := 0
+    INTEGER  : senderPortNo := 0
+    INTEGER  : senderRtInfo := 0
+    INTEGER  : senderExtra  := 0
+
+    % OUR OWN system number, taken apart from our own magic at startup.
+    %
+    % NEEDED BECAUSE WE HEAR OURSELVES. A hello addressed to a machine that has
+    % no CHAT-TRUNK name comes straight BACK, arrives on our own trunk port
+    % carrying OUR magic, and without this test the server adds a peer row for
+    % itself and calls it up. MEASURED on D100 2026-08-22, the first time a
+    % trunk was ever configured:
+    %
+    %     C-M: START-TRUNK 102
+    %     C-M: LIST-TRUNKS   ->   102 unknown 100 up
+    %
+    % 100 is this machine. Nothing was up; a letter had bounced.
+    INTEGER  : mySystem := 0
+
+    % For the idle sleep - see the empty-drain branch of the main loop.
+    % sleepWhy comes back 0 when the time simply elapsed, 1 when a break
+    % restarted us. Neither changes what this loop does next, but the call
+    % needs somewhere to put it.
+    INTEGER  : sleepUnits
+    INTEGER  : sleepKind
+    INTEGER  : sleepWhy
 
     % XMROU, "routed message (via XROUT)", is what msgType carries when a letter
     % arrives. It is the ONLY thing that says a SEAT was spent: XROUT takes one
@@ -303,6 +929,283 @@ $INCLUDE XMP-B02:IMPT
     % this comparison it cannot be told apart from a real peer's message.
     INTEGER4 : myMagic := 0
     BOOLEAN  : uniqueName := TRUE
+
+    % -----------------------------------------------------------------------
+    % THE LOG. An RT program has no terminal, so every OUTPUT(1, ...) in this
+    % file goes NOWHERE once CHATSER is started with @RT.
+    %
+    % That is not a tidiness problem, it is why a whole afternoon was spent
+    % guessing on 2026-08-20. Two clients sat in one room and neither heard
+    % the other; the one line that would have said why - "SV: snd failed st="
+    % from sendTo - was printed to a device that is not there. The fault was
+    % looked for in the room table, the wire, the seat counter and the build,
+    % in that order, because the program's own account of itself was thrown
+    % away.
+    %
+    % SO EVERY DIAGNOSTIC GOES TO A FILE AS WELL AS THE TERMINAL. Run as
+    % @CHATSV you see it on screen AND in the file; run as @RT CHATSER the
+    % screen half goes nowhere and the file is all there is.
+    %
+    % OPEN, WRITE, CLOSE PER LINE - and that is deliberate, not laziness.
+    % A crash leaves an open file's block buffer unwritten, so anything still
+    % in it is lost - which is exactly the moment the log has to survive. One
+    % line per open costs a file system round trip, and these lines are only
+    % written on errors and at startup, so the cost is paid when something is
+    % already wrong.
+    %
+    % ACCESS 5 IS SEQUENTIAL WRITE APPEND, from the OpenFile table in
+    % ND-860228-2-EN. Access 0 would truncate at CLOSE and each line would
+    % erase the one before it - and it truncates at CLOSE rather than at OPEN,
+    % which is the trap CHAT.PLNC already carries a note about.
+    %
+    % AN RT PROGRAM'S DEFAULT USER IS RT, NOT SYSTEM. The file is named
+    % without a user, so it resolves against RT first and then SYSTEM. If it
+    % is never created, logging simply does nothing - see logBroken.
+    % -----------------------------------------------------------------------
+    % CHATLG2, NOT CHATLOG, AND THE REASON MATTERS. The first log this server
+    % ever wrote went out as plain 7-bit ASCII, before logPut existed. Access 5
+    % APPENDS, so the parity-correct lines written afterwards landed BEHIND 107
+    % bytes SINTRAN's own utilities refuse to read, and LIST-FILE stopped at the
+    % first of them without a word - the whole file reads as empty. The file
+    % belongs to user RT and SYSTEM has no directory access to delete it, so the
+    % only way out is a name that has never been written the wrong way.
+    % Measured on D100, 2026-08-20.
+    BYTES   : logName := 'CHATLG2'
+    BYTES   : logType := 'SYMB'
+
+    % Sequential write APPEND. See above - 0 would truncate.
+    INTEGER : logAppend := 5
+
+    % Set once the log has failed, and never cleared. A server that cannot
+    % write its log must not spend a file system call per diagnostic finding
+    % that out again, and must certainly not fail because of it.
+    BOOLEAN : logBroken := FALSE
+
+    % Digits, LEAST significant first as they are produced, written out in
+    % reverse. Ten is enough for any 16-bit value with room to spare.
+    BYTES   : logDigits(0:9)
+
+    % Single characters the log writes, as NUMBERS. A carriage return has no
+    % spelling inside a PLANC string literal, and CHAT.PLNC already carries
+    % its carriageRet the same way, so all three are written alike rather
+    % than two one way and one the other.
+    INTEGER : logMinus := 45
+    INTEGER : logCr    := 13
+    INTEGER : logLf    := 10
+
+    % The full filespec, for the create. CreateFile takes the WHOLE thing in
+    % one 64-byte buffer, unlike MON50 which takes name and type separately.
+    BYTES   : logFull     := 'CHATLG2:SYMB'
+    INTEGER : lenLogFull  := 12
+    INTEGER : nameBufSize := 64
+    BYTES   : nameBuf(0:63)
+    BYTES   : blankByte   := ' '
+    INTEGER4 : startAddr  := 0
+    INTEGER4 : noOfPages  := 0
+
+    % -----------------------------------------------------------------------
+    % Ask SINTRAN to create CHATLOG:SYMB.
+    %
+    % MON50 CANNOT CREATE A FILE - measured in CHAT.PLNC, where quoting the
+    % name did nothing at all. CreateFile is 221B and it is a separate call.
+    % It has no MONn routine, which is why it goes through MONITOR_CALL; that
+    % works here because MON-CALL-1B-A00 supplies 5MON_P, and this program
+    % already relies on it for TimeOut.
+    %
+    % The buffer is filled with SPACES first and the filespec copied over the
+    % front, so whatever was in the rest is never read as part of the name.
+    % Both size parameters are zero: an ordinary indexed file that grows as
+    % it is written, which is what a log wants.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID : makeLog
+        INTEGER : i
+        FOR i IN 1:nameBufSize DO
+            blankByte(0) =: nameBuf(i - 1)
+        ENDFOR
+        FOR i IN 1:lenLogFull DO
+            logFull(i - 1) =: nameBuf(i - 1)
+        ENDFOR
+        MONITOR_CALL(221B, nameBuf, startAddr, noOfPages)
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Open the log for append, creating it the first time.
+    %
+    % Returns the device number, or 0 when the log is not usable. THE CALLER
+    % MUST TEST THE BOOLEAN, not the number - a failed MON50 leaves 46 in it,
+    % SINTRAN's "no such file", which is the defect CHAT.PLNC records at
+    % length. This routine turns that into a plain 0 so no caller can repeat
+    % it.
+    %
+    % THE FLAG IS CLEARED AFTER THE ON BLOCK, NOT BEFORE. Measured in
+    % CHAT.PLNC on 2026-08-19: cleared before, the handler body had already
+    % run and every open reported failure while returning a good device.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER : logOpen
+        INTEGER : dev
+        BOOLEAN : openFailed
+
+        IF logBroken THEN
+            0 RETURN
+        ENDIF
+
+        0 =: dev
+        ON ROUTINEERROR DO
+            TRUE =: openFailed
+        ENDON
+        FALSE =: openFailed
+
+        MON50(logName, logType, logAppend) =: dev
+
+        IF openFailed THEN
+            % Not there yet. Make it and open it for real. A create that
+            % fails needs no message of its own - the second open fails too
+            % and that is what sets logBroken.
+            ON ROUTINEERROR DO
+            ENDON
+            makeLog
+
+            ON ROUTINEERROR DO
+                TRUE =: openFailed
+            ENDON
+            FALSE =: openFailed
+            MON50(logName, logType, logAppend) =: dev
+        ENDIF
+
+        IF openFailed THEN
+            TRUE =: logBroken
+            0 RETURN
+        ENDIF
+
+        dev RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Write one line: a tag, a number, and an end of line.
+    %
+    % The tag is passed as a slice of a BYTES with its length, the same shape
+    % every other routine here uses, because PLANC's OUTPUT needs the width in
+    % the format string and a routine cannot have a literal one.
+    %
+    % NOTHING HERE IS ALLOWED TO KILL THE SERVER. Every failure sets the flag
+    % and returns. A logger that can take down the thing it is watching is
+    % worse than no logger.
+    % -----------------------------------------------------------------------
+    % -----------------------------------------------------------------------
+    % Write one byte to the log. PLAIN 7-BIT ASCII, and the parity version of
+    % this routine has been TAKEN OUT.
+    %
+    % IT USED TO SET EVEN PARITY IN BIT 7, on a conclusion that was WRONG. The
+    % reasoning was: the log filled up correctly - 107 bytes, five opens, every
+    % size right - and then
+    %
+    %   @LIST-FILE SVLOG:SYMB,,     printed the header and NOTHING ELSE
+    %   @QED  R SVLOG:SYMB          PARITY ERROR AT LINE 1, thirteen times
+    %
+    % which reads as "the bytes are there and the tools refuse them", so the
+    % bytes must be at fault.
+    %
+    % THE CONTROL RUN THAT WAS NEVER DONE. The same two commands against
+    % CHATSV:MODE - the build file @MODE compiles this whole server from, which
+    % is unquestionably good - answer EXACTLY THE SAME WAY: LIST-FILE prints the
+    % header and nothing else, QED cries PARITY ERROR thirteen times. Both tools
+    % do this to every file our FA push puts on the machine. They were never
+    % evidence about the log at all.
+    %
+    % And the parity code did not even do what it claimed: measured on the wire,
+    % EVERY byte came back with bit 7 set - S as 0xD3, T as 0xD4, space as 0xA0,
+    % CR as 0x8D - so the "is the count odd" test was true every time. It was
+    % wrong code justifying itself with a wrong measurement.
+    %
+    % TO READ THIS LOG, PULL IT OFF THE MACHINE AND LOOK AT THE BYTES:
+    %
+    %   @COPY-FILE "SVLOG2:SYMB",(RT)CHATLG2:SYMB     (RT owns it; SYSTEM cannot
+    %                                                  delete or chmod it)
+    %   Xmsg.Live.Runner --config topology-d19999-hdlc-server.json \
+    %       --pull 'SVLOG2:SYMB' --pull-from 100 --pull-to svlog2.raw \
+    %       --originate-from-seed
+    %
+    % That works, and it is how the broadcast question was finally answered.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID (INTEGER, INTEGER) : logPut(dev, value)
+        BYTE : b
+
+        % Masked to seven bits so a stray high bit in a caller's value cannot
+        % put a character in the file that nothing will render.
+        value AND 127 =: b
+        b MON2(dev)
+    ENDROUTINE
+
+    ROUTINE VOID, VOID (BYTES, INTEGER, INTEGER) : logLine(tag, tagLen, value)
+        INTEGER : dev, i, left, rest, digit, digitCount
+        BYTE    : b
+        BOOLEAN : writeFailed
+
+        logOpen =: dev
+        IF dev = 0 THEN
+            RETURN
+        ENDIF
+
+        % ONE FLAG FOR THE WHOLE LINE, not a message per byte. CHAT.PLNC
+        % learned that the hard way: a handler round a write loop that prints
+        % inside it says the same thing once per character.
+        ON ROUTINEERROR DO
+            TRUE =: writeFailed
+        ENDON
+        FALSE =: writeFailed
+
+        FOR i IN 1:tagLen DO
+            tag(i - 1) =: b
+            logPut(dev, b)
+        ENDFOR
+
+        % The number, most significant digit first. Built backwards into
+        % logDigits and then written forwards, because dividing gives the
+        % LAST digit first and a log line read by a person wants them the
+        % other way round.
+        %
+        % Negative values are printed with a minus and then their magnitude.
+        % A status word can be negative on this wire and "-34" is readable
+        % where the unsigned form is not.
+        value =: left
+        IF left < 0 THEN
+            logPut(dev, logMinus)
+            0 - left =: left
+        ENDIF
+
+        % NO "MOD" - it appears nowhere in this file and is not going to be
+        % introduced on a guess. putNumber above gets its digits by dividing
+        % and subtracting, so this does the same.
+        0 =: digitCount
+        % A do-while shape, so zero prints as "0" rather than as nothing.
+        DO
+            left / 10 =: rest
+            left - rest * 10 =: digit
+            zeroByte(0) + digit =: logDigits(digitCount)
+            digitCount + 1 =: digitCount
+            rest =: left
+            WHILE left > 0
+        ENDDO
+
+        FOR i IN 1:digitCount DO
+            logDigits(digitCount - i) =: b
+            logPut(dev, b)
+        ENDFOR
+
+        % THE CARRIAGE RETURN MATTERS - a SINTRAN text file is expected to
+        % have one, and without it every line runs into the next. It carries
+        % parity like every other byte; QED counts it as part of the line.
+        logPut(dev, logCr)
+        logPut(dev, logLf)
+
+        % CLOSE, ALWAYS, including after a failed write - see the note on the
+        % open. An unclosed file keeps its old contents.
+        MON43(dev)
+
+        IF writeFailed THEN
+            TRUE =: logBroken
+        ENDIF
+    ENDROUTINE
 
     % -----------------------------------------------------------------------
     % Compare a name in the room against one in a buffer, ignoring case.
@@ -386,6 +1289,1032 @@ $INCLUDE XMP-B02:IMPT
     ENDROUTINE
 
     % -----------------------------------------------------------------------
+    % Print a name that arrived in inBuf, one byte at a time.
+    %
+    % Byte by byte because 'ALn' formats a STRING: handing it a single byte
+    % prints the byte's NUMBER, not the character. A one-element BYTES is the
+    % way across, the same trick the space separator in buildWho uses.
+    % -----------------------------------------------------------------------
+    % -----------------------------------------------------------------------
+    % Write a small number into outBuf as decimal digits, advancing at.
+    %
+    % By hand because there is no formatter that writes into a BYTES array -
+    % OUTPUT goes to a device, not a buffer. Handles 0..999, which covers a
+    % seat count and every counter this status line is likely to grow.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER) : putNumber(value, at)
+        INTEGER : left, digit, p
+        BOOLEAN : started
+
+        % RETURNS THE NEW CURSOR rather than writing through an INTEGER WRITE
+        % parameter. The WRITE form was assumed to advance the CALLER's variable
+        % and did not: the status line came out "SEATS 016" instead of
+        % "SEATS 0/16" - the separator was written where the previous digit had
+        % gone, and the length came out short. MEASURED on D100 2026-08-20.
+        %
+        % Returning the cursor is the idiom buildMessage and buildWho already
+        % use in this file ("at RETURN"), and it cannot be got wrong by the
+        % caller in the same silent way.
+        at =: p
+        value =: left
+        FALSE =: started
+
+        % Hundreds and tens are skipped until a non-zero one appears, so 7
+        % prints as "7" and not "007". Zero itself still has to print, which
+        % the final digit below always does.
+        left / 100 =: digit
+        IF digit > 0 THEN
+            zeroByte(0) + digit =: outBuf(p)
+            p + 1 =: p
+            TRUE =: started
+            left - digit * 100 =: left
+        ENDIF
+
+        left / 10 =: digit
+        IF digit > 0 OR started THEN
+            zeroByte(0) + digit =: outBuf(p)
+            p + 1 =: p
+            left - digit * 10 =: left
+        ENDIF
+
+        zeroByte(0) + left =: outBuf(p)
+        p + 1 =: p
+        p RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Write a system number into peerName and return the new cursor.
+    %
+    % A SEPARATE ROUTINE FROM putNumber, and not a tidiness failure: putNumber
+    % writes into outBuf, which is the message being built. A system name is not
+    % part of any message - it goes to XMPBLET - so it needs its own buffer, and
+    % a routine that took the buffer as a parameter would be handing a BYTES
+    % formal parameter around, which this compiler is fussy about in exactly the
+    % area that already cost three cycles here.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER) : putPeerDigits(value, at)
+        INTEGER : left, digit, p
+        BOOLEAN : started
+
+        at =: p
+        value =: left
+        FALSE =: started
+
+        left / 10000 =: digit
+        IF digit > 0 THEN
+            zeroByte(0) + digit =: peerName(p)
+            p + 1 =: p
+            TRUE =: started
+            left - digit * 10000 =: left
+        ENDIF
+
+        left / 1000 =: digit
+        IF digit > 0 OR started THEN
+            zeroByte(0) + digit =: peerName(p)
+            p + 1 =: p
+            TRUE =: started
+            left - digit * 1000 =: left
+        ENDIF
+
+        left / 100 =: digit
+        IF digit > 0 OR started THEN
+            zeroByte(0) + digit =: peerName(p)
+            p + 1 =: p
+            TRUE =: started
+            left - digit * 100 =: left
+        ENDIF
+
+        left / 10 =: digit
+        IF digit > 0 OR started THEN
+            zeroByte(0) + digit =: peerName(p)
+            p + 1 =: p
+            left - digit * 10 =: left
+        ENDIF
+
+        zeroByte(0) + left =: peerName(p)
+        p + 1 =: p
+        p RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Write a fixed word into outBuf and return the new cursor.
+    %
+    % Same "at RETURN" idiom as putNumber, and for the same reason: a WRITE
+    % parameter looks like it advances the caller's cursor and does not.
+    %
+    % SUBSCRIPT FROM ZERO - a BYTES from a literal starts at index 0. See
+    % buildAdmText.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER (BYTES, INTEGER, INTEGER) : putWord(text, textLen, at)
+        INTEGER : i, p
+        at =: p
+        FOR i IN 1:textLen DO
+            text(i - 1) =: outBuf(p)
+            p + 1 =: p
+        ENDFOR
+        p RETURN
+    ENDROUTINE
+
+    ROUTINE VOID, VOID (INTEGER, INTEGER) : showName(nameAt, nameLength)
+        INTEGER : i
+        FOR i IN 1:nameLength DO
+            inBuf(nameAt + i - 1) =: oneByte
+            OUTPUT(1, 'AL1', oneByte)
+        ENDFOR
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Build the answer to an AdminStatus: how the room stands, as readable
+    % text.
+    %
+    % TEXT, NOT A STRUCT OF COUNTERS, and that is a decision rather than
+    % laziness. What is worth reporting grows with every phase of federation -
+    % peers, trunk states, hop counts - and a text answer lets it grow without
+    % changing the wire and re-pinning the golden bytes each time.
+    %
+    % The name field is EMPTY: the server is answering, not a member.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER : buildStatus
+        INTEGER : i, j, at, seated, textAt, textLen
+        % kbTotal counts BLOCKS while it is being summed and is turned into KB
+        % once, at the end. held is how many messages a room actually has.
+        INTEGER : kbTotal, held
+
+        0 =: seated
+        FOR i IN 1:maxSeats DO
+            IF memberUsed(i) = 1 THEN
+                seated + 1 =: seated
+            ENDIF
+        ENDFOR
+
+        kAdmRepl =: outBuf(0)
+        0 =: outBuf(1)                        % no name: the SERVER is answering
+        2 =: at
+        0 =: outBuf(at)                       % text length, high byte
+        0 =: outBuf(at + 1)                   % text length, low byte, filled below
+        at + 2 =: textAt
+        textAt =: at
+
+        % "SEATS n/m" - taken and offered. Two numbers, because "3 seats used"
+        % does not say whether the room is full, and full is the case an
+        % operator is asking about.
+        FOR j IN 0:5 DO
+            statusWord(j) =: outBuf(at)
+            at + 1 =: at
+        ENDFOR
+        putNumber(seated, at) =: at
+        slashByte(0) =: outBuf(at)
+        at + 1 =: at
+        putNumber(maxSeats, at) =: at
+
+        % ---- AND WHAT THE HISTORY IS DOING ---------------------------------
+        %
+        % Ronny asked for three things here, 2026-08-23: what each room keeps
+        % and holds, what a NEW room would get, and how much disk it all comes
+        % to. He chose reporting over a total that refuses - eight rooms at the
+        % 200 ceiling is 800KB, which is nothing on this disk, and a second
+        % limit is a second thing that can turn down a reasonable request.
+        %
+        %   SEATS 2/16  default 50  disk 31KB  LOBBY 50/12 GENERAL 20/3
+        %
+        % BLOCKS ARE COUNTED, NOT FILE SIZES. A ring's file is its full size
+        % from the day it is made, so asking the file system would report what
+        % was RESERVED. What an operator wants to know is what it will cost,
+        % and that is size x 512 whether the ring is full yet or not.
+        %
+        % HELD is "how many are actually in there" - histNext when the ring has
+        % not wrapped, the size once it has. Two numbers because 50/12 says a
+        % room is a quarter full, where 12 alone does not say what of.
+        putWord('  default ', 10, at) =: at
+        putNumber(histDefault, at) =: at
+
+        0 =: kbTotal
+        FOR i IN 1:maxHistRooms DO
+            IF topicRoomLen(i) > 0 THEN
+                kbTotal + histSize(i) =: kbTotal
+            ENDIF
+        ENDFOR
+        putWord('  disk ', 7, at) =: at
+        putNumber(kbTotal / 2, at) =: at        % blocks of 512 bytes -> KB
+        putWord('KB', 2, at) =: at
+
+        % ---- THE THREE COUNTS THAT USED TO BE A FLOOD ----------------------
+        % empty  routed letters with no payload. One per seat returned, because
+        %        XROUT's answer comes back on our own port looking like that.
+        %        Climbing while the room is quiet is the seat feedback loop.
+        % bounce messages that came home with nobody there - dead clients.
+        % refuse joins turned away, whatever the reason.
+        % relay  lines passed ON to a further peer. A machine in the MIDDLE of
+        %        a chain shows this climbing; an END machine shows it flat at
+        %        zero, so a non-zero count on an end machine means the topology
+        %        is not what somebody believes it is.
+        %
+        % Before this they printed a line each, every time, and the terminal
+        % filled with the two that are expected. A number you can ask for beats
+        % a line you cannot avoid.
+        putWord('  empty ', 8, at) =: at
+        putNumber(nEmptyLet, at) =: at
+        putWord(' bounce ', 8, at) =: at
+        putNumber(nBounced, at) =: at
+        putWord(' relay ', 7, at) =: at
+        putNumber(nRelayed, at) =: at
+        putWord(' dupe ', 6, at) =: at
+        putNumber(nDupes, at) =: at
+        putWord(' refuse ', 8, at) =: at
+        putNumber(nRefused, at) =: at
+
+        FOR i IN 1:maxHistRooms DO
+            IF topicRoomLen(i) > 0 THEN
+                % Bounded like every other builder here: a name plus two
+                % numbers is at most 25 bytes, and outBuf's text field is 250.
+                IF at - textAt < 215 THEN
+                    spaceByte(0) =: outBuf(at)
+                    at + 1 =: at
+                    FOR j IN 1:topicRoomLen(i) DO
+                        topicRoom(i, j) =: outBuf(at)
+                        at + 1 =: at
+                    ENDFOR
+                    spaceByte(0) =: outBuf(at)
+                    at + 1 =: at
+                    putNumber(histSize(i), at) =: at
+                    slashByte(0) =: outBuf(at)
+                    at + 1 =: at
+
+                    histNext(i) =: held
+                    IF held > histSize(i) THEN
+                        histSize(i) =: held     % wrapped: it holds a full ring
+                    ENDIF
+                    putNumber(held, at) =: at
+                ENDIF
+            ENDIF
+        ENDFOR
+
+        at - textAt =: textLen
+        textLen =: outBuf(3)                  % low byte; it cannot reach 256
+        at RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Build a kAdmRepl carrying one fixed sentence.
+    %
+    % SUBSCRIPT FROM ZERO. A BYTES declared from a literal has its first
+    % character at index 0, so "text(i)" for i in 1:len drops the first letter
+    % and reads one byte past the end. That defect turned RONNY into ONNY on the
+    % wire once already; see the note in refuse().
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER (BYTES, INTEGER) : buildAdmText(text, textLen)
+        INTEGER : i, at
+        kAdmRepl =: outBuf(0)
+        0 =: outBuf(1)                        % no name: the SERVER is answering
+        2 =: at
+        0 =: outBuf(at)
+        textLen =: outBuf(at + 1)
+        at + 2 =: at
+        FOR i IN 1:textLen DO
+            text(i - 1) =: outBuf(at)
+            at + 1 =: at
+        ENDFOR
+        at RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Read a decimal system number out of an arrived message. 0 means "that was
+    % not a number", which the caller reports rather than acting on.
+    %
+    % NO SIGN AND NO SPACES. An operator types "TRUNK 102"; anything else is a
+    % mistake worth refusing out loud rather than interpreting generously.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER) : trunkNumber(at, length)
+        INTEGER : i, d, value
+        IF length < 1 THEN
+            0 RETURN
+        ENDIF
+        0 =: value
+        FOR i IN 1:length DO
+            inBuf(at + i - 1) =: d
+            IF d < 48 THEN
+                0 RETURN
+            ENDIF
+            IF d > 57 THEN
+                0 RETURN
+            ENDIF
+            (value * 10) + (d - 48) =: value
+        ENDFOR
+        value RETURN
+    ENDROUTINE
+
+
+    % -----------------------------------------------------------------------
+    % LIST-TRUNKS: every configured peer and what we believe about it.
+    %
+    % "102 up" / "103 down" / "200 unknown". UNKNOWN and DOWN are kept apart
+    % deliberately - the first usually means the trunk was never answered and is
+    % probably a configuration mistake, the second means a machine that was
+    % there and went away. Collapsing them would hide the difference exactly
+    % when an operator needs it.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER : buildTrunks
+        INTEGER : i, at, textAt, textLen, st
+
+        kAdmRepl =: outBuf(0)
+        0 =: outBuf(1)
+        2 =: at
+        0 =: outBuf(at)
+        0 =: outBuf(at + 1)
+        at + 2 =: textAt
+        textAt =: at
+
+        FOR i IN 1:maxPeers DO
+            IF peerSystem(i) >< 0 THEN
+                IF at - textAt > 0 THEN
+                    spaceByte(0) =: outBuf(at)
+                    at + 1 =: at
+                ENDIF
+                putNumber(peerSystem(i), at) =: at
+                spaceByte(0) =: outBuf(at)
+                at + 1 =: at
+                peerState(i) =: st
+                IF st = peerUp THEN
+                    putWord('up', 2, at) =: at
+                ENDIF
+                IF st = peerDown THEN
+                    putWord('down', 4, at) =: at
+                ENDIF
+                IF st = peerUnknown THEN
+                    putWord('unknown', 7, at) =: at
+                ENDIF
+            ENDIF
+        ENDFOR
+
+        IF at = textAt THEN
+            putWord('no trunks', 9, at) =: at
+        ENDIF
+
+        at - textAt =: textLen
+        textLen =: outBuf(3)
+        at RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % /map - the same picture, for somebody who is not an operator.
+    %
+    %     this is D100 - 102 up  103 down
+    %     this is D100 - on its own
+    %
+    % Ronny, 2026-08-20: end users should be able to see how the network is
+    % configured. The registry has held kind 12 for it ever since.
+    %
+    % WHY IT IS NOT JUST LIST-TRUNKS WITH A DIFFERENT NAME, and this is the
+    % whole reason it is a ROOM kind rather than an admin one:
+    %
+    %   SEEING how the network is wired is not the same right as REWIRING it.
+    %   LIST-TRUNKS arrives on the ADMIN port, from CHAT-MON, alongside
+    %   START-TRUNK and STOP-TRUNK - the verbs that change things. /map arrives
+    %   on the room port from an ordinary member and can change nothing.
+    %
+    % IT NAMES THIS MACHINE FIRST. A trunk list on its own is ambiguous the
+    % moment there is more than one machine: "102 up" read on D102 would be
+    % nonsense, and a user who has just been told they are "ANNA@D102" needs to
+    % know which end they are looking from. mySystem comes from xmpfm2p on our
+    % own magic at start-up, so it is what the KERNEL says we are, not what a
+    % configuration file claims.
+    %
+    % Peers are two spaces apart and the number and state one, the same shape
+    % the all-rooms /who uses, so the groups read apart at a glance.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER : buildMap
+        INTEGER : i, at, textAt, textLen, st, headAt
+
+        kMap =: outBuf(0)
+        0 =: outBuf(1)                        % no name: the SERVER is answering
+        2 =: at
+        0 =: outBuf(at)
+        0 =: outBuf(at + 1)
+        at + 2 =: textAt
+        textAt =: at
+
+        putWord('this is D', 9, at) =: at
+        putNumber(mySystem, at) =: at
+        putWord(' - ', 3, at) =: at
+
+        % REMEMBER WHERE THE HEADER ENDED, do not compute it.
+        %
+        % This was first written as "IF at - textAt > 15", 15 being the length
+        % of "this is D100 - ". That is only true for a THREE-DIGIT system
+        % number: on D19999 the header is 17 and the test would put two spaces
+        % before the first peer and then still claim there were none. A length
+        % that depends on data is not a constant, however constant it looks in
+        % the machine you are sitting at.
+        at =: headAt
+
+        FOR i IN 1:maxPeers DO
+            IF peerSystem(i) >< 0 THEN
+                IF at > headAt THEN
+                    spaceByte(0) =: outBuf(at)
+                    at + 1 =: at
+                    spaceByte(0) =: outBuf(at)
+                    at + 1 =: at
+                ENDIF
+                putNumber(peerSystem(i), at) =: at
+                spaceByte(0) =: outBuf(at)
+                at + 1 =: at
+                peerState(i) =: st
+                IF st = peerUp THEN
+                    putWord('up', 2, at) =: at
+                ENDIF
+                IF st = peerDown THEN
+                    putWord('down', 4, at) =: at
+                ENDIF
+                IF st = peerUnknown THEN
+                    putWord('unknown', 7, at) =: at
+                ENDIF
+            ENDIF
+        ENDFOR
+
+        % NO TRUNKS IS A REAL ANSWER AND IS SAID IN WORDS. "on its own" is what
+        % a person wants to read; an empty list after a dash is what a program
+        % would print. Same reason /topic spells out an absent topic.
+        IF at = headAt THEN
+            putWord('on its own', 10, at) =: at
+        ENDIF
+
+        at - textAt =: textLen
+        textLen =: outBuf(3)
+        at RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Forget everything a peer told us. Called when it goes Down, and before
+    % storing a fresh list from it.
+    %
+    % WHOLESALE, NEVER MERGED. A peer that comes back has almost certainly
+    % restarted, so anything we remember about its members is stale - the design
+    % says treat Up as "start again". Merging would leave ghosts of people who
+    % left while the machine was away, and nothing would ever remove them.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID (INTEGER) : forgetRemote(system)
+        INTEGER : i
+        FOR i IN 1:maxRemote DO
+            IF rmtSystem(i) = system THEN
+                0 =: rmtSystem(i)
+                0 =: rmtNameLen(i)
+                0 =: rmtRoomLen(i)
+            ENDIF
+        ENDFOR
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Build the answer to a peer's "who is on you": our own seated members as
+    % "NAME/ROOM NAME/ROOM ...".
+    %
+    % OUR OWN MEMBERS ONLY. What we know about OTHER machines is theirs to
+    % report, not ours to relay - passing it on would let a wrong entry echo
+    % around a ring of machines with nothing to stop it. Every machine speaks
+    % only for itself; that is what makes the state converge.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER : buildMembers
+        INTEGER : i, j, at, textAt, textLen, need
+
+        kTrkMbrs =: outBuf(0)
+        0 =: outBuf(1)                        % no name: a MACHINE is answering
+        2 =: at
+        0 =: outBuf(at)
+        0 =: outBuf(at + 1)
+        at + 2 =: textAt
+        textAt =: at
+        0 =: textLen
+
+        FOR i IN 1:maxSeats DO
+            IF memberUsed(i) = 1 THEN
+                % name + '/' + room, and a space if anything is there already
+                memberLen(i) + mbrRoomLen(i) + 1 =: need
+                IF textLen > 0 THEN
+                    need + 1 =: need
+                ENDIF
+
+                IF textLen + need <= 250 THEN
+                    IF textLen > 0 THEN
+                        spaceByte(0) =: outBuf(at)
+                        at + 1 =: at
+                        textLen + 1 =: textLen
+                    ENDIF
+                    FOR j IN 1:memberLen(i) DO
+                        memberName(i, j) =: outBuf(at)
+                        at + 1 =: at
+                    ENDFOR
+                    slashByte(0) =: outBuf(at)
+                    at + 1 =: at
+                    FOR j IN 1:mbrRoomLen(i) DO
+                        mbrRoom(i, j) =: outBuf(at)
+                        at + 1 =: at
+                    ENDFOR
+                    textLen + need =: textLen
+                ENDIF
+            ENDIF
+        ENDFOR
+
+        textLen =: outBuf(3)
+        at RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Store what a peer just told us. Replaces everything we held for it.
+    %
+    % Parses "NAME/ROOM NAME/ROOM ..." out of inBuf. A malformed entry - no
+    % slash, or a name longer than a name can be - is DROPPED and the parse
+    % carries on. One bad entry from a peer must not cost us the rest of its
+    % list, and must certainly not write past the end of a table.
+    % -----------------------------------------------------------------------
+    % NO LABEL AND NO GO. A "skip this entry" jump would read more naturally,
+    % but PLANC's label form is not something this file has ever used and a
+    % guess costs a ten-minute build cycle. A BOOLEAN says the same thing and
+    % cannot be got wrong.
+    ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER) : &
+            takeMembers(system, at, length)
+        INTEGER : p, stop, nameAt, nameLen2, roomAt, roomLen2, row, i
+        BOOLEAN : good
+
+        forgetRemote(system)
+
+        at =: p
+        at + length =: stop
+
+        DO
+            WHILE p < stop
+
+            % skip separators
+            DO
+                WHILE p < stop AND inBuf(p) = spaceByte(0)
+                p + 1 =: p
+            ENDDO
+
+            % the name, up to a slash or a space
+            p =: nameAt
+            DO
+                WHILE p < stop AND inBuf(p) >< slashByte(0) AND &
+                      inBuf(p) >< spaceByte(0)
+                p + 1 =: p
+            ENDDO
+            p - nameAt =: nameLen2
+
+            % A SLASH MUST FOLLOW. Anything else is a malformed entry - the room
+            % is left empty, the entry fails the test below and is dropped, and
+            % the loop carries on with the next one. One bad entry from a peer
+            % must not cost us the rest of its list.
+            FALSE =: good
+            0 =: roomLen2
+            IF p < stop THEN
+                IF inBuf(p) = slashByte(0) THEN
+                    p + 1 =: p
+                    p =: roomAt
+                    DO
+                        WHILE p < stop AND inBuf(p) >< spaceByte(0)
+                        p + 1 =: p
+                    ENDDO
+                    p - roomAt =: roomLen2
+                    TRUE =: good
+                ENDIF
+            ENDIF
+
+            IF good THEN
+                IF nameLen2 > 0 AND nameLen2 <= maxNameLen AND &
+                   roomLen2 > 0 AND roomLen2 <= maxNameLen THEN
+                    0 =: row
+                    FOR i IN 1:maxRemote DO
+                        IF rmtSystem(i) = 0 THEN
+                            IF row = 0 THEN
+                                i =: row
+                            ENDIF
+                        ENDIF
+                    ENDFOR
+                    IF row >< 0 THEN
+                        system =: rmtSystem(row)
+                        FOR i IN 1:nameLen2 DO
+                            inBuf(nameAt + i - 1) =: rmtName(row, i)
+                        ENDFOR
+                        nameLen2 =: rmtNameLen(row)
+                        FOR i IN 1:roomLen2 DO
+                            inBuf(roomAt + i - 1) =: rmtRoom(row, i)
+                        ENDFOR
+                        roomLen2 =: rmtRoomLen(row)
+                    ENDIF
+                ENDIF
+            ENDIF
+        ENDDO
+    ENDROUTINE
+
+    % Is this member in the same room as that one?
+    %
+    % Compared byte by byte on the stored name. A room is only "the same room"
+    % if it is spelled the same - there is no room id, because a room is not a
+    % registered thing any more, just a name people agree on.
+    %
+    % DECLARED HERE, ABOVE buildWho, AND THAT POSITION IS LOAD-BEARING. It used
+    % to sit next to broadcast, 250 lines further down; PLANC needs a routine
+    % declared before it is called, so buildWho could not have used it even if
+    % somebody had thought to. Moved up 2026-08-22 when /who was fixed.
+    ROUTINE VOID, BOOLEAN (INTEGER, INTEGER) : sameRoom(slotA, slotB)
+        INTEGER : i
+        IF mbrRoomLen(slotA) >< mbrRoomLen(slotB) THEN
+            FALSE RETURN
+        ENDIF
+        FOR i IN 1:mbrRoomLen(slotA) DO
+            IF mbrRoom(slotA, i) >< mbrRoom(slotB, i) THEN
+                FALSE RETURN
+            ENDIF
+        ENDFOR
+        TRUE RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Which topic entry belongs to this member's room? 0 if the room has never
+    % had a topic set.
+    %
+    % Compared the same way sameRoom compares: byte for byte on the spelling.
+    % A room IS its name here, so LOBBY and lobby are two rooms, and the topic
+    % table has to agree with the broadcast about that or a topic would show up
+    % in a room that cannot hear the messages.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER (INTEGER) : findTopic(slot)
+        INTEGER : t, i
+        BOOLEAN : match
+
+        FOR t IN 1:maxTopics DO
+            IF topicRoomLen(t) = mbrRoomLen(slot) THEN
+                TRUE =: match
+                FOR i IN 1:topicRoomLen(t) DO
+                    IF topicRoom(t, i) >< mbrRoom(slot, i) THEN
+                        FALSE =: match
+                    ENDIF
+                ENDFOR
+                IF match THEN
+                    t RETURN
+                ENDIF
+            ENDIF
+        ENDFOR
+        0 RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Claim a topic entry for this member's room, or 0 if the table is full.
+    %
+    % An unused entry is one with topicRoomLen 0 - a room name is never empty,
+    % so zero cannot collide with a real one.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER (INTEGER) : claimTopic(slot)
+        INTEGER : t, i
+
+        findTopic(slot) =: t
+        IF t >< 0 THEN
+            t RETURN                          % already has one; reuse it
+        ENDIF
+
+        FOR t IN 1:maxTopics DO
+            IF topicRoomLen(t) = 0 THEN
+                FOR i IN 1:mbrRoomLen(slot) DO
+                    mbrRoom(slot, i) =: topicRoom(t, i)
+                ENDFOR
+                mbrRoomLen(slot) =: topicRoomLen(t)
+                0 =: topicTextLen(t)
+
+                % TAKE A COPY OF THE DEFAULT AS IT IS NOW. This is what makes
+                % "INITIALIZE 20" apply to rooms created LATER without reaching
+                % back into rooms that already have messages - the copy is
+                % taken once, here, at the moment the room comes into being.
+                histDefault =: histSize(t)
+                0 =: histNext(t)
+                t RETURN
+            ENDIF
+        ENDFOR
+        0 RETURN                              % full - the caller must say so
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Find a room entry BY NAME, out of the incoming buffer, or 0.
+    %
+    % A SEPARATE ROUTINE FROM findTopic, which looks a room up by the SEAT of
+    % somebody in it. This one is for an operator naming a room they are not in
+    % - and may not even exist yet. One routine taking "which kind of thing is
+    % this" would be a flag deciding what the code means, which is the same
+    % mistake sameRoom and sameRoomAs were deliberately kept apart to avoid.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER) : findRoomNamed(at, len)
+        INTEGER : t, i
+        BOOLEAN : match
+
+        IF len < 1 THEN
+            0 RETURN
+        ENDIF
+        FOR t IN 1:maxTopics DO
+            IF topicRoomLen(t) = len THEN
+                TRUE =: match
+                FOR i IN 1:len DO
+                    IF topicRoom(t, i) >< inBuf(at + i - 1) THEN
+                        FALSE =: match
+                    ENDIF
+                ENDFOR
+                IF match THEN
+                    t RETURN
+                ENDIF
+            ENDIF
+        ENDFOR
+        0 RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Claim a room entry for a NAMED room, or 0 if the table is full.
+    %
+    % Lets a room be configured BEFORE anybody is in it, which is the useful
+    % case: an operator sets up the room's history and the first person to
+    % arrive gets the size that was intended rather than the default.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER) : claimRoomNamed(at, len)
+        INTEGER : t, i
+
+        findRoomNamed(at, len) =: t
+        IF t >< 0 THEN
+            t RETURN
+        ENDIF
+        IF len < 1 THEN
+            0 RETURN
+        ENDIF
+        IF len > 16 THEN
+            0 RETURN                          % a room name cannot be longer
+        ENDIF
+
+        FOR t IN 1:maxTopics DO
+            IF topicRoomLen(t) = 0 THEN
+                FOR i IN 1:len DO
+                    inBuf(at + i - 1) =: topicRoom(t, i)
+                ENDFOR
+                len =: topicRoomLen(t)
+                0 =: topicTextLen(t)
+
+                % Same copy as claimTopic, for the same reason - see the note
+                % there. A room configured by name before anybody is in it is
+                % still a room being CREATED.
+                histDefault =: histSize(t)
+                0 =: histNext(t)
+                t RETURN
+            ENDIF
+        ENDFOR
+        0 RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Open this room's history file, creating it the first time.
+    %
+    % Returns the device number, or 0 if it could not be had. A history that
+    % cannot be opened is NOT a reason to refuse the room: the chat carries on
+    % without it, and that is deliberate - losing the record of a conversation
+    % is bad, losing the conversation is worse.
+    %
+    % OPENED ONCE AND LEFT OPEN. A room is written on every line anybody types,
+    % and an open plus a close in that path would put two file operations
+    % between a keystroke and the room hearing it.
+    %
+    % TRY THE PLAIN OPEN FIRST, CREATE ONLY IF IT FAILS. A create at a name
+    % that already exists is refused (SINTRAN error 62), so create-first fails
+    % on every run after the first - which is every run that matters.
+    %
+    % ACCESS CODE 2 IS RANDOM READ/WRITE, and it has to be: MN117 and MN120
+    % require it, and the whole ring depends on addressing a block directly.
+    % -----------------------------------------------------------------------
+    % -----------------------------------------------------------------------
+    % Ask SINTRAN to create this room's history file.
+    %
+    % The same shape as makeLog, and for the same reason: MON50 cannot create,
+    % CreateFile (221B) is a separate call, and it has no MONn routine - which
+    % is why it goes through MONITOR_CALL. That works here because
+    % MON-CALL-1B-A00 supplies 5MON_P and this program already needs it for
+    % TimeOut.
+    %
+    % The name carried here is the FULL specification WITH the type -
+    % "(SYSTEM)CHATH1:DATA" - where MON50 takes the name and the type as two
+    % separate strings. Two calls, two conventions.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID (INTEGER) : makeHistFile(t)
+        INTEGER : i, at
+
+        FOR i IN 1:nameBufSize DO
+            blankByte(0) =: nameBuf(i - 1)
+        ENDFOR
+
+        0 =: at
+        FOR i IN 1:lenHistUser DO
+            histUser(i - 1) =: nameBuf(at)
+            at + 1 =: at
+        ENDFOR
+        FOR i IN 1:5 DO
+            histStem(i - 1) =: nameBuf(at)
+            at + 1 =: at
+        ENDFOR
+        digitZero + t =: nameBuf(at)
+        at + 1 =: at
+        colonByte(0) =: nameBuf(at)
+        at + 1 =: at
+        FOR i IN 1:4 DO
+            histType(i - 1) =: nameBuf(at)
+            at + 1 =: at
+        ENDFOR
+
+        % One page per block, and the ring addresses histSize of them.
+        histSize(t) =: histPages
+        MONITOR_CALL(221B, nameBuf, startAddr, histPages)
+    ENDROUTINE
+
+    ROUTINE VOID, INTEGER (INTEGER) : histOpen(t)
+        INTEGER : dev, i
+        BOOLEAN : failed
+
+        IF t < 1 THEN
+            0 RETURN
+        ENDIF
+        IF histDev(t) >< 0 THEN
+            histDev(t) RETURN                 % already open
+        ENDIF
+
+        % "(SYSTEM)CHATH" + the table index as one digit. The index is 1..8 so
+        % a single digit always fits, and digitZero + t is the character for it.
+        %
+        % BUILT WITH A LOOP, not eight assignments. The first version of this
+        % copied the five stem bytes out one at a time, which was five chances
+        % to type the wrong subscript and would have needed rewriting the moment
+        % the name changed - which it then did, on the very next build.
+        FOR i IN 1:lenHistUser DO
+            histUser(i - 1) =: histName(i - 1)
+        ENDFOR
+        FOR i IN 1:5 DO
+            histStem(i - 1) =: histName(lenHistUser + i - 1)
+        ENDFOR
+        digitZero + t =: histName(lenHistUser + 5)
+
+        % A FLAG, NOT THE DEVICE NUMBER. This file's own header says it in as
+        % many words - "leaves 46 in the device number when the file is not
+        % there - NOT zero. Never test the number".
+        %
+        % AND THE FLAG IS CLEARED AFTER THE ON BLOCK, NOT BEFORE. logOpen right
+        % above records why, measured in CHAT.PLNC on 2026-08-19: "cleared
+        % before, the handler body had already run and every open reported
+        % failure while returning a good device". The first version of this
+        % routine cleared it before - so a PERFECTLY GOOD open was reported as
+        % a failure, the create branch ran, and the final "IF failed THEN
+        % 0 =: dev" then threw away the device it had just been given.
+        0 =: dev
+        ON ROUTINEERROR DO
+            TRUE =: failed
+        ENDON
+        FALSE =: failed
+
+        MON50(histName(0:lenHistUser + 5), histType, 2) =: dev
+
+        IF failed THEN
+            % ---- MON50 CANNOT CREATE A FILE --------------------------------
+            %
+            % Quoting the name does NOTHING - measured in CHAT.PLNC and written
+            % down beside makeLog above: "CreateFile is 221B and it is a
+            % separate call". The first version of this routine quoted the name
+            % and believed it, so no history file was ever created and the only
+            % one that ever worked was the one made BY HAND from a terminal.
+            %
+            % Same shape as makeLog: fill the buffer with SPACES first so
+            % whatever was in the rest is never read as part of the name, then
+            % copy the full specification INCLUDING the type over the front.
+            %
+            % PAGES = THE RING'S SIZE, so every block the ring will ever
+            % address exists from the start. A file that grows as it is written
+            % would work for an append, but this writes block (id MOD size)
+            % straight away and the last block is touched long before the ones
+            % before it.
+            makeHistFile(t)
+
+            ON ROUTINEERROR DO
+                TRUE =: failed
+            ENDON
+            FALSE =: failed
+            MON50(histName(0:lenHistUser + 5), histType, 2) =: dev
+        ENDIF
+
+        % STILL FAILED MEANS NO HISTORY, AND THAT MUST LEAVE ZERO BEHIND -
+        % not 46, not whatever MON50 happened to write. Everything downstream
+        % tests histDev against 0 to decide whether there is a file at all.
+        IF failed THEN
+            0 =: dev
+        ENDIF
+
+        dev =: histDev(t)
+        dev RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Write one message into the ring.
+    %
+    % ONE BYTE PER WORD, AND NO PACKING. A block is 256 words and the biggest
+    % message is a 16-byte name plus 200 bytes of text - 219 words with three
+    % words of header, which fits with room to spare. Packing two bytes to a
+    % word would save space in a block that is already mostly empty, and would
+    % buy a shift-and-mask on every byte in both directions for it. The block
+    % is the unit the machine gives us; there is nothing to gain by filling it.
+    %
+    %   word 0   the id
+    %   word 1   how many bytes of name
+    %   word 2   how many bytes of text
+    %   then     the name, then the text
+    %
+    % The id goes in the block as well as in the table because the table does
+    % not survive a restart and the file does. Reading a block back and finding
+    % an id that is not the one the ring expects is how a half-written or
+    % never-written block is told from a real one.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER, INTEGER) : &
+            histSave(t, slot, textAt, textLength)
+        INTEGER : dev, i, at, id, blk, nLen, tLen
+
+        IF t < 1 THEN
+            RETURN
+        ENDIF
+        % ---- SAY WHAT HAPPENED, INTO THE LOG --------------------------------
+        %
+        % Three builds have now gone to the machine on a THEORY about why no
+        % history file appears - the filename, then the user, then the create
+        % call - and each time the only evidence was "OPENED 0 TIMES", which
+        % says nothing about WHICH step failed or whether this code ran at all.
+        %
+        % One log line ends that, the same way printing the LDN and the status
+        % ended the no-wait hunt in the client. It costs one line per message
+        % and comes out the moment the answer is known.
+        histOpen(t) =: dev
+        logLine('SV hist slot      ', 18, t)
+        logLine('SV hist dev       ', 18, dev)
+
+        IF dev = 0 THEN
+            RETURN                            % no history; the room still works
+        ENDIF
+
+        memberLen(slot) =: nLen
+        textLength =: tLen
+
+        % BOUNDED, because PLANC checks no array bound and a long name plus a
+        % long text written past the end of histBlock would corrupt whatever
+        % the loader put after it.
+        IF nLen > 16 THEN
+            16 =: nLen
+        ENDIF
+        IF 3 + nLen + tLen > histWords THEN
+            histWords - 3 - nLen =: tLen
+        ENDIF
+
+        histNext(t) =: id
+        id =: histBlock(0)
+        nLen =: histBlock(1)
+        tLen =: histBlock(2)
+        3 =: at
+
+        FOR i IN 1:nLen DO
+            memberName(slot, i) =: histBlock(at)
+            at + 1 =: at
+        ENDFOR
+        FOR i IN 1:tLen DO
+            inBuf(textAt + i - 1) =: histBlock(at)
+            at + 1 =: at
+        ENDFOR
+
+        % THE RING, and it is this one line. No compaction, no rewrite, no
+        % check for "is it full" - block id MOD size is where this message
+        % lives and the one it displaces is the one N messages ago.
+        id - ((id / histSize(t)) * histSize(t)) =: blk
+
+        ON ROUTINEERROR DO
+            0 =: dev                          % a failed write must not unwind
+        ENDON
+        MN120(dev, 0, histBlock, blk, histWords)
+
+        id + 1 =: histNext(t)
+    ENDROUTINE
+
+    %
+    % A separate routine from sameRoom because the two read from DIFFERENT
+    % TABLES. One routine taking "which table" would be a flag deciding what the
+    % code means - it reads fine and goes wrong in silence the day a caller
+    % passes the wrong one.
+    %
+    % DECLARED HERE, ABOVE buildWho, because PLANC needs it declared before it
+    % is called - the same reason sameRoom had to move up when /who was fixed.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, BOOLEAN (INTEGER, INTEGER) : sameRoomAs(slot, row)
+        INTEGER : i
+        IF mbrRoomLen(slot) >< rmtRoomLen(row) THEN
+            FALSE RETURN
+        ENDIF
+        FOR i IN 1:mbrRoomLen(slot) DO
+            IF mbrRoom(slot, i) >< rmtRoom(row, i) THEN
+                FALSE RETURN
+            ENDIF
+        ENDFOR
+        TRUE RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
     % Build the answer to /who: every seated member's name, one space between.
     %
     % The name field is EMPTY - the room is answering, not a member - and the
@@ -402,7 +2331,7 @@ $INCLUDE XMP-B02:IMPT
     % dropped, which is a worse answer than a longer buffer would give and a
     % far better one than a corrupted program.
     % -----------------------------------------------------------------------
-    ROUTINE VOID, INTEGER : buildWho
+    ROUTINE VOID, INTEGER (INTEGER) : buildWho(askerSlot)
         INTEGER : i, j, at, textAt, textLen, room
 
         kWho =: outBuf(0)
@@ -415,7 +2344,21 @@ $INCLUDE XMP-B02:IMPT
         0 =: textLen
 
         FOR i IN 1:maxSeats DO
+            % THE ASKER'S ROOM ONLY - and this test was MISSING until
+            % 2026-08-22, which made /who the one thing on this server that
+            % crossed a room boundary. Measured on D100: TESTER alone in LOBBY,
+            % ANNA in GENERAL, and TESTER's /who answered
+            %     CHAT: in (LOBBY): TESTER ANNA
+            % The client's "in (LOBBY)" label made the answer not merely too
+            % long but FALSE - it named a room ANNA was not in. Messages were
+            % isolated the whole time; only the roster leaked, which is why
+            % this survived a two-room test that watched what people SAID.
+            %
+            % sameRoom is the same compare the broadcast uses. Using it here
+            % rather than a fresh loop is the point: the roster and the
+            % broadcast must never disagree about who is in the room.
             IF memberUsed(i) = 1 THEN
+              IF sameRoom(i, askerSlot) THEN
                 % What this name needs: a separator if it is not the first,
                 % then the name itself.
                 memberLen(i) =: room
@@ -444,11 +2387,336 @@ $INCLUDE XMP-B02:IMPT
                     ENDFOR
                     textLen + memberLen(i) =: textLen
                 ENDIF
+              ENDIF
+            ENDIF
+        ENDFOR
+
+        % ---- AND THE PEOPLE ON THE OTHER MACHINES --------------------------
+        %
+        % Phase C. Same room, but on a peer, shown QUALIFIED - "ANNA@D102" -
+        % because two machines can each have an ANNA and a bare name would make
+        % them look like one person. The qualification is what makes a federated
+        % room honest rather than merely bigger.
+        %
+        % ROOM MATCHED THE SAME WAY as the local test: byte for byte on the
+        % spelling, because a room IS its name. The comparison is against the
+        % ASKER's room, not against anything the peer said about rooms.
+        FOR i IN 1:maxRemote DO
+            IF rmtSystem(i) >< 0 THEN
+                IF sameRoomAs(askerSlot, i) THEN
+                    % name + '@' + 'D' + up to 5 digits, plus a separator
+                    rmtNameLen(i) + 8 =: room
+                    IF textLen + room <= 250 THEN
+                        IF textLen > 0 THEN
+                            spaceByte(0) =: outBuf(at)
+                            at + 1 =: at
+                            textLen + 1 =: textLen
+                        ENDIF
+                        FOR j IN 1:rmtNameLen(i) DO
+                            rmtName(i, j) =: outBuf(at)
+                            at + 1 =: at
+                        ENDFOR
+                        atByte(0) =: outBuf(at)
+                        at + 1 =: at
+                        dByte(0) =: outBuf(at)
+                        at + 1 =: at
+                        putNumber(rmtSystem(i), at) =: at
+                        at - textAt =: textLen
+                    ENDIF
+                ENDIF
             ENDIF
         ENDFOR
 
         % Now the length is known. It cannot exceed 250, so the high byte the
         % format carries stays zero.
+        at - textAt =: textLen
+        textLen =: outBuf(3)
+        at RETURN
+    ENDROUTINE
+
+
+    % -----------------------------------------------------------------------
+    % Build the answer to /topic: the ROOM NAME in the name field, the topic in
+    % the text. An empty text means the room has no topic yet - the client says
+    % so in words rather than showing a blank line.
+    %
+    % The room name goes in the NAME field on purpose. It is the one message
+    % that is about a room rather than about a person, and putting the room
+    % where a nickname normally sits means the client can label it without
+    % having to remember which room it asked about - which matters, because a
+    % /join can land between the question and the answer.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER (INTEGER) : buildTopic(slot)
+        INTEGER : i, at, t, len
+
+        kTopic =: outBuf(0)
+        mbrRoomLen(slot) =: outBuf(1)
+        2 =: at
+        FOR i IN 1:mbrRoomLen(slot) DO
+            mbrRoom(slot, i) =: outBuf(at)
+            at + 1 =: at
+        ENDFOR
+
+        findTopic(slot) =: t
+        0 =: len
+        IF t >< 0 THEN
+            topicTextLen(t) =: len
+        ENDIF
+
+        0 =: outBuf(at)                       % text length, high byte
+        len =: outBuf(at + 1)                  % low byte; len <= 64
+        at + 2 =: at
+        IF t >< 0 THEN
+            FOR i IN 1:len DO
+                topicText(t, i) =: outBuf(at)
+                at + 1 =: at
+            ENDFOR
+        ENDIF
+        at RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Build the answer to /list: every room that somebody is sitting in, with
+    % how many people are in it - "LOBBY(2) GENERAL(1)".
+    %
+    % THE ROOM LIST IS DERIVED FROM THE SEATS, NOT KEPT. There is no room
+    % table to go stale: a room exists exactly as long as somebody is in it,
+    % which is the same rule the broadcast already follows. A room with a topic
+    % and nobody in it does NOT appear - it is not a place you can talk to.
+    %
+    % The walk is O(seats squared) and that is fine at sixteen: for each seat,
+    % look back over the earlier seats and skip it if its room has already been
+    % counted. No temporary room table, so nothing to size wrong.
+    %
+    % BOUNDED like buildWho, and for the same reason - see the note there.
+    % Rooms that do not fit are dropped rather than written past the end.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER : buildRooms
+        INTEGER : i, j, at, textLen, count, need, tens, ones
+        BOOLEAN : already
+
+        kRooms =: outBuf(0)
+        0 =: outBuf(1)                        % no name: the SERVER is answering
+        2 =: at
+        0 =: outBuf(at)                       % text length, high byte
+        0 =: outBuf(at + 1)                   % low byte, filled in below
+        at + 2 =: at
+        0 =: textLen
+
+        FOR i IN 1:maxSeats DO
+            IF memberUsed(i) = 1 THEN
+                % Has an earlier seat already named this room?
+                %
+                % GUARDED, because seat 1 has no earlier seats and "FOR j IN
+                % 1:0" is an EMPTY RANGE. This compiler checks nothing, so an
+                % empty FOR is not a thing to rely on - the first room would be
+                % compared against seat 0, which is outside the array.
+                FALSE =: already
+                IF i > 1 THEN
+                    FOR j IN 1:(i - 1) DO
+                        IF memberUsed(j) = 1 THEN
+                            IF sameRoom(i, j) THEN
+                                TRUE =: already
+                            ENDIF
+                        ENDIF
+                    ENDFOR
+                ENDIF
+
+                IF NOT already THEN
+                    % Count everybody in it, including seat i itself.
+                    0 =: count
+                    FOR j IN 1:maxSeats DO
+                        IF memberUsed(j) = 1 THEN
+                            IF sameRoom(i, j) THEN
+                                count + 1 =: count
+                            ENDIF
+                        ENDIF
+                    ENDFOR
+
+                    % name + "(" + up to two digits + ")" + a leading space
+                    % once there is something to separate from.
+                    mbrRoomLen(i) + 4 =: need
+                    IF textLen > 0 THEN
+                        need + 1 =: need
+                    ENDIF
+
+                    IF textLen + need <= 250 THEN
+                        IF textLen > 0 THEN
+                            spaceByte(0) =: outBuf(at)
+                            at + 1 =: at
+                            textLen + 1 =: textLen
+                        ENDIF
+                        FOR j IN 1:mbrRoomLen(i) DO
+                            mbrRoom(i, j) =: outBuf(at)
+                            at + 1 =: at
+                        ENDFOR
+                        textLen + mbrRoomLen(i) =: textLen
+
+                        openParen(0) =: outBuf(at)
+                        at + 1 =: at
+                        textLen + 1 =: textLen
+
+                        % At most sixteen seats, so at most two digits. Written
+                        % straight out rather than through a general routine -
+                        % a loop for a number that cannot exceed 16 would be
+                        % more code than the thing it replaces.
+                        count / 10 =: tens
+                        count - (tens * 10) =: ones
+                        IF tens > 0 THEN
+                            digitZero + tens =: outBuf(at)
+                            at + 1 =: at
+                            textLen + 1 =: textLen
+                        ENDIF
+                        digitZero + ones =: outBuf(at)
+                        at + 1 =: at
+                        textLen + 1 =: textLen
+
+                        closeParen(0) =: outBuf(at)
+                        at + 1 =: at
+                        textLen + 1 =: textLen
+                    ENDIF
+                ENDIF
+            ENDIF
+        ENDFOR
+
+        textLen =: outBuf(3)
+        at RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Build the answer to /who FROM SOMEBODY WITH NO SEAT: every room, and the
+    % people in each.
+    %
+    %     LOBBY: TESTER OLAV  GENERAL: ANNA@D102
+    %
+    % Rooms separated by TWO spaces, people inside a room by one. No parsing on
+    % the client side at all - it prints the text as it stands. That is on
+    % purpose: a format nobody parses cannot be parsed wrongly, and this answer
+    % exists to be READ by a person who has just been told they are nowhere.
+    %
+    % THE ROOM WALK IS buildRooms', DELIBERATELY. Same O(seats squared) skip of
+    % rooms an earlier seat already named, same rule that a room exists exactly
+    % as long as somebody is in it. If the two ever disagree, /list and /who
+    % would name different sets of rooms, which is the kind of small lie that
+    % takes an afternoon to chase.
+    %
+    % REMOTE PEOPLE ARE INCLUDED, qualified - "ANNA@D102" - and their room comes
+    % from the peer's own report. A remote room with nobody local in it WILL
+    % therefore be missed, because the walk starts from local seats. That is a
+    % known gap, not an oversight: fixing it means walking the remote table for
+    % rooms too and de-duplicating across both, and it is not worth the code
+    % until somebody has actually sat alone in a room on another machine.
+    %
+    % BOUNDED at 250 like its neighbours - see the note on buildWho. What does
+    % not fit is dropped, never written past the end of outBuf.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER : buildAllWho
+        INTEGER : i, j, k, at, textAt, textLen, need
+        BOOLEAN : already
+
+        kAllWho =: outBuf(0)
+        0 =: outBuf(1)                        % no name: the SERVER is answering
+        2 =: at
+        0 =: outBuf(at)                       % text length, high byte
+        0 =: outBuf(at + 1)                   % low byte, filled in below
+        at + 2 =: textAt
+        textAt =: at
+        0 =: textLen
+
+        FOR i IN 1:maxSeats DO
+            IF memberUsed(i) = 1 THEN
+
+                % Has an earlier seat already named this room? Guarded for the
+                % same reason buildRooms guards it: seat 1 has no earlier seats
+                % and an empty FOR range is not a thing this compiler promises.
+                FALSE =: already
+                IF i > 1 THEN
+                    FOR j IN 1:(i - 1) DO
+                        IF memberUsed(j) = 1 THEN
+                            IF sameRoom(i, j) THEN
+                                TRUE =: already
+                            ENDIF
+                        ENDIF
+                    ENDFOR
+                ENDIF
+
+                IF NOT already THEN
+                    % ---- the room name, then a colon ----------------------
+                    % Two spaces before it once there is something to separate
+                    % from, so the groups read apart at a glance.
+                    mbrRoomLen(i) + 1 =: need
+                    IF textLen > 0 THEN
+                        need + 2 =: need
+                    ENDIF
+
+                    IF textLen + need <= 250 THEN
+                        IF textLen > 0 THEN
+                            spaceByte(0) =: outBuf(at)
+                            at + 1 =: at
+                            spaceByte(0) =: outBuf(at)
+                            at + 1 =: at
+                        ENDIF
+                        FOR j IN 1:mbrRoomLen(i) DO
+                            mbrRoom(i, j) =: outBuf(at)
+                            at + 1 =: at
+                        ENDFOR
+                        colonByte(0) =: outBuf(at)
+                        at + 1 =: at
+                        at - textAt =: textLen
+
+                        % ---- everybody local in it ------------------------
+                        FOR j IN 1:maxSeats DO
+                            IF memberUsed(j) = 1 THEN
+                                IF sameRoom(i, j) THEN
+                                    memberLen(j) + 1 =: need
+                                    IF textLen + need <= 250 THEN
+                                        spaceByte(0) =: outBuf(at)
+                                        at + 1 =: at
+                                        FOR k IN 1:memberLen(j) DO
+                                            memberName(j, k) =: outBuf(at)
+                                            at + 1 =: at
+                                        ENDFOR
+                                        at - textAt =: textLen
+                                    ENDIF
+                                ENDIF
+                            ENDIF
+                        ENDFOR
+
+                        % ---- and everybody remote in it -------------------
+                        % sameRoomAs compares a SEAT's room against a remote
+                        % row, and seat i is in this room by construction, so
+                        % it is the right thing to compare against.
+                        FOR j IN 1:maxRemote DO
+                            IF rmtSystem(j) >< 0 THEN
+                                IF sameRoomAs(i, j) THEN
+                                    % name + '@' + 'D' + up to 5 digits + space
+                                    rmtNameLen(j) + 8 =: need
+                                    IF textLen + need <= 250 THEN
+                                        spaceByte(0) =: outBuf(at)
+                                        at + 1 =: at
+                                        FOR k IN 1:rmtNameLen(j) DO
+                                            rmtName(j, k) =: outBuf(at)
+                                            at + 1 =: at
+                                        ENDFOR
+                                        atByte(0) =: outBuf(at)
+                                        at + 1 =: at
+                                        dByte(0) =: outBuf(at)
+                                        at + 1 =: at
+                                        putNumber(rmtSystem(j), at) =: at
+                                        at - textAt =: textLen
+                                    ENDIF
+                                ENDIF
+                            ENDIF
+                        ENDFOR
+                    ENDIF
+                ENDIF
+            ENDIF
+        ENDFOR
+
+        % An EMPTY text is a real answer here and the client says so in words:
+        % it means nobody is anywhere, which is different from "I could not
+        % tell you". Leaving the length at zero is the whole implementation.
+        at - textAt =: textLen
         textLen =: outBuf(3)
         at RETURN
     ENDROUTINE
@@ -487,6 +2755,45 @@ $INCLUDE XMP-B02:IMPT
             inBuf(at + i - 1) =: memberName(slot, i)
         ENDFOR
         length =: memberLen(slot)
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Remember which room a member joined.
+    %
+    % The room arrives in the JOIN'S TEXT FIELD - the client puts it there
+    % because there is one port now and the room can no longer be inferred from
+    % which port the message came in on.
+    %
+    % A JOIN WITH NO ROOM IS PUT IN THE HOME ROOM rather than refused. An older
+    % client that predates this change sends an empty text, and refusing it
+    % would take the room out from under somebody whose only crime is not having
+    % been rebuilt yet. LOBBY is where they used to be, so LOBBY is where they
+    % go.
+    %
+    % Bounded at sixteen, the width of the column. PLANC checks no array bound,
+    % so this test is the only thing between a long room name and whatever the
+    % loader put next.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER) : copyRoomIn(slot, at, length)
+        INTEGER : i, take
+
+        length =: take
+        IF take > 16 THEN
+            16 =: take
+        ENDIF
+
+        IF take <= 0 THEN
+            FOR i IN 1:lenHomeRoom DO
+                homeRoom(i - 1) =: mbrRoom(slot, i)
+            ENDFOR
+            lenHomeRoom =: mbrRoomLen(slot)
+            RETURN
+        ENDIF
+
+        FOR i IN 1:take DO
+            inBuf(at + i - 1) =: mbrRoom(slot, i)
+        ENDFOR
+        take =: mbrRoomLen(slot)
     ENDROUTINE
 
     % -----------------------------------------------------------------------
@@ -540,6 +2847,7 @@ $INCLUDE XMP-B02:IMPT
             OUTPUT(1, 'AL18', 'SV: get failed st=')
             OUTPUT(1, 'I6', returnStatus)
             OUTPUT(1, 'AL1', '$')
+            logLine('SV get failed st= ', 18, returnStatus)
             RETURN
         ENDIF
         xmpfwri(0, 0, &
@@ -549,6 +2857,7 @@ $INCLUDE XMP-B02:IMPT
             OUTPUT(1, 'AL18', 'SV: wri failed st=')
             OUTPUT(1, 'I6', returnStatus)
             OUTPUT(1, 'AL1', '$')
+            logLine('SV wri failed st= ', 18, returnStatus)
         ENDIF
         IF returnStatus >< XMOK THEN
             xmpfrel(0, ident) =: returnStatus
@@ -581,6 +2890,7 @@ $INCLUDE XMP-B02:IMPT
             OUTPUT(1, 'AL18', 'SV: snd failed st=')
             OUTPUT(1, 'I6', returnStatus)
             OUTPUT(1, 'AL1', '$')
+            logLine('SV snd failed st= ', 18, returnStatus)
 
             % ---- A MEMBER WHO IS NO LONGER THERE, IF WE ARE EVER TOLD HERE --
             % Two statuses would mean the seat is holding somebody who has gone.
@@ -612,15 +2922,165 @@ $INCLUDE XMP-B02:IMPT
         ENDIF
     ENDROUTINE
 
-    ROUTINE VOID, VOID (INTEGER, INTEGER) : broadcast(length, exceptSlot)
-        INTEGER : i
+    % -----------------------------------------------------------------------
+    % Replay what this room remembers, to ONE person, oldest first.
+    %
+    % Sent to the JOINER ALONE - the room has not changed, so nobody else has
+    % anything to learn. Oldest first because that is the order it was said in;
+    % a screen that fills backwards is a puzzle, not a transcript.
+    %
+    % WHERE TO START: the ring holds at most histSize messages, so the oldest
+    % still present is next - size, or 0 if fewer than size have ever been
+    % said. Nothing here has to know whether the ring has wrapped; the
+    % arithmetic gives the same answer either way.
+    %
+    % A BLOCK WHOSE ID IS NOT THE ONE EXPECTED IS SKIPPED, and that is what
+    % makes a half-written or never-written block harmless. It happens for real
+    % on a file created and not yet filled: SINTRAN gives back whatever the
+    % blocks held, and without this test the room would replay rubbish as
+    % though somebody had said it.
+    %
+    % NOT SENT ACROSS A TRUNK, and that is deliberate - see the registry.
+    % Somebody joining on D102 sees what was said ON D102. Relaying history
+    % would mean deciding whose copy is authoritative and merging rings across
+    % machines whose clocks differ.
+    % -----------------------------------------------------------------------
+    % INTEGER4 for the magic, because that is what sendTo takes. An
+    % XMMSGIDENTIFIER is what xmpfget fills in and is a different thing; the
+    % magic is the ADDRESS a reply goes to, and it is 32 bits.
+    ROUTINE VOID, VOID (INTEGER, INTEGER4) : histReplay(t, magic)
+        INTEGER : dev, id, first, blk, i, at, nLen, tLen, length
+
+        IF t < 1 THEN
+            RETURN
+        ENDIF
+        histOpen(t) =: dev
+        IF dev = 0 THEN
+            RETURN
+        ENDIF
+
+        histNext(t) - histSize(t) =: first
+        IF first < 0 THEN
+            0 =: first
+        ENDIF
+
+        FOR id IN first:(histNext(t) - 1) DO
+            id - ((id / histSize(t)) * histSize(t)) =: blk
+
+            ON ROUTINEERROR DO
+                -1 =: histBlock(0)            % unreadable: cannot match an id
+            ENDON
+            MN117(dev, 0, histBlock, blk, histWords)
+
+            IF histBlock(0) = id THEN
+                histBlock(1) =: nLen
+                histBlock(2) =: tLen
+
+                % A BLOCK CAN HOLD RUBBISH AND STILL MATCH ITS ID. The lengths
+                % come off the disk, so they are bounded here before they are
+                % used as loop limits - a stale block claiming a 30000-byte
+                % name would otherwise write clean off the end of outBuf, and
+                % PLANC checks no array bound.
+                IF nLen < 0 THEN
+                    0 =: nLen
+                ENDIF
+                IF nLen > 16 THEN
+                    16 =: nLen
+                ENDIF
+                IF tLen < 0 THEN
+                    0 =: tLen
+                ENDIF
+                IF tLen > 200 THEN
+                    200 =: tLen
+                ENDIF
+
+                % FOR, NOT WHILE. PLANC has no WHILE...ENDWHILE: WHILE is a
+                % CONTINUE-TEST inside DO ... ENDDO, so "WHILE c DO ... ENDWHILE"
+                % is two errors, and the second one - ENDWHILE - is reported as
+                % ILLEGAL SYNTAX, which reads like punctuation and is not. The
+                % linter caught this before it reached the machine; it would
+                % otherwise have cost a four-minute compile to be told.
+                kHist =: outBuf(0)
+                nLen =: outBuf(1)
+                2 =: at
+                FOR i IN 1:nLen DO
+                    histBlock(2 + i) =: outBuf(at)
+                    at + 1 =: at
+                ENDFOR
+                0 =: outBuf(at)
+                tLen =: outBuf(at + 1)
+                at + 2 =: at
+                FOR i IN 1:tLen DO
+                    histBlock(2 + nLen + i) =: outBuf(at)
+                    at + 1 =: at
+                ENDFOR
+
+                at =: length
+                sendTo(magic, length)
+            ENDIF
+        ENDFOR
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Send to everybody in one room, optionally leaving one member out.
+    %
+    % ROOM-AWARE NOW, AND IT HAS TO BE. With one port every member of every
+    % room sits in this one table, so an unfiltered broadcast would put
+    % GENERAL's traffic on LOBBY's screens. Under the old port-per-room model
+    % that could not happen - a separate port meant a separate server table -
+    % which is why this routine had no room test until today.
+    %
+    % TWO PARAMETERS, NOT ONE, AND THAT IS THE WHOLE FIX.
+    %
+    % There was one slot number doing two unrelated jobs: naming the room to
+    % send to, AND naming the member to leave out. Slot 0 cannot mean both
+    % "no room" and "leave nobody out", and it was read as the first while
+    % every Say, Rename and Leave passed it meaning the second - so the guard
+    % at the top returned before sending a single letter.
+    %
+    % MEASURED ON D100, 2026-08-20, with two clients in LOBBY: neither saw a
+    % word the other said, while /who listed them both and the Joined notice
+    % arrived. Those two are exactly the paths that do NOT go through here
+    % with a zero - /who answers the asker directly, and Joined passes a real
+    % slot. The room table was never wrong; nothing was ever sent.
+    %
+    % So they are separate now and neither is overloaded:
+    %   roomOfSlot  whose room defines the audience. 0 sends to nobody,
+    %               because "everybody in the same room as nobody" is nobody.
+    %   skipSlot    one member to leave out, or 0 to leave nobody out.
+    %
+    % roomOfSlot's own seat may already be empty - a member is removed from
+    % the room BEFORE the room is told they left - and that still works,
+    % because sameRoom reads only the stored room name, which nothing clears.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER) : broadcast(length, roomOfSlot, skipSlot)
+        INTEGER : i, sent
+        IF roomOfSlot = 0 THEN
+            % Worth a line of its own. "Nobody was in the room" and "this was
+            % never called" look identical from outside, and telling them apart
+            % is most of the work when a message does not arrive.
+            logLine('SV bcast NO ROOM  ', 18, skipSlot)
+            RETURN
+        ENDIF
+
+        0 =: sent
         FOR i IN 1:maxSeats DO
             IF memberUsed(i) >< 0 THEN
-                IF i >< exceptSlot THEN
-                    sendTo(memberMagic(i), length)
+                IF i >< skipSlot THEN
+                    IF sameRoom(i, roomOfSlot) THEN
+                        sendTo(memberMagic(i), length)
+                        sent + 1 =: sent
+                    ENDIF
                 ENDIF
             ENDIF
         ENDFOR
+
+        % HOW MANY IT CHOSE, every time, and this is the instrument the whole
+        % afternoon of 2026-08-20 was missing. A zero here says the room filter
+        % rejected everybody; a number with nothing arriving says the sends are
+        % the problem; no line at all says broadcast was never reached. Three
+        % different faults that all look the same from a terminal.
+        logLine('SV bcast sent to  ', 18, sent)
     ENDROUTINE
 
     % -----------------------------------------------------------------------
@@ -670,13 +3130,14 @@ $INCLUDE XMP-B02:IMPT
                         % which would only mark them dead all over again.
                         buildFromSlot(kLeft, i, 0, 0) =: length
                         0 =: memberUsed(i)
-                        broadcast(length, 0)
+                        broadcast(length, i, i)   % their room, not them
 
                         xmpinfc(0, myPort, 1, 0) =: returnStatus
                         IF returnStatus >< XMOK THEN
                             OUTPUT(1, 'AL18', 'SV: infc failed st')
                             OUTPUT(1, 'I6', returnStatus)
                             OUTPUT(1, 'AL1', '$')
+                            logLine('SV infc faild st= ', 18, returnStatus)
                         ENDIF
 
                         % Worth one line: an operator watching the room needs to
@@ -685,6 +3146,7 @@ $INCLUDE XMP-B02:IMPT
                         OUTPUT(1, 'AL21', 'SV: reaped dead slot ')
                         OUTPUT(1, 'I6', i)
                         OUTPUT(1, 'AL1', '$')
+                        logLine('SV reaped slot    ', 18, i)
                     ENDIF
                 ENDIF
             ENDFOR
@@ -712,6 +3174,622 @@ $INCLUDE XMP-B02:IMPT
     INTEGER : lenAlreadyIn := 14
     BYTES : reasonRoomFull     := 'the room is full'
     INTEGER : lenRoomFull := 16
+    BYTES : reasonTopicFull    := 'too many rooms have topics'
+    INTEGER : lenTopicFull := 26
+
+    % -----------------------------------------------------------------------
+    % Send outBuf to a NAMED PORT ON ANOTHER SYSTEM, through XROUT.
+    %
+    % THIS SERVER HAS NEVER ORIGINATED A LETTER BEFORE. Everything it sends is a
+    % reply to a magic number that arrived with a message - sendTo above. A trunk
+    % is different: we address a machine that has not spoken to us, and may never
+    % have, so there is no magic to reply to.
+    %
+    % The sequence is the COSMOS Programmer Guide's worked example (page 99) and
+    % is exactly what CHAT.PLNC's sendJoin does:
+    %
+    %   XMPBLET   build an XSLET letter header naming SYSTEM and PORT NAME
+    %   XMPFGET   reserve an XMSG buffer
+    %   XMPFWRI   write the header, then OUR bytes after it
+    %   XMPROUT   hand the whole thing to XROUT, which does the lookup
+    %
+    % ADDRESSED BY NAME, NEVER BY A REMEMBERED MAGIC. A magic carries a
+    % generation, so one kept from before the peer restarted is stale in a way
+    % nothing reports until a send quietly fails. Looking the name up every time
+    % is what lets a machine that has been switched off for a day come back with
+    % nobody touching either end.
+    %
+    % A NON-ZERO STATUS IS NOT A FAULT HERE. The peer being absent is the normal
+    % case a trunk exists to survive; the caller records "still not up".
+    %
+    % THE SYSTEM IS A NAME, AS BYTES - NOT A NUMBER. That is the whole of this
+    % trap and it cost THREE compile cycles, all reporting the same thing:
+    %
+    %     2521 (1861)/SENDTONAME *** ERROR - ILLEGAL DATA TYPE "XMPBLET"
+    %
+    % The error names the CALL, so the first two attempts went looking at the
+    % PORT NAME argument - was it sliced, was it a parameter - and neither was
+    % the problem. It is parameter 5, the SYSTEM: XMPBLET wants the system's
+    % NAME as BYTES ('D102'), and an INTEGER 102 is refused.
+    %
+    % CHATMON.PLNC says so in as many words, from 2026-08-20:
+    %
+    %     "THE SYSTEM NAME IS BYTES, NOT AN INTEGER ... Declaring it INTEGER
+    %      drew *** ERROR - ILLEGAL DATA TYPE "XMPBLET" on the CALL rather than
+    %      on the declaration, which sends you looking at the arguments you
+    %      changed instead of the one you copied wrong."
+    %
+    % It even predicted how the search would go wrong, and it went exactly that
+    % way. READ THE NOTE THAT NAMES YOUR ERROR before changing anything.
+    %
+    % So the number is turned into a name here - 'D' and the decimal digits,
+    % which is the convention every DEFINE-REMOTE-NAME on these machines uses
+    % (DEFINE-REMOTE-NAME,,D102,102). peerName is declared with explicit BOUNDS
+    % and filled at RUNTIME, so it MUST be passed as a subarray saying how much
+    % of itself is the name - the same shape as the client's roomName.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER) : sendToName(system, length)
+        XMMSGIDENTIFIER : ident
+        INTEGER : offSet, uLength, wLength, st, nmAt
+
+        % 'D' then the digits - D100, D102, D103.
+        dByte(0) =: peerName(0)
+        putPeerDigits(system, 1) =: nmAt
+
+        xmpblet(letterBuf, 64, offSet, 123, peerName(0:nmAt - 1), trkName) =: st
+        IF st >< XMOK THEN
+            st RETURN
+        ENDIF
+
+        xmpfget(0, 200, ident) =: st
+        IF st >< XMOK THEN
+            st RETURN
+        ENDIF
+
+        % The header first...
+        offSet =: uLength
+        xmpfwri(0, 0, &
+            ADDR(letterBuf(0)) FORCE XMUSERADDRESS, &
+            0, uLength, wLength) =: st
+
+        % ...then our own bytes after it. XROUT reads only the header and
+        % forwards the rest untouched.
+        xmpfwri(0, wLength, &
+            ADDR(outBuf(0)) FORCE XMUSERADDRESS, &
+            0, length, offSet) =: st
+
+        xmprout(0, ident, trunkPort) =: st
+        st RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Which peer row holds this system, or 0.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER (INTEGER) : findPeer(system)
+        INTEGER : i
+        FOR i IN 1:maxPeers DO
+            IF peerSystem(i) = system THEN
+                i RETURN
+            ENDIF
+        ENDFOR
+        0 RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Say HELLO to one peer.
+    %
+    % ADDRESSED BY NAME THROUGH XROUT, not by a magic number we remember. A
+    % magic carries a generation, so one kept from before the peer restarted is
+    % stale in a way that is invisible until a send fails. The name is looked up
+    % fresh every time, which is exactly what makes a peer that has been away
+    % come back without anybody touching either machine.
+    %
+    % A FAILED SEND IS NOT AN ERROR HERE. A peer that is switched off is the
+    % normal case this routine exists to handle - the status is recorded by the
+    % caller as "still not up", not reported as a fault.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER) : sendHello(system, direction)
+        INTEGER : at, st
+
+        kTrkHello =: outBuf(0)
+        0 =: outBuf(1)                        % no name: a MACHINE is speaking
+        2 =: at
+        0 =: outBuf(at)                       % text length, high byte
+        1 =: outBuf(at + 1)                   % one byte of text
+        at + 2 =: at
+        direction =: outBuf(at)               % trkAsk or trkAnswer
+        at + 1 =: at
+
+        sendToName(system, at) =: st
+        st RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % A peer's member spoke. Show it to our own people in that room.
+    %
+    % SENT ONE BY ONE rather than through broadcast(), because broadcast picks
+    % its audience from a SLOT - "everybody in the same room as this member" -
+    % and the speaker has no slot here. They are not on this machine.
+    %
+    % The room arrives as text and is compared against each member's stored
+    % room, byte for byte, the same rule as everywhere else: a room IS its name.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER, INTEGER, INTEGER) : &
+            deliverRemoteSaid(system, nameAt, nameLength, textAt, textLength)
+        INTEGER : i, j, at, roomAt, roomLen2, msgAt, msgLen, p, textStart
+        BOOLEAN : match
+
+        % Split "ROOM/message" at the FIRST slash. A message may well contain
+        % slashes of its own; the room cannot, so the first one is the divider.
+        textAt =: roomAt
+        textAt =: p
+        DO
+            WHILE p < textAt + textLength AND inBuf(p) >< slashByte(0)
+            p + 1 =: p
+        ENDDO
+        p - roomAt =: roomLen2
+
+        % No slash at all is a malformed forward - drop it rather than deliver
+        % something to a room nobody named.
+        IF p >= textAt + textLength THEN
+            RETURN
+        ENDIF
+        p + 1 =: msgAt
+        textAt + textLength - msgAt =: msgLen
+
+        FOR i IN 1:maxSeats DO
+            IF memberUsed(i) = 1 THEN
+                TRUE =: match
+                IF mbrRoomLen(i) >< roomLen2 THEN
+                    FALSE =: match
+                ELSE
+                    FOR j IN 1:roomLen2 DO
+                        IF mbrRoom(i, j) >< inBuf(roomAt + j - 1) THEN
+                            FALSE =: match
+                        ENDIF
+                    ENDFOR
+                ENDIF
+
+                IF match THEN
+                    % "NAME@Dnnn" in the name field, so a client that already
+                    % prints "<name>: <text>" needs no change at all.
+                    kSaid =: outBuf(0)
+                    2 =: at
+                    FOR j IN 1:nameLength DO
+                        inBuf(nameAt + j - 1) =: outBuf(at)
+                        at + 1 =: at
+                    ENDFOR
+                    atByte(0) =: outBuf(at)
+                    at + 1 =: at
+                    dByte(0) =: outBuf(at)
+                    at + 1 =: at
+                    putNumber(system, at) =: at
+                    at - 2 =: outBuf(1)       % the name length, now known
+
+                    0 =: outBuf(at)
+                    0 =: outBuf(at + 1)
+                    at + 2 =: at
+                    at =: textStart
+                    FOR j IN 1:msgLen DO
+                        IF at < 250 THEN
+                            inBuf(msgAt + j - 1) =: outBuf(at)
+                            at + 1 =: at
+                        ENDIF
+                    ENDFOR
+                    at - textStart =: outBuf(textStart - 1)
+
+                    sendTo(memberMagic(i), at)
+                ENDIF
+            ENDIF
+        ENDFOR
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Send what a local member just said to every peer we believe is up.
+    %
+    % ONLY TO PEERS THAT ARE UP. A peer that is Unknown or Down gets nothing:
+    % the letter would bounce, and a bounce per message per absent machine is a
+    % lot of noise for something we already know.
+    %
+    % The text is rebuilt as "ROOM/message" rather than sent as two fields,
+    % which keeps it the same shape as the member list and readable on a trace.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER) : &
+            forwardSaid(slot, textAt, textLength)
+        INTEGER : i, j, at, st, textStart
+
+        % STAMPED ONCE, HERE, and the same number goes to every peer. That is
+        % what lets a machine two hops away tell one line arriving twice from
+        % two different lines. Stamping inside the loop would give each peer a
+        % different number and defeat the whole thing.
+        myLineId + 1 =: myLineId
+        % WRAPS AT 32000, NOT 65535. A PLANC INTEGER on the ND-100 is SIXTEEN
+        % BITS SIGNED, so it stops at 32767 - counting past that gives a
+        % NEGATIVE number, and a negative id would be written out as two
+        % nonsense bytes. 32000 leaves plenty of room and is obviously safe.
+        % The window is 64 entries, so a number is long forgotten before it
+        % can come round again.
+        IF myLineId > 32000 THEN
+            1 =: myLineId
+        ENDIF
+
+        FOR i IN 1:maxPeers DO
+            IF peerSystem(i) >< 0 THEN
+                IF peerState(i) = peerUp THEN
+
+                    % REBUILT FOR EVERY PEER, not built once outside the loop.
+                    % sendToName hands outBuf to XMPFWRI, and building it once
+                    % would be fine today - but the moment anything in the send
+                    % path touches outBuf this becomes a bug that only shows up
+                    % with two peers, which is the worst kind to find.
+                    % KIND 53, not 51: it carries who we are and the number we
+                    % just gave this line, so a machine further out can spot a
+                    % repeat. hops is one less than the ceiling because this
+                    % send IS the first hop.
+                    kTrkRelId =: outBuf(0)
+                    mySystem / 256 =: outBuf(1)
+                    mySystem MOD 256 =: outBuf(2)
+                    maxHops - 1 =: outBuf(3)
+                    myLineId / 256 =: outBuf(4)
+                    myLineId MOD 256 =: outBuf(5)
+                    memberLen(slot) =: outBuf(6)
+                    7 =: at
+                    FOR j IN 1:memberLen(slot) DO
+                        memberName(slot, j) =: outBuf(at)
+                        at + 1 =: at
+                    ENDFOR
+
+                    0 =: outBuf(at)
+                    0 =: outBuf(at + 1)       % low byte, filled in below
+                    at + 2 =: at
+                    at =: textStart
+
+                    FOR j IN 1:mbrRoomLen(slot) DO
+                        mbrRoom(slot, j) =: outBuf(at)
+                        at + 1 =: at
+                    ENDFOR
+                    slashByte(0) =: outBuf(at)
+                    at + 1 =: at
+
+                    % CLAMPED. The text arrived from a client and outBuf is 256
+                    % bytes; the room and the name have already taken some of
+                    % it. PLANC checks no bound, so anything long enough would
+                    % write straight past the end.
+                    FOR j IN 1:textLength DO
+                        IF at < 250 THEN
+                            inBuf(textAt + j - 1) =: outBuf(at)
+                            at + 1 =: at
+                        ENDIF
+                    ENDFOR
+
+                    at - textStart =: outBuf(textStart - 1)
+                    sendToName(peerSystem(i), at) =: st
+                ENDIF
+            ENDIF
+        ENDFOR
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Pass a line on to every peer EXCEPT the one it came from.
+    %
+    % THIS IS THE WHOLE OF PHASE D. D102 and D103 have no trunk between them -
+    % D100 is the only machine either can reach - so a line typed on D103 gets
+    % to D102 only if D100 forwards it. Measured on 2026-08-24, with a control:
+    % a line from D103 reached D100 and did NOT reach D102, while a line from
+    % D100 reached D102 seconds later on the same client.
+    %
+    % TWO THINGS STOP IT LOOPING FOR EVER, and both are needed:
+    %
+    %   never back to the sender  a two-machine trunk would otherwise bounce
+    %                             the same line between the pair immediately;
+    %   the hop count             a RING would come back round the other way,
+    %                             where the sender test does not help at all.
+    %
+    % WHAT THIS DOES NOT DO, and the difference matters: the hop count makes a
+    % ring TERMINATE, it does not make it DELIVER ONCE. Trace three machines
+    % all trunked to each other and a line arrives at some of them twice - once
+    % direct, once relayed - and the count only stops that repeating for ever.
+    % De-duplication is Phase E of CHAT-FEDERATION-DESIGN.md and is not written.
+    % It costs nothing today because the real topology is a CHAIN: D102 and
+    % D103 each have exactly one trunk, both to D100, so no line reaches either
+    % of them by two routes.
+    %
+    % The ORIGIN travels rather than being taken from the letter. A receiver
+    % normally qualifies the speaker with the system the letter arrived from,
+    % and on a forwarded line that is the RELAY - so without this D102 would
+    % show a D103 user as being on D100.
+    % -----------------------------------------------------------------------
+    % -----------------------------------------------------------------------
+    % Have we seen this line before? Records it if not.
+    %
+    % ONE routine that both asks and records, deliberately. Two - a check and
+    % a separate remember - invite the bug where a caller tests, forgets to
+    % record, and every copy looks new, which is a dedup that does nothing.
+    %
+    % Answers 1 for a line we have not seen (and remembers it), 0 for a
+    % repeat (and changes nothing).
+    %
+    % A line older than the window is treated as NEW again. That is the
+    % deliberate limit of a fixed window, written down here so it is not read
+    % as a fault later: a repeat arrives within a hop or two of the original,
+    % so it is always well inside 64.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER) : lineIsNew(fromSys, id)
+        INTEGER : i
+
+        FOR i IN 1:seenUsed DO
+            IF seenSys(i) = fromSys THEN
+                IF seenId(i) = id THEN
+                    0 RETURN
+                ENDIF
+            ENDIF
+        ENDFOR
+
+        fromSys =: seenSys(seenAt)
+        id =: seenId(seenAt)
+
+        seenAt + 1 =: seenAt
+        IF seenAt > maxSeen THEN
+            1 =: seenAt
+        ENDIF
+        IF seenUsed < maxSeen THEN
+            seenUsed + 1 =: seenUsed
+        ENDIF
+
+        1 RETURN
+    ENDROUTINE
+
+    % SEVEN parameters, so SEVEN types. Getting this wrong is not caught by the
+    % eye: the compiler answers EXPECTS ")" at the first name it has no type
+    % for, which reads like a bracket fault rather than a counting fault.
+    ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, &
+            INTEGER, INTEGER) : &
+            relayOn(fromSys, originSys, lineId, hopsLeft, nmAt, nmLen, &
+            txAt, txLen)
+        INTEGER : i, j, at, st, textStart
+
+        % Nothing to do once the count runs out. Said plainly rather than
+        % guarded at the call site, so every caller gets the rule.
+        IF hopsLeft <= 0 THEN
+            RETURN
+        ENDIF
+
+        FOR i IN 1:maxPeers DO
+            IF peerSystem(i) >< 0 THEN
+                IF peerState(i) = peerUp THEN
+                    IF peerSystem(i) >< fromSys THEN
+
+                        % THE ID IS PASSED ON UNTOUCHED. Renumbering it here
+                        % would make one line look like two to anybody who
+                        % can reach us by a second path - which is the whole
+                        % fault dedup exists to stop.
+                        kTrkRelId =: outBuf(0)
+                        originSys / 256 =: outBuf(1)
+                        originSys MOD 256 =: outBuf(2)
+                        hopsLeft =: outBuf(3)
+                        lineId / 256 =: outBuf(4)
+                        lineId MOD 256 =: outBuf(5)
+                        nmLen =: outBuf(6)
+                        7 =: at
+                        FOR j IN 1:nmLen DO
+                            inBuf(nmAt + j - 1) =: outBuf(at)
+                            at + 1 =: at
+                        ENDFOR
+
+                        0 =: outBuf(at)
+                        0 =: outBuf(at + 1)     % low byte, filled in below
+                        at + 2 =: at
+                        at =: textStart
+
+                        % CLAMPED, for the same reason forwardSaid is: the text
+                        % came from a stranger and outBuf is 256 bytes. PLANC
+                        % checks no bound, so a long enough line would write
+                        % straight past the end of it.
+                        FOR j IN 1:txLen DO
+                            IF at < 250 THEN
+                                inBuf(txAt + j - 1) =: outBuf(at)
+                                at + 1 =: at
+                            ENDIF
+                        ENDFOR
+
+                        at - textStart =: outBuf(textStart - 1)
+                        sendToName(peerSystem(i), at) =: st
+                        nRelayed + 1 =: nRelayed
+                    ENDIF
+                ENDIF
+            ENDIF
+        ENDFOR
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % One second has passed. Age every trunk.
+    %
+    % Called ONLY from the idle sleep, so a tick really is a second. Hanging it
+    % off the message loop would make a busy room time peers out faster, which
+    % is exactly backwards.
+    %
+    % TWO THINGS HAPPEN HERE and they are deliberately separate:
+    %
+    %   a peer we HAD goes quiet    -> declare it Down and DROP ITS PEOPLE, so
+    %                                  nobody is shown chatting from a machine
+    %                                  that is not answering;
+    %   a peer that is not Up       -> say hello again, on a doubling wait.
+    %
+    % A DOWN PEER KEEPS BEING GREETED. That is the automatic re-join: nobody has
+    % to notice the machine came back, and no operator command is needed. The
+    % peer's own hello usually arrives first anyway.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID : peerTick
+        INTEGER : i, st
+
+        FOR i IN 1:maxPeers DO
+            IF peerSystem(i) >< 0 THEN
+
+                peerHeard(i) + 1 =: peerHeard(i)
+
+                % ---- has a peer we had gone quiet? -------------------------
+                IF peerState(i) = peerUp THEN
+                    IF peerHeard(i) > peerDeadAfter THEN
+                        peerDown =: peerState(i)
+                        forgetRemote(peerSystem(i))
+                        peerFirstWait =: peerWait(i)
+                        peerFirstWait =: peerCount(i)
+                        logLine('SV trunk down sys ', 18, peerSystem(i))
+                    ENDIF
+                ENDIF
+
+                % ---- and greet anything that is not up ---------------------
+                IF peerState(i) >< peerUp THEN
+                    peerCount(i) - 1 =: peerCount(i)
+                    IF peerCount(i) <= 0 THEN
+                        sendHello(peerSystem(i), trkAsk) =: st
+
+                        % DOUBLE, THEN CAP. The multiply is done before the
+                        % test so the cap is a ceiling on the WAIT, not on the
+                        % number of tries - a peer away for a week keeps being
+                        % greeted every five minutes for ever, which is what
+                        % makes it come back by itself.
+                        peerWait(i) * 2 =: peerWait(i)
+                        IF peerWait(i) > peerMaxWait THEN
+                            peerMaxWait =: peerWait(i)
+                        ENDIF
+                        peerWait(i) =: peerCount(i)
+                    ENDIF
+                ENDIF
+            ENDIF
+        ENDFOR
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Ask one peer who is on it. Empty text - the kind IS the question.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER (INTEGER) : askWho(system)
+        INTEGER : at, st
+
+        kTrkWho =: outBuf(0)
+        0 =: outBuf(1)                        % no name: a MACHINE is asking
+        2 =: at
+        0 =: outBuf(at)
+        0 =: outBuf(at + 1)
+        at + 2 =: at
+
+        sendToName(system, at) =: st
+        st RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Mark a peer heard-from. Called for ANY arrival on the trunk port.
+    %
+    % AN UNKNOWN SYSTEM IS ADDED, not ignored. If a machine trunks to us we want
+    % the trunk to work in both directions without an operator having to type the
+    % matching TRUNK here - the design's "whichever machine boots second brings
+    % the trunk up". If the table is full the greeting is simply dropped; a full
+    % peer table is an operator problem, not something to fail a message over.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID (INTEGER) : markPeerUp(system)
+        INTEGER : row, i
+
+        % OURSELVES IS NOT A PEER. A hello to a machine with no CHAT-TRUNK name
+        % bounces back to this very port wearing our own magic, and without this
+        % the server adds a row for itself and reports it up. Measured the first
+        % time a trunk was configured - see the note on mySystem.
+        IF system = mySystem THEN
+            RETURN
+        ENDIF
+        IF system = 0 THEN
+            RETURN
+        ENDIF
+
+        findPeer(system) =: row
+        IF row = 0 THEN
+            FOR i IN 1:maxPeers DO
+                IF peerSystem(i) = 0 THEN
+                    IF row = 0 THEN
+                        system =: peerSystem(i)
+                        i =: row
+                    ENDIF
+                ENDIF
+            ENDFOR
+        ENDIF
+        IF row >< 0 THEN
+            peerUp =: peerState(row)
+            0 =: peerHeard(row)
+
+            % RESET THE BACKOFF ON EVERY TRANSITION TO UP, not just the first.
+            % A peer that flaps would otherwise inherit a five-minute wait from
+            % its last absence and take five minutes to be missed again.
+            peerFirstWait =: peerWait(row)
+            peerFirstWait =: peerCount(row)
+
+            logLine('SV trunk up sys   ', 18, system)
+        ENDIF
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % TRUNK <system>: remember the peer and greet it.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID (INTEGER) : addPeer(system)
+        INTEGER : row, i, length, st
+
+        findPeer(system) =: row
+        IF row = 0 THEN
+            FOR i IN 1:maxPeers DO
+                IF peerSystem(i) = 0 THEN
+                    IF row = 0 THEN
+                        system =: peerSystem(i)
+                        peerUnknown =: peerState(i)
+                        0 =: peerHeard(i)
+                        % Start the backoff clock, or peerTick would count down
+                        % from an uninitialised value and greet at random.
+                        peerFirstWait =: peerWait(i)
+                        peerFirstWait =: peerCount(i)
+                        i =: row
+                    ENDIF
+                ENDIF
+            ENDFOR
+        ENDIF
+
+        IF row = 0 THEN
+            buildAdmText('no room for another trunk', 25) =: length
+            sendTo(senderMagic, length)
+            RETURN
+        ENDIF
+
+        % Greet it now rather than waiting for the retry tick, so an operator
+        % typing TRUNK sees the answer in seconds and not in half a minute.
+        % A FAILURE HERE IS NOT REPORTED AS ONE - the peer being off is exactly
+        % what the retry exists for.
+        sendHello(system, trkAsk) =: st
+
+        buildAdmText('trunk added', 11) =: length
+        sendTo(senderMagic, length)
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % UNTRUNK <system>: forget the peer.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID (INTEGER) : dropPeer(system)
+        INTEGER : row, length
+
+        findPeer(system) =: row
+        IF row = 0 THEN
+            buildAdmText('no such trunk', 13) =: length
+            sendTo(senderMagic, length)
+            RETURN
+        ENDIF
+
+        0 =: peerSystem(row)
+        peerUnknown =: peerState(row)
+        0 =: peerHeard(row)
+
+        % AND ITS PEOPLE GO WITH IT. Leaving them behind would show somebody
+        % chatting from a machine this server no longer talks to, and nothing
+        % would ever come along to remove them.
+        forgetRemote(system)
+
+        buildAdmText('trunk removed', 13) =: length
+        sendTo(senderMagic, length)
+    ENDROUTINE
 
     % -----------------------------------------------------------------------
     % Refuse the sender, echoing the name they asked for and naming the reason.
@@ -723,6 +3801,14 @@ $INCLUDE XMP-B02:IMPT
     ROUTINE VOID, VOID (INTEGER, INTEGER, BYTES, INTEGER) : &
             refuse(nameAt, nameLength, reason, reasonLength)
         INTEGER : i, at
+
+        % EVERY refusal passes through here - seven call sites do, and that is
+        % why the count belongs here rather than at any of them. A join that
+        % fails used to leave no trace at all: the client saw a reject and the
+        % machine said nothing, so "it will not let me in" could not be told
+        % from "it never heard me". STATUS answers that now.
+        nRefused + 1 =: nRefused
+
         kReject =: outBuf(0)
         nameLength =: outBuf(1)
         2 =: at
@@ -759,8 +3845,83 @@ $INCLUDE XMP-B02:IMPT
     ROUTINE VOID, VOID : handleMessage
         INTEGER : kind, nameLength, nameAt, textLength, textAt
         INTEGER : slot, taken, length
+        % i is used by the topic copy, which is the only loop in this routine.
+        INTEGER : i
+        % The room's entry in the topic/history table. Named for what it is
+        % used for here rather than for the table it comes from - the table is
+        % called "topic" only because that was its first job.
+        INTEGER : histSlot
+        % Where the space between "room" and "count" was found in INITIALIZE.
+        INTEGER : initSpace
+        % A relayed line carries these three bytes in front of the usual shape.
+        % Zero on every other kind, and zero is not a real system number, so a
+        % handler that reads them by mistake gets an obviously wrong answer
+        % rather than a plausible one.
+        INTEGER : relayOrig
+        INTEGER : relayHops
+        % The number the ORIGIN gave this line, on a kind 53. Zero on
+        % anything else, and zero is never a real line number - the
+        % stamper starts at 1 - so a handler that reads it by mistake
+        % gets an obviously wrong answer rather than a plausible one.
+        INTEGER : relayId
 
         inBuf(0) =: kind
+
+        % ---- A RELAYED LINE HAS A LONGER HEADER, so take it off HERE --------
+        %
+        % Every field below this point is read at a fixed offset - nameLength
+        % at byte 1, the name at byte 2 - and a dozen handlers depend on that.
+        % Rather than teach all of them about a second layout, the three extra
+        % bytes are read off and the rest of the message is SLID DOWN to where
+        % it would have been. From the next line on, a relayed line looks
+        % exactly like any other and only its own handler knows the difference.
+        %
+        % The length test is not decoration: readLength is what actually
+        % arrived, and a truncated relay header would otherwise be read as a
+        % name length and produce a plausible-looking message out of rubbish.
+        0 =: relayOrig
+        0 =: relayHops
+        0 =: relayId
+        IF kind = kTrkRelay THEN
+            IF readLength > 4 THEN
+                inBuf(1) * 256 + inBuf(2) =: relayOrig
+                inBuf(3) =: relayHops
+                FOR i IN 1:readLength - 4 DO
+                    inBuf(i + 3) =: inBuf(i)
+                ENDFOR
+                readLength - 3 =: readLength
+            ELSE
+                % Too short to be one. Drop it rather than read past the end.
+                RETURN
+            ENDIF
+        ENDIF
+
+        % SAME TRICK, TWO BYTES LONGER. The length test is not decoration:
+        % a kind 53 cut short would otherwise have the high byte of its id
+        % read as a name length, and a plausible-looking line built out of
+        % rubbish. Note it needs SIX, not four - a message long enough to
+        % satisfy the kind 52 test above can still be too short for this.
+        IF kind = kTrkRelId THEN
+            IF readLength > 6 THEN
+                inBuf(1) * 256 + inBuf(2) =: relayOrig
+                inBuf(3) =: relayHops
+                % A peer that sent a high byte over 127 would overflow a
+                % signed 16-bit INTEGER and land here NEGATIVE. That is ugly
+                % but harmless: this number is only ever compared for
+                % equality, never used as a size or an index, so a negative
+                % one still names the line perfectly well. Our own stamper
+                % never goes above 32000, so it does not arise between our
+                % own machines.
+                inBuf(4) * 256 + inBuf(5) =: relayId
+                FOR i IN 1:readLength - 6 DO
+                    inBuf(i + 5) =: inBuf(i)
+                ENDFOR
+                readLength - 5 =: readLength
+            ELSE
+                RETURN
+            ENDIF
+        ENDIF
+
         inBuf(1) =: nameLength
         2 =: nameAt
 
@@ -816,6 +3977,384 @@ $INCLUDE XMP-B02:IMPT
             RETURN
         ENDIF
 
+        % ---- ONE VOCABULARY IS NOT ONE AUTHORITY ---------------------------
+        %
+        % Admin kinds share the room's numbering on purpose - a second enum
+        % would mean a second decoder bound, and that bound has been left
+        % behind twice, silently both times. But sharing the words is not
+        % sharing the right to use them anywhere: an admin kind arriving on
+        % CHAT-LOBBY would let any client that can reach the room stop the
+        % server, and a room kind on the command port would put a member in a
+        % seat nobody counted.
+        %
+        % Refused in SILENCE rather than with a reason. A caller on the wrong
+        % port is either confused or probing, and neither is owed a map.
+        % THREE PORTS, THREE VOCABULARIES. Each kind belongs on exactly one of
+        % them, and arriving on the wrong one is refused in silence.
+        %
+        %   48 and up   TRUNK    machine to machine, on CHAT-TRUNK
+        %   32 .. 47    ADMIN    an operator, on CHAT-ADMIN
+        %   below 32    ROOM     a member, on the room port
+        %
+        % The trunk test comes FIRST because trunk numbers are also >= kAdmStat,
+        % and testing admin first would demand fromAdmin of a HELLO - which
+        % arrives on the trunk port, where fromAdmin is false. That is exactly
+        % how the first build of this swallowed every hello in silence.
+        IF kind >= kTrkHello THEN
+            IF NOT fromTrunk THEN
+                RETURN
+            ENDIF
+        ELSE
+            IF kind >= kAdmStat THEN
+                IF NOT fromAdmin THEN
+                    RETURN
+                ENDIF
+            ELSE
+                IF fromAdmin THEN
+                    RETURN
+                ENDIF
+                IF fromTrunk THEN
+                    RETURN
+                ENDIF
+            ENDIF
+        ENDIF
+
+        % ---- THE ADMIN COMMANDS --------------------------------------------
+        % ---- TRUNK CONFIGURATION, from CHAT-MON on the command port ----------
+        %
+        % Guarded by fromAdmin like every other admin verb: rewiring the network
+        % is not something a room member may do.
+        IF kind = kAdmTrunk THEN
+            IF NOT fromAdmin THEN
+                RETURN
+            ENDIF
+            trunkNumber(textAt, textLength) =: taken
+            IF taken = 0 THEN
+                buildAdmText('TRUNK needs a system number', 27) =: length
+                sendTo(senderMagic, length)
+                RETURN
+            ENDIF
+            % NO "=: length" - addPeer is a VOID routine and sends its own
+            % reply. Assigning from it drew ILLEGAL DATA TYPE "ADDPEER" at the
+            % CALL, which reads like a problem with the argument.
+            addPeer(taken)
+            RETURN
+        ENDIF
+
+        % INITIALIZE <room> <n> - how many messages a room remembers.
+        %
+        % TWO FIELDS, unlike every other admin verb, so the text is split at the
+        % first space: the room name, then the count. Split at the FIRST one
+        % because a room name cannot contain a space and a trailing one would
+        % otherwise become part of the number.
+        %
+        % REFUSED ONCE THE ROOM HAS HISTORY, and this is the part worth being
+        % careful about. The ring is "block = id MOD size", so CHANGING size
+        % moves where every existing id lands: the messages do not move, but
+        % the arithmetic that finds them does, and the replay would hand back
+        % other messages in the wrong order while looking perfectly healthy.
+        % There is no cheap correct rewrite - it means reading the whole ring
+        % out and writing it back in the new shape - so an empty room is the
+        % only case allowed, and the refusal says exactly that. Setting a room
+        % up BEFORE anybody speaks in it is the case this was asked for.
+        IF kind = kAdmInit THEN
+            IF NOT fromAdmin THEN
+                RETURN
+            ENDIF
+
+            % Find the space that separates the two fields.
+            0 =: initSpace
+            FOR i IN 1:textLength DO
+                IF initSpace = 0 THEN
+                    IF inBuf(textAt + i - 1) = spaceByte(0) THEN
+                        i =: initSpace
+                    ENDIF
+                ENDIF
+            ENDFOR
+
+            % ---- NO ROOM NAMED: SET THIS MACHINE'S DEFAULT ------------------
+            %
+            % Ronny, 2026-08-23: "INITIALIZE without room sets the default
+            % amount for this machine, spread out by rooms as the rooms may be
+            % created later."
+            %
+            % So one field is a DEFAULT and two are one ROOM. It reads the way
+            % an operator would say it - "INITIALIZE 20" is how much a room
+            % keeps here, "INITIALIZE LOBBY 20" is how much LOBBY keeps.
+            %
+            % IT DOES NOT TOUCH ROOMS THAT ALREADY EXIST, and that is the whole
+            % meaning of "as the rooms may be created later": claimTopic and
+            % claimRoomNamed take a copy of histDefault when they allocate, so
+            % a room created after this picks the new number up and one created
+            % before it keeps what it was given. Reaching back into live rooms
+            % would change a ring that already has messages in it, which is the
+            % thing the per-room form refuses to do for good reason.
+            IF initSpace = 0 THEN
+                trunkNumber(textAt, textLength) =: taken
+                IF taken < 1 THEN
+                    buildAdmText('INITIALIZE needs a count above zero', 35) &
+                        =: length
+                    sendTo(senderMagic, length)
+                    RETURN
+                ENDIF
+                IF taken > maxHistSize THEN
+                    buildAdmText('that is more than a room can keep', 33) &
+                        =: length
+                    sendTo(senderMagic, length)
+                    RETURN
+                ENDIF
+                taken =: histDefault
+                buildAdmText('default history size set', 24) =: length
+                sendTo(senderMagic, length)
+                RETURN
+            ENDIF
+
+            trunkNumber(textAt + initSpace, textLength - initSpace) =: taken
+            IF taken < 1 THEN
+                buildAdmText('INITIALIZE needs a count above zero', 35) &
+                    =: length
+                sendTo(senderMagic, length)
+                RETURN
+            ENDIF
+            IF taken > maxHistSize THEN
+                buildAdmText('that is more than a room can keep', 33) =: length
+                sendTo(senderMagic, length)
+                RETURN
+            ENDIF
+
+            claimRoomNamed(textAt, initSpace - 1) =: histSlot
+            IF histSlot = 0 THEN
+                buildAdmText('no room left in the table', 25) =: length
+                sendTo(senderMagic, length)
+                RETURN
+            ENDIF
+
+            IF histNext(histSlot) > 0 THEN
+                buildAdmText('that room already has history', 29) =: length
+                sendTo(senderMagic, length)
+                RETURN
+            ENDIF
+
+            taken =: histSize(histSlot)
+            buildAdmText('room history size set', 21) =: length
+            sendTo(senderMagic, length)
+            RETURN
+        ENDIF
+
+        IF kind = kAdmUntrnk THEN
+            IF NOT fromAdmin THEN
+                RETURN
+            ENDIF
+            trunkNumber(textAt, textLength) =: taken
+            IF taken = 0 THEN
+                buildAdmText('UNTRUNK needs a system number', 29) =: length
+                sendTo(senderMagic, length)
+                RETURN
+            ENDIF
+            dropPeer(taken)
+            RETURN
+        ENDIF
+
+        IF kind = kAdmTrunks THEN
+            IF NOT fromAdmin THEN
+                RETURN
+            ENDIF
+            buildTrunks =: length
+            sendTo(senderMagic, length)
+            RETURN
+        ENDIF
+
+        % ---- A HELLO FROM ANOTHER SERVER, on the trunk port -----------------
+        %
+        % ANYTHING ARRIVING FROM A PEER MARKS IT UP, including an unsolicited
+        % HELLO from a machine we have not trunked. That is what lets whichever
+        % machine boots second bring the trunk up without the first noticing.
+        %
+        % An ASK is answered, an ANSWER is not - see the note on trkAsk. Without
+        % that the two servers would greet each other for ever.
+        IF kind = kTrkHello THEN
+            IF NOT fromTrunk THEN
+                RETURN
+            ENDIF
+
+            % A RETURNED LETTER IS NOT A PEER SAYING HELLO - IT IS THE OPPOSITE.
+            %
+            % XMTRE means the message came BACK: "If msgType is XMTRE,
+            % msgLengthOrStat contains the error status". The design counts on
+            % exactly this as the CHEAP way to learn a peer is absent - "the
+            % letter comes straight back undeliverable ... Immediate, no
+            % waiting" - so reading it as proof of life inverts the one signal
+            % that costs nothing.
+            %
+            % The bounce does NOT say who it was addressed to, so there is
+            % nobody specific to mark down here; it is simply not treated as
+            % good news, and the peer stays whatever it was until the idle
+            % count declares it down. Carrying the addressee in the hello text
+            % would let this mark the right row immediately - worth doing when
+            % the state machine grows.
+            IF msgType = XMTRE THEN
+                logLine('SV trunk bounce   ', 18, receiveStat)
+                RETURN
+            ENDIF
+
+            markPeerUp(senderSystem)
+            IF textLength > 0 THEN
+                IF inBuf(textAt) = trkAsk THEN
+                    sendHello(senderSystem, trkAnswer) =: taken
+                ENDIF
+            ENDIF
+
+            % PHASE C: A HELLO IS ALSO THE MOMENT TO ASK WHO IS THERE.
+            %
+            % Asked on EVERY hello, not only the first. A peer that says hello
+            % again has very likely restarted, and everything we remember about
+            % its members is then stale - the design's "treat Up as start
+            % again". The answer REPLACES our rows for it, so asking twice
+            % costs one message and can never leave a ghost.
+            askWho(senderSystem) =: taken
+            RETURN
+        ENDIF
+
+        % ---- A PEER ASKS WHO IS ON US ---------------------------------------
+        IF kind = kTrkWho THEN
+            IF NOT fromTrunk THEN
+                RETURN
+            ENDIF
+            IF msgType = XMTRE THEN
+                RETURN
+            ENDIF
+            buildMembers =: length
+            sendToName(senderSystem, length) =: taken
+            RETURN
+        ENDIF
+
+        % ---- SOMEBODY SPOKE ON ANOTHER MACHINE ------------------------------
+        %
+        % The text is "ROOM/what they said". The room decides who hears it here;
+        % the speaker is shown qualified with the system the LETTER came from,
+        % never with anything the sender put in the message.
+        IF kind = kTrkSaid THEN
+            IF NOT fromTrunk THEN
+                RETURN
+            ENDIF
+            IF msgType = XMTRE THEN
+                RETURN
+            ENDIF
+            markPeerUp(senderSystem)
+            deliverRemoteSaid(senderSystem, nameAt, nameLength, &
+                textAt, textLength)
+
+            % AND PASS IT ON. This is what makes a chain work without changing
+            % what the SENDER does at all: the machine in the middle turns a
+            % direct line into a relayed one. An older server simply does not
+            % do this, which is why nothing had to be upgraded in step.
+            %
+            % The origin is senderSystem because this line came STRAIGHT from
+            % the machine it was typed on - one hop so far.
+            % Id ZERO: kind 51 carries none, because it comes from a server
+            % that predates dedup. Passing zero on is honest - it says "this
+            % line has no name" - and the receiver treats an unnamed line as
+            % always new, which is exactly today's behaviour. Inventing a
+            % number here would be worse than useless: a second relay would
+            % invent a different one for the same line.
+            relayOn(senderSystem, senderSystem, 0, maxHops - 1, &
+                nameAt, nameLength, textAt, textLength)
+            RETURN
+        ENDIF
+
+        % ---- SOMEBODY SPOKE FURTHER AWAY ------------------------------------
+        %
+        % A line that has already been through at least one other machine. The
+        % speaker is qualified with the ORIGIN THE LETTER CARRIES, not with the
+        % system it arrived from - that one is the relay, and using it would
+        % show a D103 user as being on D100.
+        IF kind = kTrkRelay THEN
+            IF NOT fromTrunk THEN
+                RETURN
+            ENDIF
+            IF msgType = XMTRE THEN
+                RETURN
+            ENDIF
+
+            % The machine that PASSED it to us is alive; that is what we heard
+            % from. Says nothing about the origin, which we may have no trunk
+            % to at all - and that is the entire point of relaying.
+            markPeerUp(senderSystem)
+
+            deliverRemoteSaid(relayOrig, nameAt, nameLength, &
+                textAt, textLength)
+
+            % On again, one hop shorter, never back the way it came.
+            relayOn(senderSystem, relayOrig, 0, relayHops - 1, &
+                nameAt, nameLength, textAt, textLength)
+            RETURN
+        ENDIF
+
+        % ---- SOMEBODY SPOKE FURTHER AWAY, AND THE LINE HAS A NAME ------------
+        %
+        % Same as kTrkRelay above, with the one difference that matters: this
+        % line carries the number its ORIGIN gave it, so we can tell a second
+        % copy from a new line and show it once.
+        IF kind = kTrkRelId THEN
+            IF NOT fromTrunk THEN
+                RETURN
+            ENDIF
+            IF msgType = XMTRE THEN
+                RETURN
+            ENDIF
+
+            % The machine that PASSED it on is alive. Says nothing about the
+            % origin, which we may have no trunk to at all.
+            markPeerUp(senderSystem)
+
+            % SEEN IT ALREADY? Then stop here - do not show it and do not pass
+            % it on. Passing on a repeat would multiply it round a mesh even
+            % though nobody would be shown it twice.
+            IF lineIsNew(relayOrig, relayId) = 0 THEN
+                nDupes + 1 =: nDupes
+                RETURN
+            ENDIF
+
+            deliverRemoteSaid(relayOrig, nameAt, nameLength, &
+                textAt, textLength)
+
+            % On again, one hop shorter, never back the way it came, and with
+            % the id UNCHANGED.
+            relayOn(senderSystem, relayOrig, relayId, relayHops - 1, &
+                nameAt, nameLength, textAt, textLength)
+            RETURN
+        ENDIF
+
+        % ---- A PEER TELLS US WHO IS ON IT -----------------------------------
+        IF kind = kTrkMbrs THEN
+            IF NOT fromTrunk THEN
+                RETURN
+            ENDIF
+            IF msgType = XMTRE THEN
+                RETURN
+            ENDIF
+            % Hearing from it is itself proof of life.
+            markPeerUp(senderSystem)
+            takeMembers(senderSystem, textAt, textLength)
+            RETURN
+        ENDIF
+
+        IF kind = kAdmStat THEN
+            buildStatus =: length
+            sendTo(senderMagic, length)
+            RETURN
+        ENDIF
+
+        IF kind = kAdmStop THEN
+            % Say who did it. An unattributed stop in a log is worth little,
+            % and the asker's name rode in the nickname field for this.
+            OUTPUT(1, 'AL19', 'CHATSV: stopped by ')
+            showName(nameAt, nameLength)
+            OUTPUT(1, 'AL1', '$')
+            TRUE =: stopWanted
+            RETURN
+        ENDIF
+
         % The seat this sender already holds, or -1 if none. A "slot now=" line
         % used to print here on every message; it was part of the same bring-up
         % as the parse line above and went with it.
@@ -852,18 +4391,90 @@ $INCLUDE XMP-B02:IMPT
             senderMagic =: memberMagic(slot)
             copyNameIn(slot, nameAt, nameLength)
 
+            % AND WHICH ROOM. The Join carries it in the TEXT field,
+            % because with one port the room can no longer be told from
+            % which port the message arrived on. Everything this member
+            % says afterwards is broadcast only to the others in it.
+            copyRoomIn(slot, textAt, textLength)
+
             % The welcome goes only to the joiner; the room hears Joined.
             buildMessage(kWelcome, nameAt, nameLength, 0, 0) =: length
             sendTo(senderMagic, length)
 
+            % ---- WHAT THEY MISSED, BEFORE THE ROOM HEARS THEY ARRIVED -----
+            %
+            % ORDER MATTERS AND THIS IS THE RIGHT ONE. After the welcome,
+            % because the client is not in the room until it has that and
+            % would drop anything sent before it. Before the Joined broadcast,
+            % so the transcript reads the way it happened: everything said
+            % earlier, then "OLAV joined", then whatever is said next. Sending
+            % history after the announcement would put old lines below the
+            % arrival and read as though they were new.
+            %
+            % findTopic, NOT claimTopic - joining a room must not allocate a
+            % history slot. A room nobody has ever spoken in has no history to
+            % replay, and giving it a table entry on a join would let eight
+            % people joining eight empty rooms fill the table with nothing.
+            findTopic(slot) =: histSlot
+            histReplay(histSlot, senderMagic)
+
             buildMessage(kJoined, nameAt, nameLength, 0, 0) =: length
-            broadcast(length, slot)
+            broadcast(length, slot, slot)        % their room, not them
             RETURN
         ENDIF
 
-        % Everything below requires membership. Silence for a stranger, exactly
-        % as ChatRoom does: answering would confirm the port is a chat server to
-        % something that never joined.
+        % ---- THE TWO THINGS A PERSON WITH NO SEAT MAY ASK ------------------
+        %
+        % Both are READ-ONLY and both are what somebody actually needs at the
+        % moment they have no seat: they have just left, or been refused a
+        % nickname, and the next question is always "what is there" or "who is
+        % about". Answering silence to that is the client's worst behaviour.
+        %
+        % kRooms WAS SUPPOSED TO BE ALLOWED HERE ALREADY, and was not.
+        % DOC/protocols/chat-wire.json has said since it was written:
+        %
+        %   "Allowed while UNJOINED, unlike Who: 'what rooms are there' is
+        %    exactly what somebody asks after being refused a name, and the
+        %    server needs no seat to answer it."
+        %
+        % The handler sat BELOW the membership guard, so /list from somebody
+        % with no seat was dropped without a word. The registry described the
+        % intention and the code never matched it - found 2026-08-22 by reading
+        % the registry entry while building the /who case beside it.
+        %
+        % THE GUARD'S REASON STILL STANDS FOR EVERYTHING ELSE. Silence for a
+        % stranger is deliberate: answering confirms the port is a chat server
+        % to something that never joined. These two answers give up exactly
+        % that one fact and nothing else - no seat is spent, no state changes,
+        % and a roster is not a secret in a chat for one building. Saying and
+        % joining and renaming stay behind the guard.
+        IF kind = kRooms THEN
+            buildRooms =: length
+            sendTo(senderMagic, length)
+            RETURN
+        ENDIF
+
+        % /map belongs here for the same reason /list does: it is READ-ONLY,
+        % costs no seat, and is exactly what somebody asks when they cannot see
+        % anyone - "is the other machine even there?". Refusing it to a person
+        % with no seat would refuse it at the one moment it explains something.
+        IF kind = kMap THEN
+            buildMap =: length
+            sendTo(senderMagic, length)
+            RETURN
+        ENDIF
+
+        IF kind = kWho THEN
+            IF slot = 0 THEN
+                % No seat means no room to filter by, so the answer is the
+                % whole house. A DIFFERENT KIND, because the client labels a
+                % kWho answer with the room it thinks it is in.
+                buildAllWho =: length
+                sendTo(senderMagic, length)
+                RETURN
+            ENDIF
+        ENDIF
+
         IF slot = 0 THEN
             RETURN
         ENDIF
@@ -872,7 +4483,36 @@ $INCLUDE XMP-B02:IMPT
             % The speaker is named by the ROOM, never by what the sender put in
             % the message - otherwise anyone could speak as anyone.
             buildFromSlot(kSaid, slot, textAt, textLength) =: length
-            broadcast(length, 0)                  % 0 = everybody, speaker too
+            broadcast(length, slot, 0)            % their room, speaker too
+
+            % PHASE D: AND ON TO THE OTHER MACHINES.
+            %
+            % AFTER the local broadcast, deliberately. The people in the room
+            % here are the ones waiting on this keystroke; a peer that is slow
+            % or absent must not delay them. It also means a forward that fails
+            % costs the local room nothing.
+            %
+            % forwardSaid reads inBuf, which still holds the arrival - the local
+            % broadcast above only wrote outBuf.
+            forwardSaid(slot, textAt, textLength)
+
+            % ---- AND REMEMBER IT ----------------------------------------
+            %
+            % LAST, after the room and the peers have both been served, for
+            % the same reason the forward goes after the broadcast: the people
+            % waiting on this keystroke come first, and a disk write must never
+            % sit between somebody pressing return and the room hearing it.
+            %
+            % claimTopic, despite the name - it is the room table, and history
+            % shares its slots. It allocates on first use, so the file for a
+            % room is created the first time anybody speaks in it rather than
+            % when the room is invented, and a room nobody ever speaks in costs
+            % nothing at all.
+            %
+            % A FULL TABLE RETURNS 0 AND histSave DOES NOTHING. Nine rooms
+            % means the ninth keeps no history; it does not lose its messages.
+            claimTopic(slot) =: histSlot
+            histSave(histSlot, slot, textAt, textLength)
             RETURN
         ENDIF
 
@@ -895,7 +4535,7 @@ $INCLUDE XMP-B02:IMPT
             % the slot changes, while the old name is still there.
             buildRenamed(slot, nameAt, nameLength) =: length
             copyNameIn(slot, nameAt, nameLength)
-            broadcast(length, 0)                  % including the asker
+            broadcast(length, slot, 0)            % their room, asker too
             RETURN
         ENDIF
 
@@ -903,15 +4543,61 @@ $INCLUDE XMP-B02:IMPT
         % asking would then get a list they did not want, and the room would
         % spend a message on each of them.
         IF kind = kWho THEN
-            buildWho =: length
+            % slot, not senderMagic: the answer is filtered to the ASKER'S
+            % ROOM, so buildWho needs a seat to compare against.
+            buildWho(slot) =: length
             sendTo(senderMagic, length)
+            RETURN
+        ENDIF
+
+
+        % /list is NOT here any more - it moved ABOVE the membership guard,
+        % where the registry always said it belonged. See the note there.
+
+        % /topic - ask with an empty text, set with a non-empty one.
+        %
+        % A SET IS BROADCAST, AN ASK IS NOT. Everybody in the room needs to see
+        % a topic change as it happens - it is a change to the room, not an
+        % answer to one person - while an ask is nobody else's business.
+        IF kind = kTopic THEN
+            IF textLength = 0 THEN
+                buildTopic(slot) =: length
+                sendTo(senderMagic, length)
+                RETURN
+            ENDIF
+
+            % TRUNCATED, NOT REFUSED. The length arrives from the peer and
+            % PLANC checks no array bound, so a long topic would write straight
+            % through the rest of the table. The client already stops at 64, so
+            % this only ever bites a peer that is not our client - which is
+            % exactly the case a bound has to survive.
+            IF textLength > maxTopicLen THEN
+                maxTopicLen =: textLength
+            ENDIF
+
+            claimTopic(slot) =: taken
+            IF taken = 0 THEN
+                % The table is full. SAY SO rather than dropping it: a topic
+                % that silently does not stick is the kind of failure somebody
+                % retries for ten minutes. refuse() sends for itself.
+                refuse(nameAt, nameLength, reasonTopicFull, lenTopicFull)
+                RETURN
+            ENDIF
+
+            FOR i IN 1:textLength DO
+                inBuf(textAt + i - 1) =: topicText(taken, i)
+            ENDFOR
+            textLength =: topicTextLen(taken)
+
+            buildTopic(slot) =: length
+            broadcast(length, slot, 0)        % 0 = leave nobody out
             RETURN
         ENDIF
 
         IF kind = kLeave THEN
             buildFromSlot(kLeft, slot, 0, 0) =: length
             0 =: memberUsed(slot)
-            broadcast(length, 0)
+            broadcast(length, slot, slot)         % their room, not them
 
             % Give the seat back to XROUT, or the room fills up permanently and
             % XROUT stops forwarding joins long after anybody left.
@@ -927,50 +4613,255 @@ $INCLUDE XMP-B02:IMPT
         XMMSGIDENTIFIER : msgIdent
         INTEGER : i
 
+        % INISTACK RUNS EVERY START, and it must - the stack does not survive
+        % the terminate. Everything below it is guarded instead.
         INISTACK stack
 
-        % The flags WORDS from their bit positions - see the note at the top.
-        2**XFWTF =: waitFlags
-        2**XFSEC =: sendFlags
-
-        FOR i IN 1:maxSeats DO
-            0 =: memberUsed(i)
-            0 =: memberDead(i)
+        % ---- THE HISTORY TABLE, CLEARED BY HAND -----------------------------
+        %
+        % PLANC DOES NOT PROMISE A MODULE VARIABLE STARTS AT ZERO, and this
+        % file already carries one scar from assuming it did - see the note by
+        % typedLen in the client. Three of these would be quietly fatal rather
+        % than merely wrong:
+        %
+        %   histDev   a stale non-zero would be taken for an OPEN FILE and
+        %             handed to MN120 as a device number;
+        %   histSize  a stale ZERO is a DIVIDE BY ZERO the first time anybody
+        %             speaks, because the ring is id MOD size;
+        %   histNext  a stale value writes the first message into the middle of
+        %             the ring and replays blocks that were never written.
+        %
+        % Cleared here, before anything can be received.
+        FOR i IN 1:maxHistRooms DO
+            0 =: histDev(i)
+            0 =: histNext(i)
+            histDefault =: histSize(i)
         ENDFOR
 
-        % A CONNECTION port: XROUT holds the free-connection counter and turns
-        % the joiner past maxSeats away for us, before this program is woken.
-        % That is the whole reason no client knows the number.
-        xmpopcn(0, 'CHAT-LOBBY', uniqueName, maxSeats, myPort) =: returnStatus
-        IF returnStatus >< XMOK THEN
-            OUTPUT(1, 'AL29', 'CHATSV: cannot open the room$')
-            OUTPUT(1, 'AL11', 'SV: opn st=')
-            OUTPUT(1, 'I6', returnStatus)
-            OUTPUT(1, 'AL1', '$')
-            RETURN
-        ENDIF
+        % ---- NO FLAGS AT ALL. NOT XFWTF, AND NOT XFWAK EITHER. --------------
+        %
+        % XFWTF was never right here: a task already blocked in XFRCV is ACTIVE,
+        % and RT-starting an active program does not queue a second run, so a
+        % wake-up arriving during a block is simply LOST.
+        %
+        % BUT XFWAK IS ALSO WRONG NOW, AND IT WEDGED THE SERVER. Measured on
+        % D100, 2026-08-21, with one client trying to join:
+        %
+        %   X-C LIST-PORTS
+        %    No  Address  Owner-task   Qhead  Qlen  Chain WAK
+        %     6  160057 152616 BAK06  161762     1      0   0   <- the ROOM port
+        %    14  160147 152616 BAK06       0     0      6   1   <- the ADMIN port
+        %
+        % A message SITTING on the room port, and the task parked on the admin
+        % port's wake-up instead. The server had logged its two START lines and
+        % then written nothing more; the client waited for ever at "not in a
+        % room yet". XFRCV CANNOT WAIT ON TWO PORTS - arming a wake on each does
+        % not make one call watch both, and the wake-up does NOT deliver the
+        % message even when it fires.
+        %
+        % XFWAK WAS LEFT OVER FROM A DESIGN THAT NO LONGER EXISTS. It belonged
+        % to the original loop, which RETURNED when both ports were empty and
+        % relied on the next message RT-starting the program again. That was
+        % replaced by the MON 267B sleep below - the program now STAYS ALIVE and
+        % goes round - and once it stays alive there is nothing for a wake-up to
+        % do. Keeping it bought nothing and cost the whole server.
+        %
+        % Flags ZERO is XMSG's own no-wait: the call returns at once whether or
+        % not a message was there. Both ports get polled every pass, and the
+        % one-second sleep when both are empty is what keeps it from spinning.
+        0 =: waitFlags
+        2**XFSEC =: sendFlags
 
-        % Our own magic number, so an arrival can be tested against it.
-        xmpfp2m(0, myPort, myMagic) =: returnStatus
-        IF returnStatus >< XMOK THEN
-            OUTPUT(1, 'AL18', 'SV: p2m failed st=')
-            OUTPUT(1, 'I6', returnStatus)
-            OUTPUT(1, 'AL1', '$')
-        ENDIF
+        % ---- OPEN ONCE, NOT ONCE PER START ---------------------------------
+        IF NOT portsOpen THEN
+            FOR i IN 1:maxSeats DO
+                0 =: memberUsed(i)
+                0 =: memberDead(i)
+            ENDFOR
 
-        % ONE BANNER, AND IT STAYS. An operator has to be able to tell a server
-        % that is waiting from one that never got its room, and the port number
-        % is what LIST-PORTS is matched against when it does not.
-        OUTPUT(1, 'AL24', 'CHATSV: room open, port ')
-        OUTPUT(1, 'I6', myPort)
-        OUTPUT(1, 'AL1', '$')
+            % A CONNECTION port: XROUT holds the free-connection counter and
+            % turns the joiner past maxSeats away for us, before this program
+            % is woken. That is the whole reason no client knows the number.
+            % ONE PORT, CALLED *CHAT. Every service on this machine is starred
+            % and short - *FA-SERVER, *XFTRA, *COSPO, *TADADM - and the chat
+            % server is one of them.
+            %
+            % IT USED TO BE CHAT-LOBBY, and that was two mistakes in one name.
+            % CHAT-LOBBY is a ROOM name doing duty as a SERVICE name, and the
+            % client built a DIFFERENT port name per room - "CHAT-" plus the
+            % room - so every room needed its own registered port. That made
+            % the set of rooms XROUT's data rather than the server's, with no
+            % call to read it back; it made a room expensive to create; it
+            % fragmented the seat count per port; and it turned a federated
+            % room into the SAME NAME registered on two machines, which is a
+            % collision rather than shared state.
+            %
+            % Now: one port, and the ROOM TRAVELS IN THE MESSAGE. LOBBY goes
+            % back to being an ordinary room. See the_room_model in
+            % DOC/protocols/chat-wire.json.
+            xmpopcn(0, '*CHAT', uniqueName, maxSeats, myPort) &
+                =: returnStatus
+            IF returnStatus >< XMOK THEN
+                OUTPUT(1, 'AL29', 'CHATSV: cannot open the room$')
+                OUTPUT(1, 'AL11', 'SV: opn st=')
+                OUTPUT(1, 'I6', returnStatus)
+                OUTPUT(1, 'AL1', '$')
+                RETURN
+            ENDIF
+
+            % The command port. XMPOPNM - a NORMAL named port, so an operator
+            % costs the room nothing. See the declaration for why that matters.
+            xmpopnm(0, admName(0:lenAdmName - 1), adminPort) =: returnStatus
+            IF returnStatus >< XMOK THEN
+                OUTPUT(1, 'AL28', 'CHATSV: no command port, st=')
+                OUTPUT(1, 'I6', returnStatus)
+                OUTPUT(1, 'AL1', '$')
+                % NOT fatal. A server that will not start because nobody can
+                % ask it for STATUS is worse than one that runs unattended.
+            ENDIF
+
+            % The trunk port. XMPOPNM for the same reason the command port is -
+            % a peer that is switched off must cost the room nothing however
+            % long it stays away.
+            xmpopnm(0, trkName(0:lenTrkName - 1), trunkPort) =: returnStatus
+            IF returnStatus >< XMOK THEN
+                OUTPUT(1, 'AL26', 'CHATSV: no trunk port, st=')
+                OUTPUT(1, 'I6', returnStatus)
+                OUTPUT(1, 'AL1', '$')
+                % NOT fatal, same judgement as the command port: a server that
+                % refuses to serve its own room because it cannot federate is
+                % worse than one that serves the room and cannot federate.
+            ENDIF
+
+            % Our own magic number, so an arrival can be tested against it.
+            xmpfp2m(0, myPort, myMagic) =: returnStatus
+            IF returnStatus >< XMOK THEN
+                OUTPUT(1, 'AL18', 'SV: p2m failed st=')
+                OUTPUT(1, 'I6', returnStatus)
+                OUTPUT(1, 'AL1', '$')
+            ENDIF
+
+            % ...and our own SYSTEM number out of it, so the trunk can tell our
+            % own bounced letters from a peer saying hello. See mySystem.
+            xmpfm2p(0, myMagic, senderPortNo, mySystem, &
+                senderRtInfo, senderExtra) =: returnStatus
+
+            % ONE BANNER, AND IT STAYS. An operator has to be able to tell a
+            % server that is waiting from one that never got its room, and the
+            % port number is what LIST-PORTS is matched against when it does
+            % not. It prints on the FIRST start only - this program is now
+            % started again by every arrival, and a banner per message would
+            % bury the machine.
+            0 =: nEmptyLet
+            0 =: nRelayed
+            0 =: nDupes
+            0 =: myLineId
+            1 =: seenAt
+            0 =: seenUsed
+            0 =: nBounced
+            0 =: nRefused
+
+            OUTPUT(1, 'AL24', 'CHATSV: room open, port ')
+            OUTPUT(1, 'I6', myPort)
+            OUTPUT(1, 'AL9', ' command ')
+            OUTPUT(1, 'I6', adminPort)
+            OUTPUT(1, 'AL7', ' trunk ')
+            OUTPUT(1, 'I6', trunkPort)
+            OUTPUT(1, 'AL1', '$')
+            logLine('SV START room prt=', 18, myPort)
+            logLine('SV START admin prt', 18, adminPort)
+            logLine('SV START trunk prt', 18, trunkPort)
+
+            TRUE =: portsOpen
+        ENDIF
 
         DO
             % WAIT. XFWTF is what makes this block rather than spin; an RT
             % program that polls burns the machine for nothing. Without the
             % flag the status would come back MXNEXTM when nothing is waiting.
+            % ---- DRAIN BOTH PORTS, THEN TERMINATE --------------------------
+            %
+            % The lobby first, because that is the busy one. If it is empty,
+            % the command port. If BOTH are empty, both wake-ups are now armed
+            % and there is nothing to do: RETURN, and the next transmission to
+            % either port RT-starts this program again.
+            %
+            % HOW "EMPTY" IS TOLD FROM "GOT ONE", which is the whole hazard of
+            % dropping XFWTF and is MEASURED rather than reasoned:
+            %
+            %   XMOK (0)        a SUCCESSFUL receive, with the type in the
+            %                   msgType out-parameter. Vendor Appendix G tests
+            %                   "IF RETURNSTATUS >< XMOK THEN bad status", and
+            %                   D100 printed "SV: rcv st= 0 t= 2 len= 25".
+            %   XMTNO..XMTPS    also a successful receive.
+            %   XMXENTM (16896) an EMPTY port. Neither of the above.
+            %
+            % The manual's "a zero status is returned" for an empty port
+            % describes the RAW MON call. XMPFRCV remaps it - the library's
+            % empty answer is 16896, not 0 - so zero is unambiguous here. Had
+            % that not been so, this loop could not have told an empty port
+            % from a message and would have terminated on live traffic.
+            FALSE =: fromAdmin
+            FALSE =: fromTrunk
             xmpfrcv(waitFlags, myPort, msgType, remotePortHash, msgIdent, nBytes) &
                 =: returnStatus
+
+            IF returnStatus = XMXENTM THEN
+                TRUE =: fromAdmin
+                xmpfrcv(waitFlags, adminPort, msgType, remotePortHash, &
+                    msgIdent, nBytes) =: returnStatus
+
+                % ---- AND THEN THE TRUNK PORT ------------------------------
+                % Third in the round, and last on purpose: people in the room
+                % come before an operator, and an operator before a machine
+                % saying hello. Trunk traffic is the least urgent thing here.
+                IF returnStatus = XMXENTM THEN
+                    FALSE =: fromAdmin
+                    TRUE =: fromTrunk
+                    xmpfrcv(waitFlags, trunkPort, msgType, remotePortHash, &
+                        msgIdent, nBytes) =: returnStatus
+                ENDIF
+
+                IF returnStatus = XMXENTM THEN
+                    % ---- BOTH EMPTY: SLEEP, DO NOT END ------------------
+                    %
+                    % THIS USED TO "RETURN", AND THAT WAS REFUTED ON THE
+                    % MACHINE. MEASURED on D100 2026-08-20: @RT CHATSER ran,
+                    % drained both empty ports, returned - and
+                    % LIST-RT-DESCRIPTION then said PASSIVE with 0 CPU units
+                    % while LIST-NAMES showed NEITHER CHAT-LOBBY NOR
+                    % CHAT-ADMIN. SINTRAN CLOSES A TASK'S PORTS WHEN THE TASK
+                    % TERMINATES, so the XFWAK wake-up had nothing left to
+                    % arrive on and the server could never be restarted.
+                    %
+                    % The manual's wake-up mechanism is real, but it assumes a
+                    % task that STAYS ALIVE to be woken. Both halves of that
+                    % were already written down here and were not put together.
+                    %
+                    % So: sleep and go round. MON 267B suspends the program for
+                    % a given time and continues after the call - no spin, no
+                    % termination, ports stay open. Unit type 1 is basic time
+                    % units of 1/50 second, so 50 is one second: long enough to
+                    % cost nothing, short enough that an operator typing STATUS
+                    % does not notice the wait.
+                    %
+                    % A BARE LOOP WITH NO SLEEP IS NOT AN OPTION. When XMSG
+                    % died under this server the receive stopped blocking and
+                    % this loop burned the machine until somebody pressed ESC.
+                    50 =: sleepUnits
+                    1 =: sleepKind
+                    MONITOR_CALL('TimeOut', sleepUnits, sleepKind, sleepWhy)
+
+                    % ---- ONE SECOND HAS PASSED: AGE THE TRUNKS -------------
+                    %
+                    % THE IDLE SLEEP IS THE CLOCK, and it is the only one this
+                    % program has. Doing it here rather than on every pass round
+                    % the loop means the tick is a SECOND, not "however fast
+                    % messages happen to be arriving" - a busy room must not
+                    % make peers time out faster.
+                    peerTick
+                ENDIF
+            ENDIF
             % A RECEIVE IS A MESSAGE ONLY WHEN THE STATUS IS A MESSAGE TYPE.
             % Not "= XMOK" and not "> 0". The library remaps statuses: 0 is OK
             % for other calls but is NOT a message type, so comparing to it
@@ -1038,6 +4929,7 @@ $INCLUDE XMP-B02:IMPT
                         OUTPUT(1, 'AL23', 'SV: receive refused st=')
                         OUTPUT(1, 'I6', returnStatus)
                         OUTPUT(1, 'AL1', '$')
+                        logLine('SV rcv refused st=', 18, returnStatus)
                     ENDIF
 
                     IF returnStatus = XMXENRU THEN
@@ -1083,6 +4975,20 @@ $INCLUDE XMP-B02:IMPT
                 nBytes =: receiveStat
 
                 xmpfmst(0, msgIdent, msgType, senderMagic, nBytes) =: returnStatus
+
+                % WHICH MACHINE SENT THIS. A magic number is a port and a system
+                % packed together, and XMPFM2P is the library's own way of taking
+                % it apart - "Take a magic number apart into port number and
+                % system number" (xmp-api.json, transcribed from XMP-B02:DEFS).
+                %
+                % The TRUNK needs it and nothing else does: a peer is identified
+                % by system number, and an unsolicited HELLO from a machine we
+                % have never been told about has to be answerable without any
+                % configuration having happened first. Reading it from the magic
+                % means there is nothing to remember and nothing to go stale.
+                0 =: senderSystem
+                xmpfm2p(0, senderMagic, senderPortNo, senderSystem, &
+                    senderRtInfo, senderExtra) =: returnStatus
 
                 % CLAMP BEFORE READING. nBytes is the sender's message size,
                 % handed back by XMSG - not a size this program chose. Passing
@@ -1213,14 +5119,25 @@ $INCLUDE XMP-B02:IMPT
                 % "something bounced", which is the first thing an operator
                 % needs to know and the one thing the reap line cannot say.
                 IF msgType = XMTRE THEN
-                    OUTPUT(1, 'AL22', 'SV: returned msg, st= ')
-                    OUTPUT(1, 'I6', receiveStat)
-                    OUTPUT(1, 'AL1', '$')
+                    nBounced + 1 =: nBounced
+                    logLine('SV bounced msg st=', 18, receiveStat)
 
                     findByMagic(senderMagic) =: wasMember
-                    OUTPUT(1, 'AL22', 'SV: it names slot     ')
-                    OUTPUT(1, 'I6', wasMember)
-                    OUTPUT(1, 'AL1', '$')
+
+                    % PRINT ONLY WHEN IT IS ONE OF OURS. The note above says the
+                    % point of this line is to separate "one of ours bounced"
+                    % from "something bounced", and only the first is worth
+                    % waking an operator for - it means a member has died. The
+                    % other case is now just a number in STATUS, because it was
+                    % arriving often enough to bury everything else.
+                    IF wasMember >< 0 THEN
+                        OUTPUT(1, 'AL22', 'SV: returned msg, st= ')
+                        OUTPUT(1, 'I6', receiveStat)
+                        OUTPUT(1, 'AL1', '$')
+                        OUTPUT(1, 'AL22', 'SV: it names slot     ')
+                        OUTPUT(1, 'I6', wasMember)
+                        OUTPUT(1, 'AL1', '$')
+                    ENDIF
 
                     IF wasMember >< 0 THEN
                         1 =: memberDead(wasMember)
@@ -1243,8 +5160,14 @@ $INCLUDE XMP-B02:IMPT
                     % already spent either way. Note this is >=, not >: a payload
                     % that starts exactly AT the end is an empty payload.
                     IF payloadAt >= readLength THEN
-                        OUTPUT(1, 'AL24', 'SV: DROP empty letter   ')
-                        OUTPUT(1, 'AL1', '$')
+                        % COUNTED, NOT PRINTED. This is an EXPECTED arrival, not
+                        % a fault: XROUT's answer to a seat return comes back on
+                        % this very port as a routed message with no payload, so
+                        % there is one of these per seat returned. Printing it
+                        % each time buried the terminal - STATUS reports the
+                        % count, and a count that climbs while the room is quiet
+                        % is the feedback loop described below coming back.
+                        nEmptyLet + 1 =: nEmptyLet
                     ELSE
                         % (the seat for this arrival is settled after
                         %  handleMessage, by the one rule below)
@@ -1343,6 +5266,7 @@ $INCLUDE XMP-B02:IMPT
                                 OUTPUT(1, 'AL22', 'SV: seat return failed')
                                 OUTPUT(1, 'I6', returnStatus)
                                 OUTPUT(1, 'AL1', '$')
+                                logLine('SV seat back st=  ', 18, returnStatus)
                             ENDIF
                         ENDIF
                     ENDIF
@@ -1361,6 +5285,20 @@ $INCLUDE XMP-B02:IMPT
                 % broadcast.
                 IF deadFound >< 0 THEN
                     reapDead
+                ENDIF
+
+                % ---- AND STOP, IF AN OPERATOR ASKED ------------------------
+                % Here rather than where the AdminStop arrived, so the reply
+                % path and the reaping above finish first. A stop that abandons
+                % a half-sent message is not a clean stop.
+                %
+                % This RETURN is different from the one on an empty drain. That
+                % one goes to sleep and is woken by the next arrival; this one
+                % ends the program for good - the ports go with it and SINTRAN
+                % clears the names, measured 2026-08-18.
+                IF stopWanted THEN
+                    OUTPUT(1, 'AL17', 'CHATSV: stopping$')
+                    RETURN
                 ENDIF
             ENDIF
         ENDDO

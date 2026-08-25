@@ -14,10 +14,23 @@
 
   "self": 19998,
 
-  // Serve a Windows folder as *FA-SERVER, so a SINTRAN machine can COPY-FILE FROM us.
-  // This is the proven direction: our FA server answers reads, and the file lands on the
-  // machine's own pack. It is how a file authored on Windows - where the bytes are ours to
-  // choose - gets onto a machine without fighting a terminal editor.
+  // Serve a Windows folder as *FA-SERVER, so a SINTRAN machine can list what we hold.
+  //
+  // THIS BLOCK USED TO CALL A COPY-FILE FROM US "the proven direction". IT IS NOT. Measured
+  // 2026-08-24 on a live D100:
+  //
+  //     @COPY-FILE (PACK-ONE:UTILITY)"XSTART:MODE",D19999(SYSTEM).XSTART:MODE
+  //
+  // Our server logged the connect letter and answered an FA ConnectionConfirm, and then
+  // nothing further ever arrived. D100's open/read was never answered and the terminal sat
+  // there waiting - ESC did not free it. topology-d19999.json had it right all along: this
+  // server answers the opening reserve/release and a directory walk, and refuses open, read,
+  // write, create and delete because those request layouts have never been captured.
+  //
+  // Pushing TO the machine does not work either right now - the connect letters reach D100
+  // and are acked at the link layer, but *FA-SERVER never answers, with 30 free service
+  // points showing in LIST-NAMES. Until one of the two is fixed, a file gets onto a machine
+  // by stopping it and writing the disk image (see boot/install-boot-files.py).
   "fileServer": { "root": "served" },
 
 

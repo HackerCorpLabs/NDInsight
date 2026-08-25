@@ -1,0 +1,16 @@
+@CC ====================================================================
+@CC  TRUNKTST:MODE - does CHAT-MON take its commands from a MODE file?
+@CC
+@CC  This is the exact block now sitting at the end of XMSG-STARTEX-L03:MODE
+@CC  on D100 and D102. If MODE-file input does NOT reach CHAT-MON, the
+@CC  program sits waiting on MON1 and THE BOOT HANGS - which is far worse
+@CC  than the trunk not starting. Proving it here costs one file and one
+@CC  command; finding out at a reboot costs the machine.
+@CC ====================================================================
+@CHAT-MON
+START-TRUNK 102
+LIST-TRUNKS
+EXIT
+@CC  If this line prints, CHAT-MON took the file's input and gave the
+@CC  terminal back. That is the whole test.
+@CC TRUNKTST REACHED THE END

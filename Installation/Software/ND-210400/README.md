@@ -31,7 +31,7 @@ and [NPL-DEVELOPER-GUIDE.md](../../../Developer/Languages/System/NPL-DEVELOPER-G
 | B | [ND-210400B](ND-210400B/README.md) | verified (PD sheet transcribed, cross-checked against 2 independent scans) | dated 87.05.20; floppy `210400B00-XX-01D` |
 
 ## Documentation
-- Program Description (PD-sheet): [../../OS/SUBSYSTEM/210400B_Subsystem_Package_II_combined.md](../../OS/SUBSYSTEM/210400B_Subsystem_Package_II_combined.md) and the independent second scan [../../OS/SUBSYSTEM/ND0117.md](../../OS/SUBSYSTEM/ND0117.md)
+- Program Description (PD-sheet): [../../OS/SUBSYSTEM/210400B_Subsystem_Package_II.md](../../OS/SUBSYSTEM/210400B_Subsystem_Package_II.md) and the independent second scan [../../OS/SUBSYSTEM/ND0117.md](../../OS/SUBSYSTEM/ND0117.md)
 - Product Information (PI-sheet): not located
 - Manual(s) (per the PD sheet's "Documentation" table): `ND-60.096.01 EN` MAC User's Guide ·
   `ND-60.151.2A EN` SINTRAN III Utilities Manual · `ND-60.031.4C EN` QED User's Manual ·

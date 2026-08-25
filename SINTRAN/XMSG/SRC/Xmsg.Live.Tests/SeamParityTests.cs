@@ -118,6 +118,11 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
         {
             List<byte> inbound = new List<byte>();
             inbound.AddRange(HdlcEncoder.Encode(new byte[] { 0x01, 0x3F, 0x00, 0x64 }));   // peer SABM (node 100)
+            // The peer's UA answering OUR SABM. Spec 3.1: both directions must complete a
+            // SABM -> UA exchange before the link is UP, and a station MUST answer a received SABM
+            // with UA. Omitting it modelled a non-conformant peer; the adapter now declines to
+            // report such a link usable. See LapbLinkUpGatingTests.
+            inbound.AddRange(HdlcEncoder.Encode(new byte[] { 0x01, 0x73, 0x00, 0x64 }));   // peer UA
             inbound.AddRange(HdlcEncoder.Encode(IFrame(sendSeq: 0, receiveSeq: 0, Convert.FromHexString(ConnectRequestHex))));
             inbound.AddRange(HdlcEncoder.Encode(IFrame(sendSeq: 1, receiveSeq: 0, Convert.FromHexString(SessionSetupHex))));
             return inbound.ToArray();

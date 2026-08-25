@@ -1,0 +1,18 @@
+{
+  "ndfs.object_name": "AIP-HOSTS",
+  "ndfs.type": "SYMB",
+  "ndfs.user_name": "SYSTEM",
+  "ndfs.user_index": 0,
+  "ndfs.access_bits": 1087,
+  "ndfs.file_type_flags": 8,
+  "ndfs.file_type": 0,
+  "ndfs.device_number": 0,
+  "ndfs.next_version": 56,
+  "ndfs.prev_version": 56,
+  "ndfs.pages_in_file": 6,
+  "ndfs.bytes_in_file": 780,
+  "ndfs.date_created": 48964914,
+  "ndfs.last_read_date": 103499470,
+  "ndfs.last_write_date": 2522797234,
+  "ndfs.holes": []
+}

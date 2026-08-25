@@ -1,0 +1,21 @@
+#=======================================================================
+#              A I P - H O S T S : S Y M B
+#
+#     This file contains information regarding the known hosts.
+#
+#     The character # indicates the beginning of a comment.
+#
+#     For each host, a single line should be present with the
+#     the following information:
+#
+# INTERNET-ADDRESS   HOST-NAME  ALIAS1 ALIAS2 ALIAS3
+#
+# Change the example below with :
+#     - your local internet address
+#     - the first COSMOS name defined on your local system
+#     - the aliases for your host name
+#=======================================================================
+0.0.0.0  Local-Cosmos-Host-Name  alias1   alias2   alias3  # Comment
+
+130.67.1.2 AVESTA  TETRIS
+130.67.1.1 GT-T  TRISSE

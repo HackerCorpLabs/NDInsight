@@ -101,6 +101,16 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Qform
         }
 
         /// <summary>
+        /// The longest string the COMPACT form can carry, its length living in the tag nibble.
+        /// </summary>
+        /// <remarks>
+        /// Anything longer needs <see cref="WriteByteString"/>. This is a property of the
+        /// encoding, not a limit on what the protocol accepts - a captured client sent a 62-byte
+        /// specification using the long form.
+        /// </remarks>
+        public const int MaxCompactByteStringLength = 0x0F;
+
+        /// <summary>
         /// Writes a byte string: the tag, a length byte, then the bytes.
         /// </summary>
         /// <param name="value">

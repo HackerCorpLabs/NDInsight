@@ -8,12 +8,52 @@ Scripts for driving a running SINTRAN machine headless over its RetroCore termin
 | `ndterm.ps1` | Drives one SINTRAN terminal session: ESC, login, commands one prompt at a time, logout. |
 | `run-all-tests.ps1` | Builds and runs every test project. **A project that produces no result counts as a FAILURE**, not a skip - see the note below. |
 | `restart-xmsg-cosmos.ps1` | Restarts XMSG and COSMOS and puts the machine back on the Ethernet segment. |
+| `nd-verify.ps1` | **Run this first, every session.** Compares every source in the repo against what the machines actually hold, and says which differ. |
+| `nd-deploy.ps1` | **The whole build loop in one command** - lint, deploy, verify the bytes, build, judge the listing, RT-load, prove it runs. |
+| `nd-listing-check.py` | Judges a PLANC listing on BOTH halves: no `***`, and it reached the last source line. |
 
 > **Ports and LUs live in [`../lab-topology.json`](../lab-topology.json), explained in
 > [`../LAB.md`](../LAB.md).** `lab-status.ps1` reads that file rather than carrying its own copy.
 > The sequences written out further down this page were captured on 2026-08-04 against a DIFFERENT
 > HDLC wiring (note `START-LINK,1362`) - check LAB.md for the current controller-to-port-to-LU
 > mapping before copying a command from here.
+
+## Start here, before anything else
+
+```powershell
+.
+d-verify.ps1            # does the machine hold what the repo holds?
+```
+
+**A machine that appears to work may be running something other than your source.** On 2026-08-24
+a stalled transfer had spliced twenty-eight lines out of `CHATSV.PLNC` on the machines - including
+the line that claims a chat seat. Nothing reported it: the transfer said success, the source
+COMPILED CLEAN because the splice left an undeclared name behind, and the listing had no error.
+D100 looked healthy the whole time because its running binary predated the damage. It cost most of
+a day, and one byte-count comparison would have ended it in a second.
+
+Then do the work with:
+
+```powershell
+.
+d-deploy.ps1 -Machine 100 -Segment 2603
+```
+
+which is lint, deploy, verify, build, judge the listing, load and prove - failing loudly at each
+of the places this loop has a way of failing that looks like success:
+
+| step | the silent failure it refuses to let through |
+| --- | --- |
+| deploy | `ndtool --put` without `--overwrite` prints `skipped (exists)` and **exits 0** |
+| verify | a transfer reports success and leaves a half-written file |
+| listing | a listing that stops early reports **no error** for the part never read |
+| load | `@ABORT` then `@RT` does not pick up a new build - a FRESH segment is required |
+| prove | a loaded RT program that answers nothing is still a failure |
+
+**Deploy goes through the SYNC DAEMON when one is running** - it holds one link open and carries
+files as they appear. A one-shot push ends by sending `DISC`, and that teardown killed XMSG
+fourteen times out of fourteen. Writing the disk image is the fallback for when the machine cannot
+be reached at all, and it costs a stop and a boot of every machine.
 
 ## Why `run-all-tests.ps1` exists
 
@@ -32,8 +72,10 @@ and it finishes with `dotnet build-server shutdown` so a leftover MSBuild node c
 and have the next run quietly test stale code.
 
 ```powershell
-.un-all-tests.ps1                                  # everything
-.un-all-tests.ps1 -Filter "FullyQualifiedName~Tad" # one area
+.
+un-all-tests.ps1                                  # everything
+.
+un-all-tests.ps1 -Filter "FullyQualifiedName~Tad" # one area
 ```
 
 Verified to fail as intended: reintroducing a bare `<` in an XML doc comment - the exact break that

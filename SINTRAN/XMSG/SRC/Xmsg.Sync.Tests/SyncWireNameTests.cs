@@ -57,5 +57,59 @@ namespace NDInsight.Sintran.Xmsg.Sync.Tests
 
             Assert.Equal("PROG:SYMB", SyncFolderMap.ToWireName(built));
         }
+
+        /// <summary>
+        /// The user survives the trip, because something still has to send it.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <see cref="SyncFolderMap.ToWireName"/> strips the user because the OPEN request does
+        /// not carry it. That is only half the job: the machine learns who is asking from the
+        /// ReserveFileEntry request, so the user has to be recoverable and put on the endpoint.
+        /// </para>
+        /// <para>
+        /// Until 2026-08-24 nothing did that. The daemon logged
+        /// <c>create D100(UTILITY)."XSTART:MODE"</c>, FaWriteTarget kept its "SYSTEM" default, and
+        /// the file arrived as <c>(SYSTEM)XSTART:MODE</c> - the log and the disk disagreed, and
+        /// the log was the one being believed.
+        /// </para>
+        /// </remarks>
+        [Theory]
+        [InlineData("D100(UTILITY).\"XSTART:MODE\"", "UTILITY")]
+        [InlineData("D100(SYSTEM).WATCH1:TXT", "SYSTEM")]
+        [InlineData("D102(RT).PROG:SYMB", "RT")]
+        public void TheUserIsRecoverableFromTheSpec(string spec, string expected)
+        {
+            Assert.Equal(expected, SyncFolderMap.ToUser(spec));
+        }
+
+        /// <summary>
+        /// A specification naming no user gives an empty string, not a wrong one.
+        /// </summary>
+        /// <remarks>
+        /// The caller leaves the endpoint's own default alone when this is empty. Returning
+        /// something plausible here would put files in a user nobody asked for.
+        /// </remarks>
+        [Fact]
+        public void ASpecWithNoUserGivesAnEmptyString()
+        {
+            Assert.Equal(string.Empty, SyncFolderMap.ToUser("WATCH1:TXT"));
+        }
+
+        /// <summary>
+        /// Whatever BuildFileSpec put in, ToUser gets back out.
+        /// </summary>
+        /// <param name="creating">
+        /// Whether the specification is the quoted create form.
+        /// </param>
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void ItRecoversTheUserBuildFileSpecPutIn(bool creating)
+        {
+            string built = SyncFolderMap.BuildFileSpec("D100", "UTILITY", "PROG", "SYMB", creating);
+
+            Assert.Equal("UTILITY", SyncFolderMap.ToUser(built));
+        }
     }
 }

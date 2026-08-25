@@ -1,0 +1,18 @@
+{
+  "ndfs.object_name": "TCP-START-C07",
+  "ndfs.type": "LIST",
+  "ndfs.user_name": "TCP-IP",
+  "ndfs.user_index": 14,
+  "ndfs.access_bits": 32767,
+  "ndfs.file_type_flags": 8,
+  "ndfs.file_type": 0,
+  "ndfs.device_number": 0,
+  "ndfs.next_version": 3598,
+  "ndfs.prev_version": 3598,
+  "ndfs.pages_in_file": 1,
+  "ndfs.bytes_in_file": 930,
+  "ndfs.date_created": 2602608631,
+  "ndfs.last_read_date": 0,
+  "ndfs.last_write_date": 2602608785,
+  "ndfs.holes": []
+}

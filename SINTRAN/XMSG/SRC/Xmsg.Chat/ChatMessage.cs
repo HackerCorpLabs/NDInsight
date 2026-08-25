@@ -83,6 +83,68 @@ namespace NDInsight.Sintran.Xmsg.Chat
             Kind = kind;
             Nickname = nickname;
             Text = text;
+            OriginSystem = 0;
+            HopsRemaining = 0;
+            LineId = 0;
+        }
+
+        /// <summary>
+        /// Creates a relayed message, which carries where it started and how far it may still go.
+        /// </summary>
+        /// <param name="nickname">
+        /// The speaker, as their OWN machine knows them - unqualified, exactly as in
+        /// <see cref="ChatMessageKind.TrunkSaid"/>.
+        /// </param>
+        /// <param name="text">
+        /// The room, a slash, then the line.
+        /// </param>
+        /// <param name="originSystem">
+        /// The system the speaker is on. Not the machine that forwarded this.
+        /// </param>
+        /// <param name="hopsRemaining">
+        /// How many more relays this may take. Decremented at each one, dropped at zero.
+        /// </param>
+        /// <exception cref="ArgumentException">
+        /// Thrown when either string is longer than its length field can describe.
+        /// </exception>
+        public ChatMessage(string nickname, string text, ushort originSystem, byte hopsRemaining)
+            : this(ChatMessageKind.TrunkRelay, nickname, text)
+        {
+            OriginSystem = originSystem;
+            HopsRemaining = hopsRemaining;
+            LineId = 0;
+        }
+
+        /// <summary>
+        /// Creates a relayed message that carries the origin's own line number, so a second copy
+        /// arriving by another path can be recognised and dropped.
+        /// </summary>
+        /// <param name="nickname">
+        /// The speaker, as their OWN machine knows them - unqualified.
+        /// </param>
+        /// <param name="text">
+        /// The room, a slash, then the line.
+        /// </param>
+        /// <param name="originSystem">
+        /// The system the speaker is on. Not the machine that forwarded this.
+        /// </param>
+        /// <param name="hopsRemaining">
+        /// How many more relays this may take. Decremented at each one, dropped at zero.
+        /// </param>
+        /// <param name="lineId">
+        /// The number the ORIGIN stamped on this line. A relay passes it on unchanged; renumbering
+        /// it would make the same line look like two.
+        /// </param>
+        /// <exception cref="ArgumentException">
+        /// Thrown when either string is longer than its length field can describe.
+        /// </exception>
+        public ChatMessage(
+            string nickname, string text, ushort originSystem, byte hopsRemaining, ushort lineId)
+            : this(ChatMessageKind.TrunkRelayId, nickname, text)
+        {
+            OriginSystem = originSystem;
+            HopsRemaining = hopsRemaining;
+            LineId = lineId;
         }
 
         /// <summary>
@@ -101,11 +163,93 @@ namespace NDInsight.Sintran.Xmsg.Chat
         public string Text { get; }
 
         /// <summary>
+        /// Gets the system the speaker is on, for <see cref="ChatMessageKind.TrunkRelay"/>.
+        /// </summary>
+        /// <remarks>
+        /// Zero on every other kind, which do not carry it. On a relayed message this is the
+        /// ORIGIN and not the forwarder - the receiver cannot work it out from the letter, because
+        /// the letter came from whoever relayed it last.
+        /// </remarks>
+        public ushort OriginSystem { get; }
+
+        /// <summary>
+        /// Gets how many further relays this message may take.
+        /// </summary>
+        /// <remarks>
+        /// Zero on every other kind. A relay decrements it and drops the message at zero, which is
+        /// what stops a mesh reflecting for ever.
+        /// </remarks>
+        public byte HopsRemaining { get; }
+
+        /// <summary>
+        /// Gets the line number stamped by the machine the line was typed on.
+        /// </summary>
+        /// <remarks>
+        /// Zero on every kind except <see cref="ChatMessageKind.TrunkRelayId"/>. Together with
+        /// <see cref="OriginSystem"/> it names the line, and that pair is what makes it possible to
+        /// tell a second copy arriving by another path from a genuinely new line. It is stamped
+        /// ONCE, by the origin, and travels unchanged - a relay must never renumber it.
+        /// </remarks>
+        public ushort LineId { get; }
+
+        /// <summary>
+        /// The origin system and hop count carried by <see cref="ChatMessageKind.TrunkRelay"/>.
+        /// </summary>
+        private const int RelayHeaderLength = 3;
+
+        /// <summary>
+        /// The same, plus the two bytes of <see cref="LineId"/>, carried by
+        /// <see cref="ChatMessageKind.TrunkRelayId"/>.
+        /// </summary>
+        private const int RelayIdHeaderLength = 5;
+
+        /// <summary>
+        /// Whether this kind carries a relay header at all.
+        /// </summary>
+        /// <remarks>
+        /// Asked in one place so encode, decode and the size can never disagree about it - which
+        /// is the failure that would write three bytes and read none.
+        /// </remarks>
+        private bool HasRelayHeader
+        {
+            get
+            {
+                return Kind == ChatMessageKind.TrunkRelay
+                    || Kind == ChatMessageKind.TrunkRelayId;
+            }
+        }
+
+        /// <summary>
+        /// Whether this kind carries <see cref="LineId"/> as well.
+        /// </summary>
+        private bool HasLineId
+        {
+            get { return Kind == ChatMessageKind.TrunkRelayId; }
+        }
+
+        /// <summary>
+        /// How many header bytes sit between the kind and the speaker length for this kind.
+        /// </summary>
+        private int HeaderLength
+        {
+            get
+            {
+                if (HasLineId) { return RelayIdHeaderLength; }
+                if (HasRelayHeader) { return RelayHeaderLength; }
+                return 0;
+            }
+        }
+
+        /// <summary>
         /// Gets the number of bytes <see cref="Encode"/> will write.
         /// </summary>
         public int ByteCount
         {
-            get { return 1 + 1 + Nickname.Length + 2 + Text.Length; }
+            get
+            {
+                return 1 + HeaderLength
+                    + 1 + Nickname.Length + 2 + Text.Length;
+            }
         }
 
         /// <summary>
@@ -130,9 +274,32 @@ namespace NDInsight.Sintran.Xmsg.Chat
             }
 
             destination[0] = (byte)Kind;
-            destination[1] = (byte)Nickname.Length;
 
-            int at = 2;
+            int at = 1;
+
+            // The relay header sits between the kind and the name, so a reader that knows the
+            // kind knows immediately whether to expect it.
+            if (HasRelayHeader)
+            {
+                destination[at] = (byte)((OriginSystem >> 8) & 0xFF);
+                destination[at + 1] = (byte)(OriginSystem & 0xFF);
+                destination[at + 2] = HopsRemaining;
+                at += RelayHeaderLength;
+
+                // The id goes AFTER the hop count, so the first three bytes are laid out exactly
+                // as kind 52 has them. Nothing depends on that today - a server reading kind 53 by
+                // mistake would still get the name wrong - but it keeps the two kinds readable
+                // side by side on a trace, which is where these get diagnosed.
+                if (HasLineId)
+                {
+                    destination[at] = (byte)((LineId >> 8) & 0xFF);
+                    destination[at + 1] = (byte)(LineId & 0xFF);
+                    at += RelayIdHeaderLength - RelayHeaderLength;
+                }
+            }
+
+            destination[at] = (byte)Nickname.Length;
+            at += 1;
             at += Encoding.ASCII.GetBytes(Nickname, destination.Slice(at));
 
             destination[at] = (byte)((Text.Length >> 8) & 0xFF);
@@ -186,8 +353,42 @@ namespace NDInsight.Sintran.Xmsg.Chat
                 return false;
             }
 
-            int nicknameLength = source[1];
-            int at = 2;
+            // THE RELAY HEADER, when the kind says there is one. Read before the name, because
+            // that is where it sits - and checked for length first, since a truncated relay
+            // header would otherwise be read as a nickname length and produce nonsense rather
+            // than a refusal.
+            int at = 1;
+            ushort originSystem = 0;
+            byte hopsRemaining = 0;
+
+            ushort lineId = 0;
+            bool carriesId = kind == (byte)ChatMessageKind.TrunkRelayId;
+
+            if (kind == (byte)ChatMessageKind.TrunkRelay || carriesId)
+            {
+                int headerLength = carriesId ? RelayIdHeaderLength : RelayHeaderLength;
+                if (source.Length < at + headerLength)
+                {
+                    return false;
+                }
+
+                originSystem = (ushort)((source[at] << 8) | source[at + 1]);
+                hopsRemaining = source[at + 2];
+                if (carriesId)
+                {
+                    lineId = (ushort)((source[at + 3] << 8) | source[at + 4]);
+                }
+
+                at += headerLength;
+            }
+
+            if (source.Length < at + 1)
+            {
+                return false;
+            }
+
+            int nicknameLength = source[at];
+            at += 1;
             if (source.Length < at + nicknameLength + 2)
             {
                 return false;
@@ -209,7 +410,19 @@ namespace NDInsight.Sintran.Xmsg.Chat
                 ? string.Empty
                 : Encoding.ASCII.GetString(source.Slice(at, textLength));
 
-            message = new ChatMessage((ChatMessageKind)kind, nickname, text);
+            if (carriesId)
+            {
+                message = new ChatMessage(nickname, text, originSystem, hopsRemaining, lineId);
+            }
+            else if (kind == (byte)ChatMessageKind.TrunkRelay)
+            {
+                message = new ChatMessage(nickname, text, originSystem, hopsRemaining);
+            }
+            else
+            {
+                message = new ChatMessage((ChatMessageKind)kind, nickname, text);
+            }
+
             return true;
         }
 

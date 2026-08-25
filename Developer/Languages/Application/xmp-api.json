@@ -1,0 +1,3677 @@
+{
+  "_about": {
+    "what": "Machine-readable description of the COSMOS XMP library (XMSG from PLANC), for a linter.",
+    "library": "ND-10609 COSMOS Programmers Library, XMP module, version B02 (02.06.86).",
+    "sources": [
+      "Installation/Software/ND-10609/files/XMP-B02-IMPT.readable.txt - the routine and type declarations (AUTHORITATIVE for signatures)",
+      "Installation/Software/ND-10609/files/XMP-B02-DEFS.readable.txt - the library-layer constants (AUTHORITATIVE for XMOK and the XMX... standard values)",
+      "SINTRAN/XMSG/SINTRAN-CHAT/XMSG-PL-VALUES-L.INCL - the release-L constants off D100 (AUTHORITATIVE for the raw MON 200B layer)",
+      "Reference-Manuals/ND-60.164.3 EN COSMOS Programmer Guide.md - the per-routine reference (parameter NAMES and purposes)",
+      "Reference-Manuals/ND-60.134.2 EN SINTRAN III Communication Guide.md - section 4.3.2.10, the one-port receive rule",
+      "SINTRAN/XMSG/SINTRAN-CHAT/CHATSV.PLNC and CHAT.PLNC - a server and a client that ran on real hardware (D100)"
+    ],
+    "companion": "PLANC-XMSG-API-RULES.md - the checkable rules for a linter author.",
+    "include_rule": "Include XMP-B02:DEFS + XMP-B02:IMPT for library work, OR XMSG-PL-VALUES-L for raw MON 200B work - NEVER both. They share 184 constant names and a redeclaration in PLANC is fatal, not a warning.",
+    "counts": {
+      "routines": 54,
+      "constants": 397
+    }
+  },
+  "types": {
+    "XMMSGIDENTIFIER": {
+      "planc": "INTEGER",
+      "note": "TYPE XMMSGIDENTIFIER = INTEGER, from XMP-B02:IMPT."
+    },
+    "XMUSERADDRESS": {
+      "planc": "INTEGER",
+      "note": "TYPE XMUSERADDRESS = INTEGER for the ND-100/ND-500 and the NEW MC68000 compiler. The file's own comment: the OLD MC68000 compiler, whose default INTEGER is INTEGER2, needs INTEGER4. Build one with ADDR(buf(0)) FORCE XMUSERADDRESS - ROUND brackets; the guide prints square ones and PLANC F rejects them."
+    }
+  },
+  "flags": {
+    "summary": "Every XF... option constant is a BIT POSITION, not a value. Write 2**XFWTF, never 15.",
+    "worked": {
+      "XFWTF": {
+        "bit": 15,
+        "flags_word": 32768
+      },
+      "XFWAK": {
+        "bit": 14,
+        "flags_word": 16384,
+        "note": "0x4000 - oracle-confirmed on the wire in this repo"
+      },
+      "XFSEC": {
+        "bit": 9,
+        "flags_word": 512
+      }
+    },
+    "flags_is_always_first": "Every routine except the XMPB* buffer builders takes flags as parameter 1. Where no option is defined, pass 0.",
+    "many_bits_share_a_position": "Bit 13 is XFPON, XFUSG, XFHIP, XFRRO and XFEXC depending on the call; bit 12 is XFOPS, XFRES, XFRMR and XFBNC; bit 10 is XFROU and XFRDI. The meaning comes from WHICH ROUTINE you pass it to."
+  },
+  "error_model": {
+    "summary": "The XMPF* library does NOT return the kernel's negative XE... numbers. It returns POSITIVE 'STANDARD values' rebased on XKXXX. XMP-B02:DEFS states it: 'the STANDARD value symbols are the normal XMSG symbols prefixed by XM-'.",
+    "error_base": 16896,
+    "error_base_symbol": "XKXXX",
+    "error_base_octal": "41000B",
+    "rule": "library_value = XKXXX + abs(raw_negative_XE_code)",
+    "worked": [
+      {
+        "raw_symbol": "XEIPN",
+        "raw_value": -22,
+        "library_symbol": "XMXEIPN",
+        "library_value": 16918,
+        "meaning": "Illegal port number"
+      },
+      {
+        "raw_symbol": "XENRU",
+        "raw_value": -37,
+        "library_symbol": "XMXENRU",
+        "library_value": 16933,
+        "meaning": "XMSG not running"
+      },
+      {
+        "raw_symbol": "XEIMA",
+        "raw_value": -19,
+        "library_symbol": "XMXEIMA",
+        "library_value": 16915,
+        "meaning": "Invalid magic number"
+      }
+    ],
+    "not_terminated": {
+      "symbol": "XMXENTM",
+      "value": 16896,
+      "meaning": "EXACTLY the base value, and it is NOT an error. It means 'not terminated' - for a receive with flags 0 it means THE PORT IS EMPTY."
+    },
+    "success": {
+      "symbol": "XMOK",
+      "value": 0,
+      "note": "The raw MON 200B kernel's OK is 1; the library remaps it to 0."
+    },
+    "xrout_base": {
+      "symbol": "XRXXX",
+      "value": 16960,
+      "octal": "41100B",
+      "rule": "library_value = XRXXX + positive_XR_code",
+      "worked": [
+        {
+          "raw_symbol": "XRUNN",
+          "raw_value": 2,
+          "library_symbol": "XMXRUNN",
+          "library_value": 16962,
+          "meaning": "Unknown name (of server or system)"
+        },
+        {
+          "raw_symbol": "XRNRO",
+          "raw_value": 12,
+          "library_symbol": "XMXRNRO",
+          "library_value": 16972,
+          "meaning": "No access to remote system"
+        }
+      ],
+      "note": "XROUT errors also travel on the WIRE, in byte 1 of a return message, as the small positive XR... number - NOT rebased. Two representations, one meaning."
+    },
+    "buffer_routines": "The XMPB* buffer-formatting routines answer -1 on a bad buffer, which is not a symbolic status at all. Test them separately.",
+    "receive_exception": "A receive (xmpfrcv / xmpfrre / xmpfrrh) is the one call whose success is not only XMOK: the raw kernel returns the MESSAGE TYPE (XMTNO=1..XMTPS=6) as a successful status. Accept XMOK OR XMTNO..XMTPS. Do NOT test '> 0' (that accepts XMXENTM=16896 and every error) and do NOT test 'if status = 0 only' unless you have measured that your kernel/library pair always remaps."
+  },
+  "routines": {
+    "xmpopnm": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "Not implemented for this call - pass 0."
+        },
+        {
+          "name": "portName",
+          "type": "BYTES",
+          "dir": "in"
+        },
+        {
+          "name": "portNumber",
+          "type": "INTEGER",
+          "dir": "out"
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Open a port and give it a name in XROUT. A plain named port - it has NO free-connection counter.",
+      "notes": "Sends a message to XROUT, so it CHANGES the task's 'task current' message. The opened port becomes the task's default port. A name longer than XMMAXNameLength returns -1. If another open port already holds the name, an error status comes back.",
+      "group": "xrout"
+    },
+    "xmpclnm": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "Not implemented - pass 0."
+        },
+        {
+          "name": "portName",
+          "type": "BYTES",
+          "dir": "in"
+        },
+        {
+          "name": "portNumber",
+          "type": "INTEGER",
+          "dir": "in"
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Close a port and clear its name in XROUT.",
+      "notes": "The counterpart of xmpopnm / xmpopcn. Note SINTRAN also closes a task's ports when the task terminates - measured on D100 2026-08-20.",
+      "group": "xrout"
+    },
+    "xmpopcn": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "Not implemented - pass 0."
+        },
+        {
+          "name": "portName",
+          "type": "BYTES",
+          "dir": "in"
+        },
+        {
+          "name": "uniqueName",
+          "type": "BOOLEAN",
+          "dir": "in",
+          "note": "TRUE = only this port may hold the name. FALSE = several server ports may share it and XROUT spreads connections over them."
+        },
+        {
+          "name": "maxConnections",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "Initial value of the free-connection counter (the seats)."
+        },
+        {
+          "name": "portNumber",
+          "type": "INTEGER",
+          "dir": "out"
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Open a NAMED CONNECTION port with a seat count. XROUT keeps a free-connection counter for it.",
+      "notes": "Guide: 'When somebody contacts portName by sending a letter via XROUT, XROUT looks at the free connection counter and if it is greater than zero, XROUT decrements it and forwards the letter. If there are no free connections, XROUT tries to find another port with the same name.' So a seat is spent by XROUT BEFORE the server sees the letter. Only the port's owner puts one back, with xmpinfc. Like xmpopnm this changes the 'task current' message and makes the port the task's default port.",
+      "group": "xrout"
+    },
+    "xmpinfc": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "Not implemented - pass 0."
+        },
+        {
+          "name": "portNumber",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "The port number xmpopcn returned."
+        },
+        {
+          "name": "extraConn",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "Positive adds seats, negative removes them."
+        },
+        {
+          "name": "serialNumber",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "Reference number, put in byte 0 of the request to XROUT so the caller can recognise the reply."
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Give a seat back to (or take one from) a connection port's free-connection counter.",
+      "notes": "DOES NOT WAIT for XROUT. The reply arrives LATER as a message on portNumber, so a receive loop must expect it. Changes the 'task current' message and the 'port current' message on portNumber. If the resulting free count would go negative, XROUT returns an error.",
+      "group": "xrout"
+    },
+    "xmpread": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "Not implemented - pass 0."
+        },
+        {
+          "name": "msgIdentifier",
+          "type": "XMMSGIDENTIFIER",
+          "dir": "in"
+        },
+        {
+          "name": "msgDisp",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "Byte displacement inside the message. -1 resumes at the current displacement."
+        },
+        {
+          "name": "userAddress",
+          "type": "XMUSERADDRESS",
+          "dir": "in",
+          "note": "ADDR(buf(0)) FORCE XMUSERADDRESS"
+        },
+        {
+          "name": "userDisp",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "userLength",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "Bytes you want to read - CLAMP THIS to your buffer size."
+        },
+        {
+          "name": "readLength",
+          "type": "INTEGER",
+          "dir": "out"
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Read user data out of a SPECIFIED message buffer (not necessarily the current one).",
+      "notes": "Same as xmpfrea but names the message explicitly.",
+      "group": "core"
+    },
+    "xmpwrte": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "msgIdentifier",
+          "type": "XMMSGIDENTIFIER",
+          "dir": "in"
+        },
+        {
+          "name": "msgDisp",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "userAddress",
+          "type": "XMUSERADDRESS",
+          "dir": "in"
+        },
+        {
+          "name": "userDisp",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "userLength",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "writtenLength",
+          "type": "INTEGER",
+          "dir": "out"
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Write user data into a SPECIFIED message buffer (not necessarily the current one).",
+      "notes": "Options: XFRES (bit 12) resets the message length to 0 before writing.",
+      "group": "core"
+    },
+    "xmpwrhd": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "msgIdentifier",
+          "type": "XMMSGIDENTIFIER",
+          "dir": "in"
+        },
+        {
+          "name": "bytes0To1",
+          "type": "INTEGER2",
+          "dir": "in"
+        },
+        {
+          "name": "bytes2To3",
+          "type": "INTEGER2",
+          "dir": "in"
+        },
+        {
+          "name": "bytes4To5",
+          "type": "INTEGER2",
+          "dir": "in"
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Write the 6-byte header of a SPECIFIED message buffer.",
+      "notes": "",
+      "group": "core"
+    },
+    "xmprout": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "msgIdentifier",
+          "type": "XMMSGIDENTIFIER",
+          "dir": "in"
+        },
+        {
+          "name": "localPort",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "The sending port - where XROUT's reply will arrive."
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Send a message to, or via, the local routing task XROUT. This is the call that looks a destination up BY NAME.",
+      "notes": "The message must already carry an XROUT header (build one with xmpbini/xmpbast/xmpbrdy, or an XSLET letter header with xmpblet). Sending an XSLET letter to a remote CONNECTION port SPENDS ONE SEAT on that port - XROUT decrements the free-connection counter to forward it. If the name is unknown, or the connection port has no free seats, XROUT returns the message to the sending port with an error status, and the caller sees it as a message rather than as a bad returnStatus.",
+      "group": "xrout"
+    },
+    "xmpsend": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "2**XFSEC for a secure send, 2**XFHIP for high priority, 2**XFFWD to forward."
+        },
+        {
+          "name": "msgIdentifier",
+          "type": "XMMSGIDENTIFIER",
+          "dir": "in"
+        },
+        {
+          "name": "localPort",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "remoteMagicNum",
+          "type": "INTEGER4",
+          "dir": "in",
+          "note": "Full magic number of the receiving port - 32 bits, it does NOT fit one word."
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Send a SPECIFIED message to another task, by magic number.",
+      "notes": "Guide: 'The message specified by msgIdentifier is set as task current message and as port current message for localPort. Then the message will be sent as described under XMPFSND.' Prefer this over xmpfsnd whenever the program called xmpfget itself: xmpfget makes the new buffer TASK current only, and xmpfsnd would pick the PORT current message if one exists. MEASURED on D100 2026-08-18: xmpsend to a port whose task had died returned XMOK - it does NOT validate the destination. Set 2**XFSEC to learn about undeliverable messages; they come back as a message of type XMTRE.",
+      "group": "core"
+    },
+    "xmpconf": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "XMSGpassword",
+          "type": "INTEGER",
+          "dir": "out",
+          "note": "Same as the XMSG version code."
+        },
+        {
+          "name": "configMask",
+          "type": "INTEGER",
+          "dir": "out"
+        },
+        {
+          "name": "XMSGrestartCnt",
+          "type": "INTEGER",
+          "dir": "out"
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Get information about the running XMSG system.",
+      "notes": "",
+      "group": "core"
+    },
+    "xmpfopn": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "Not implemented - pass 0."
+        },
+        {
+          "name": "portNumber",
+          "type": "INTEGER",
+          "dir": "out"
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Open an UNNAMED port. Nobody can look it up by name; you reach it by magic number.",
+      "notes": "The opened port becomes the task's default port; when it closes, the previously opened port becomes the default again.",
+      "group": "core"
+    },
+    "xmpfcls": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "portNumber",
+          "type": "INTEGER",
+          "dir": "in"
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Close a port.",
+      "notes": "",
+      "group": "core"
+    },
+    "xmpfget": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "2**XFEXC (bit 13) reserves an exclusive buffer."
+        },
+        {
+          "name": "sizeBuffer",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "Bytes requested."
+        },
+        {
+          "name": "msgIdentifier",
+          "type": "XMMSGIDENTIFIER",
+          "dir": "out"
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Reserve a message buffer.",
+      "notes": "The new buffer becomes the TASK current message. It does NOT become the port current message - there is no port parameter - which is why a program that builds its own reply should send with xmpsend rather than xmpfsnd. Every buffer you get must eventually be released (xmpfrel) or sent (xmpfsnd / xmpsend / xmprout / xmpfrtn).",
+      "group": "core"
+    },
+    "xmpfrel": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "msgIdentifier",
+          "type": "XMMSGIDENTIFIER",
+          "dir": "in"
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Release a message buffer back to XMSG.",
+      "notes": "Release a received message once you have read it out; a buffer you neither send nor release is leaked message space (XMXEMFL is what a leak eventually looks like).",
+      "group": "core"
+    },
+    "xmpfgst": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "2**XFWTF waits; 2**XFWAK arms a general wake-up; 2**XFHIP means 'wake up on status change if no high-priority message is waiting'."
+        },
+        {
+          "name": "startScanPort",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "Where to start the scan."
+        },
+        {
+          "name": "portNumber",
+          "type": "INTEGER",
+          "dir": "out",
+          "note": "Port number where a message is waiting."
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "General status: scan ALL of the task's ports and report one that has a message waiting.",
+      "notes": "Guide: 'A task may have many open ports. It does not always know on which one the next message is arriving. XMPFGST allows the task to check all ports belonging to the task.' THIS - not xmpfrcv - is the call that looks at more than one port. It only NAMES the port; you still have to call xmpfrcv on the port it returns. UNVERIFIED on real hardware in this repo: no program here has yet used xmpfgst; the working two-port server polls each port with xmpfrcv and flags 0 instead.",
+      "group": "core"
+    },
+    "xmpfrea": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "Not implemented - pass 0."
+        },
+        {
+          "name": "msgDisp",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "Byte displacement in the message, rounded UP to the next even byte. -1 resumes from the current displacement."
+        },
+        {
+          "name": "userAddress",
+          "type": "XMUSERADDRESS",
+          "dir": "in",
+          "note": "ADDR(buf(0)) FORCE XMUSERADDRESS - round brackets."
+        },
+        {
+          "name": "userDisp",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "On ND-100 this is rounded DOWN to the previous even byte."
+        },
+        {
+          "name": "userLength",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "Bytes you want to read. CLAMP THIS AGAINST YOUR BUFFER."
+        },
+        {
+          "name": "readLength",
+          "type": "INTEGER",
+          "dir": "out",
+          "note": "Bytes actually read."
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Read user data out of the TASK CURRENT message into your own buffer.",
+      "notes": "Takes NO message identifier - it acts on the task current message, which is what the last successful receive or xmpfget made current. The length that arrives from the wire is the SENDER's choice; PLANC checks no array bounds, so passing it straight in lets a peer write past the end of your array.",
+      "group": "core"
+    },
+    "xmpfwri": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "2**XFRES (bit 12) resets the message length to 0 first."
+        },
+        {
+          "name": "msgDisp",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "userAddress",
+          "type": "XMUSERADDRESS",
+          "dir": "in"
+        },
+        {
+          "name": "userDisp",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "userLength",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "writtenLength",
+          "type": "INTEGER",
+          "dir": "out"
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Write user data from your buffer into the TASK CURRENT message.",
+      "notes": "Takes NO message identifier, same as xmpfrea.",
+      "group": "core"
+    },
+    "xmpfrhd": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "msgIdentifier",
+          "type": "XMMSGIDENTIFIER",
+          "dir": "in"
+        },
+        {
+          "name": "bytes0To1",
+          "type": "INTEGER2",
+          "dir": "out"
+        },
+        {
+          "name": "bytes2To3",
+          "type": "INTEGER2",
+          "dir": "out"
+        },
+        {
+          "name": "bytes4To5",
+          "type": "INTEGER2",
+          "dir": "out"
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Read only the 6-byte header of a message buffer.",
+      "notes": "",
+      "group": "core"
+    },
+    "xmpfwhd": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "bytes0To1",
+          "type": "INTEGER2",
+          "dir": "in"
+        },
+        {
+          "name": "bytes2To3",
+          "type": "INTEGER2",
+          "dir": "in"
+        },
+        {
+          "name": "bytes4To5",
+          "type": "INTEGER2",
+          "dir": "in"
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Write the 6-byte header of the TASK CURRENT message.",
+      "notes": "Note it takes no message identifier - unlike xmpwrhd.",
+      "group": "core"
+    },
+    "xmpfsnd": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "2**XFSEC secure, 2**XFHIP high priority, 2**XFBNC bounce, 2**XFFWD forward, 2**XFROU send to XROUT."
+        },
+        {
+          "name": "localPort",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "remoteMagicNum",
+          "type": "INTEGER4",
+          "dir": "in"
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Send the CURRENT message to another task, by magic number.",
+      "notes": "Guide: 'the current (default) message buffer is assumed, namely the port current message if one exists, or, if none, the task current message.' That two-step choice is the trap: after a receive there may still be a port current message, and xmpfsnd will send THAT rather than the buffer you just built with xmpfget. Use xmpsend when you built the buffer yourself.",
+      "group": "core"
+    },
+    "xmpfrtn": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "msgIdentifier",
+          "type": "XMMSGIDENTIFIER",
+          "dir": "in"
+        },
+        {
+          "name": "localPort",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "bytes0To1",
+          "type": "INTEGER2",
+          "dir": "in",
+          "note": "First 2 bytes of the message header, written before return."
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Return a message to the port it came from, writing word 0 first.",
+      "notes": "The cheap way to answer a request without needing the sender's magic number.",
+      "group": "core"
+    },
+    "xmpfrcv": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "0 = return at once. 2**XFWTF = block until a message arrives. 2**XFWAK = arm a wake-up on this port. Flags are BIT POSITIONS."
+        },
+        {
+          "name": "localPort",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "The ONE port to receive on. 0 means the task's default port."
+        },
+        {
+          "name": "msgType",
+          "type": "INTEGER",
+          "dir": "out",
+          "note": "XMTNO / XMROU / XMTHI / XMTRE / XMKIK / XMTPS."
+        },
+        {
+          "name": "remotePort",
+          "type": "INTEGER",
+          "dir": "out",
+          "note": "HASHED magic number of the sending port - not the full magic number. Use xmpfmst to get the full one."
+        },
+        {
+          "name": "msgIdentifier",
+          "type": "XMMSGIDENTIFIER",
+          "dir": "out"
+        },
+        {
+          "name": "msgLengthOrStat",
+          "type": "INTEGER",
+          "dir": "out",
+          "note": "Message length in bytes; but if msgType is XMTRE this is the REASON FOR RETURN, not a length."
+        }
+      ],
+      "returns": "INTEGER status. On a SUCCESSFUL receive the library returns XMOK (0) with the type in the msgType out-parameter; the raw kernel returns the message type itself (XMTNO..XMTPS), and both forms have been seen, so accept either. An EMPTY port answers XMXENTM (16896).",
+      "purpose": "Receive a message queued on ONE named port.",
+      "notes": "THERE IS NO RECEIVE-ON-ANY-PORT. One call, one port (ND-60.134.2 section 4.3.2.10). A successful receive makes the message TASK current, and PORT current too if it was sent secure. With flags 0 an empty port answers XMXENTM (16896). With 2**XFWAK a wake-up bit is armed on the port: 'When the wake up is done, the message is not received, and so the receiving must be repeated' - a doorbell, not a delivery. The wake-up can be armed on more than one port at a time, but that does NOT make one call watch two ports: MEASURED on D100 2026-08-21, a two-port server armed on both parked on the admin port while a message sat on the room port.",
+      "group": "core"
+    },
+    "xmpfrre": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "2**XFWTF wait, 2**XFWAK wake-up, 2**XFRMR (bit 12) release the message if the last byte is read."
+        },
+        {
+          "name": "localPort",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "userAddress",
+          "type": "XMUSERADDRESS",
+          "dir": "in"
+        },
+        {
+          "name": "userDisp",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "userLength",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "CLAMP - this is your buffer's size, not the sender's."
+        },
+        {
+          "name": "msgType",
+          "type": "INTEGER",
+          "dir": "out"
+        },
+        {
+          "name": "remotePort",
+          "type": "INTEGER",
+          "dir": "out"
+        },
+        {
+          "name": "msgIdentifier",
+          "type": "XMMSGIDENTIFIER",
+          "dir": "out"
+        },
+        {
+          "name": "msgLengthOrStat",
+          "type": "INTEGER",
+          "dir": "out"
+        }
+      ],
+      "returns": "Same status model as xmpfrcv.",
+      "purpose": "Receive on ONE port and read the message into your buffer in one call.",
+      "notes": "Same one-port rule as xmpfrcv. Safer for buffer length than the receive-then-read pair, because userLength is YOUR number rather than the sender's.",
+      "group": "core"
+    },
+    "xmpfrrh": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "localPort",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "msgType",
+          "type": "INTEGER",
+          "dir": "out"
+        },
+        {
+          "name": "remotePort",
+          "type": "INTEGER",
+          "dir": "out"
+        },
+        {
+          "name": "msgIdentifier",
+          "type": "XMMSGIDENTIFIER",
+          "dir": "out"
+        },
+        {
+          "name": "bytes0To1OrStat",
+          "type": "INTEGER2",
+          "dir": "out",
+          "note": "Normally the first 2 bytes of the message; if msgType is XMTRE, the error status."
+        }
+      ],
+      "returns": "Same status model as xmpfrcv.",
+      "purpose": "Receive on ONE port and read the first two bytes of the message.",
+      "notes": "Identical to xmpfrcv except it gives the first two data bytes instead of the length.",
+      "group": "core"
+    },
+    "xmpfpst": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "2**XFWAK arms a wake-up; 2**XFHIP means 'wake up on status change if no high-priority message is waiting'."
+        },
+        {
+          "name": "localPort",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "msgType",
+          "type": "INTEGER",
+          "dir": "out"
+        },
+        {
+          "name": "remotePort",
+          "type": "INTEGER",
+          "dir": "out"
+        },
+        {
+          "name": "msgIdentifier",
+          "type": "XMMSGIDENTIFIER",
+          "dir": "out"
+        },
+        {
+          "name": "queueLength",
+          "type": "INTEGER",
+          "dir": "out",
+          "note": "Number of messages queued for localPort."
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Look at ONE port to see whether a message is waiting - without receiving it.",
+      "notes": "Does not unchain the message. The queue length is one instant's answer and is stale as soon as it is read.",
+      "group": "core"
+    },
+    "xmpfmst": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "msgIdentifier",
+          "type": "XMMSGIDENTIFIER",
+          "dir": "in"
+        },
+        {
+          "name": "msgType",
+          "type": "INTEGER",
+          "dir": "out"
+        },
+        {
+          "name": "remoteMagicNum",
+          "type": "INTEGER4",
+          "dir": "out",
+          "note": "FULL magic number of the sending port."
+        },
+        {
+          "name": "msgLength",
+          "type": "INTEGER",
+          "dir": "out"
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Get a received message's status - and, above all, the sender's FULL magic number.",
+      "notes": "xmpfrcv only hands back a HASHED port, which cannot be used to answer. xmpfmst is how a server gets an address it can send to. It OVERWRITES the length variable, so keep the receive's own msgLengthOrStat first if you still need it (on an XMTRE it was the reason for return, not a length).",
+      "group": "core"
+    },
+    "xmpfscm": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "portNumber",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "If >= 0 the message also becomes current for that port."
+        },
+        {
+          "name": "msgIdentifier",
+          "type": "XMMSGIDENTIFIER",
+          "dir": "in"
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Set the current message explicitly.",
+      "notes": "",
+      "group": "core"
+    },
+    "xmpfprv": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "XMSGpassword",
+          "type": "INTEGER",
+          "dir": "in"
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Make the calling task privileged.",
+      "notes": "Privileged calls fail with XMXEPRV without this.",
+      "group": "privileged"
+    },
+    "xmpfp2m": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "portNumber",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "magicNumber",
+          "type": "INTEGER4",
+          "dir": "out"
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Convert one of your own port numbers to its full magic number.",
+      "notes": "The manual's routine catalog spells this XMPF2PM in one table - that is a typo. The real entry point is xmpfp2m (checked against XMP-B02:IMPT and LIST-BRF-ENTRIES on D100).",
+      "group": "core"
+    },
+    "xmpfdmm": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "requestedTaskSp",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "Requested task space in bytes."
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Define the maximum message memory a task may use.",
+      "notes": "Privileged.",
+      "group": "privileged"
+    },
+    "xmpfalm": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "2**XFEXC allocates exclusive buffers."
+        },
+        {
+          "name": "messageSize",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "numberOfMsgs",
+          "type": "INTEGER",
+          "dir": "in"
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Allocate (reserve) message buffers to a task in advance.",
+      "notes": "",
+      "group": "core"
+    },
+    "xmpfdum": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in"
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Dummy call - does nothing. Useful to prove the library is linked and XMSG is running.",
+      "notes": "",
+      "group": "core"
+    },
+    "xmpfdct": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in"
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Disconnect the task from XMSG. Closes the task's ports and frees its buffers.",
+      "notes": "",
+      "group": "core"
+    },
+    "xmpflmp": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "msgIdentifier",
+          "type": "XMMSGIDENTIFIER",
+          "dir": "in",
+          "note": "Message identifier, or 0."
+        },
+        {
+          "name": "portNo",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "Port number, or 0."
+        },
+        {
+          "name": "msgIdentFound",
+          "type": "XMMSGIDENTIFIER",
+          "dir": "out"
+        },
+        {
+          "name": "msgSize",
+          "type": "INTEGER",
+          "dir": "out"
+        },
+        {
+          "name": "portNoFound",
+          "type": "INTEGER",
+          "dir": "out"
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "List messages and ports - walk XMSG's tables.",
+      "notes": "",
+      "group": "core"
+    },
+    "xmpfdub": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "bufferAddress",
+          "type": "INTEGER4",
+          "dir": "in",
+          "note": "Address of a physical memory buffer."
+        },
+        {
+          "name": "bufferSize",
+          "type": "INTEGER",
+          "dir": "in"
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Define a user buffer area for the current message.",
+      "notes": "Privileged.",
+      "group": "privileged"
+    },
+    "xmpffrm": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "2**XFEXC frees exclusively allocated buffers."
+        },
+        {
+          "name": "noOfMsgToFree",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "noOfMsgFreed",
+          "type": "INTEGER",
+          "dir": "out"
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Free buffers previously allocated with xmpfalm.",
+      "notes": "",
+      "group": "core"
+    },
+    "xmpfdbk": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "bankNo",
+          "type": "INTEGER",
+          "dir": "in"
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Define a bank number. Drivers only.",
+      "notes": "Privileged / drivers.",
+      "group": "driver"
+    },
+    "xmpfwdf": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "Bregister",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "The driver's B register on restart."
+        },
+        {
+          "name": "restartAddress",
+          "type": "INTEGER",
+          "dir": "in"
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Define the wake-up context for a driver.",
+      "notes": "Privileged / drivers.",
+      "group": "driver"
+    },
+    "xmpfm2p": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "magicNumber",
+          "type": "INTEGER4",
+          "dir": "in"
+        },
+        {
+          "name": "portNumber",
+          "type": "INTEGER",
+          "dir": "out"
+        },
+        {
+          "name": "systemNumber",
+          "type": "INTEGER",
+          "dir": "out"
+        },
+        {
+          "name": "RTinOrOtherInfo",
+          "type": "INTEGER",
+          "dir": "out",
+          "note": "RT index or other information."
+        },
+        {
+          "name": "additionalInfo",
+          "type": "INTEGER",
+          "dir": "out"
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Take a magic number apart into port number and system number.",
+      "notes": "",
+      "group": "core"
+    },
+    "xmpfcpv": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "msgIdentifier",
+          "type": "XMMSGIDENTIFIER",
+          "dir": "in",
+          "note": "The identifier of a RECEIVED message."
+        },
+        {
+          "name": "accessInfo",
+          "type": "INTEGER",
+          "dir": "out"
+        },
+        {
+          "name": "additionalInfo",
+          "type": "INTEGER",
+          "dir": "out"
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Check the system and user privileges behind a received message.",
+      "notes": "How a server decides whether the sender may use it, before answering and thereby giving away its own magic number.",
+      "group": "core"
+    },
+    "xmpfsin": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "XMSGbase",
+          "type": "INTEGER",
+          "dir": "out",
+          "note": "XMSG base field address."
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Service initialisation - get XMSG's base field address.",
+      "notes": "Privileged.",
+      "group": "privileged"
+    },
+    "xmpfabr": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "userBuffer",
+          "type": "XMUSERADDRESS",
+          "dir": "in"
+        },
+        {
+          "name": "userDisp",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "readLength",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "memoryDisp",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "Address inside bankNumber."
+        },
+        {
+          "name": "bankNumber",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "Bits 0-6 give the bank number."
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Absolute read from the physical memory XMSG uses.",
+      "notes": "Privileged.",
+      "group": "privileged"
+    },
+    "xmpfcrd": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "interruptLevel",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "registerBlock",
+          "type": "XMUSERADDRESS",
+          "dir": "in",
+          "note": "Address of an 8-word register block."
+        },
+        {
+          "name": "XTblockAddress",
+          "type": "INTEGER",
+          "dir": "out"
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Define (create) a driver for XMSG.",
+      "notes": "Privileged / drivers.",
+      "group": "driver"
+    },
+    "xmpfstd": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "2**XFPON runs the driver with paging on."
+        },
+        {
+          "name": "XTblockAddress",
+          "type": "INTEGER",
+          "dir": "in"
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Start a driver.",
+      "notes": "Does NOT set the PIE bit and does not load or fix segments - use the FIXC and ENTSG monitor calls for that.",
+      "group": "driver"
+    },
+    "xmpfsmc": {
+      "params": [
+        {
+          "name": "flags",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "noOfCalls",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "userAddress",
+          "type": "XMUSERADDRESS",
+          "dir": "in",
+          "note": "Buffer holding the packed parameters."
+        },
+        {
+          "name": "userDisp",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "Treg",
+          "type": "INTEGER",
+          "dir": "out"
+        },
+        {
+          "name": "Areg",
+          "type": "INTEGER",
+          "dir": "out"
+        },
+        {
+          "name": "Dreg",
+          "type": "INTEGER",
+          "dir": "out"
+        },
+        {
+          "name": "Xreg",
+          "type": "INTEGER",
+          "dir": "out"
+        }
+      ],
+      "returns": "INTEGER status returned as the PLANC out-value: 'name(...) =: returnStatus'.",
+      "purpose": "Start a multi-function call: run several raw XMSG functions in one monitor entry.",
+      "notes": "The escape hatch down to raw MON 200B sequences. Results come back as raw register contents. Too many calls answers XMXETMU.",
+      "group": "core"
+    },
+    "xmpblet": {
+      "params": [
+        {
+          "name": "headerBuffer",
+          "type": "BYTES",
+          "dir": "in",
+          "note": "Must start on an EVEN byte boundary."
+        },
+        {
+          "name": "lengthBuffer",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "Total size of headerBuffer in bytes. The manual's parameter table types this 'Bytes' - that is a typesetting slip; XMP-B02:IMPT says INTEGER."
+        },
+        {
+          "name": "offSet",
+          "type": "INTEGER",
+          "dir": "inout",
+          "note": "READ WRITE in the real IMPT file, not plain WRITE. Bytes used after formatting."
+        },
+        {
+          "name": "serialNumber",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "Goes into byte 0 of the letter."
+        },
+        {
+          "name": "systemName",
+          "type": "BYTES",
+          "dir": "in",
+          "note": "Destination system. Length 0 means the LOCAL system."
+        },
+        {
+          "name": "portName",
+          "type": "BYTES",
+          "dir": "in",
+          "note": "The remote server port's name."
+        }
+      ],
+      "returns": "INTEGER status. These routines answer -1 (NOT a symbolic error) when the buffer is too small or is not on an even byte boundary.",
+      "purpose": "Format an XROUT 'Send Letter' (XSLET) header into a LOCAL buffer.",
+      "notes": "It only prepares bytes in your own buffer - it copies nothing into an XMSG message and sends nothing. You then xmpfget a buffer, xmpfwri the header in, xmpfwri your own data AFTER it, and xmprout it. Returns -1 if headerBuffer is not even-aligned or lengthBuffer is too small.",
+      "group": "buffer"
+    },
+    "xmpbloc": {
+      "params": [
+        {
+          "name": "localBuffer",
+          "type": "BYTES",
+          "dir": "in"
+        },
+        {
+          "name": "paramNumber",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "startOfParam",
+          "type": "INTEGER",
+          "dir": "out",
+          "note": "Byte displacement of the parameter inside localBuffer."
+        },
+        {
+          "name": "paramType",
+          "type": "BYTES",
+          "dir": "out",
+          "note": "'INTEGER' or 'STRING'."
+        },
+        {
+          "name": "paramLength",
+          "type": "INTEGER",
+          "dir": "out"
+        }
+      ],
+      "returns": "INTEGER status. These routines answer -1 (NOT a symbolic error) when the buffer is too small or is not on an even byte boundary.",
+      "purpose": "Locate a parameter inside a buffer coded in the XROUT message format.",
+      "notes": "",
+      "group": "buffer"
+    },
+    "xmpbini": {
+      "params": [
+        {
+          "name": "outBuffer",
+          "type": "BYTES",
+          "dir": "in"
+        },
+        {
+          "name": "lengthBuffer",
+          "type": "INTEGER",
+          "dir": "in"
+        },
+        {
+          "name": "offSet",
+          "type": "INTEGER",
+          "dir": "inout",
+          "note": "READ WRITE in XMP-B02:IMPT."
+        }
+      ],
+      "returns": "INTEGER status. These routines answer -1 (NOT a symbolic error) when the buffer is too small or is not on an even byte boundary.",
+      "purpose": "Initialise a local buffer for the XROUT parameter format.",
+      "notes": "First of the build sequence: xmpbini, then xmpbain / xmpbadb / xmpbast for each parameter, then xmpbrdy to stamp the service and serial number.",
+      "group": "buffer"
+    },
+    "xmpbrdy": {
+      "params": [
+        {
+          "name": "outBuffer",
+          "type": "BYTES",
+          "dir": "in"
+        },
+        {
+          "name": "serviceNumber",
+          "type": "INTEGER",
+          "dir": "in",
+          "note": "An XS... service value."
+        },
+        {
+          "name": "serialNumber",
+          "type": "INTEGER",
+          "dir": "in"
+        }
+      ],
+      "returns": "INTEGER status. These routines answer -1 (NOT a symbolic error) when the buffer is too small or is not on an even byte boundary.",
+      "purpose": "Finish an XROUT buffer: put the serial number and service number in.",
+      "notes": "",
+      "group": "buffer"
+    },
+    "xmpbain": {
+      "params": [
+        {
+          "name": "outBuffer",
+          "type": "BYTES",
+          "dir": "in"
+        },
+        {
+          "name": "offSet",
+          "type": "INTEGER",
+          "dir": "inout"
+        },
+        {
+          "name": "paramValue",
+          "type": "INTEGER2",
+          "dir": "in"
+        },
+        {
+          "name": "paramNumber",
+          "type": "INTEGER",
+          "dir": "in"
+        }
+      ],
+      "returns": "INTEGER status. These routines answer -1 (NOT a symbolic error) when the buffer is too small or is not on an even byte boundary.",
+      "purpose": "Append a 16-bit value as the next XROUT parameter.",
+      "notes": "",
+      "group": "buffer"
+    },
+    "xmpbadb": {
+      "params": [
+        {
+          "name": "outBuffer",
+          "type": "BYTES",
+          "dir": "in"
+        },
+        {
+          "name": "offSet",
+          "type": "INTEGER",
+          "dir": "inout"
+        },
+        {
+          "name": "paramValue",
+          "type": "INTEGER4",
+          "dir": "in"
+        },
+        {
+          "name": "paramNumber",
+          "type": "INTEGER",
+          "dir": "in"
+        }
+      ],
+      "returns": "INTEGER status. These routines answer -1 (NOT a symbolic error) when the buffer is too small or is not on an even byte boundary.",
+      "purpose": "Append a 32-bit value as the next XROUT parameter.",
+      "notes": "",
+      "group": "buffer"
+    },
+    "xmpbast": {
+      "params": [
+        {
+          "name": "outBuffer",
+          "type": "BYTES",
+          "dir": "in"
+        },
+        {
+          "name": "offSet",
+          "type": "INTEGER",
+          "dir": "inout"
+        },
+        {
+          "name": "string",
+          "type": "BYTES",
+          "dir": "in"
+        },
+        {
+          "name": "paramNumber",
+          "type": "INTEGER",
+          "dir": "in"
+        }
+      ],
+      "returns": "INTEGER status. These routines answer -1 (NOT a symbolic error) when the buffer is too small or is not on an even byte boundary.",
+      "purpose": "Append a string as the next XROUT parameter.",
+      "notes": "A string parameter is coded with a NEGATIVE parameter number on the wire.",
+      "group": "buffer"
+    },
+    "xmpxets": {
+      "params": [
+        {
+          "name": "param1",
+          "type": "INTEGER",
+          "dir": "out"
+        }
+      ],
+      "returns": "No out-value. This routine returns VOID.",
+      "purpose": "UNVERIFIED - the ND-60.164.3 guide does not document this routine. Only XMP-B02:IMPT declares it and XMP-100-1-B02:BRF exports it.",
+      "notes": "DIFFERENT SHAPE from every other routine: 'ROUTINE INTEGER,VOID (INTEGER WRITE)' - it takes an IN-VALUE and has NO out-value, so it cannot be written as 'xmpxets(x) =: status'. The names suggest 'external/return trap something' but that is a GUESS and is marked UNVERIFIED.",
+      "group": "unverified",
+      "in_value": "INTEGER"
+    },
+    "xmpxrts": {
+      "params": [
+        {
+          "name": "param1",
+          "type": "INTEGER",
+          "dir": "out"
+        }
+      ],
+      "returns": "No out-value. This routine returns VOID.",
+      "purpose": "UNVERIFIED - the ND-60.164.3 guide does not document this routine. Only XMP-B02:IMPT declares it and XMP-100-1-B02:BRF exports it.",
+      "notes": "DIFFERENT SHAPE from every other routine: 'ROUTINE INTEGER,VOID (INTEGER WRITE)' - it takes an IN-VALUE and has NO out-value, so it cannot be written as 'xmpxets(x) =: status'. The names suggest 'external/return trap something' but that is a GUESS and is marked UNVERIFIED.",
+      "group": "unverified",
+      "in_value": "INTEGER"
+    }
+  },
+  "constants": {
+    "XFDUM": {
+      "value": 0,
+      "meaning": "Dummy function",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFDCT": {
+      "value": 1,
+      "meaning": "Disconnect from message system",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFGET": {
+      "value": 2,
+      "meaning": "Get message space",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFREL": {
+      "value": 3,
+      "meaning": "Release message space",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFRHD": {
+      "value": 4,
+      "meaning": "Read header from a message (6 bytes)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFWHD": {
+      "value": 5,
+      "meaning": "Write header to a message (6 bytes)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFREA": {
+      "value": 6,
+      "meaning": "Read from message to user buffer",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFWRI": {
+      "value": 7,
+      "meaning": "Write from user to message",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFSCM": {
+      "value": 8,
+      "meaning": "Set current message",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFMST": {
+      "value": 9,
+      "meaning": "Get message status",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFOPN": {
+      "value": 10,
+      "meaning": "Open port",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFCLS": {
+      "value": 11,
+      "meaning": "Close port",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFSND": {
+      "value": 12,
+      "meaning": "Send message to a remote port",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFRCV": {
+      "value": 13,
+      "meaning": "Receive a message on a given port",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFPST": {
+      "value": 14,
+      "meaning": "Get local port status",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFGST": {
+      "value": 15,
+      "meaning": "General status or wait",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFSIN": {
+      "value": 16,
+      "meaning": "Service initialisation function",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFABR": {
+      "value": 18,
+      "meaning": "Absolute read block from POF area",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFM2P": {
+      "value": 22,
+      "meaning": "Magic number to port id.",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFP2M": {
+      "value": 23,
+      "meaning": "Port to magic number",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFCRD": {
+      "value": 25,
+      "meaning": "Create driver with context",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFSTD": {
+      "value": 26,
+      "meaning": "Start driver",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFPRV": {
+      "value": 30,
+      "meaning": "Request privilege",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFRTN": {
+      "value": 31,
+      "meaning": "Write word 0 and return message",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFRRH": {
+      "value": 32,
+      "meaning": "Receive message and read word 0",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFDUB": {
+      "value": 33,
+      "meaning": "Define user buffer area for current message",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFWDF": {
+      "value": 34,
+      "meaning": "Define wake-up context (drivers only!)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFDBK": {
+      "value": 35,
+      "meaning": "Define bank no (drivers only)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFSMC": {
+      "value": 36,
+      "meaning": "start multi-function call",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFDMM": {
+      "value": 37,
+      "meaning": "define max memory for a task",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFALM": {
+      "value": 38,
+      "meaning": "allocate messages to a task",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFFRM": {
+      "value": 39,
+      "meaning": "free allocated messages",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFLMP": {
+      "value": 40,
+      "meaning": "list messages and ports",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFRRE": {
+      "value": 41,
+      "meaning": "receive and read message",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFCPV": {
+      "value": 42,
+      "meaning": "check system and/or user privileges",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "X5FUN": {
+      "value": 43,
+      "meaning": "== END MARKER == LEAVE ME HERE PLEASE",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)",
+      "conflict": {
+        "other_value": 48,
+        "other_source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)",
+        "note": "the two shipped files disagree on this symbol"
+      }
+    },
+    "XFWTF": {
+      "value": 15,
+      "meaning": "If set then wait if operation not terminated.",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFWAK": {
+      "value": 14,
+      "meaning": "Wake up task on status change.",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFPON": {
+      "value": 13,
+      "meaning": "Driver to run with paging on.",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFUSG": {
+      "value": 13,
+      "meaning": "(Not yet implemented).",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XFHIP": {
+      "value": 13,
+      "meaning": "High-priority message.",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFRRO": {
+      "value": 13,
+      "meaning": "If XFROU then non-local XROUT.",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFEXC": {
+      "value": 13,
+      "meaning": "Allocate/reserve/release exclusive message buffer(s).",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFOPS": {
+      "value": 12,
+      "meaning": "(Not yet implemented).",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XFRES": {
+      "value": 12,
+      "meaning": "Reset message length to zero.",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFBNC": {
+      "value": 12,
+      "meaning": "Bounce message.",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFFWD": {
+      "value": 11,
+      "meaning": "Forward message.",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFROU": {
+      "value": 10,
+      "meaning": "Message to be sent to XROUT (see XFRRO).",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFSEC": {
+      "value": 9,
+      "meaning": "Secure message (Return if not delivered).",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFSYS": {
+      "value": 7,
+      "meaning": "Bit set to indicate system mode call (system domain).",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XMTNO": {
+      "value": 1,
+      "meaning": "Normal message",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XMROU": {
+      "value": 2,
+      "meaning": "Routed message (Via XROUT)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XMTHI": {
+      "value": 3,
+      "meaning": "High priority message",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XMTRE": {
+      "value": 4,
+      "meaning": "Return message (Abnormal condition)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XMKIK": {
+      "value": 5,
+      "meaning": "XROUT has been kicked (no message)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XMTPS": {
+      "value": 6,
+      "meaning": "Pseudo message (not used)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XKXXX": {
+      "value": 16896,
+      "meaning": "BASE for STANDARD ERROR system (41000B)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XENOT": {
+      "value": -1,
+      "meaning": "No more XT-blocks free",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEIRM": {
+      "value": -2,
+      "meaning": "Non-local remote port illegal here",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XETMM": {
+      "value": -4,
+      "meaning": "Task is not allowed any more memory",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XENIM": {
+      "value": -5,
+      "meaning": "Facility not yet implemented",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEIBP": {
+      "value": -6,
+      "meaning": "Illegal message buffer pointer",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEBNY": {
+      "value": -7,
+      "meaning": "Message buffer not yours",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEIRT": {
+      "value": -8,
+      "meaning": "Illegal function for RT-programs (only drivers)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XENOP": {
+      "value": -9,
+      "meaning": "No more ports available",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEIDR": {
+      "value": -10,
+      "meaning": "Function not available to drivers",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XENDM": {
+      "value": -11,
+      "meaning": "No default message",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEMCH": {
+      "value": -12,
+      "meaning": "Message is already chained",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEBFC": {
+      "value": -13,
+      "meaning": "Message is in a queue",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEAIN": {
+      "value": -14,
+      "meaning": "XMSG Kernel already initialised",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEBNC": {
+      "value": -15,
+      "meaning": "Return of a bounce message",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEWNA": {
+      "value": -16,
+      "meaning": "Write Not Allowed (Indirect buffer)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XENVI": {
+      "value": -17,
+      "meaning": "No Valid Indirect buffer defined",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEILF": {
+      "value": -18,
+      "meaning": "Illegal function code in monitor call",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEIMA": {
+      "value": -19,
+      "meaning": "Invalid magic number",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEMFL": {
+      "value": -20,
+      "meaning": "Message space full",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEILM": {
+      "value": -21,
+      "meaning": "Illegal message size or not enough space left",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEIPN": {
+      "value": -22,
+      "meaning": "Illegal port number",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEPRV": {
+      "value": -23,
+      "meaning": "Privileged function called without privilege",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEPVR": {
+      "value": -24,
+      "meaning": "Privilege request refused",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XERNA": {
+      "value": -25,
+      "meaning": "Remote system not available",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEROV": {
+      "value": -26,
+      "meaning": "Remote task space overflow",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEXBF": {
+      "value": -27,
+      "meaning": "Message already has XMSG buffer (XFDUB)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEDRI": {
+      "value": -28,
+      "meaning": "Driver called XMSG before return from previous",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XENDP": {
+      "value": -29,
+      "meaning": "No port open (so 'default port' param invalid)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEITL": {
+      "value": -30,
+      "meaning": "Illegal transfer length for read/write",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEIDP": {
+      "value": -31,
+      "meaning": "Illegal displacement in read/write",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEILR": {
+      "value": -32,
+      "meaning": "Illegal use of reentrant segment in XFDIB",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XENOS": {
+      "value": -33,
+      "meaning": "Indirect Buffer not on valid segment",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XENSE": {
+      "value": -34,
+      "meaning": "Network sequencing error",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XERND": {
+      "value": -35,
+      "meaning": "Remote system not defined",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEPCL": {
+      "value": -36,
+      "meaning": "Remote port closed while message queued",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XENRU": {
+      "value": -37,
+      "meaning": "XMSG not running",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XENTO": {
+      "value": -38,
+      "meaning": "Timeout detected by network layer",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XENUS": {
+      "value": -39,
+      "meaning": "No user segment info defined (XFUSG option)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEREJ": {
+      "value": -40,
+      "meaning": "Network remote reject (request retransmit)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEIXT": {
+      "value": -41,
+      "meaning": "Driver called XMSG with illegal XT-block",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XETMU": {
+      "value": -42,
+      "meaning": "Too many multi calls",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XECRA": {
+      "value": -63,
+      "meaning": "XMSG crash (Info in Basefield)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XMOK": {
+      "value": 0,
+      "meaning": "Library success. 0. NOTE: the raw MON 200B kernel's OK is 1; the PLANC library remaps it to 0.",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXKXXX": {
+      "value": 16896,
+      "meaning": "BASE for STANDARD ERROR system",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXENTM": {
+      "value": 16896,
+      "meaning": "NOT an error - simply \"not terminated\"",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXENOT": {
+      "value": 16897,
+      "meaning": "No more XT-blocks free",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXEIRM": {
+      "value": 16898,
+      "meaning": "Non-local remote port illegal here",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXETMM": {
+      "value": 16900,
+      "meaning": "Task is not allowed any more memory",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXENIM": {
+      "value": 16901,
+      "meaning": "Facility not yet implemented",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXEIBP": {
+      "value": 16902,
+      "meaning": "Illegal message buffer address",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXEBNY": {
+      "value": 16903,
+      "meaning": "Message buffer not yours",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXEIRT": {
+      "value": 16904,
+      "meaning": "Illegal function for RT-programs (only drivers)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXENOP": {
+      "value": 16905,
+      "meaning": "No more ports available",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXEIDR": {
+      "value": 16906,
+      "meaning": "Function not available to drivers",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXENDM": {
+      "value": 16907,
+      "meaning": "No default message",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXEMCH": {
+      "value": 16908,
+      "meaning": "Message is already chained",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXEBFC": {
+      "value": 16909,
+      "meaning": "Message is in a queue",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXEAIN": {
+      "value": 16910,
+      "meaning": "XMSG Kernel already initialised",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXEBNC": {
+      "value": 16911,
+      "meaning": "Return of a bounce message",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXEWNA": {
+      "value": 16912,
+      "meaning": "Write Not Allowed into Indirect buffer",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXENVI": {
+      "value": 16913,
+      "meaning": "No Valid Indirect buffer defined",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXEILF": {
+      "value": 16914,
+      "meaning": "Illegal function code in monitor call",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXEIMA": {
+      "value": 16915,
+      "meaning": "Invalid magic number",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXEMFL": {
+      "value": 16916,
+      "meaning": "Message space full",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXEILM": {
+      "value": 16917,
+      "meaning": "Illegal message size or not enough space left",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXEIPN": {
+      "value": 16918,
+      "meaning": "Illegal port number",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXEPRV": {
+      "value": 16919,
+      "meaning": "Privileged function called without privilege",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXEPVR": {
+      "value": 16920,
+      "meaning": "Privilege request refused",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXERNA": {
+      "value": 16921,
+      "meaning": "Remote system not available",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXEROV": {
+      "value": 16922,
+      "meaning": "Remote task space overflow",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXEXBF": {
+      "value": 16923,
+      "meaning": "Message already has XMSG buffer (XFDUB)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXEDRI": {
+      "value": 16924,
+      "meaning": "Driver called XMSG before return from previous",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXENDP": {
+      "value": 16925,
+      "meaning": "No port open (so 'default port' param invalid)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXEITL": {
+      "value": 16926,
+      "meaning": "Illegal transfer length for read/write",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXEIDP": {
+      "value": 16927,
+      "meaning": "Illegal displacement in read/write",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXEILR": {
+      "value": 16928,
+      "meaning": "Illegal use of reentrant segment in XFDIB",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXENOS": {
+      "value": 16929,
+      "meaning": "Indirect Buffer not on valid segment",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXENSE": {
+      "value": 16930,
+      "meaning": "Network sequencing error",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXERND": {
+      "value": 16931,
+      "meaning": "Remote system not defined",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXEPCL": {
+      "value": 16932,
+      "meaning": "Remote port closed while message queued",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXENRU": {
+      "value": 16933,
+      "meaning": "XMSG not running",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXENTO": {
+      "value": 16934,
+      "meaning": "Timeout detected by network layer",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXENUS": {
+      "value": 16935,
+      "meaning": "No user segment info defined (XFUSG option)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXEREJ": {
+      "value": 16936,
+      "meaning": "Network remote reject (request retransmit)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXEIXT": {
+      "value": 16937,
+      "meaning": "driver called XMSG with illegal XT-block",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXETMU": {
+      "value": 16938,
+      "meaning": "too many calls in multi-call",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXECRA": {
+      "value": 16959,
+      "meaning": "XMSG crash (Info in Basefield)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XSNUL": {
+      "value": 64,
+      "meaning": "Null command returns 0 status to sender",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSLET": {
+      "value": 65,
+      "meaning": "Send a letter",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSNAM": {
+      "value": 66,
+      "meaning": "Give name to this port",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSCNM": {
+      "value": 67,
+      "meaning": "Clear name of this port",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSGNM": {
+      "value": 68,
+      "meaning": "Get name of port (param: MAGNO)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSGNI": {
+      "value": 69,
+      "meaning": "Get name (param: MC/PORTNO)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSGMG": {
+      "value": 71,
+      "meaning": "Get magic number from name (PRIV)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSDRN": {
+      "value": 73,
+      "meaning": "Define remote name",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSDSY": {
+      "value": 74,
+      "meaning": "Define routing for system N (PRIV)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSDMC": {
+      "value": 74,
+      "meaning": "Define routing for system N (PRIV) - old",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSGSY": {
+      "value": 75,
+      "meaning": "Get routing info for system N",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSGMC": {
+      "value": 75,
+      "meaning": "Get routing info for system N - old symbol",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSLKI": {
+      "value": 76,
+      "meaning": "Start up specified link",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSTIN": {
+      "value": 77,
+      "meaning": "Initialise tracing (open file, ..)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSTCL": {
+      "value": 78,
+      "meaning": "Close tracing",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSTDC": {
+      "value": 79,
+      "meaning": "Define tracing conditions",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSCRS": {
+      "value": 80,
+      "meaning": "Create service (name, init no of SP's)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSNSP": {
+      "value": 81,
+      "meaning": "New service point(s) (increment/decrement in SP's)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSGIN": {
+      "value": 82,
+      "meaning": "Get information about name",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSDLO": {
+      "value": 83,
+      "meaning": "Define local system",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSLEK": {
+      "value": 84,
+      "meaning": "Send letter and kick if unavailable",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSNET": {
+      "value": 85,
+      "meaning": "Start/stop gateway (network server) (PRIV)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSSCI": {
+      "value": 86,
+      "meaning": "Set crash information",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSGAT": {
+      "value": 87,
+      "meaning": "Get/check attribute",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSDAT": {
+      "value": 88,
+      "meaning": "Define/remove attribute (privileged)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSNSI": {
+      "value": 89,
+      "meaning": "Get network server information",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSMAX": {
+      "value": 89,
+      "meaning": "Maximum legal service value",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)",
+      "conflict": {
+        "other_value": 96,
+        "other_source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)",
+        "note": "the two shipped files disagree on this symbol"
+      }
+    },
+    "XSDAR": {
+      "value": 1,
+      "meaning": "Enable/disable auto-restart of XMSG",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSDRF": {
+      "value": 2,
+      "meaning": "Define/remove restart-files",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSDDF": {
+      "value": 3,
+      "meaning": "Define/remove dump-files",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSGDF": {
+      "value": 4,
+      "meaning": "Get defined dump-files",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSDUX": {
+      "value": 5,
+      "meaning": "Dump XMSG onto files",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSGRF": {
+      "value": 6,
+      "meaning": "Get defined restart-files",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSGAR": {
+      "value": 7,
+      "meaning": "Get auto-restart definition",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSGXV": {
+      "value": 1,
+      "meaning": "Get XMSG version and revision",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSCMG": {
+      "value": 2,
+      "meaning": "Check magic number",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSGCN": {
+      "value": 3,
+      "meaning": "Get complete system or port name (deabbreviate name)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSGFR": {
+      "value": 4,
+      "meaning": "Get friend information (privileged!)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSDFR": {
+      "value": 1,
+      "meaning": "Define friend system",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSRFR": {
+      "value": 2,
+      "meaning": "Remove friend system",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRXXX": {
+      "value": 16960,
+      "meaning": "Base for XROUT errors: 41100B",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRSOK": {
+      "value": 0,
+      "meaning": "OK - not an error!",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRISN": {
+      "value": 1,
+      "meaning": "Illegal service number",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRUNN": {
+      "value": 2,
+      "meaning": "Unknown name (of server or system)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRDDF": {
+      "value": 3,
+      "meaning": "Another port already has this name",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRNSP": {
+      "value": 4,
+      "meaning": "No space left for names",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRIPT": {
+      "value": 5,
+      "meaning": "Illegal parameter type",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRMMP": {
+      "value": 6,
+      "meaning": "Missing mandatory parameter",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRUNM": {
+      "value": 7,
+      "meaning": "Unknown magic number",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRMTL": {
+      "value": 8,
+      "meaning": "Too short message (or message buffer)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRSMF": {
+      "value": 9,
+      "meaning": "Standard message format not handled",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRPRV": {
+      "value": 10,
+      "meaning": "Caller was not privileged",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRISY": {
+      "value": 11,
+      "meaning": "Illegal system number parameter",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRNRO": {
+      "value": 12,
+      "meaning": "No access to remote system",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRIIV": {
+      "value": 13,
+      "meaning": "Illegal integer value",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRNEI": {
+      "value": 14,
+      "meaning": "Cannot define route to a neighbour",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRNXM": {
+      "value": 15,
+      "meaning": "Invalid service request - no intersystem XMSG",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRILN": {
+      "value": 16,
+      "meaning": "Illegal/Reserved Log. unit no. for link",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRNXL": {
+      "value": 17,
+      "meaning": "No more XL-Blocks (Link Descriptors)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRNXD": {
+      "value": 18,
+      "meaning": "Not enough XD-Blocks for LKINI",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRNTR": {
+      "value": 19,
+      "meaning": "No trace generated",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRTRA": {
+      "value": 20,
+      "meaning": "Trace already active",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRTRP": {
+      "value": 21,
+      "meaning": "Trace passive",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRTFE": {
+      "value": 22,
+      "meaning": "Trace/dump file open error (see param 1)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRTRT": {
+      "value": 23,
+      "meaning": "Trace RT-prog (XTRACE) not found",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRTIS": {
+      "value": 24,
+      "meaning": "Illegal trace system number",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRBLK": {
+      "value": 25,
+      "meaning": "Bad link - open unsuccessful",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRSYD": {
+      "value": 26,
+      "meaning": "Local system number already defined",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRNLS": {
+      "value": 27,
+      "meaning": "No local system number defined yet",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRTRE": {
+      "value": 28,
+      "meaning": "Too many remote names to this system",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRRNA": {
+      "value": 29,
+      "meaning": "Old service calls (<64) cannot go remote",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRBUS": {
+      "value": 30,
+      "meaning": "Service busy - try later!",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRNSE": {
+      "value": 31,
+      "meaning": "This is not a service port",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRRPN": {
+      "value": 32,
+      "meaning": "Remote port statically declared",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRUKS": {
+      "value": 33,
+      "meaning": "Unknown remote system name",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRMFL": {
+      "value": 34,
+      "meaning": "Not enough message table space in remote system",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRROV": {
+      "value": 35,
+      "meaning": "Remote task space overflow when forwarding",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRRFU": {
+      "value": 36,
+      "meaning": "Routing table space full (too many systems def.)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRNRB": {
+      "value": 37,
+      "meaning": "No remote batch service available here",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRURT": {
+      "value": 38,
+      "meaning": "Unknown RT program name",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRSNR": {
+      "value": 39,
+      "meaning": "This server is not running",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRRND": {
+      "value": 40,
+      "meaning": "Netserver: remote system is not defined",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRNNA": {
+      "value": 41,
+      "meaning": "Netserver: network not available",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRISE": {
+      "value": 42,
+      "meaning": "Netserver: internal server error",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRIRQ": {
+      "value": 43,
+      "meaning": "Netserver: invalid request",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRNGA": {
+      "value": 44,
+      "meaning": "XMSG not congfigurated with gateway code",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRRNL": {
+      "value": 45,
+      "meaning": "Remote system not on same LAN",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRNCO": {
+      "value": 46,
+      "meaning": "No connection to this system (unknown status)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRAMB": {
+      "value": 47,
+      "meaning": "Ambiguous name",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRFFU": {
+      "value": 48,
+      "meaning": "Friend system table full (too many friends)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer) + XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XMXRXXX": {
+      "value": 16960,
+      "meaning": "BASE for STANDARD ERROR system",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRISN": {
+      "value": 16961,
+      "meaning": "Illegal service number",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRUNN": {
+      "value": 16962,
+      "meaning": "Unknown name (of server or system)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRDDF": {
+      "value": 16963,
+      "meaning": "Another port already has this name",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRNSP": {
+      "value": 16964,
+      "meaning": "No space left for names",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRIPT": {
+      "value": 16965,
+      "meaning": "Illegal parameter type",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRMMP": {
+      "value": 16966,
+      "meaning": "Missing mandatory parameter",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRUNM": {
+      "value": 16967,
+      "meaning": "Unknown magic number",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRMTL": {
+      "value": 16968,
+      "meaning": "Too short message (or message buffer)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRSMF": {
+      "value": 16969,
+      "meaning": "Standard message format not handled",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRPRV": {
+      "value": 16970,
+      "meaning": "Caller was not privileged",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRISY": {
+      "value": 16971,
+      "meaning": "Illegal system number parameter",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRNRO": {
+      "value": 16972,
+      "meaning": "No access to remote system",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRIIV": {
+      "value": 16973,
+      "meaning": "Illegal integer value",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRNEI": {
+      "value": 16974,
+      "meaning": "Cannot define route to a neighbour",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRNXM": {
+      "value": 16975,
+      "meaning": "Invalid service request - no intersystem XMSG",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRILN": {
+      "value": 16976,
+      "meaning": "Illegal/Reserved Log. unit no. for link",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRNXL": {
+      "value": 16977,
+      "meaning": "No more XL-Blocks (Link Descriptors)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRNXD": {
+      "value": 16978,
+      "meaning": "Not enough XD-Blocks for LKINI",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRNTR": {
+      "value": 16979,
+      "meaning": "No trace generated",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRTRA": {
+      "value": 16980,
+      "meaning": "Trace already active",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRTRP": {
+      "value": 16981,
+      "meaning": "Trace passive",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRTFE": {
+      "value": 16982,
+      "meaning": "Trace/dump file open error (see param 1)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRTRT": {
+      "value": 16983,
+      "meaning": "Trace RT-prog (XTRACE) not found",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRTIS": {
+      "value": 16984,
+      "meaning": "Illegal trace system number",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRBLK": {
+      "value": 16985,
+      "meaning": "Bad link - open unsuccessful",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRSYD": {
+      "value": 16986,
+      "meaning": "Local system number already defined",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRNLS": {
+      "value": 16987,
+      "meaning": "No local system number defined yet",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRTRE": {
+      "value": 16988,
+      "meaning": "Too many remote names to this system",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRRNA": {
+      "value": 16989,
+      "meaning": "Old service calls (<64) cannot go remote",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRBUS": {
+      "value": 16990,
+      "meaning": "Service busy - try later!",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRNSE": {
+      "value": 16991,
+      "meaning": "This is not a service port",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRRPN": {
+      "value": 16992,
+      "meaning": "Remote port statically declared",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRUKS": {
+      "value": 16993,
+      "meaning": "Unknown remote system name",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRMFL": {
+      "value": 16994,
+      "meaning": "Not enough message table space in remote system",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRROV": {
+      "value": 16995,
+      "meaning": "Remote task space overflow when forwarding",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRRFU": {
+      "value": 16996,
+      "meaning": "Routing table space full (too many systems def.)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRNRB": {
+      "value": 16997,
+      "meaning": "No remote batch service available here",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRURT": {
+      "value": 16998,
+      "meaning": "Unknown RT-program name",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRSNR": {
+      "value": 16999,
+      "meaning": "this server is not running",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRRND": {
+      "value": 17000,
+      "meaning": "Netserver: remote system is not defined",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRNNA": {
+      "value": 17001,
+      "meaning": "Netserver: network not available",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRISE": {
+      "value": 17002,
+      "meaning": "Netserver: internal server error",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRIRQ": {
+      "value": 17003,
+      "meaning": "Netserver: invalid request",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRNGA": {
+      "value": 17004,
+      "meaning": "XMSG not configured with gateway code",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRRNL": {
+      "value": 17005,
+      "meaning": "remote system not on same LAN",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRNCO": {
+      "value": 17006,
+      "meaning": "no connection to this system(unknown status)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRAMB": {
+      "value": 17007,
+      "meaning": "ambiguous name",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMXRFFU": {
+      "value": 17008,
+      "meaning": "friend system table full (too many friends)",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XMMAXNAMELENGTH": {
+      "value": 32,
+      "meaning": "actually installation-dependent!",
+      "source": "XMP-B02:DEFS (ND-10609, library layer)"
+    },
+    "XFSRL": {
+      "value": 17,
+      "meaning": "Service release function (obsolete)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFABW": {
+      "value": 19,
+      "meaning": "Absolute write block to XMSG area (obsolete)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFMLK": {
+      "value": 20,
+      "meaning": "Lock message system (obsolete)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFMUL": {
+      "value": 21,
+      "meaning": "Unlock message system (obsolete)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFRIN": {
+      "value": 24,
+      "meaning": "Routing initialise (obsolete)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFDIB": {
+      "value": 27,
+      "meaning": "Define indirect buffer (obsolete)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFRIB": {
+      "value": 28,
+      "meaning": "Read from indirect buffer (obsolete)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFWIB": {
+      "value": 29,
+      "meaning": "Write to indirect buffer (obsolete)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFWRT": {
+      "value": 43,
+      "meaning": "Write and return message",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFMRT": {
+      "value": 44,
+      "meaning": "Modify routing tables (privileged - COSROUT only!)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFSFM": {
+      "value": 45,
+      "meaning": "Send message via specified link/netserver (priv - COSROUT only!)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFCRR": {
+      "value": 46,
+      "meaning": "Cosrout receive and read message (priv - COSROUT only!)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFGSM": {
+      "value": 47,
+      "meaning": "General status multiple or wait",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFRMR": {
+      "value": 12,
+      "meaning": "In XFRRE: Release the message if the last byte is read.",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFRDI": {
+      "value": 10,
+      "meaning": "In XFWRT: Reset the current message displacement to 0.",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XFTCM": {
+      "value": 8,
+      "meaning": "In XFSND/SFM: Send task current message",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XDINF": {
+      "value": 1,
+      "meaning": "Get message info",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XDSBP": {
+      "value": 2,
+      "meaning": "Set byte pointer",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XDPUS": {
+      "value": 3,
+      "meaning": "Put byte sequential",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XDPUR": {
+      "value": 4,
+      "meaning": "Put byte random",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XDGES": {
+      "value": 5,
+      "meaning": "Get byte sequential",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XDGER": {
+      "value": 6,
+      "meaning": "Get byte random",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XENIR": {
+      "value": -3,
+      "meaning": "Network layer initialization reject (purely internal)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XENCE": {
+      "value": -43,
+      "meaning": "Network checksum error (purely internal significance)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEICM": {
+      "value": -44,
+      "meaning": "Function not available to tasks other than COSROUT",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSLIN": {
+      "value": 90,
+      "meaning": "Get information about a link (privileged)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSPIN": {
+      "value": 91,
+      "meaning": "Get information about named ports",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSLSY": {
+      "value": 92,
+      "meaning": "Get information about a system (privileged)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSGSU": {
+      "value": 93,
+      "meaning": "Get info about system utilization (privileged)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSCRM": {
+      "value": 94,
+      "meaning": "Start/stop Cosmos routing manager (priv - COSROUT only!)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSGLI": {
+      "value": 95,
+      "meaning": "Get information from link tables (priv - COSROUT only!)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSGSG": {
+      "value": 96,
+      "meaning": "Get info about system generation variables (privileged)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSGLO": {
+      "value": 5,
+      "meaning": "Get local system number and name",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSECS": {
+      "value": 3,
+      "meaning": "Enable checksum",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSDCS": {
+      "value": 4,
+      "meaning": "Disable checksum",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XSDAL": {
+      "value": 5,
+      "meaning": "Define alternative link (COSROUT only)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRNTA": {
+      "value": 49,
+      "meaning": "Netserver: network temporarily not available",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRMTO": {
+      "value": 50,
+      "meaning": "Netserver: message too old",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRCNR": {
+      "value": 51,
+      "meaning": "COSMOS routing manager is not running",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRICR": {
+      "value": 52,
+      "meaning": "COSMOS routing manager is already running",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRRID": {
+      "value": 53,
+      "meaning": "Routing information defined (start/stop inhibited)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRIRR": {
+      "value": 54,
+      "meaning": "COSMOS routing manager: invalid request",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XRILX": {
+      "value": 55,
+      "meaning": "Illegal link number parameter",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "X412B": {
+      "value": 17024,
+      "meaning": "Base for this error range 41200B",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEFOK": {
+      "value": 0,
+      "meaning": "Ok.",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEFCL": {
+      "value": 17024,
+      "meaning": "Watched port closed.",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEFSU": {
+      "value": 17025,
+      "meaning": "System connection up.",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEFSD": {
+      "value": 17026,
+      "meaning": "System connection down.",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEFTO": {
+      "value": 17027,
+      "meaning": "Timeout on request. (No answer from remote XMFIDO)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEFAR": {
+      "value": 17028,
+      "meaning": "Start service for this port is already requested.",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEFIP": {
+      "value": 17029,
+      "meaning": "Illegal parameters.",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEFOV": {
+      "value": 17030,
+      "meaning": "Time parameter outside legal values.",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEFNP": {
+      "value": 17031,
+      "meaning": "No corresponding port found.",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEFIE": {
+      "value": 17032,
+      "meaning": "Internal error in XMFIDO.",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEFLT": {
+      "value": 17033,
+      "meaning": "Local XMFIDO is terminating.",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEFRT": {
+      "value": 17034,
+      "meaning": "Remote XMFIDO has terminated.",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XEFRU": {
+      "value": 17035,
+      "meaning": "Table resources used up in XMFIDO.",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXEIE": {
+      "value": 1,
+      "meaning": "Illegal port address in the creation of magic number",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXIOW": {
+      "value": 2,
+      "meaning": "Illegal owner of buffer",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXBIN": {
+      "value": 3,
+      "meaning": "Memory allocation inconsistency",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXMCE": {
+      "value": 4,
+      "meaning": "Message queue length inconsistency",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXIEN": {
+      "value": 5,
+      "meaning": "ZRALL gave port not in XQTAB (Not used)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXIFL": {
+      "value": 6,
+      "meaning": "XROUT: ZFUNC function >X5FUN",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXIRT": {
+      "value": 7,
+      "meaning": "Illegal RT-Description add used (Not used)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXNBF": {
+      "value": 8,
+      "meaning": "INIT: No Buffer space available (Not used)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXRIN": {
+      "value": 9,
+      "meaning": "Inconsistency in resource allocation",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXNMM": {
+      "value": 10,
+      "meaning": "More memory released than owned",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXNIM": {
+      "value": 11,
+      "meaning": "Not implemented (Cannot recover) (Not used)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXCLS": {
+      "value": 12,
+      "meaning": "Inconsistency in port chain when closing",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXCHE": {
+      "value": 13,
+      "meaning": "Double chaining attempted",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXNOR": {
+      "value": 14,
+      "meaning": "No XMSG-RESIDENT found by initialization (Not used)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXICM": {
+      "value": 15,
+      "meaning": "Inconsistency in XMPRT/XPCMS Pair",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XX100": {
+      "value": 16,
+      "meaning": "This can only be done on N100'S (Not used)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXMON": {
+      "value": 17,
+      "meaning": "Inconsistency in level 5 monitor queues",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXMMC": {
+      "value": 18,
+      "meaning": "Multisystem XMSG not implemented/generated (Not used)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXFBI": {
+      "value": 19,
+      "meaning": "Frame buffer handling inconsistency",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXPER": {
+      "value": 20,
+      "meaning": "Protocol error in communications system",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXILN": {
+      "value": 21,
+      "meaning": "Illegal LOG NO for HDLC (bad LOGPH) (Not used)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXROU": {
+      "value": 22,
+      "meaning": "No legal routing (XROUT) port defined",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXHER": {
+      "value": 23,
+      "meaning": "Error in HDLC Driver or interface to it",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXRO2": {
+      "value": 24,
+      "meaning": "XROUT fatal error - see XROUT Basefield",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXTAS": {
+      "value": 25,
+      "meaning": "Task handling (wait,resume) error",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXMER": {
+      "value": 26,
+      "meaning": "Message handling error (kernel-net interface)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXNER": {
+      "value": 27,
+      "meaning": "Network gateway error",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXCRM": {
+      "value": 28,
+      "meaning": "No legal COSMOS routing manager port defined",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXRIC": {
+      "value": 29,
+      "meaning": "Inconsistency in COSMOS routing manager",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXNGA": {
+      "value": 30,
+      "meaning": "Gateway code not generated (Not used)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXRI2": {
+      "value": 31,
+      "meaning": "XROUT: Resource inconsistency",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXINP": {
+      "value": 32,
+      "meaning": "XROUT: Releasing invalid name unit",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXBER": {
+      "value": 33,
+      "meaning": "XROUT: Buffer handling error (xb... routines)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXRUT": {
+      "value": 34,
+      "meaning": "XROUT: Response with no request outstanding (Not used)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXNXM": {
+      "value": 35,
+      "meaning": "XROUT: No multi-system xmsg - inconsistent! (Not used)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXNLD": {
+      "value": 36,
+      "meaning": "XROUT: Not loaded correctly with RT loader",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXUSR": {
+      "value": 37,
+      "meaning": "XROUT: Stopped by 'STOP-XMSG' in SINTRAN-SERVICE (Not used)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXN10": {
+      "value": 38,
+      "meaning": "XROUT: 8X100 library mark set, but this is ND-10 (Not used)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXNSG": {
+      "value": 39,
+      "meaning": "XROUT: No space available for fixing tables and/or message area",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXNI2": {
+      "value": 40,
+      "meaning": "XROUT: Not yet implemented (Not used)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXMIN": {
+      "value": 41,
+      "meaning": "XROUT: System / routing table inconsistency",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXTAI": {
+      "value": 42,
+      "meaning": "XROUT: Table allocation inconsistency",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXWS3": {
+      "value": 43,
+      "meaning": "XROUT: Wrong SINTRAN III SYMBOL--LISTs",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXN33": {
+      "value": 44,
+      "meaning": "XROUT: Not enough space for seg 33 (or too big)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXVSX": {
+      "value": 45,
+      "meaning": "XROUT: PIT3 version must run on S3 version I or later",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXNCX": {
+      "value": 46,
+      "meaning": "XROUT: CX version must run on a ND-100/CX or a ND-110",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXWSY": {
+      "value": 47,
+      "meaning": "XROUT: Not generated for this system",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXMNL": {
+      "value": 48,
+      "meaning": "XROUT: Length of system/port names too long, reduce length of name",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXILL": {
+      "value": 50,
+      "meaning": "XROUT: Not allowed on this system (error from MON CPUST/ENTSG)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXKTB": {
+      "value": 51,
+      "meaning": "XROUT: Kernel tables are too big, reduce system parameters",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXNIN": {
+      "value": 52,
+      "meaning": "XROUT: XMSG is not initialized to SINTRAN.",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXNSA": {
+      "value": 53,
+      "meaning": "XROUT: Too many systems, reduce max number of systems accessible",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXNNP": {
+      "value": 54,
+      "meaning": "XROUT: Too many named ports, reduce max number of named ports",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXILG": {
+      "value": 55,
+      "meaning": "XROUT: XMSG is not generated correctly",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXTBT": {
+      "value": 56,
+      "meaning": "XROUT: Physical tables are too big (>64K)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    },
+    "XXTBM": {
+      "value": 57,
+      "meaning": "XROUT: Message buffer pool is too big (>256K)",
+      "source": "XMSG-PL-VALUES-L:INCL (release L, raw MON 200B layer)"
+    }
+  }
+}

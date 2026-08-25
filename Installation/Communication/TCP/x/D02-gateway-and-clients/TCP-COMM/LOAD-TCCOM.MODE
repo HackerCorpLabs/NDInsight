@@ -1,0 +1,20 @@
+@NEW RT
+@ABORT TCCOM
+@CC ===========================================================
+@CC   Loading TCCOM
+@CC ===========================================================
+@RT-LOADER
+CLEAR-SEGMENT TCCOM
+Y
+NEW-SEG TCCOM,,,,,,,
+SET-LOAD-ADDRESS TCCOM,0
+LOAD (TCP-COMM)TCCOM,TCCOM,TCSHAR
+LOAD (TCP-IP)SLIB-NRE-1B,,,
+LOAD (TCP-IP)SLIB-REE-1B,,,
+LOAD PLANC-UTILLIB-1B,,,,
+LOAD MON-CALL-1B,,,,,
+LOAD PLANC-1BANK,,,
+WRITE-REF,,,
+END-LOAD
+END
+EXIT

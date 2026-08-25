@@ -1,0 +1,1196 @@
+
+@CC ===========================================================================
+
+@CC = FILE NAME: (SYSTEM)HENT-FILE:SYMB
+
+@CC ===========================================================================
+
+@CC = DATE:    CHANGED BY:       REASON:
+
+@CC =
+
+@CC = 890126   TOMAS TOLLIN      LAGT NER NYTT SINTRAN K.
+
+@CC = 890126   Peter Magnusson   Loading of TCP/IP
+
+@CC =                              
+
+@CC =                              
+
+@CC ===========================================================================
+
+@CC = INITIAL-COMMANDS EXECUTED AT A WARM START
+
+@CC ===========================================================================
+
+
+@INITIAL-COMMAND ENTER-DIRECTORY,,D-74MB-1,0
+
+@NEXT-INITIAL-COMMAND S-E-D 1
+
+@NEXT-INITIAL-COMMAND CONNECT SYS-OUT-1 105 R
+
+@NEXT-INITIAL-COMMAND CLOSE 105
+
+@NEXT-INITIAL-COMMAND BATCH
+
+@NEXT-INITIAL-COMMAND APPEND-BATCH 1 LOAD-FILE:SYMB SYS-OUT-1
+
+
+@CC ==================================================
+
+@CC = STANDARD COMMANDS AFTER A COLD START           =
+
+@CC =  RTENTER AND INIT-BACKROUND MUST BE EXECUTED , =
+
+@CC =  DMAC LOADED TO SEGMENT 7 AND START 1. BATCH   =
+
+@CC ==================================================
+
+
+@RTENTER
+
+
+@INITIALIZE-BACKGROUND-PROGRAMS
+
+
+@RT-LOADER
+
+
+REAL TIME LOADER,  SINTRAN III VSX - K
+
+*YES
+*READ-BINARY DMAC 7
+
+CHANGING EXISTING SEGMENT? YES
+*EXIT
+
+
+@SIN
+
+*@DEF-SEG-FILE Y Y 1 SEGFIL1:DATA
+
+NO SUCH FILE NAME
+
+*@EXIT
+
+@BATCH
+
+BATCH NUMBER =      1
+
+@MAIL
+NOT STARTED
+*@INIT 10
+
+*@RUN-MAIL
+
+*@EXIT
+
+
+@BATCH
+
+BATCH NUMBER =      2
+
+@CC ===========================================================================
+
+@CC =                                                                         =
+
+@CC = REMOVE SPOOLING HEADER ON PHILIPS PRINTERS ..                           =
+
+@CC = (PUT IN CORRECT VALUES FOR SPOOLING INDEX, HEADER AND TRAILER)          =
+
+@CC =                                                                         =
+
+@CC ===========================================================================
+
+
+@CC @SINTRAN-SERVICE
+
+@CC @CHANGE-DATAFIELD,1,I,Y,Y,Y
+
+@CC DFLAG/1000
+
+@CC .
+
+@CC @REMOVE-SPOOLING-HEADER 1 N N
+
+@CC @EXIT
+
+
+@CC ===========================================================================
+
+@CC =                                                                         =
+
+@CC = INITIALISE SPOOLING FILES.  I.E. ENSURE THAT THEY ARE EMPTY             =
+
+@CC = THIS SET OF COMMANDS SHOULD BE DONE FOR EACH LINE-PRINTER OR TERMINAL   =
+
+@CC = WITH SPOOLING, AND FOR EACH VERSION FROM 2 UPWARDS OF THOSE FILES.      =
+
+@CC =                                                                         =
+
+@CC ===========================================================================
+
+
+@OPEN LINE-PRINTER;2 R
+FILE NUMBER IS 000103
+@OPEN LINE-PRINTER;3 R
+
+NO SUCH FILE VERSION
+@OPEN LINE-PRINTER;4 R
+
+NO SUCH FILE VERSION
+@OPEN LINE-PRINTER;5 R
+
+NO SUCH FILE VERSION
+@OPEN LINE-PRINTER;6 R
+
+NO SUCH FILE VERSION
+@OPEN LINE-PRINTER;7 R
+
+NO SUCH FILE VERSION
+@OPEN LINE-PRINTER;8 R
+
+NO SUCH FILE VERSION
+@OPEN LINE-PRINTER;9 R
+
+NO SUCH FILE VERSION
+@OPEN LINE-PRINTER;10 R
+
+NO SUCH FILE VERSION
+@CLOSE -1
+
+@CC ====================================
+
+@CC == DUMPING OF ACCOUNTING SYSTEM   ==
+
+@CC ====================================
+
+
+@CC @MODE ACCRT-LOAD:MODE,,,
+
+
+@CC ===========================================
+
+@CC = DUMPING OF BACKUP-SYSTEM AND  SERVER    =
+
+@CC ===========================================
+
+
+@MODE (UTILITY)BACKUP-LOAD-H:MODE,,,,
+
+@CC ===================================================================
+
+@CC Mode job to load the forground part of the BACKUP-SYSTEM to segment
+
+@CC called DMASEG. The module concists of the DMA-server plus some
+
+@CC specific routines defined by the BACKUP-SYSTEM.
+
+@CC The mode-job must be run from SYSTEM.
+
+@CC ==================================================================
+
+@CC
+
+@CC          Abort the DMA-server and unfix the DMASEG:
+
+@CC
+
+@abort dmasl
+
+ILLEGAL PARAMETER
+
+@abort dmafr
+
+ILLEGAL PARAMETER
+
+@abort dmato
+
+ILLEGAL PARAMETER
+
+@abort dmasrv
+
+ILLEGAL PARAMETER
+
+@unfix dmaseg
+
+ILLEGAL SEGMENT NAME
+
+@CC          Wait for the RT-loader to become available:
+
+@schedule 503b
+
+@CC          Load the DMA-server:
+
+@rt-loader
+
+
+REAL TIME LOADER,  SINTRAN III VSX - K
+
+*clear-segment,dmaseg
+
+SEGMENT NAME NOT DEFINED
+*yes
+*delete-seg-name,dmaseg,,
+
+SEGMENT NAME NOT DEFINED
+*set-seg-file 0
+*new-segment,dmaseg,2,,,,,
+NEW SEGMENT NO:    65
+*read-progfile (UTILITY)BACKUP-SERV-H,dmaseg,,,
+*end-load
+*declare-program dmasrv,,
+*declare-program dmafr,,
+*declare-program dmato,,
+*declare-program dmasl,,
+*change-rt-description dmasrv,62,dmaseg,,0,2,1,,,,
+*change-rt-description dmafr,100,dmaseg,,1,2,1,,,,
+*change-rt-description dmato,100,dmaseg,,2,2,1,,,,
+*change-rt-description dmasl,100,dmaseg,,3,2,1,,,,
+*exit
+
+@rtoff dmafr
+
+@rtoff dmato
+
+@rtoff dmasl
+
+@CC @rt dmasrv
+
+@CC
+
+@CC          Starting of the server should be done in the
+
+@CC          LOAD-MODE:MODE file, or manually.
+
+@CC          Make sure that XMSG is started before attempt
+
+@CC          to start the server.
+
+
+@DUMP-PROGRAM-REENTRANT BACKUP-SYSTEM-H (UTILITY)BACKUP-H06
+
+
+@CC ======================================
+
+@CC = DUMPING OF BRF-LINKER              =
+
+@CC ======================================
+
+
+@CC @DUMP-PROGRAM-REENTRANT BRF-LINKER-B00 (SYSTEM)BRF-LINKER-B00
+
+
+@CC ======================================
+
+@CC = DUMPING OF PED                     =
+
+@CC ======================================
+
+
+@DUMP-REENTRANT PED,,,(BPUN)PED,,,
+
+
+@CC =========================================  
+
+@CC = LOADING TELNET & FTP CLIENTS          =
+
+@CC =========================================  
+
+
+@DUMP-PRO-REE TELNET (TCP)TEL-CLI:PR
+
+@DUMP-PRO-REE FTP (TCP)FTP-CLI:PR
+
+
+@CC =========================================  
+
+@CC = LOADING XMSG INTER  SYSTEM VERSION    =
+
+@CC =========================================  
+
+
+@MODE (UTILITY)XMSG-LOAD-L:MODE,,
+
+@CC
+
+@CC   ****************************************************************
+
+@CC   **  Load or reload XMSG version L for XPIT - SINTRAN III/VSX. **
+
+@CC   ****************************************************************
+
+@CC   *
+
+@CC   * PREREQUISITES - IMPORTANT - PREREQUISITES - IMPORTANT:
+
+@CC   *    a) Sintran III VSX
+
+@CC   *    b) Sintran III version K (or later)
+
+@CC   *
+
+@CC   * 1) The product (BPUN) files must have been installed properly.
+
+@CC   *    If not, read the Product Description Sheet supplied with
+
+@CC   *    the XMSG floppy disks and install XMSG.
+
+@CC   * 2) Unless the XMSG files was copied to user UTILITY, edit this
+
+@CC   *    file accordingly:
+
+@CC   *    Substitute (UTILITY)
+
+@CC   *    with       (Name of user which has the XMSG :BPUN files).
+
+@CC
+
+@CC   
+
+@CC   * Now you can (re)load XMSG to:
+
+@CC   *   1.  Load XMSG-KERNEL onto its segment.
+
+@CC   *   2.  Load XMSG-XROUT onto its segment.
+
+@CC   *   3.  Load XMSG-FIDO onto its segment.
+
+@CC   *   4.  Create the foreground programs XROUT,
+
+@CC   *       XTRACE and XMFIDO.
+
+@CC 
+
+@HOLD 0 0
+
+@HOLD 3 2
+
+@SINTRAN
+
+*@STOP-XMSG
+
+ERROR: XMSG has not been loaded
+*@EXIT
+
+@HOLD 0 0
+
+@HOLD 3 2
+
+@UNFIX 33
+
+@RT-LOADER
+
+
+REAL TIME LOADER,  SINTRAN III VSX - K
+
+*READ-BINARY (UTILITY)XMSG-KERNEL-L:BPUN,33,,,
+
+CHANGING EXISTING SEGMENT? YES
+*END
+*READ-BINARY (UTILITY)XMSG-XROUT-L:BPUN,34,,
+
+CHANGING EXISTING SEGMENT? YES
+*END
+*CLEAR-SEG SXMFIDO
+
+SEGMENT NAME NOT DEFINED
+*Y
+*NEW-SEG SXMFIDO,,,,,,
+NEW SEGMENT NO:    72
+*READ-PROG (UTILITY)XMSG-FIDO-L:PROG,SXMFIDO,,
+*END
+*DECLARE-PROGRAM XROUT,,,
+*CHAN-RT-DESC XROUT,100,34,33,0,,2,2,
+*DECLARE-PROGRAM XTRACE,,,,
+*CHAN-RT-DESC XTRACE,100,34,33,2,,2,2,
+*DECLARE-PROGRAM XMFIDO,,,
+*CHANG-RT-DESC XMFIDO,36,SXMFIDO,,0,,,,,
+*END
+*WRITE-SEG S3XMSGP,,,,,,
+
+
+  SEG.  SEG.    LOWER  UPPER  MASS  SEG. RING PIT SEG.  SEG.
+  NO.   NAME    ADDR.  ADDR.  ADDR. FILE          PROT  TYPE
+
+    33 S3XMSGP 120000 177777  1656    0    2   2  RFW   NON DEMAND PROTECT
+*WRITE-SEG S3XMSGD,,,,,,
+
+
+  SEG.  SEG.    LOWER  UPPER  MASS  SEG. RING PIT SEG.  SEG.
+  NO.   NAME    ADDR.  ADDR.  ADDR. FILE          PROT  TYPE
+
+    34 S3XMSGD      0 117777  1706    0    2   2  RFW   DEMAND PROTECT
+*WRITE-SEG SXMFIDO,,,,,,
+
+
+  SEG.  SEG.    LOWER  UPPER  MASS  SEG. RING PIT SEG.  SEG.
+  NO.   NAME    ADDR.  ADDR.  ADDR. FILE          PROT  TYPE
+
+    72 SXMFIDO      0 115777  7536    0    0   1  RFW   NON DEMAND
+*EXIT
+
+@CC
+
+@CC   * 4.  Patch in DPIT and IMAGE to flag XMSG loaded (XMSGU+4)
+
+@CC
+
+@LOO-AT SEG S3DPIT
+READY:
+4170/ 000000 -1
+ 000000 .
+-END
+
+@LOO-AT SEG S3IDPIT
+READY:
+4170/ 000000 -1
+ 000000 .
+-END
+
+@CC  
+
+@CC  And now you can start XMSG by using the SINTRAN-SERVICE command START-XMSG.
+
+@CC
+
+
+@CC =========================================
+
+@CC = LOADING OF TADADM                     =
+
+@CC =========================================
+
+
+@RT-LOADER
+
+
+REAL TIME LOADER,  SINTRAN III VSX - K
+
+*READ-BIN (SYS)COS-TAD 36
+
+CHANGING EXISTING SEGMENT? YES
+*EXIT
+
+
+@CC =========================================
+
+@CC = LOADING OF COSMOS BASIC MODULE        =
+
+@CC =========================================
+
+
+@MODE (COSMOS-BASIC)COS-HENT:MODE,,,,,
+
+@CC ====================================================================
+
+@CC =                                                                  =
+
+@CC = FILE NAME: COS-HENT-E04:MODE                                     =
+
+@CC = LOADING OF COSMOS BASIC MODULE VERSION E                         =
+
+@CC = TO BE RUN DURING COLD-START IN THE FILE HENT-MODE:MODE, ANYWHERE =
+
+@CC = AFTER THE 'INITIALIZE-BACKGROUND-PROGRAMS' COMMAND IS EXECUTED.  =
+
+@CC =                                                                  =
+
+@CC ====================================================================
+
+@CC ***********************
+
+@CC * COSMOS CONNECT-TO : *
+
+@CC ***********************
+
+@OPERATOR *** COSMOS CONNECT-TO IS BEING DUMPED ***
+
+@DELETE-REENTRANT CONNECT-TO
+NO SUCH NAME
+@DUMP-PROGRAM-REENTRANT CONNECT-TO (COSMOS-BASIC)COS-CONN-TO-E:PROG CCT
+
+@DEFINE-REENTRANT-PROGRAM LIST-SYSTEMS 2 3 CCT
+
+
+@CC ******************
+
+@CC * FILE TRANSFER: *
+
+@CC ******************
+
+@OPERATOR *** COSMOS FILE TRANSFER IS BEING DUMPED ***
+
+@DELETE-REENTRANT TRANSFER-FILE
+NO SUCH NAME
+@DUMP-PROGRAM-REENTRANT TRANSFER-FILE (COSMOS-BASIC)COS-FILE-TRA-E:PROG CFT
+
+@DEFINE-REENTRANT-PROGRAM TRANSFER 2 2 CFT
+
+@DEFINE-REENTRANT-PROGRAM REMOTE-BATCH 3 3 CFT
+
+@DEFINE-REENTRANT-PROGRAM COMPRESS 4 4 CFT
+
+@DEFINE-REENTRANT-PROGRAM COMPRESS-FILE 5 5 CFT
+
+@MODE (COSMOS-BASIC)COS-XFTRA-E:MODE
+
+@ENTER RT,,,10
+
+@ABORT XFTRAD
+
+ILLEGAL PARAMETER
+
+@SCHEDULE 503
+
+@RT-LOADER
+
+
+REAL TIME LOADER,  SINTRAN III VSX - K
+
+*CLEAR-SEGMENT XFTRAD
+
+SEGMENT NAME NOT DEFINED
+*YES
+*NEW-SEGMENT XFTRAD,2,,,,,,,,,,,,,,,
+NEW SEGMENT NO:    75
+*READ-PROGFILE (COSMOS-BASIC)COS-XFTRA-E02,,,,,
+*END-LOAD
+*DECLARE-PROGRAM XFTRAD,,
+*CHANGE-RT-DESCRIPTION XFTRAD 30 XFTRAD,,0,,,,,,
+*EXIT-LOADER
+
+
+@CC Remote batch logical device at address 61465:
+
+@CC 0=no batch, 1237=batch 1, 1241=batch 2, etc.
+
+@CC Timeoutvalue at address 61641 (in seconds, octal value)
+
+@LOOK S XFTRAD
+READY:
+61465/ 000000 1241
+ 044133 61641/ 000074 74
+ 170474 .
+-END
+
+@CC
+
+
+@CC ********************
+
+@CC * COSMOS SPOOLING: *
+
+@CC ********************
+
+@OPERATOR *** COSMOS SPOOLING IS BEING DUMPED ***
+
+@MODE (COSMOS-BASIC)COS-COSP-VS-E:MODE,,,
+
+@cc ___________________________________________
+
+@cc ~ Mode file to load COSPO into a free     ~
+
+@cc ~ segment and start Cosmos spooling.      ~
+
+@cc ~_________________________________________~
+
+@cc
+
+@STOP-SPOOLING COSMOS-SPOOLING
+@SET-PERIPHERAL-FILE "COSMOS-SPOOLING",1731B
+
+FILE ALREADY EXISTS
+@Hold 0,0
+
+@Hold 12,2
+
+@Abort COSPO
+
+@Schedule 503b
+
+@RT-loader
+
+
+REAL TIME LOADER,  SINTRAN III VSX - K
+
+*CHANGE-RT-DESCRIPTION COSPO,,0,,,,,,,
+*CLEAR-SEGMENT COSPOOL
+
+SEGMENT NAME NOT DEFINED
+*SET-PAGE-TABLE 1
+*NEW-SEGMENT COSPOOL,2,DM,,,,,,,
+NEW SEGMENT NO:    76
+*READ-BINARY (COSMOS-BASIC)COS-COSP-VSX-E02,COSPOOL,,,
+*END-LOAD
+*WRITE-SEGMENT COSPOOL,,,,
+
+
+  SEG.  SEG.    LOWER  UPPER  MASS  SEG. RING PIT SEG.  SEG.
+  NO.   NAME    ADDR.  ADDR.  ADDR. FILE          PROT  TYPE
+
+    76 COSPOOL      0  43777  7772    0    2   1  RFW   DEMAND
+*CHANGE-RT-DESCRIPTION COSPO,,COSPOOL,,,,,,,,
+*EXIT-LOADER
+
+
+@OPERATOR *** COSMOS REMOTE FILE ACCESS IS BEING DUMPED ***
+
+@CC ***************************************
+
+@CC * REMOTE FILE ACCESS, FILE USER PART: *
+
+@CC ***************************************
+
+@MODE (COSMOS-BASIC)COS-FAU-VS-E:MODE,,,
+
+@ABORT RTRFA
+
+@SCHEDULE 503B
+
+@RT-LOADER
+
+
+REAL TIME LOADER,  SINTRAN III VSX - K
+
+*READ-BINARY (COSMOS-BASIC)COS-FAU-VSX-E:BPUN 22
+
+CHANGING EXISTING SEGMENT? Y
+*END-LOAD
+*EXIT-LOADER
+
+@SINTRAN-SERVICE-PROGRAM
+
+*@SEGMENT-WRITE-PROTECT 22
+
+*@EXIT
+
+
+@CC *****************************************
+
+@CC * REMOTE FILE ACCESS, FILE SERVER PART: *
+
+@CC *****************************************
+
+@DELETE-REENTRANT FA-SERVER-TAD
+NO SUCH NAME
+@DELETE-REENTRANT FS-ADMINISTRATOR
+NO SUCH NAME
+@DUMP-PROGRAM-REENTRANT FA-SERVER-TAD (COSMOS-BASIC)COS-FA-SERV-E:PROG
+
+@DUMP-PROGRAM-REENTRANT FS-ADMINISTRATOR (COSMOS-BASIC)COS-FS-ADMIN-E:PROG
+
+@MODE (COSMOS-BASIC)COS-FSART-E:MODE,,,
+
+@ABORT FSART
+
+ILLEGAL PARAMETER
+
+@SCHEDULE 503
+
+@RT-LOADER
+
+
+REAL TIME LOADER,  SINTRAN III VSX - K
+
+*DELETE-PROGRAM FSART
+
+NO SUCH RT-PROGRAM NAME
+*CLEAR-SEGMENT FSASG
+
+SEGMENT NAME NOT DEFINED
+*NEW-SEGMENT FSASG,,DM,,,,,
+NEW SEGMENT NO:   101
+*READ-BINARY (COSMOS-BASIC)COS-FSART-E02 FSASG,,,
+*END-LOAD
+*DECLARE-PROGRAM FSART,,,
+*CHANGE-RT-DESCRIPTION FSART 40 FSASG 0 0,,,,
+*END-LOAD
+*EXIT-LOADER
+
+
+@CC =========================================
+
+@CC = LOADING USER-ENVIRONMENT-SWE          =
+
+@CC =========================================
+
+
+@CC @MODE (USER-ENVIRONMENT)UE-LOAD:MODE,,,
+
+@CC @MODE (USER-ENVIRONMENT)UE-ENABLE:MODE,,,
+
+@CC @MODE (USER-ENVIRONMENT)FILE-MAN-SW-LOAD:MODE,,,
+
+
+@CC ========================================
+
+@CC = DUMPING OF IBM 3780/2780 II EMULATOR =
+
+@CC ========================================
+
+
+@CC DUMP-PROGRAM-REENTRANT EMUL-OPCOM-A (SYSTEM)EMUL-OPCOM-A
+
+@CC MODE (IBM-EMULATOR)EMUL1-RTLOAD:MODE,,,
+
+
+
+
+@CC ==========================================
+
+@CC = LOADING FORTRAN    FOR ND-100          =
+
+@CC ==========================================
+
+
+@CC @DUMP-PROGRAM-REENTRANT FORTRAN-100-F02 (SYSTEM)FORTRAN-100-F
+
+
+@CC ==========================================
+
+@CC = LOADING ISAM      FOR ND-100           =
+
+@CC ==========================================
+
+
+@CC @MODE ISAMRT-J00:MODE,,,
+
+@CC @DUMP-PROGRAM-REENTRANT ISAM-INTER-J00 (SYSTEM)ISAM-INTER-J00
+
+@CC @DUMP-PROGRAM-REENTRANT ISAM-SERVICE-J00 (SYSTEM)ISAM-SERVICE-J00
+
+
+@CC =========================================
+
+@CC =     DUMPING OF 3270-EMULATOR          =
+
+@CC =========================================  
+
+
+@CC @MODE (SYSTEM)RLOAD-3270-1-D00:MODE,,,
+
+
+@CC =========================================
+
+@CC =     DUMPING OF TELNET & FTP           =  PMAG 890126
+
+@CC =========================================  
+
+
+@DUMP-PROG-REE FTP-CLIENT-B04 (TCP)FTP-CLIENT-BO4:PROG
+
+NO SUCH FILE NAME
+
+@DUMP-PROG-REE TELNET-CLIENT-B04 (TCP)TELNET-CLIENT-BO4:PROG
+
+TOO LONG PARAMETER
+
+
+@CC =========================================
+
+@CC = DUMPING PLANC-100-F                   =
+
+@CC =========================================
+
+
+@DUMP-PROGRAM-REENTRANT PLANC-100-F00 (SYSTEM)PLANC-100-F00
+
+NO SUCH FILE NAME
+
+
+@CC ========================================
+
+@CC = LOADING OF SIBAS II                  =
+
+@CC ========================================
+
+
+@CC @MODE (SIB2-SYS-F)ND500-RTLOAD-F02:MODE,,,
+
+@CC @MODE (SIB2-SYS-F)ND500-RTLOAD-F02:MODE,,,@DUMP-PROGRAM-REENTRANT SIBAS-SERVICE-F  (DIALOG-SYS)SIBAS-S
+TOO LONG STRING
+ERV-F02
+"ERV-F02"
+NO SUCH FILE NAME
+
+@CC @MODE (SIB2-SYS-F)ND500-RTLOAD-F02:MODE,,,@DUMP-PROGRAM-REENTRANT SIBAS-SERVICE-F  (DIALOG-SYS)SIBAS-S
+TOO LONG STRING
+ERV-F02@DUMP-PROGRAM-REENTRANT SIBINTER-F       (DIALOG-SYS)SIBINTER-F00
+"ERV-F02@DUMP-PROGRAM-REENTRANT"
+ILLEGAL CHARACTER IN PARAMETER
+
+@CC @MODE (SIB2-SYS-F)ND500-RTLOAD-F02:MODE,,,@DUMP-PROGRAM-REENTRANT SIBAS-SERVICE-F  (DIALOG-SYS)SIBAS-S
+TOO LONG STRING
+ERV-F02@DUMP-PROGRAM-REENTRANT SIBINTER-F       (DIALOG-SYS)SIBINTER-F00@DUMP-PROGRAM-REENTRANT SIB2-DBM-
+TOO LONG STRING
+500-F   (DIALOG-SYS)SIB2-DBM-500-F02
+"500-F"
+NO SUCH FILE NAME
+
+@CC @MODE (SIB2-SYS-F)ND500-RTLOAD-F02:MODE,,,@DUMP-PROGRAM-REENTRANT SIBAS-SERVICE-F  (DIALOG-SYS)SIBAS-S
+TOO LONG STRING
+ERV-F02@DUMP-PROGRAM-REENTRANT SIBINTER-F       (DIALOG-SYS)SIBINTER-F00@DUMP-PR@DUMP-PROGRAM-REENTRANT S
+TOO LONG STRING
+IB2-LOOKLOG-F   (DIALOG-SYS)SIB2-LOOKLOG-F00
+"IB2-LOOKLOG-F"
+NO SUCH FILE NAME
+
+@CC @MODE (SIB2-SYS-F)ND500-RTLOAD-F02:MODE,,,@DUMP-PROGRAM-REENTRANT SIBAS-SERVICE-F  (DIALOG-SYS)SIBAS-S
+TOO LONG STRING
+ERV-F02@DUMP-PROGRAM-REENTRANT SIBINTER-F       (DIALOG-SYS)SIBINTER-F00@DUMP-PR@DUMP-PROGRAM-REENTRANT S
+TOO LONG STRING
+IB2-DRL-500-F   (DIALOG-SYS)SIB2-DRL-500-F02
+"IB2-DRL-500-F"
+NO SUCH FILE NAME
+
+@CC @MODE (SIB2-SYS-F)ND500-RTLOAD-F02:MODE,,,@DUMP-PROGRAM-REENTRANT SIBAS-SERVICE-F  (DIALOG-SYS)SIBAS-S
+TOO LONG STRING
+ERV-F02@DUMP-PROGRAM-REENTRANT SIBINTER-F       (DIALOG-SYS)SIBINTER-F00@DUMP-PR@@DUMP-PROGRAM-REENTRANT 
+TOO LONG STRING
+SIB2-DBCONV-F    (DIALOG-SYS)SIB2-DBCONV-F02
+"SIB2-DBCONV-F"
+NO SUCH FILE NAME
+
+@CC @MODE (SIB2-SYS-F)ND500-RTLOAD-F02:MODE,,,@DUMP-PROGRAM-REENTRANT SIBAS-SERVICE-F  (DIALOG-SYS)SIBAS-S
+TOO LONG STRING
+ERV-F02@DUMP-PROGRAM-REENTRANT SIBINTER-F       (DIALOG-SYS)SIBINTER-F00@DUMP-PR@@DU@DUMP-PROGRAM-REENTRA
+TOO LONG STRING
+NT SIB2-DPA-F       (DIALOG-SYS)SIB2-DPA-F00
+"NT"
+NO SUCH FILE NAME
+
+
+@CC =========================================
+
+@CC = DUMPING FTN KOMPILATOR                =
+
+@CC =========================================
+
+@CC @DUMP-REE FTN 0 1 (P-O:BP)FTN-2090I:BPUN
+
+
+@CC =========================================
+
+@CC = DUMPING ND100 SYMBOLIC DEBUGGER       =
+
+@CC =========================================
+
+@CC @DUMP-REE DEBUGGER-100 0 1 (P-O:BP)DEBUGGER
+
+
+@CC =========================================
+
+@CC = DUMPING SPRINT                        =
+
+@CC =========================================
+
+
+@CC @MODE (ND-OPER)SPRINT-LOAD:MODE,,,,,
+
+
+@CC =========================================
+
+@CC = DUMP focus definition module
+
+@CC =========================================
+
+@CC @DUMP-PROGRAM-REE FOCUS-DEF (FOCUS)FOCUS-DEF-G
+
+
+@CC =========================================
+
+@CC = DUMPING OPERATOR ENVIRONMENT          =
+
+@CC =========================================
+
+
+@CC @MODE (ND-OPER)OE-LOAD:MODE,,,,,
+
+
+@CC =========================================
+
+@CC = LOADING OF TCP/IP GATEWAY (SERVER)    =
+
+@CC =========================================
+
+
+@MODE (TCP-IP)TCP-IP-LO:MODE,,,,
+
+@CC
+
+@CC  Load server and supervisor onto segments
+
+@CC
+
+@ABORT TCPS1,,,
+
+ILLEGAL PARAMETER
+
+@PRLS 2241B 1
+
+@(TCP-)PO-STOP-B05
+
+Stopping server(0-3):1
+Stopped ok.
+@SCHEDULE 503
+
+@RT-LOADER
+
+
+REAL TIME LOADER,  SINTRAN III VSX - K
+
+*SET-PAGE-TABLE 2
+*CLEAR-SEGMENT TCPE1
+
+SEGMENT NAME NOT DEFINED
+*Y
+*DELETE-SEGMENT-NAME TCPE1
+
+SEGMENT NAME NOT DEFINED
+*NEW-SEGMENT TCPE1,2,,,,,
+NEW SEGMENT NO:   102
+*LOAD (TCP-)TCP-ERROR-1-B05:BRF,,,,
+
+NO PRIORITY IN:  TCPS1  
+*Y
+*WRITE-REFERENCES,,,,
+
+
+*END
+*CHANGE-RT-DESCR TCPS1,40,,,,,,
+*SET-PAGE-TABLE 2
+*CLEAR-SEGMENT TCPS1B0
+
+SEGMENT NAME NOT DEFINED
+*Y
+*DELETE-SEGMENT-NAME TCPS1B0
+
+SEGMENT NAME NOT DEFINED
+*NEW-SEGMENT TCPS1B0,,,,,,,,
+NEW SEGMENT NO:   103
+*READ-BI (TCP-)TCP-SER-B0-B05:BPUN,,,,
+*SE-LO-AD,,177777
+*END
+*SET-PAGE-TABLE 2
+*CLEAR-SEGMENT TCPS1B1
+
+SEGMENT NAME NOT DEFINED
+*Y
+*DELETE-SEGMENT-NAME TCPS1B1
+
+SEGMENT NAME NOT DEFINED
+*NEW-SEGMENT TCPS1B1,,,,,,,,
+NEW SEGMENT NO:   104
+*READ-BI (TCP-)TCP-SER-B1-B05:BPUN,,,,
+*SE-LO-AD,,177777
+*END
+*SET-PAGE-TABLE 2
+*CLEAR-SEGMENT TCPS1B2
+
+SEGMENT NAME NOT DEFINED
+*Y
+*DELETE-SEGMENT-NAME TCPS1B2
+
+SEGMENT NAME NOT DEFINED
+*NEW-SEGMENT TCPS1B2,,,,,,,,
+NEW SEGMENT NO:   105
+*READ-BI (TCP-)TCP-SER-B2-B05:BPUN,,,,
+*SE-LO-AD,,177777
+*END
+*SET-PAGE-TABLE 2
+*CLEAR-SEGMENT TCPS1B3
+
+SEGMENT NAME NOT DEFINED
+*Y
+*DELETE-SEGMENT-NAME TCPS1B3
+
+SEGMENT NAME NOT DEFINED
+*NEW-SEGMENT TCPS1B3,,,,,,,,
+NEW SEGMENT NO:   106
+*READ-BI (TCP-)TCP-SER-B3-B05:BPUN,,,,
+*SE-LO-AD,,177777
+*END
+*Clear-seg POPWR
+
+SEGMENT NAME NOT DEFINED
+*Y
+*New-seg POPWR,,,,,,
+NEW SEGMENT NO:   107
+*Read-progfile (TCP-)PO-PWRFAIL-B05:PROG,,,,
+*End
+*Decl-Prog POPWR,,,,,
+*Change-RT-Desc POPWR,50,POPWR,,0,,,,,
+*End
+*EXIT
+
+@CC
+
+@CC  Write Subnet Bits and Gateway Adress on to segment
+
+@CC
+
+@LOOK-AT SEGMENT TCPS1B1
+READY:
+150615/ 000000 0
+ 000000 0
+ 000000 0
+ 000000 .
+-END
+
+@CC
+
+@CC  Change server number on supervisor segment and delete temporary file.
+
+@CC
+
+@LOOK-AT SEGMENT TCPE1
+READY:
+0/ 000000 1
+ 000000 0
+ 000000 0
+ 000000 .
+-END
+
+@CC
+
+@CC Load the TELNET SERVER as 2 bank
+
+@CC
+
+@ABORT TNSERV
+
+ILLEGAL PARAMETER
+
+@SCHEDULE 503
+
+@RT-LOADER
+
+
+REAL TIME LOADER,  SINTRAN III VSX - K
+
+*CLEAR-SEG TNSEG
+
+SEGMENT NAME NOT DEFINED
+*YES
+*DEL-PROGRAM TNSERV
+
+NO SUCH RT-PROGRAM NAME
+*DEL-SEG-NAME TNSEG
+
+SEGMENT NAME NOT DEFINED
+*NEW-BACKGROUND-SEGMENT TNSEG,2,dm,,,,,
+NEW SEGMENT NO:   110
+*READ-PROGFILE (TCP-)TELNET-SERV-B05:PROG,TNSEG,,,,
+*DECLARE-PROGRAM TNSERV,,,,
+*END-LOAD
+*YES
+*CHANGE-RT-DESCRIPTION TNSERV,16,TNSEG,,0,2,1,2,,,,,,
+*WRITE-SEGMENT TNSEG,,
+
+
+  SEG.  SEG.    LOWER  UPPER  MASS  SEG. RING PIT SEG.  SEG.
+  NO.   NAME    ADDR.  ADDR.  ADDR. FILE          PROT  TYPE
+
+   110 TNSEG        0 361777 11007    0    2   1  RFW   DEMAND
+*EXIT
+
+@cc
+
+@cc  Mode file to load FTPRT who allocates a TAD and starts
+
+@cc  the FTP server.
+
+@cc
+
+@Abort FTPRT
+
+ILLEGAL PARAMETER
+
+@SCHEDULE 503
+
+@RT-loader
+
+
+REAL TIME LOADER,  SINTRAN III VSX - K
+
+*Clear-segment FTPS0
+
+SEGMENT NAME NOT DEFINED
+*y
+*Delete-segment-name FTPS0
+
+SEGMENT NAME NOT DEFINED
+*New-segment FTPS0,,,,,,
+NEW SEGMENT NO:   111
+*Read-progfile (TCP-)FTPRT-B05:PROG,,,,,
+*End
+*Declare-program FTPRT,,,
+*Change-RT-description FTPRT,30,FTPS0,,0,,,,,
+*End
+*Exit
+
+
+@CC LADDNING AV nots
+
+@CC ******************************************
+
+@CC @S-T-T,,2
+
+@CC @NOTS-SERVICE
+
+@CC SET-NOTS-CONFIG
+
+@CC 0
+
+@CC TA
+
+@CC 10
+
+@CC 3
+
+@CC SI
+
+@CC EXIT
+
+
+
+@SIN
+
+*@DEF-PR-ST TETRIS..@'
+PROMPT STRING IN LOCAL MODE? @Y
+MEMORY? @Y
+SAVE-AREA? @Y
+
+*@EXIT
+
+
+
+@CC ===========================================
+
+@CC =                                         =
+
+@CC = RUN LOAD-MODE TO TERMINATE INITIALISING =
+
+@CC =                                         =
+
+@CC ===========================================
+
+
+@CONNECT SYS-OUT-1 105 R
+@CLOSE 105
+@APPEND-BATCH 1 LOAD-FILE:SYMB SYS-OUT-1
+
+
+@CC =======================
+
+@CC =                     =
+
+@CC = END OF HENT-FILE    =
+
+@CC =                     =
+
+@CC =======================
+
+

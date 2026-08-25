@@ -112,10 +112,50 @@ namespace NDInsight.Sintran.Xmsg.Chat
         /// </remarks>
         public XroutError Join(string roomName)
         {
-            if (roomName == null)
+            return Join(roomName, string.Empty);
+        }
+
+        /// <summary>
+        /// Opens a port and posts a join letter to the chat service, naming a room.
+        /// </summary>
+        /// <param name="serviceName">
+        /// The registered name of the chat service, which is <c>*CHAT</c>.
+        /// </param>
+        /// <param name="room">
+        /// The room to join. Empty means the server's default room.
+        /// </param>
+        /// <returns>
+        /// <see cref="XroutError.XRSOK"/> when the letter was forwarded,
+        /// <see cref="XroutError.XRUNN"/> when no such name is registered, or
+        /// <see cref="XroutError.XRNSP"/> when the service is full.
+        /// </returns>
+        /// <remarks>
+        /// <para><b>The room travels in the Join's TEXT field, not in the name</b></para>
+        /// It used to be the name: every room registered its own XROUT entry, <c>CHAT-LOBBY</c> and
+        /// the like, and you joined a room by addressing it. That is retired on both sides. One
+        /// service name, and the room named inside the message - which cost no wire change at all,
+        /// because a Join already carried an empty text field.
+        /// <para>
+        /// A successful return means the letter reached the server, NOT that you are in the room.
+        /// The server still decides; <see cref="Poll"/> brings back the welcome or the refusal.
+        /// </para>
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="serviceName"/> or <paramref name="room"/> is null.
+        /// </exception>
+        public XroutError Join(string serviceName, string room)
+        {
+            if (serviceName == null)
             {
-                throw new ArgumentNullException(nameof(roomName));
+                throw new ArgumentNullException(nameof(serviceName));
             }
+
+            if (room == null)
+            {
+                throw new ArgumentNullException(nameof(room));
+            }
+
+            string roomName = serviceName;
 
             if (!_hasPort)
             {
@@ -134,7 +174,7 @@ namespace NDInsight.Sintran.Xmsg.Chat
                 _hasPort = true;
             }
 
-            ChatMessage join = new ChatMessage(ChatMessageKind.Join, _nickname, string.Empty);
+            ChatMessage join = new ChatMessage(ChatMessageKind.Join, _nickname, room);
             byte[] bytes = new byte[join.ByteCount];
             join.Encode(bytes);
 

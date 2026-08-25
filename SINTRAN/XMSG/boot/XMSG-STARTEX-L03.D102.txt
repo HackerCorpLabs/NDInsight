@@ -1,0 +1,102 @@
+@CC ====================================================================
+@CC  XMSG-STARTEX-L03:MODE  -  D102
+@CC
+@CC  D102 is an ETHERNET machine (ENNS0). No HDLC of its own.
+@CC    Ethernet peers : D100, D200, D19999   - direct, over ENNS0
+@CC    D103           - reached VIA D100, which is the HDLC gateway
+@CC ====================================================================
+@CC
+@CC  Stop and restart XMSG, waiting while the segments get fixed.
+@SINTRAN
+@STOP-XMSG
+@EX
+@HOLD 0 0
+@HOLD 2 2
+@SINTRAN
+@START-XMSG
+@EX
+@HOLD 0 0
+@HOLD 3 2
+@CC
+@XMSG-COMMAND
+''
+''  Name every system, INCLUDING this machine's own. Two commas, then
+''  NAME SPACE NUMBER - the space is not a typo.
+DEF-REMOTE,,D100 100
+DEF-REMOTE,,D101 101
+DEF-REMOTE,,D102 102
+DEF-REMOTE,,D103 103
+DEF-REMOTE,,D200 200
+DEF-REMOTE,,D19999 19999
+''
+''  Ethernet. N = not a Wide Area Network, i.e. LAN. This command
+''  starts ENNS0 by itself and takes about ten seconds.
+START-NET-SERVER ENNS0,,,N
+''
+''  One connection per Ethernet peer, never to itself.
+''  THE FOUR TRAILING ZEROS ARE MANDATORY. They are the DTE address and
+''  three cost fields, meaningless on a LAN, but a blank is REFUSED - and
+''  the refusal wrongly says "Illegal system number parameter".
+DEF-NETWORK-CONN D100,ENNS0,,0,0,0,0
+DEF-NETWORK-CONN D200,ENNS0,,0,0,0,0
+DEF-NETWORK-CONN D19999,ENNS0,,0,0,0,0
+''
+''  D103 has no Ethernet - it hangs off D100 on HDLC.
+DEFINE-SYSTEM-ROUTE,,D103 D100
+''
+''  Print what we ended up with, so the boot log carries the evidence.
+LIST-LINK,,,,
+LIST-NAMES,,,,
+LIST-ROUT,,,,
+EXIT
+@CC
+@CC ====================================================================
+@CC  THE CHAT SERVER
+@CC
+@CC  A plain @RT is enough on a COLD BOOT - measured 2026-08-23. The RT
+@CC  description and its segment survive a reboot, and XMSG has already
+@CC  been started above, so the server comes up against a live kernel.
+@CC
+@CC  The "RT-LOAD it again" rule is about XMSG being restarted UNDERNEATH
+@CC  a server that is already running. That cannot happen here: order
+@CC  saves us, XMSG first and the server after.
+@CC
+@CC  COSMOS starts after this file and does NOT touch XMSG - it restarts
+@CC  XFTRAD, spooling and the file server - so the chat server is safe.
+@CC
+@CC  D103's file has no line like this one because nobody has established
+@CC  that D103 has a CHATSER. It is NOT known to be missing - the check
+@CC  that seemed to say so was a mis-typed command, not a measurement.
+@CC ====================================================================
+@RT CHATSER
+@CC
+@CC ====================================================================
+@CC  THE TRUNK TO THE OTHER MACHINE
+@CC
+@CC  WITHOUT THIS, FEDERATION DOES NOT SURVIVE A REBOOT. Measured
+@CC  2026-08-24: the server keeps NO trunk file. It opens a log and the
+@CC  room histories and nothing else, so a peer row lives only as long as
+@CC  the program does. On D100, LIST-TRUNKS answered "102 up" on a machine
+@CC  booted that same morning ONLY because somebody had typed START-TRUNK
+@CC  by hand. Nothing in any boot file started one.
+@CC
+@CC  START-TRUNK only has to REGISTER the peer. It does not have to reach
+@CC  it. The server ages a trunk and dials it again by itself, with the
+@CC  idle sleep as the clock, so running this before the other machine is
+@CC  up is fine - and at boot the other machine usually is not up.
+@CC
+@CC  BOTH MACHINES START THEIR OWN END. One side is enough to carry
+@CC  traffic, but starting both removes any dependence on which machine
+@CC  finished booting first.
+@CC
+@CC  THE RACE THIS DOES NOT SOLVE, said plainly: @RT CHATSER returns as
+@CC  soon as the RT program is started, not when it has claimed its admin
+@CC  port, and CHAT-MON talks to that port. If it gets there first the
+@CC  START-TRUNK is lost. How long the server needs has NOT been measured.
+@CC  That is why LIST-TRUNKS follows: whatever happened, the boot log says
+@CC  so, and a missing row is visible instead of silent.
+@CC ====================================================================
+@CHAT-MON
+START-TRUNK 100
+LIST-TRUNKS
+EXIT

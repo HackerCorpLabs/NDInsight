@@ -1,0 +1,23 @@
+#=======================================================================
+#
+#           A I P - P R O T O C O L S : S Y M B
+#
+#
+#     This file contains information about the know protocols
+#     used in the internet
+#
+#     For each protocol a single line should be present with
+#     the following information:
+#
+#     Official-protocol-name  Protocol-number   Aliases
+#
+#=======================================================================
+#
+# Internet (IP) protocols
+#
+ip    0  IP    # internet protocol, pseudo protocol number
+icmp  1  ICMP  # internet control message protocol
+ggp   3  GGP   # gateway-gateway protocol
+tcp   6  TCP   # transmission control protocol
+pup   12 PUP   # PARC universal packet protocol
+udp   17 UDP   # user datagram protocol

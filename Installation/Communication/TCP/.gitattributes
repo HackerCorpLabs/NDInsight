@@ -1,0 +1,9 @@
+# The files under x/ are byte-exact content lifted off SINTRAN packs. Some carry
+# ND-100 even parity, some have CR-only line endings, some are mixed, and the
+# :PROG / :BPUN / :BRF files are raw memory images. Git must not touch any of it:
+# with core.autocrlf=true a checkout would rewrite line endings and the files
+# would no longer match the pack they came from.
+x/** -text
+
+# The merged 68000 firmware image.
+RE/*.BIN -text

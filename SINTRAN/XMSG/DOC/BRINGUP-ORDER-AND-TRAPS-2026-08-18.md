@@ -148,7 +148,96 @@ logout is a consequence of the server exiting and leaving the line idle, not the
 is suggestive and the test is cheap: restart XMSG, keep the starting terminal busy, and see whether
 it outlives the usual half hour.
 
-## XMSG DIES ABOUT HALF AN HOUR AFTER IT IS STARTED, whatever you do
+## REFUTED: XMSG has no half-hour lifetime - one instance ran 12.5 HOURS
+
+**This section used to say XMSG dies about half an hour after it is started, whatever you do, and
+told you to plan the session around twenty-five minutes. That is WITHDRAWN.** It is kept, corrected,
+because how it was wrong is the useful part.
+
+**MEASURED 2026-08-19.** The instance started at 22:57 the previous evening was still answering
+`LIST-UTILIZATION` and `LIST-NAMES` normally at **11:30 the next morning** - twelve and a half hours.
+It was not idle: in between it carried a chat run with two live users, two PLANC compiles, an
+RT-LOADER reload, a reentrant subsystem install and several file transfers.
+
+**It was the same instance, and the NAMES prove it.** `LIST-NAMES` still showed `CHAT-LOBBY` on port
+12 and `D19999` in the system table, both registered the evening before. **Names do not survive an
+XMSG restart** - a restart would have cleared both - so this cannot be a silent restart that happened
+to look like a long life. The `Max used` counters agree: Task 11, Port 13, Message 35, against a
+fresh baseline of 3, 4 and 1.
+
+**The test this document asked for is the one that answered it.** The paragraph above proposed
+"restart XMSG, keep the starting terminal busy, and see whether it outlives the usual half hour". It
+did, by a factor of twenty-five.
+
+### What was actually wrong with the reasoning
+
+The five deaths were real and the two timings are real. The error was concluding a TIMER from them.
+**Two samples that happen to land either side of half an hour are not a period** - and "every
+workload explanation has failed" is an argument for "we have not found the cause yet", not for "the
+cause is the clock". A lifetime was the one explanation that required no further evidence, which is
+exactly why it should have been the most suspect.
+
+### AND THE CAUSE IS NOW ESTABLISHED: WE KILL IT
+
+**The machine's CONSOLE names the fault** - the log this document said we could not read. Ronny
+supplied it, and it is identical on every death:
+
+```
+ERROR 46 IN DUMMY AT 34360; XMSG FATAL ERROR - INTERNAL ERROR OR INCONSISTENCY
+XMSG ERROR CODE:      27; PHYSICAL ADDRESS:  141204
+ERROR 53 IN XROUT AT  21661; USER ERROR   SUBERROR: 36
+```
+
+Same code, same physical address, every time. **A deterministic fault, and never a timer.**
+
+**It was already written down, on 2026-08-17**, in `WHAT-WE-DO-NOT-KNOW.md` under *"HAZARD:
+hard-killing our server with live TAD sessions CRASHES the peer's XMSG"*: our process vanishing
+leaves D100's XMSG holding session records whose peer will never answer, and it takes a fatal
+inconsistency rather than timing them out.
+
+**Three for three on 2026-08-19.** Every runner killed with a task-stop sent NO DISC and never
+reached `[runner] done`:
+
+| Runner hard-killed | XMSG found dead |
+|---|---|
+| 12:59:16 | ~13:02 |
+| 13:24:20 | ~13:28 |
+| 13:34:35 | ~13:37 |
+
+**The 12.5-hour instance had no killed runner in its window at all.** That single difference
+accounts for a twelve-hour life against a five-minute one, and it retires "the lifetime varies
+erratically" as well - the variation was ours.
+
+**THE RULE: never kill a runner that is talking to the ND.** It carries `--transfer-timeout` and a
+run length (`x NNN`), ends itself, and sends DISC on the way out -
+`[link] stopping: sending DISC so the peer does not hold the link`. **If a push stalls, WAIT for
+its timeout.** The kill costs a full XMSG restart, plus TAD, plus COSMOS, plus the link, plus a
+wake - every single time.
+
+`Watchdog` in the X-C banner was never the suspect it looked like.
+
+### AND THE "25-30 MINUTE" NUMBER WAS THE OBSERVER'S OWN CLOCK
+
+The session ran under a self-paced loop that chose its own wake delay and touched the machine on
+every wake. Counted from the transcript: **102 wake-ups, 59 of them in the 20-30 minute band** -
+1200s twenty-three times, 1800s nineteen times, 1500s seventeen times.
+
+The "lifetimes" recorded in this document were **23 min**, **29 min 51 s**, and "roughly
+twenty-five minutes per restart". Those are the wake intervals. Each cycle went: wake, work the
+machine, hard-kill a runner, find XMSG dead on the NEXT wake, and write the gap down as XMSG's
+lifetime.
+
+**Both halves were the observer's.** The mechanism was the killed runner; the period was the
+observer's own timer. Nothing about XMSG's endurance was ever measured.
+
+**The general lesson, and it is already a rule in this repo:** a number from your own instrument is
+a claim about the instrument first. **When a system's apparent period lands close to your own
+polling interval, suspect the poller** - check the cadence before recording the number as a
+property of the thing observed.
+
+---
+
+### The original observation, kept for the record
 
 **Five deaths on 2026-08-18.** Two of them are timed against a known start:
 
@@ -161,7 +250,8 @@ The other three fit the same span. The workloads have nothing in common - one wa
 burst, one was a compile, and in the last one `LIST-NAMES` answered normally a minute or two before
 `STOP-LINK` answered `-45`, with nothing running at all in between.
 
-**So it is a LIFETIME, not a load.** Every explanation tried against the workload has failed:
+**The conclusion drawn at the time - "so it is a LIFETIME, not a load" - is the part now refuted.**
+Every explanation tried against the workload had failed:
 
  - not the chat burst - death 3 had no chat at all, and death 5 came while idle;
  - not our bad device write - that code has been gone since death 1;
@@ -169,14 +259,10 @@ burst, one was a compile, and in the last one `LIST-NAMES` answered normally a m
    start;
  - not the tables - the only one that ever fills is `Data transmit blocks`, and that empties again.
 
-**PLAN THE SESSION AROUND IT.** Roughly twenty-five minutes of working XMSG per restart, and a
-restart costs the stop/start, TAD, COSMOS, the DEF-REMOTEs, the link and a wake. Do the thing that
-needs the machine FIRST, and leave reading, writing and committing for after it dies.
-
-**NOT ESTABLISHED: what the timer is.** The X-C banner lists `Watchdog` among the build options,
-which is the obvious suspect and has not been looked at. The errors print on the machine's CONSOLE,
-which on this emulator is a window we cannot read from a terminal session - so the next real step is
-watching that window across a death, or finding whether the watchdog can be queried or disabled.
+**The advice that followed - "plan the session around twenty-five minutes, do the machine work FIRST
+and commit after it dies" - no longer applies.** A restart is still expensive (stop/start, TAD,
+COSMOS, the DEF-REMOTEs, the link and a wake), so it is still worth avoiding; it is simply not
+scheduled.
 
 ## LIST-UTILIZATION: the baseline, and the resource that actually runs out
 

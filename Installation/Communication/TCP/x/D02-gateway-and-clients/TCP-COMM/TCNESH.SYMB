@@ -1,0 +1,13 @@
+MODULE tcnesh
+
+   EXPORT mbuff1,mbuff2,mbuff3,mbuff4,mbflags,simtime,simstate
+
+   INTEGER2 ARRAY : mbuff1(0:3999)
+   INTEGER2 ARRAY : mbuff2(0:3999)
+   INTEGER2 ARRAY : mbuff3(0:3999)
+   INTEGER2 ARRAY : mbuff4(0:3999)
+   INTEGER2 ARRAY : mbflags(0:4)
+   INTEGER4       : simtime
+   INTEGER4       : simstate
+
+ENDMODULE

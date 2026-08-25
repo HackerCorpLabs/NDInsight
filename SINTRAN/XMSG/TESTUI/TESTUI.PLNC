@@ -1,0 +1,1353 @@
+MODULE testui
+%==========================================================%
+% T E S T U I  -  PLANC-SCREEN-H / VTM screen demo         %
+%                                                          %
+% Vtm, mon-call-lib, planc-lib must be loaded together     %
+% with this program - the same header note the vendor's    %
+% own DEMO-SCREEN:SYMB carries.                            %
+%                                                          %
+% Row 1        the status line, ABOVE the main window      %
+% Rows 2-24    the main window, HELLO WORLD in its middle  %
+% Key 1        toggles the SMALL window  (10 x 10)         %
+% Key 2        toggles the BIG   window  (40 x 20)         %
+% Key 3        leaves, back to the SINTRAN command prompt  %
+%                                                          %
+% Every screen call below is used exactly the way the real %
+% vendor demo on the PLANC-SCREEN-H floppy uses it. The    %
+% parameter orders are NOT guessed - see README.md in this %
+% folder for the decoded evidence behind each one.         %
+%==========================================================%
+$INCLUDE screen
+
+    % MON72 is EESCF, enable-escape. It is in the MONn set the PLANC
+    % runtime already provides, so it needs no extra library. The vendor
+    % SUM:SYMB ends the same way. DEMO-SCREEN:SYMB uses
+    % Monitor_call('EnableEscape',1) instead, which would drag in
+    % MON-CALL-NAMES at compile time and MON-CALL-1B at link time - not
+    % needed when a MONn routine does the same job.
+    IMPORT ( ROUTINE VOID, VOID (INTEGER) : MON72 )
+
+    % MON71 is DESCF, DisableEscape - it takes ESC away from SINTRAN so the
+    % ESC key stops aborting the program. MON72 above is its pair, EESCF.
+    IMPORT ( ROUTINE VOID, VOID (INTEGER) : MON71 )
+
+    % MON3 is ECHOM, SetEcho. Strategy BELOW ZERO means "no echo", which the
+    % manual gives as the password-field case; the table is only consulted for
+    % strategy 7 and is passed to satisfy the argument list.
+    IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, BOOLEAN ARRAY PACKED) : MON3 )
+
+    % MON16 is MGTIY, GetTerminalType. The PLANC manual's own appendix gives
+    % the shape: ROUTINE VOID, INTEGER (INTEGER) : MON16 (dev) - it takes the
+    % device and RETURNS the type as the out-value. Device 1 is your own
+    % terminal. It is in the MONn set the runtime already provides, so it
+    % costs no extra library - and it is the honest way to find the terminal
+    % type, rather than guessing at VTM's own IVTINFO whose arguments nobody
+    % here knows.
+    IMPORT ( ROUTINE VOID, INTEGER (INTEGER) : MON16 )
+
+    % ---- WHAT THE SCROLLING WINDOW NEEDS ---------------------------------
+    %
+    % MON1 is INBIT, read one byte from a device. Device 1 is our own
+    % terminal. IT BLOCKS - and TerminalNoWait was tried on this machine in
+    % August 2026 and MON1 went on blocking anyway, so no-wait is NOT the way
+    % to poll a keyboard here.
+    IMPORT ( ROUTINE VOID, BYTE (INTEGER) : MON1 )
+
+    % MON66 is ISIZE, InBufferSpace: it returns HOW MANY BYTES ARE WAITING in
+    % a device's input buffer. That is what turns MON1 into a poll - ask
+    % first, and only read when there is certainly a byte to take. It
+    % sidesteps the no-wait problem completely.
+    % ND-860228-2 : "InBufferSpace (ISIZE 66B) 1. Logical device number (I)
+    % 2. Number of bytes in the buffer (O)".
+    IMPORT ( ROUTINE VOID, INTEGER (INTEGER) : MON66 )
+
+    % MON11 is TIME - the out-value is the time in BASIC UNITS, and a basic
+    % unit is a fiftieth of a second. Used as the clock for the five-second
+    % timer: comparing two readings is immune to how long the loop takes,
+    % which counting passes round the loop would not be.
+    IMPORT ( ROUTINE VOID, INTEGER4 : MON11 )
+
+    % MN104 is HOLD, SuspendProgram - and note the NAME. The PLANC runtime
+    % drops the O once the number reaches three digits: MON76 but MN104.
+    % Arguments are (number of time units, type), type 1 = basic units,
+    % 2 = seconds, 3 = minutes, 4 = hours. The manual says the parameters
+    % should not contain zero.
+    IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER) : MN104 )
+
+    % MN113 is CLOCK, GetCurrentTime. It fills a SEVEN element array:
+    %   0 basic time units   1 seconds   2 minutes   3 hours
+    %   4 day                5 month     6 year
+    IMPORT ( ROUTINE VOID, VOID (INTEGER ARRAY WRITE) : MN113 )
+
+    % ---- SETTLING VTPCUR'S ARGUMENT ORDER ----------------------------------
+    %
+    % These two declarations are VERBATIM from a vendor source: T2-SCREEN:SYMB
+    % in the COBOL-500 compiler, recovered from the software archive. They are
+    % the only typed VTM declarations known to survive.
+    %
+    % Three vendor programs disagree on the ORDER of VTPCUR's two arguments:
+    %   UNIQUE-II   IVTPCUR(ILIN,IPOS)      line first
+    %   VALLEY      IVTPCUR(COL1,ROW)       column first
+    %   STAR-TREK   IVTPCUR((POS+1),(LINE)) column first
+    %
+    % Two against one is not evidence. THE TEST: ask for 5,40 and look. If the
+    % text lands on row 5 column 40 the order is (LINE, POSITION). Column-first
+    % would mean row 40, which does not exist on a 24-line screen.
+    IMPORT ( ROUTINE VOID, INTEGER (INTEGER, INTEGER) : VTPCUR )
+    IMPORT ( ROUTINE VOID, INTEGER (INTEGER, INTEGER, BYTES, INTEGER READ WRITE, INTEGER) : VTWRIT )
+    IMPORT ( ROUTINE VOID, INTEGER (INTEGER, INTEGER, INTEGER, INTEGER) : VTDSCR )
+    % VTCREC - clear rectangle. Same four-argument shape as VTDSCR, and the
+    % COBOL-500 caller names its variables ERLINE, ERFROM, ERLINETO, ERTO,
+    % which settles the order as (startLine, startPos, endLine, endPos).
+    IMPORT ( ROUTINE VOID, INTEGER (INTEGER, INTEGER, INTEGER, INTEGER) : VTCREC )
+
+    % VTWBUF - WRITE BUFFER, and it takes NO ARGUMENTS.
+    %
+    % VTM does not send every write to the terminal as it happens; it fills a
+    % buffer and flushes it when something else forces the issue - reading a
+    % key does, which is why a program driven entirely by keystrokes never
+    % notices. A timer does NOT. MEASURED on D100 2026-08-25: three lines
+    % added by the five-second timer sat unseen until a key was pressed, and
+    % then all three appeared at once.
+    %
+    % The no-argument shape is DERIVED from COBOL-85-LIB.NRF - a 110 byte
+    % record that fetches nothing - and it settles a disagreement between two
+    % vendor callers: UNIQUE-II passes a dummy, the COBOL source declares
+    % none, and both are right because the dummy is never touched.
+    IMPORT ( ROUTINE VOID, INTEGER : VTWBUF )
+
+
+
+    INTEGER ARRAY : stack(0:1000)
+
+    % THE VIEWPORT PROBE'S STATUS LOG.
+    % Every VTM call hands back a status as its out-value, and those are the
+    % half of the answer the screen cannot show - while a viewport is in force
+    % there may be nowhere left to print them. So they are collected here and
+    % printed as ordinary text on the way out, after resetscreen.
+    % MODULE level because probeView fills it and the exit path reads it.
+    INTEGER ARRAY : pstat(0:23)
+    INTEGER : pcount := 0
+
+    % ---- THE WINDOW FLAGS, AT MODULE LEVEL --------------------------------
+    % These were locals of PROGRAM until the scrolling window arrived. Closing
+    % the scroll window has to know whether the other two are open, because it
+    % overlaps both and must put back whatever it wiped - so the flags have to
+    % be reachable from a routine, and a routine cannot see a local of
+    % PROGRAM. A MODULE level declaration MAY carry an initial value; a local
+    % may not.
+    BOOLEAN : smallOpen := FALSE
+    BOOLEAN : bigOpen := FALSE
+    BOOLEAN : scrollOpen := FALSE
+
+    % ---- THE SCROLLING TEXT BUFFER ----------------------------------------
+    %
+    % VTM HAS NO SCROLLING REGION. Searched across every BRF entry, every
+    % link-map symbol and the whole documentation library: no SCROLL, ROLL,
+    % MARGIN, REGION or PAGE verb exists at any layer in any ND product. A
+    % VT100 has DECSTBM and VTM has no way to reach it.
+    %
+    % So scrolling is OURS to do: keep the lines ourselves and repaint. This
+    % is a RING BUFFER - scrFirst says which slot holds the oldest line, so
+    % scrolling costs one index change and no copying of text at all.
+    %
+    % Every line is stored PADDED to the full width. That is deliberate: a
+    % shorter line painted over a longer one would leave the old line's tail
+    % on the screen, and padding removes the need for a separate erase.
+    BYTES : scrBuf(0:699)               % 10 slots x 70 characters
+    INTEGER : scrCount := 0             % lines held so far, 0..10
+    INTEGER : scrFirst := 0             % slot holding the OLDEST line
+    INTEGER : addCount := 0             % lines ever added - varies the text
+
+    % One line under construction, and the time it is stamped with.
+    BYTES : lineBuf(0:69)
+    INTEGER ARRAY : cal(0:6)
+
+    % The five-second clock. Both are readings of MON11 in basic units, a
+    % fiftieth of a second each, so 250 units is five seconds.
+    INTEGER4 : lastAdd := 0
+    INTEGER4 : nowTime := 0
+    INTEGER4 : addEvery := 250
+
+    % Single characters, held in one-element BYTES arrays. A STRING is not a
+    % BYTE in PLANC, so 'x' =: buf(i) does not compile - and the error it
+    % gives names the ARRAY, which sends you to stare at the declaration
+    % where nothing is wrong.
+    BYTES : digits := '0123456789'
+    BYTES : spaceByte := ' '
+    BYTES : colonByte := ':'
+    BYTES : dashByte := '-'
+
+    % MON3's user-defined echo table - 128 bits, one per ASCII character. It
+    % is IGNORED for every strategy except 7, and this program only ever asks
+    % for -1 and 0, so nothing is ever read out of it. It exists because the
+    % call takes three arguments.
+    BOOLEAN ARRAY PACKED : echoTab(0:127)
+
+    % The terminal type, read once at start-up and shown on the status line.
+    % MODULE level so drawMain can see it - a routine cannot reach a local of
+    % PROGRAM. INTEGER4 because that is what intdis takes.
+    INTEGER4 : termType        % the raw packed CTYTP word MON16 hands back
+    INTEGER4 : termKind        % just the type, bits 0-7 of it
+
+    %----------------------------------------------------------%
+    % The geometry. Every number here is a screen ROW or COLUMN %
+    % and is used by exactly one routine below, so changing one %
+    % window cannot silently move another.                      %
+    %----------------------------------------------------------%
+    % Main window: starts on row 2 because row 1 is the status line.
+    % frame(row, col, height, width, attributes) - height counts rows
+    % INCLUSIVE from the start row, so 2 + 23 - 1 = row 24, the last
+    % line of a 24-line screen.
+    CONSTANT mainRow=2
+    CONSTANT mainCol=1
+    CONSTANT mainHigh=23
+    CONSTANT mainWide=78
+
+    % HELLO WORLD, centred in the main window.
+    % Rows 2..24 -> middle row 13. Columns 1..78 -> the 11 characters
+    % of 'HELLO WORLD' start at 34 and end at 44, which is centred.
+    CONSTANT helloRow=13
+    CONSTANT helloCol=34
+
+    % SMALL window, 10 rows by 10 columns.
+    % Left border column 5, right border column 14.
+    % Text sits 4 characters in from the left border -> column 9,
+    % leaving columns 9..13, so five characters of room per line.
+    % Frame rows 4..13, so the eight text rows are 5..12.
+    CONSTANT smallRow=4
+    CONSTANT smallCol=5
+    CONSTANT smallHigh=10
+    CONSTANT smallWide=10
+    % Text sits four characters in from the LEFT BORDER. In the window's own
+    % coordinates the border is column 1, so the text starts on column 5 - and
+    % that number no longer depends on where the window sits on the screen.
+    CONSTANT smallTextIn=5
+
+    % BIG window, 20 rows by 40 columns.
+    % Left border column 30, right border column 69.
+    % Text is RIGHT aligned ending 5 characters in from the right
+    % border -> the last character sits on column 64, so a line of
+    % length L starts at column 65-L. Every start column below was
+    % worked out that way and the length is written next to it.
+    % Frame rows 4..23, so the eighteen text rows are 5..22.
+    CONSTANT bigRow=4
+    CONSTANT bigCol=30
+    CONSTANT bigHigh=20
+    CONSTANT bigWide=40
+
+    % SCROLL window - the bottom half of the main window.
+    % The main window is rows 2..24, so rows 12..23 is its lower half, and
+    % columns 3..76 sit one clear of its borders at 1 and 78.
+    % The frame takes local rows 1 and 12, leaving TEN text rows, 2..11.
+    % Text starts at local column 3 and has 70 characters of room.
+    CONSTANT scrRow=12
+    CONSTANT scrCol=3
+    CONSTANT scrHigh=12
+    CONSTANT scrWide=74
+    CONSTANT scrLines=10
+    CONSTANT scrTextCol=3
+    CONSTANT scrTextWide=70
+
+    % The keys, as the ASCII values that arrive after the parity bit is
+    % masked off. Named because a bare 83 in the menu tells nobody anything.
+    CONSTANT keyOne=49
+    CONSTANT keyTwo=50
+    CONSTANT keyThree=51
+    CONSTANT keyFour=52
+    CONSTANT keyBigS=83
+    CONSTANT keySmallS=115
+    CONSTANT keySpace=32
+    % ESC. With MON71 in force SINTRAN no longer treats it as an abort, so it
+    % arrives here as an ordinary byte and can be handled like any other key -
+    % see the note on the exit path for why that matters.
+    CONSTANT keyEsc=27
+
+    % How long to sleep when the keyboard is empty, in basic time units - a
+    % fiftieth of a second each, so 5 is a tenth of a second. Without this
+    % the poll spins and eats the machine; much longer and the keys feel slow.
+    CONSTANT pollHold=5
+
+    %----------------------------------------------------------%
+    % CTYTP - what MON16 actually returns.                      %
+    %                                                           %
+    % Bits 0-7 are the terminal TYPE. The bits above are what    %
+    % SINTRAN derives once the type is set, and they are the     %
+    % honest way to ask what a terminal can DO - far better than %
+    % naming particular type numbers.                            %
+    %                                                           %
+    %   15 ND    bits 0-7 hold an official ND terminal type      %
+    %   14 VDU   a VDU - a SCREEN, not hardcopy                  %
+    %   13 BS    Back Space is handled correctly                 %
+    %   12 FF    Form Feed gives a new page or clears the screen %
+    %   11 CPOS  the terminal has CURSOR POSITIONING             %
+    %   10 ESC   the terminal can send ESC sequences on input    %
+    %                                                           %
+    % Source: ND-30.003.7 System Supervisor, "CTYTP - Terminal   %
+    % type", and its own worked example for the FACIT TWIST.     %
+    %----------------------------------------------------------%
+    CONSTANT bitEsc=1024
+    CONSTANT bitCpos=2048
+    CONSTANT bitFf=4096
+    CONSTANT bitBs=8192
+    CONSTANT bitVdu=16384
+    CONSTANT bitNd=32768
+
+    %----------------------------------------------------------%
+    % WINDOW HELPERS - and the ONE place the corners trap lives. %
+    %----------------------------------------------------------%
+
+    %----------------------------------------------------------%
+    % WINDOWS, BUILT ON VTM'S OWN VIEWPORT.                     %
+    %                                                           %
+    % MEASURED on D100 2026-08-25 - the run is written up in     %
+    % Developer/Languages/Application/VTM-VIEWPORT-HOW-TO-USE-IT.md %
+    %                                                           %
+    % VTDSCR moves VTM's ORIGIN. After it, every coordinate -    %
+    % VTPCUR, VTCREC, and through PLANC-SCREEN-H also frame,     %
+    % bytdis, blankarea and blankscreen - is measured from the   %
+    % rectangle's top-left corner instead of the screen's.       %
+    %                                                           %
+    % IT CLIPS. Thirty characters written at 1,1 in a box ten    %
+    % columns wide put exactly TEN on the screen and nothing     %
+    % wrapped to the next row. A window cannot damage what is    %
+    % outside it, however long the string.                       %
+    %                                                           %
+    % IT DOES NOT NEST. A second VTDSCR REPLACES the first and   %
+    % reads its rectangle against the PHYSICAL screen. So        %
+    % winEnter always takes absolute screen coordinates, and a   %
+    % window can never open a sub-window relative to itself.     %
+    %----------------------------------------------------------%
+
+    % Move INTO a window. Takes row/col/HEIGHT/WIDTH, the same convention
+    % frame and openWindow use, so the CORNERS conversion is written here and
+    % nowhere else.
+    ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER, INTEGER) : winEnter(row, col, high, wide)
+        INTEGER : st
+        VTDSCR(row, col, row + high - 1, col + wide - 1) =: st
+    ENDROUTINE
+
+    % Move back OUT to the whole screen. -1 means "to the end", the same
+    % convention IVTCSCR(1,1,-1,-1) uses in VALLEY, UNIQUE-II and STAR-TREK.
+    % MEASURED: issued from inside a 2x5 box, a write at 24,1 afterwards
+    % landed on physical row 24 column 1. VTINIT is NOT the only way back,
+    % which is what makes windows usable at all - a program can leave one and
+    % still draw its own status line.
+    ROUTINE VOID, VOID : winLeave
+        INTEGER : st
+        VTDSCR(1, 1, -1, -1) =: st
+    ENDROUTINE
+
+    % Open a window and STAY INSIDE IT. Everything drawn after this call is at
+    % the window's own coordinates, 1,1 being its top-left corner; the caller
+    % calls winLeave when it has finished.
+    %
+    % SPACE-FILL blanks the interior as the frame is drawn, so opening a
+    % window needs NO repaint of anything else - it simply covers what was
+    % there. That is the vendor demo's own idiom for overlapping frames.
+    ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER, INTEGER, BYTES) : openWindow(row, col, high, wide, title)
+        winEnter(row, col, high, wide)
+        frame(1, 1, high, wide, title)
+    ENDROUTINE
+
+    % Erase a window's rectangle. VTCREC is viewport-relative too (MEASURED:
+    % CCCCC written at box position 2,1 then VTCREC(2,2,2,3) left C's at
+    % physical columns 40, 43 and 44 - it cleared box columns 2 and 3 exactly).
+    % So from inside the window the rectangle to clear is simply the whole of
+    % it, 1,1 to high,wide. There are no absolute corners left to get the
+    % wrong way round, which is what the old blankarea conversion was for.
+    ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER, INTEGER) : clearWindow(row, col, high, wide)
+        INTEGER : st
+        winEnter(row, col, high, wide)
+        VTCREC(1, 1, high, wide) =: st
+        winLeave
+    ENDROUTINE
+
+    % One RIGHT-ALIGNED line in the big window, in the WINDOW'S OWN
+    % coordinates. Its right border is local column bigWide and every line
+    % ends five characters in from it, so the last character sits on
+    % bigWide-5 and a line of L characters starts at bigWide-4-L.
+    %
+    % L is ASKED FOR, not typed. MAXINDEX returns an array's declared upper
+    % bound, and a PLANC string literal subscripts from ZERO, so the length is
+    % MAXINDEX+1. That is what removes the eighteen hand-counted lengths this
+    % routine replaces - and if MAXINDEX were wrong the eighteen lines would
+    % come out ragged instead of sharing one right edge, which is a check
+    % anyone can make by looking at the screen.
+    ROUTINE VOID, VOID (INTEGER, BYTES) : bigLine(row, text)
+        bytdis(row, bigWide - 5 - MAXINDEX(text, 1), 0, text, '')
+    ENDROUTINE
+
+    % One attribute bit, in TWO column groups, because a window closing over
+    % it only covers one of them and must not repaint the other:
+    %   columns  4-18  name and state  - what the SMALL window (5-14) covers
+    %   columns 20-62  the description - what the BIG window (30-69) covers
+    ROUTINE VOID, VOID (INTEGER, INTEGER4, BYTES) : flagName(row, mask, name)
+        bytdis(row, 4, 5, name, '')
+        IF (termType AND mask) >< 0 THEN
+            bytdis(row, 10, 9, 'ENABLED', '')
+        ELSE
+            bytdis(row, 10, 9, 'disabled', '')
+        ENDIF
+    ENDROUTINE
+
+    ROUTINE VOID, VOID (INTEGER, BYTES) : flagWhy(row, why)
+        bytdis(row, 20, 0, why, '')
+    ENDROUTINE
+
+    % The attribute block, rows 5-10, in the two halves a close needs.
+    ROUTINE VOID, VOID : drawFlagNames
+        flagName(5,  bitNd,   'ND')
+        flagName(6,  bitVdu,  'VDU')
+        flagName(7,  bitBs,   'BS')
+        flagName(8,  bitFf,   'FF')
+        flagName(9,  bitCpos, 'CPOS')
+        flagName(10, bitEsc,  'ESC')
+    ENDROUTINE
+
+    ROUTINE VOID, VOID : drawFlagWhys
+        flagWhy(5,  'bits 0-7 hold an official ND terminal type')
+        flagWhy(6,  'a SCREEN, not a hardcopy printer')
+        flagWhy(7,  'Back Space moves left without erasing')
+        flagWhy(8,  'Form Feed gives a new page or clears')
+        flagWhy(9,  'the terminal has cursor positioning')
+        flagWhy(10, 'it can send ESC sequences on input')
+    ENDROUTINE
+
+    ROUTINE VOID, VOID : drawTermFlags
+        drawFlagNames
+        drawFlagWhys
+    ENDROUTINE
+
+    %----------------------------------------------------------%
+    % Draw the status line and the main window.                 %
+    %----------------------------------------------------------%
+    ROUTINE VOID, VOID : drawMain
+        % bytdis(row, col, width, text, attributes). A width of 0 means
+        % "use the string's own length" - the vendor demo passes 0
+        % everywhere it does not need a fixed field, and doing the same
+        % here removes the 'ALn'-style width-versus-literal trap
+        % completely: the text can be edited without recounting.
+        bytdis(1, 1, 0, ' 1-Small 2-Big S-Scroll(SPACE adds) 4-Probe 3-Exit', '')
+        bytdis(1, 55, 0, 'TERM:', '')
+        % SHOW THE TYPE, NOT THE RAW WORD.
+        %
+        % MON16 does NOT hand back one of the small numbers VTM lists in its
+        % own prompt. It returns the packed CTYTP word: the TYPE in bits 0-7
+        % and the attribute bits (ND, VDU, BS, FF, CPOS, ESC) above them, which
+        % SINTRAN derives once the type is set. MEASURED on D100 2026-08-24 on
+        % a VT100 line: the raw value is -5114, which is 0xEC06 in 16 bits -
+        % low byte 6, and 6 IS "DEC VT100 (80 columns)" in VTM's own list. It
+        % reads NEGATIVE only because bit 15 is one of the attribute bits.
+        %
+        % So mask it. @GET-TERMINAL-TYPE prints the same raw word, which is
+        % why that command's output looks nothing like the numbers you are
+        % told to type at the prompt.
+        intdis(1, 61, 3, termKind, '')
+        frame(mainRow, mainCol, mainHigh, mainWide, '')
+        bytdis(3, 3, 0, 'CTYTP', '')
+        intdis(3, 10, 7, termType, '')
+        bytdis(3, 20, 0, 'terminal type', '')
+        intdis(3, 35, 4, termKind, '')
+        drawTermFlags
+        bytdis(helloRow, helloCol, 0, 'HELLO WORLD', '')
+    ENDROUTINE
+
+    %----------------------------------------------------------%
+    % The small window - left aligned, 4 characters from the    %
+    % border, five characters of room, so short words only.     %
+    %----------------------------------------------------------%
+    ROUTINE VOID, VOID : drawSmall
+        openWindow(smallRow, smallCol, smallHigh, smallWide, 'SPACE-FILL')
+        % LOCAL COORDINATES FROM HERE. The frame occupies rows 1..smallHigh,
+        % so the eight text rows are 2..9, and smallTextIn is four characters
+        % in from the left border. NOT ONE of these numbers says where the
+        % window is on the screen - move smallRow or smallCol and every one of
+        % them still holds.
+        bytdis(2, smallTextIn, 0, 'Lorem', '')
+        bytdis(3, smallTextIn, 0, 'ipsum', '')
+        bytdis(4, smallTextIn, 0, 'dolor', '')
+        bytdis(5, smallTextIn, 0, 'sit',   '')
+        bytdis(6, smallTextIn, 0, 'amet',  '')
+        bytdis(7, smallTextIn, 0, 'elit',  '')
+        bytdis(8, smallTextIn, 0, 'sed',   '')
+        bytdis(9, smallTextIn, 0, 'do',    '')
+        winLeave
+    ENDROUTINE
+
+    %----------------------------------------------------------%
+    % The big window - right aligned, every line ending 5       %
+    % characters in from the right border at column 64.         %
+    % start column = 65 - length. Length is in the comment.     %
+    %----------------------------------------------------------%
+    ROUTINE VOID, VOID : drawBig
+        openWindow(bigRow, bigCol, bigHigh, bigWide, 'SPACE-FILL')
+        % LOCAL COORDINATES. The frame occupies rows 1..bigHigh, so the
+        % eighteen text rows are 2..19. bigLine works out the start column
+        % from the text's OWN length, so there is no column number and no
+        % length comment on any of these lines - which is the whole point.
+        % Compare what this replaced: eighteen start columns, each one 65
+        % minus a hand-counted length, every one of them wrong the moment the
+        % window moved.
+        bigLine( 2, 'Lorem ipsum dolor sit amet')
+        bigLine( 3, 'consectetur adipiscing elit')
+        bigLine( 4, 'sed do eiusmod tempor')
+        bigLine( 5, 'incididunt ut labore et')
+        bigLine( 6, 'dolore magna aliqua')
+        bigLine( 7, 'Ut enim ad minim veniam')
+        bigLine( 8, 'quis nostrud exercitation')
+        bigLine( 9, 'ullamco laboris nisi ut')
+        bigLine(10, 'aliquip ex ea commodo')
+        bigLine(11, 'consequat Duis aute irure')
+        bigLine(12, 'dolor in reprehenderit in')
+        bigLine(13, 'voluptate velit esse cillum')
+        bigLine(14, 'dolore eu fugiat nulla')
+        bigLine(15, 'pariatur Excepteur sint')
+        bigLine(16, 'occaecat cupidatat non')
+        bigLine(17, 'proident sunt in culpa')
+        bigLine(18, 'qui officia deserunt')
+        bigLine(19, 'mollit anim id est laborum')
+        winLeave
+    ENDROUTINE
+
+    %----------------------------------------------------------%
+    % CLOSING A WINDOW WITHOUT REPAINTING THE WHOLE SCREEN.      %
+    %                                                           %
+    % blankarea takes CORNERS - row1, row2, col1, col2 - not the  %
+    % row/col/height/width that frame takes. Four integers on     %
+    % both calls meaning different things, and they sit next to   %
+    % each other in exactly this kind of routine.                 %
+    %                                                           %
+    % Clearing the rectangle is the easy half. The other half is  %
+    % putting back whatever the window COVERED, and that is the   %
+    % whole reason a full repaint is tempting: it needs no such   %
+    % knowledge. Here the overlaps are small and fixed, so they    %
+    % are worked out once, in the comments, and restored by hand.  %
+    % On a real 9600-baud line this is roughly 100 characters      %
+    % against about 2000 for the whole screen.                     %
+    %                                                           %
+    % THE OVERLAP TABLE. Ronny found the gap this fills on        %
+    % 2026-08-25: closing 1 or 2 over an open S left a hole in S.  %
+    % VTM saves nothing under a window and has no z-order, so      %
+    % this table IS the window manager. Every close must consult   %
+    % it, in BOTH directions - which is exactly what was missed.   %
+    %                                                           %
+    %             small r4-13 c5-14   big r4-23 c30-69            %
+    %   small           -             NEVER (14 < 30)             %
+    %   big           NEVER                 -                     %
+    %   scroll     rows 12-13            rows 12-23               %
+    %                                                           %
+    % So: closing small or big must redraw SCROLL if it is open,  %
+    % closing scroll must redraw small and big if they are, and    %
+    % small and big never have to think about each other at all.   %
+    %----------------------------------------------------------%
+
+    % Small window: rows 4-13, columns 5-14.
+    % What it covers: the attribute block's NAME and STATE columns
+    % (4-18) on rows 5-10. Nothing else reaches in - HELLO WORLD is on
+    % row 13 from column 34, and the big window starts at column 30.
+    %==========================================================%
+    % THE SCROLLING WINDOW - key S, and SPACE adds a line.      %
+    %==========================================================%
+
+    % Put a two-digit number into lineBuf at 'at', zero padded. digits is a
+    % BYTES literal and a PLANC string literal subscripts from ZERO, so
+    % digits(0) really is the character '0'.
+    ROUTINE VOID, VOID (INTEGER, INTEGER) : put2(at, value)
+        INTEGER : v
+        value =: v
+
+        % CLAMP TO TWO DIGITS, AND HERE IS WHY - MEASURED ON D100 2026-08-25.
+        %
+        % CLOCK's year element is the FULL year, 1998, not 98. This routine
+        % first shipped without the clamp, so it evaluated digits(1998 / 10),
+        % which is digits(199) - a read 190 bytes past the end of a TEN byte
+        % literal. PLANC CHECKS NO ARRAY BOUNDS, so nothing complained: it
+        % fetched whatever sat after the literal, which happened to be a
+        % space, and the date printed as
+        %       24-08-     8
+        % A blank where a digit should be is the whole visible symptom of a
+        % read 190 bytes out of bounds. It could as easily have been silent.
+        IF v < 0 THEN
+            0 =: v
+        ENDIF
+        v MOD 100 =: v
+
+        digits(v / 10) =: lineBuf(at)
+        digits(v MOD 10) =: lineBuf(at + 1)
+    ENDROUTINE
+
+    % Copy text into lineBuf at 'at' and answer where the next character
+    % would go. The length is ASKED FOR with MAXINDEX rather than passed in -
+    % see bigLine above for why that matters.
+    ROUTINE VOID, INTEGER (INTEGER, BYTES) : putText(at, text)
+        INTEGER : n
+        INTEGER : i
+        MAXINDEX(text, 1) + 1 =: n
+        % PLANC CHECKS NO ARRAY BOUNDS. Clamp BEFORE writing - a phrase longer
+        % than the line would otherwise walk straight off the end of lineBuf
+        % and quietly corrupt whatever the compiler put after it.
+        IF at + n > scrTextWide THEN
+            scrTextWide - at =: n
+        ENDIF
+        IF n > 0 THEN
+            FOR i IN 0:n - 1 DO
+                text(i) =: lineBuf(at + i)
+            ENDFOR
+        ENDIF
+        at + n RETURN
+    ENDROUTINE
+
+    % One of eight ipsum phrases. This is a CHOICE, not a random generator,
+    % and the page that says so is worth more than pretending otherwise: the
+    % caller picks with the clock's SECONDS mixed with a counter, which is
+    % enough to make the lines look varied and is not randomness in any
+    % useful sense. PLANC has no random routine and inventing one from an
+    % overflowing multiply would trap.
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER) : putIpsum(at, pick)
+        INTEGER : r
+        at =: r
+        IF pick = 0 THEN
+            putText(at, 'Lorem ipsum dolor sit amet') =: r
+        ELSIF pick = 1 THEN
+            putText(at, 'consectetur adipiscing elit') =: r
+        ELSIF pick = 2 THEN
+            putText(at, 'sed do eiusmod tempor incididunt') =: r
+        ELSIF pick = 3 THEN
+            putText(at, 'ut labore et dolore magna aliqua') =: r
+        ELSIF pick = 4 THEN
+            putText(at, 'Ut enim ad minim veniam quis') =: r
+        ELSIF pick = 5 THEN
+            putText(at, 'nostrud exercitation ullamco') =: r
+        ELSIF pick = 6 THEN
+            putText(at, 'laboris nisi ut aliquip ex ea') =: r
+        ELSE
+            putText(at, 'commodo consequat Duis aute irure') =: r
+        ENDIF
+        r RETURN
+    ENDROUTINE
+
+    % Build one line into lineBuf: HH:MM:SS DD-MM-YY then a phrase.
+    %
+    % THE WHOLE LINE IS BLANKED FIRST and stays full width. That is what lets
+    % a repaint write a fixed number of characters and never have to erase:
+    % a short line painted over a long one would otherwise leave the old
+    % line's tail sitting on the screen.
+    ROUTINE VOID, VOID : buildLine
+        INTEGER : at
+        INTEGER : i
+        INTEGER : pick
+
+        FOR i IN 0:scrTextWide - 1 DO
+            spaceByte(0) =: lineBuf(i)
+        ENDFOR
+
+        % 0 basic units, 1 seconds, 2 minutes, 3 hours, 4 day, 5 month, 6 year
+        MN113(cal)
+        put2(0, cal(3))
+        colonByte(0) =: lineBuf(2)
+        put2(3, cal(2))
+        colonByte(0) =: lineBuf(5)
+        put2(6, cal(1))
+        put2(9, cal(4))
+        dashByte(0) =: lineBuf(11)
+        put2(12, cal(5))
+        dashByte(0) =: lineBuf(14)
+        put2(15, cal(6))
+
+        (cal(1) + addCount) MOD 8 =: pick
+        putIpsum(18, pick) =: at
+    ENDROUTINE
+
+    % Paint one stored slot at a LOCAL row inside the window. The caller has
+    % already entered the viewport, so 'row' is the window's own row and the
+    % window's position on the screen does not appear here at all.
+    % ---- CLIPPING, BECAUSE VTM WILL NOT DO IT FOR US ---------------------
+    %
+    % Ronny, 2026-08-25: "while window 1 is open timer or space does not
+    % update the S window ... the buffer is updated it seem, but not ui".
+    %
+    % He was right and the rule that caused it was mine. This window used to
+    % refuse to paint at all while ANY other window was open. That is far too
+    % blunt: the small window covers the top TWO ROWS of this one and nothing
+    % else, so nine visible lines were being frozen to protect two.
+    %
+    % What replaces it is real clipping. Each character cell is asked whether
+    % it is visible, and only the runs that ARE get painted. Nothing is ever
+    % written through a window on top, and nothing visible is ever stale.
+    %
+    % A cell-by-cell test sounds expensive and is not: seventy tests per line
+    % is nothing on the CPU, and what it SAVES is what matters - only the
+    % visible runs go on the wire, and the wire is the slow part.
+
+    % Is one cell of the scroll window visible, or is another window over it?
+    % Takes the scroll window's OWN coordinates and converts to physical, so
+    % the geometry appears once, here.
+    ROUTINE VOID, BOOLEAN (INTEGER, INTEGER) : visibleAt(lrow, lcol)
+        INTEGER : prow
+        INTEGER : pcol
+        scrRow + lrow - 1 =: prow
+        scrCol + lcol - 1 =: pcol
+
+        IF smallOpen THEN
+            IF prow >= smallRow AND prow <= smallRow + smallHigh - 1 THEN
+                IF pcol >= smallCol AND pcol <= smallCol + smallWide - 1 THEN
+                    FALSE RETURN
+                ENDIF
+            ENDIF
+        ENDIF
+
+        IF bigOpen THEN
+            IF prow >= bigRow AND prow <= bigRow + bigHigh - 1 THEN
+                IF pcol >= bigCol AND pcol <= bigCol + bigWide - 1 THEN
+                    FALSE RETURN
+                ENDIF
+            ENDIF
+        ENDIF
+
+        TRUE RETURN
+    ENDROUTINE
+
+    % Paint one run of a stored line - characters first..last of the slot,
+    % counted from zero - at its place inside the window.
+    ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER, INTEGER) : paintRun(row, slot, first, last)
+        INTEGER : base
+        INTEGER : len
+        slot * scrTextWide =: base
+        last - first + 1 =: len
+        IF len > 0 THEN
+            % THE WIDTH IS PASSED, NOT LEFT AS 0 - MEASURED ON D100
+            % 2026-08-25. Everywhere else in this program bytdis is called
+            % with a width of 0, "use the string's own length", and that is
+            % right for a LITERAL. Here the text is a SUBARRAY of a 700 byte
+            % buffer, and with 0 the painted line ran clean off the right-hand
+            % side: it wiped the scroll window's own border at column 76 AND
+            % the main window's at 78, which a write of seventy characters
+            % starting at column 5 cannot reach.
+            %
+            % Note what that also says: bytdis did NOT stop at the viewport
+            % edge, although VTWRIT demonstrably does. The two do not overflow
+            % the same way, so the clipping measured for VTWRIT must not be
+            % assumed for PLANC-SCREEN-H. Passing the exact width removes it.
+            bytdis(row, scrTextCol + first, len, &
+                   scrBuf(base + first : base + last), '')
+        ENDIF
+    ENDROUTINE
+
+    % Paint one stored slot at a LOCAL row, showing only what is not covered.
+    % Walks the line once and emits each visible run as it ends.
+    ROUTINE VOID, VOID (INTEGER, INTEGER) : paintSlot(row, slot)
+        INTEGER : c
+        INTEGER : runFrom
+        BOOLEAN : inRun
+
+        FALSE =: inRun
+        0 =: runFrom
+        FOR c IN 0:scrTextWide - 1 DO
+            IF visibleAt(row, scrTextCol + c) THEN
+                IF NOT inRun THEN
+                    TRUE =: inRun
+                    c =: runFrom
+                ENDIF
+            ELSE
+                IF inRun THEN
+                    paintRun(row, slot, runFrom, c - 1)
+                    FALSE =: inRun
+                ENDIF
+            ENDIF
+        ENDFOR
+        % A run that reaches the end of the line still has to be flushed -
+        % the loop only emits one when it sees a covered cell.
+        IF inRun THEN
+            paintRun(row, slot, runFrom, scrTextWide - 1)
+        ENDIF
+    ENDROUTINE
+
+    % Repaint every line held. This is what "scrolling" costs when the screen
+    % layer has no scroll verb: ten lines of seventy characters, about 700
+    % characters, roughly three quarters of a second at 9600 baud. It is only
+    % paid once the window is FULL - see addScrLine, which draws just the one
+    % new line while there is still room.
+    ROUTINE VOID, VOID : paintScroll
+        INTEGER : i
+        INTEGER : slot
+        winEnter(scrRow, scrCol, scrHigh, scrWide)
+        IF scrCount > 0 THEN
+            FOR i IN 0:scrCount - 1 DO
+                scrFirst + i =: slot
+                IF slot >= scrLines THEN
+                    slot - scrLines =: slot
+                ENDIF
+                paintSlot(2 + i, slot)
+            ENDFOR
+        ENDIF
+        winLeave
+    ENDROUTINE
+
+    % Add one line, and put it on the screen the cheap way where possible.
+    %
+    % While the window is not yet full the new line simply goes on the next
+    % free row and nothing else moves - one line painted, seventy characters.
+    % Once it IS full every line shifts up by one, and that is the only case
+    % that costs a full repaint.
+    ROUTINE VOID, VOID : addScrLine
+        INTEGER : slot
+        INTEGER : i
+        INTEGER : base
+        INTEGER : st
+        BOOLEAN : wasFull
+
+        buildLine
+
+        % Spelled out rather than "scrCount >= scrLines =: wasFull". A
+        % relational feeding a store is a precedence question this compiler
+        % does not have to answer, and an IF costs nothing.
+        FALSE =: wasFull
+        IF scrCount >= scrLines THEN
+            TRUE =: wasFull
+        ENDIF
+        IF wasFull THEN
+            % Full: the oldest slot is reused and becomes the newest.
+            scrFirst =: slot
+            scrFirst + 1 =: scrFirst
+            IF scrFirst >= scrLines THEN
+                0 =: scrFirst
+            ENDIF
+        ELSE
+            scrCount =: slot
+            scrCount + 1 =: scrCount
+        ENDIF
+
+        slot * scrTextWide =: base
+        FOR i IN 0:scrTextWide - 1 DO
+            lineBuf(i) =: scrBuf(base + i)
+        ENDFOR
+
+        addCount + 1 =: addCount
+        % Keep the counter small. It only exists to vary the phrase, and a
+        % 16-bit INTEGER climbing for ever would eventually overflow.
+        IF addCount > 1000 THEN
+            0 =: addCount
+        ENDIF
+
+        % PAINT, ALWAYS - paintSlot clips to what is actually visible, so a
+        % window on top is no longer a reason to skip the update. The rule
+        % this replaces ("a covered window paints nothing") froze nine visible
+        % lines whenever the small window covered two of them.
+        IF wasFull THEN
+            paintScroll
+        ELSE
+            winEnter(scrRow, scrCol, scrHigh, scrWide)
+            paintSlot(2 + scrCount - 1, slot)
+            winLeave
+        ENDIF
+
+        % FLUSH. Everything above went into VTM's buffer, and on the timer
+        % path there is no keystroke coming to push it out - so without this
+        % the line is drawn and simply not visible until the user happens to
+        % press something. That is exactly what it looked like: "the timer
+        % stopped working", when in fact it had been running all along and
+        % three lines appeared at once on the next keypress.
+        VTWBUF =: st
+    ENDROUTINE
+
+    % Open it. The lines already held are painted back, so closing and
+    % reopening does not lose the history.
+    ROUTINE VOID, VOID : drawScroll
+        openWindow(scrRow, scrCol, scrHigh, scrWide, 'SPACE-FILL')
+        winLeave
+        paintScroll
+    ENDROUTINE
+
+    % REPAINT ONLY THE WINDOWS ABOVE A GIVEN ONE.
+    %
+    % The stack, bottom to top, is   scroll -> small -> big.
+    %
+    % OPENING a window paints it over whatever was there, including windows
+    % that are supposed to be ABOVE it - so opening the scroll window while
+    % the big one is up would put the scroll window's frame straight across
+    % it. Putting back only what is above costs far less than repainting the
+    % whole stack: opening the big window, which is already on top, costs
+    % nothing at all.
+    %
+    % 1 = scroll, 2 = small, 3 = big.
+    ROUTINE VOID, VOID (INTEGER) : repaintAbove(level)
+        IF level < 2 THEN
+            IF smallOpen THEN
+                drawSmall
+            ENDIF
+        ENDIF
+        IF level < 3 THEN
+            IF bigOpen THEN
+                drawBig
+            ENDIF
+        ENDIF
+    ENDROUTINE
+
+    % REPAINT THE WHOLE WINDOW STACK, BOTTOM UP.
+    %
+    % This is the painter's algorithm, and with a library that remembers
+    % nothing about what is underneath a window it is the only order that
+    % gives a correct screen. The stack, bottom to top, is
+    %       scroll   ->   small   ->   big
+    % and every close runs this after putting back the base content it
+    % uncovered.
+    %
+    % Doing it any other way is a bug waiting: closing the small window while
+    % BOTH the big and the scroll windows are open would, with a naive
+    % "put back the one I overlapped" fix, repaint the scroll window straight
+    % over the big one.
+    ROUTINE VOID, VOID : repaintStack
+        IF scrollOpen THEN
+            drawScroll
+        ENDIF
+        IF smallOpen THEN
+            drawSmall
+        ENDIF
+        IF bigOpen THEN
+            drawBig
+        ENDIF
+    ENDROUTINE
+
+    % Close it, and put back everything it covered.
+    %
+    % Rows 12-23 of the main window is a busy neighbourhood: HELLO WORLD sits
+    % on row 13, the BIG window shares rows 12-23, and the SMALL window shares
+    % rows 12-13. The attribute block is rows 5-10 and was never covered, so
+    % it is deliberately NOT repainted. Small before big, which is the order
+    % they cover each other in when both are open.
+    ROUTINE VOID, VOID : closeScroll
+        clearWindow(scrRow, scrCol, scrHigh, scrWide)
+        bytdis(helloRow, helloCol, 0, 'HELLO WORLD', '')
+        repaintStack
+    ENDROUTINE
+
+    % Take one key WITHOUT waiting for one. Answers 0 when nothing is there.
+    %
+    % MON66 says how many bytes are sitting in the terminal's input buffer, so
+    % MON1 is only ever called when there is certainly one to take - and MON1
+    % blocking becomes irrelevant. This is what makes a timer possible at all
+    % in a program that also reads the keyboard.
+    % Park the physical cursor somewhere harmless.
+    %
+    % SINTRAN ECHOES TYPED CHARACTERS AT THE CURRENT CURSOR POSITION, and this
+    % program now reads raw bytes with MON1, so every keypress leaves its
+    % character wherever the last drawing happened to finish. MEASURED on D100
+    % 2026-08-25: it put a stray "2" inside the small window and a "1" inside
+    % the big one. Parking after each key sends every echo to the same known
+    % cell, at the far right of the status line and outside the main frame,
+    % where the next one simply overwrites it.
+    %
+    % TURNING THE ECHO OFF WITH MON3 WOULD ALSO WORK, and was deliberately not
+    % done. SetEcho with a strategy below zero means "no echo", but if the
+    % program is aborted with ESC the exit path never runs and the terminal is
+    % left with no echo AT ALL - a far worse thing to hand back to somebody
+    % than one character in a known place. Parking cannot leave the terminal
+    % in a bad state, whatever happens to the program.
+    ROUTINE VOID, VOID : parkCursor
+        INTEGER : st
+        VTPCUR(1, 78) =: st
+    ENDROUTINE
+
+    ROUTINE VOID, INTEGER : pollKey
+        INTEGER : waiting
+        INTEGER : ch
+        MON66(1) =: waiting
+        IF waiting <= 0 THEN
+            0 RETURN
+        ENDIF
+        MON1(1) =: ch
+        % TERMINAL INPUT CARRIES AN EVEN-PARITY BIT IN BIT 7, so S arrives as
+        % 211 and not 83. Mask it off or nothing ever matches and the program
+        % looks hung rather than wrong.
+        ch AND 127 RETURN
+    ENDROUTINE
+
+    ROUTINE VOID, VOID : closeSmall
+        clearWindow(smallRow, smallCol, smallHigh, smallWide)
+        % Only the NAME/STATE columns - repainting the descriptions here would
+        % draw straight over the big window when both are open.
+        drawFlagNames
+        % Then every window still open, bottom up. The scroll window shares
+        % rows 12-13 with this one and has just had a bite taken out of it;
+        % the big window has not been touched, but repainting it costs one
+        % window and removes the need to reason about it at all.
+        repaintStack
+    ENDROUTINE
+
+    % Big window: rows 4-23, columns 30-69.
+    % What it covers: HELLO WORLD (row 13, columns 34-44) and the
+    % attribute block's DESCRIPTION column (20 onwards) on rows 5-10.
+    ROUTINE VOID, VOID : closeBig
+        clearWindow(bigRow, bigCol, bigHigh, bigWide)
+        % Only the DESCRIPTION column, and HELLO WORLD - the name/state columns
+        % end at 18 and the big window starts at 30, so they were never covered.
+        drawFlagWhys
+        bytdis(helloRow, helloCol, 0, 'HELLO WORLD', '')
+        % Then every window still open, bottom up. The scroll window shares
+        % this one's whole height, rows 12-23, so it always needs putting
+        % back.
+        repaintStack
+    ENDROUTINE
+
+    % Record one status. Silently stops at the end of the array rather than
+    % writing past it - PLANC checks no array bounds, so a probe that grew a
+    % step would otherwise corrupt whatever sits after pstat.
+    ROUTINE VOID, VOID (INTEGER) : note(s)
+        IF pcount <= 23 THEN
+            s =: pstat(pcount)
+            pcount + 1 =: pcount
+        ENDIF
+    ENDROUTINE
+
+    % ---- KEY 4: THE VIEWPORT PROBE ----------------------------------------
+    %
+    % ALREADY MEASURED 2026-08-25: VTDSCR is a real viewport. After
+    % VTDSCR(14,40,19,69) a write at position 1,1 landed on PHYSICAL row 14,
+    % column 40. What that probe did NOT answer is everything you need before
+    % building windows on top of it:
+    %
+    %   A  does the box CLIP a write that runs off its right edge, or does the
+    %      text spill across the rest of the physical line?
+    %   B  what happens at a position BELOW the box?
+    %   C  is VTCREC's rectangle relative to the box too, or still physical?
+    %   D  does a second VTDSCR NEST inside the first, or REPLACE it?
+    %   E  does the -1 "to the end" convention VTCSCR uses restore full screen?
+    %   F  does an explicit full-size rectangle restore it?
+    %
+    % Each step leaves a LETTER on the screen, so the geometry is read straight
+    % off the physical screen and no step has to be believed on its status
+    % alone. The statuses go to pstat and are printed on the way out.
+    ROUTINE VOID, VOID : probeView
+        INTEGER : st
+        INTEGER : ln
+
+        0 =: pcount
+
+        % ---- A: overflow the box SIDEWAYS ----------------------------------
+        % Box = rows 10-12, columns 40-49. Three rows high, ten wide. Then
+        % write THIRTY characters at position 1,1:
+        %   ten A's only           -> the box CLIPS
+        %   A's running to col 69  -> no clip, the origin is merely offset
+        %   A's wrapping to row 11 -> it wraps INSIDE the box
+        % VTWRIT's length argument is READ WRITE, so whatever comes back in ln
+        % may say how much VTM accepted. Noted too - it costs nothing.
+        VTDSCR(10, 40, 12, 49) =: st
+        note(st)
+        VTPCUR(1, 1) =: st
+        note(st)
+        30 =: ln
+        VTWRIT(1, 4, 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', ln, 1) =: st
+        note(st)
+        note(ln)
+
+        % ---- B: a position BELOW the box -----------------------------------
+        % Row 5 of a three-row box does not exist. If B turns up on physical
+        % row 14 then the box does not bound the cursor at all.
+        VTPCUR(5, 1) =: st
+        note(st)
+        1 =: ln
+        VTWRIT(1, 4, 'B', ln, 1) =: st
+        note(st)
+
+        % ---- C: is VTCREC relative to the box? ------------------------------
+        % Put CCCCC on the box's second row, then clear columns 2-3 of it.
+        % Relative  -> physical row 11 reads C..CC.
+        % Physical  -> row 11 keeps all five C's and something vanishes at the
+        %              top of the screen instead.
+        VTPCUR(2, 1) =: st
+        5 =: ln
+        VTWRIT(1, 4, 'CCCCC', ln, 1) =: st
+        VTCREC(2, 2, 2, 3) =: st
+        note(st)
+
+        % ---- D: a SECOND VTDSCR while one is already in force ---------------
+        % Ask for rows 1-2, columns 1-5 and write DD at 1,1.
+        %   DD at physical 10,40 -> viewports NEST: the new rectangle is read
+        %                           in the CURRENT one's coordinates
+        %   DD at physical 1,1   -> the new rectangle REPLACES the old and is
+        %                           read in PHYSICAL coordinates
+        % This is the single most important step. Nesting means a window can
+        % open a window; replacing means every window must know where it sits
+        % on the real screen.
+        VTDSCR(1, 1, 2, 5) =: st
+        note(st)
+        VTPCUR(1, 1) =: st
+        2 =: ln
+        VTWRIT(1, 4, 'DD', ln, 1) =: st
+        note(st)
+
+        % ---- E: restore with the -1 convention ------------------------------
+        % Three vendor programs call IVTCSCR(1,1,-1,-1), where -1 means "to the
+        % end". If VTDSCR honours the same convention this is the cheap way
+        % back to a full screen, and E lands on physical row 24 column 1.
+        VTDSCR(1, 1, -1, -1) =: st
+        note(st)
+        VTPCUR(24, 1) =: st
+        note(st)
+        1 =: ln
+        VTWRIT(1, 4, 'E', ln, 1) =: st
+        note(st)
+
+        % ---- F: restore with an explicit full-size rectangle -----------------
+        % The screen is 24 by 80, so F lands on physical row 24 column 70 if
+        % this works. Column 70 rather than 80 because a write into the last
+        % column of the last line makes some terminals scroll.
+        VTDSCR(1, 1, 24, 80) =: st
+        note(st)
+        VTPCUR(24, 70) =: st
+        note(st)
+        1 =: ln
+        VTWRIT(1, 4, 'F', ln, 1) =: st
+        note(st)
+    ENDROUTINE
+
+    PROGRAM : mainUi
+        % smallOpen, bigOpen and scrollOpen used to live here. They are at
+        % MODULE level now, because closeScroll has to know whether the other
+        % two windows are open in order to put back what it wiped - and a
+        % routine cannot see a local of PROGRAM.
+        %
+        % A PLANC LOCAL MAY NOT CARRY AN INITIAL VALUE.
+        % "BOOLEAN : screenOk := TRUE" here draws
+        %     *** ERROR - INITIAL VALUE ILLEGAL HERE "SCREENOK"
+        % Only a MODULE-level declaration may be initialised.
+        BOOLEAN : screenOk
+        INTEGER : key
+        LABEL : exit
+
+        % For printing the probe statuses on the way out. Declared bare - a
+        % PLANC local may not carry an initial value.
+        INTEGER : i
+        INTEGER : last
+
+        INISTACK stack
+
+
+        % Read the terminal type ONCE. Device 1 is our own terminal.
+        % NOTE what this does NOT tell you: if the type was unset, VTM has
+        % already prompted and the user has already answered by the time any
+        % of this runs - so what comes back here is the type in force, which
+        % is the useful thing to show.
+        % READ CTYTP ONLY AFTER VTM HAS HAD ITS FIRST CALL.
+        %
+        % Two things happen on that first call and BOTH change what MON16
+        % returns, so reading before it is reading too early:
+        %
+        %   type 0  - VTM prompts the user for a terminal type, and the
+        %             answer sets the model AND the attribute bits;
+        %   type n  - SET-TERMINAL-TYPE with a bare model number stores just
+        %             that number, every attribute bit zero. VTM DERIVES them
+        %             on its first call and writes the completed word back -
+        %             MEASURED: set 6, run this, and CTYTP reads -5114 after.
+        %             So a check made BEFORE that call sees VDU and CPOS clear
+        %             on a perfectly good screen, and wrongly refuses.
+        %
+        % blankscreen is the cheapest VTM call there is, and a screen program
+        % wants a cleared screen anyway.
+        blankscreen
+        MON16(1) =: termType
+        termType AND 255 =: termKind
+
+        % CAN THIS TERMINAL DO A SCREEN AT ALL? Ask the BITS, never the type
+        % number. A Teletype ASR 33 is type 2 and a Decwriter is type 11, but
+        % naming those two would be a list that goes stale - VDU and CPOS say
+        % the same thing for every printing terminal there has ever been:
+        % VDU  clear -> hardcopy, paper, no screen to draw on
+        % CPOS clear -> no cursor positioning, so nothing can be placed
+        % Either one missing and a framed layout is meaningless, so say so in
+        % plain text and draw NOTHING rather than spray a paper terminal with
+        % escape sequences it cannot honour.
+        TRUE =: screenOk
+        IF (termType AND bitVdu) = 0 THEN
+            FALSE =: screenOk
+        ENDIF
+        IF (termType AND bitCpos) = 0 THEN
+            FALSE =: screenOk
+        ENDIF
+
+
+        IF screenOk THEN
+
+        % PAINT ONCE. From here on nothing repaints the whole screen: opening a
+        % window covers what is under it (SPACE-FILL does that as the frame is
+        % drawn) and closing one clears its rectangle and puts back only the
+        % columns that rectangle covered. A full repaint is about 2000
+        % characters on a real line; a window is about 100.
+        blankscreen
+        drawMain
+        parkCursor
+
+        % ---- TAKE THE KEYBOARD ------------------------------------------
+        %
+        % NO ECHO. SINTRAN echoes typed characters at the cursor, and a raw
+        % key loop has no say in where that is, so a keypress lands wherever
+        % the last drawing finished - inside a window. Strategy below zero is
+        % the manual's "no echo, e.g. for password fields".
+        %
+        % NO ESCAPE. That is not bravado, it is what makes the echo safe to
+        % turn off: an ESC abort would skip the exit path below and leave the
+        % terminal with no echo at all, which is a far worse thing to hand
+        % back than a stray character. With escape disabled the program can
+        % only be left through the exit path, and the exit path always puts
+        % the echo back.
+        %
+        % AND ESC STILL WORKS AS A QUIT KEY. Because SINTRAN is no longer
+        % intercepting it, ESC arrives at pollKey as ordinary byte 27 and the
+        % loop treats it exactly like key 3. So the escape hatch is not lost;
+        % it is simply routed through our own tidy-up instead of round it.
+        MON3(1, -1, echoTab)
+        MON71(1)
+
+        % THE KEY LOOP - a POLL, not a blocking read.
+        %
+        % This used to be intacc, a PLANC-SCREEN-H field accept, which waits
+        % for a keystroke and can only give back a NUMBER. Two things forced
+        % the change: S is not a digit, and a five-second timer cannot run
+        % inside a call that blocks until somebody types.
+        %
+        % So the loop asks MON66 whether a byte is waiting, takes one with
+        % MON1 only when there is, and sleeps a tenth of a second when there
+        % is not. The clock is read from MON11 rather than counted in passes
+        % round the loop, so holding a key down cannot slow the timer.
+        DO
+            pollKey =: key
+
+            IF key = 0 THEN
+                % Nothing typed. If the scrolling window is open, see whether
+                % five seconds have gone by since the last line went in.
+                IF scrollOpen THEN
+                    MON11 =: nowTime
+                    IF nowTime - lastAdd >= addEvery THEN
+                        nowTime =: lastAdd
+                        addScrLine
+                    ENDIF
+                ENDIF
+                % Sleep, or this is a spin and not a poll. MN104, not MON104 -
+                % the runtime drops the O at three digits. Type 1 is basic
+                % units, a fiftieth of a second each.
+                MN104(pollHold, 1)
+
+            ELSIF key = keyOne THEN
+                IF smallOpen THEN
+                    FALSE =: smallOpen
+                    closeSmall
+                ELSE
+                    TRUE =: smallOpen
+                    drawSmall
+                    % The big window sits above this one.
+                    repaintAbove(2)
+                ENDIF
+
+            ELSIF key = keyTwo THEN
+                IF bigOpen THEN
+                    FALSE =: bigOpen
+                    closeBig
+                ELSE
+                    TRUE =: bigOpen
+                    drawBig
+                    % Nothing sits above the big window, so nothing to put
+                    % back. The call is here so the pattern is uniform and
+                    % the next window added does not have to remember.
+                    repaintAbove(3)
+                ENDIF
+
+            ELSIF key = keyBigS OR key = keySmallS THEN
+                IF scrollOpen THEN
+                    FALSE =: scrollOpen
+                    closeScroll
+                ELSE
+                    TRUE =: scrollOpen
+                    drawScroll
+                    % Both the others sit above this one, so put back
+                    % whichever are open - otherwise opening S while 1 or 2
+                    % is up paints this window's frame across them.
+                    repaintAbove(1)
+                    % Start the five seconds from NOW, not from whenever the
+                    % window was last open.
+                    MON11 =: lastAdd
+                ENDIF
+
+            ELSIF key = keySpace THEN
+                % SPACE adds a line by hand - and only means anything while
+                % the window is open.
+                IF scrollOpen THEN
+                    addScrLine
+                    % A hand-added line restarts the clock, so the timer does
+                    % not fire again a moment later.
+                    MON11 =: lastAdd
+                ENDIF
+
+            ELSIF key = keyFour THEN
+                probeView
+
+            ELSIF key = keyThree OR key = keyEsc THEN
+                % ESC leaves the same way 3 does - through the exit path, so
+                % the echo and the escape key are both put back.
+                GO exit
+            ENDIF
+
+            % Send the NEXT keystroke's echo somewhere harmless. Only after a
+            % real key: doing it on the idle path would put a cursor-position
+            % sequence on the line ten times a second for nothing.
+            IF key >< 0 THEN
+                parkCursor
+            ENDIF
+        ENDDO
+        ENDIF
+
+
+exit:
+        % HAND THE TERMINAL BACK CLEAN - and that takes BOTH calls.
+        %
+        % resetscreen does NOT clear the screen. MEASURED on D100 2026-08-24:
+        % leaving blankscreen out drops the user at the SINTRAN prompt on top
+        % of the program's own drawing, the "@" just overwriting the corner of
+        % the frame. resetscreen restores terminal STATE, not content - the two
+        % calls do different jobs and a tidy exit wants both.
+        IF screenOk THEN
+            blankscreen
+            % PUT THE KEYBOARD BACK, both halves, and before anything else can
+            % go wrong. MON72 re-enables the escape key and MON3 with strategy
+            % 0 restores "echo on all characters", which is SINTRAN's default.
+            % Leaving either of these out hands the user a terminal that looks
+            % broken.
+            MON3(1, 0, echoTab)
+            MON72(1)
+            resetscreen
+        ELSE
+            % Nothing was drawn, so there is nothing to blank and no screen mode
+            % to come out of - just say why, as ordinary printed lines.
+            MON72(1)
+            OUTPUT(1, 'AL', 'TESTUI needs a screen terminal.$')
+            OUTPUT(1, 'AL', 'CTYTP says this line is hardcopy, or has no cursor$')
+            OUTPUT(1, 'AL', 'positioning - so nothing has been drawn.$')
+        ENDIF
+
+        % Say we have gone, the way SINTRAN's own screen programs do -
+        % S3-CONFIG clears and leaves one line behind. This is ordinary
+        % terminal OUTPUT, printed AFTER resetscreen has put the terminal back,
+        % so it lands as plain text above the SINTRAN prompt rather than as a
+        % screen-mode write. The bare 'AL' descriptor sizes itself, so the text
+        % can be edited without recounting a width.
+        % THE PROBE'S STATUSES, as ordinary printed lines.
+        % Printed HERE, after resetscreen, and not while the program was
+        % drawing - because a viewport in force may leave nowhere on the screen
+        % to put them, which is exactly the failure the probe tests for.
+        % pcount is zero unless key 4 was pressed, so a normal run prints
+        % nothing extra.
+        IF pcount > 0 THEN
+            OUTPUT(1, 'AL', 'VIEWPORT PROBE - status returned by each call:$')
+            pcount - 1 =: last
+            FOR i IN 0:last DO
+                OUTPUT(1, 'AL', 'n=')
+                OUTPUT(1, 'I', i)
+                OUTPUT(1, 'AL', ' st=')
+                OUTPUT(1, 'I', pstat(i))
+                OUTPUT(1, 'AL', '$')
+            ENDFOR
+        ENDIF
+
+        OUTPUT(1, 'AL', '- EXIT from TESTUI screen demo -$')
+    ENDROUTINE
+ENDMODULE

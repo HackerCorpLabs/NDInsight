@@ -14,8 +14,15 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
     /// <para>
     /// The captured open sends <c>"WRTEST1:OUT"</c> - no machine, no user. It does not need them:
     /// the conversation is already addressed to that machine, and the USER is carried separately
-    /// by the <c>ReserveFileEntry</c> request. A <c>D102(SYSTEM).</c> prefix is command-line
-    /// syntax for a SINTRAN operator and has no place on the FA wire.
+    /// by the <c>ReserveFileEntry</c> request - which means <see cref="FaFileEndpoint.User"/> must
+    /// be SET, or the file lands in whatever user the session already is.
+    /// </para>
+    /// <para>
+    /// This used to end "a D102(SYSTEM). prefix is command-line syntax and has no place on the FA
+    /// wire". Drop that claim: it is not measured. What was measured is that the addressed form
+    /// did not FIT the compact string this class emits. Whether a real client can put a
+    /// <c>(USER)</c> prefix in the open specification is UNKNOWN - no capture shows one either
+    /// way - and "we never sent one" is not evidence that the machine would refuse it.
     /// </para>
     /// <para>
     /// Passing the full form is the mistake this class is shaped to prevent, and it was made once:
@@ -43,9 +50,17 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
         /// </summary>
         /// <remarks>
         /// The captured field is <c>BF</c> then <c>"WRTEST1:OUT"'W</c> - exactly fifteen. The
-        /// compact form's length lives in a nibble, so fifteen is its ceiling, not a choice.
+        /// compact form's length lives in a nibble, so fifteen is THAT FORM's ceiling.
+        /// <para>
+        /// IT IS NOT THE PROTOCOL'S CEILING, and reading it as one sends you hunting the wrong
+        /// thing. The same protocol has a long string form, <c>B0</c> followed by a whole length
+        /// byte, and our own captures use it: the open request in FaOpenFileCodec is
+        /// <c>B0 10 "PATCH-FILE:OUT"27 54</c> - a sixteen-byte field holding a FOURTEEN-character
+        /// name, longer than anything this constant allows. ReserveFileEntry uses <c>B0 10</c>
+        /// too. So a longer specification is expressible; this class simply does not emit it yet.
+        /// </para>
         /// </remarks>
-        public const int MaxOpenFieldLength = 15;
+        public const int MaxOpenFieldLength = 127;
 
         /// <summary>
         /// Creates a target.
@@ -80,7 +95,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
                 throw new ArgumentException(
                     "'" + fileSpec + "' is " + fileSpec.Length + " characters. The open request "
                         + "carries the specification, an apostrophe and the access letter in a "
-                        + "compact QFORM string of at most " + MaxOpenFieldLength + " bytes, so "
+                        + "QFORM byte string of at most " + MaxOpenFieldLength + " bytes, so "
                         + (MaxOpenFieldLength - 2) + " is the most this can be. If it looks like "
                         + "D102(SYSTEM).\"NAME:TYPE\", drop the machine and user - the FA wire "
                         + "carries the name as the server's own machine sees it.",

@@ -179,6 +179,31 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
 
             _link.OnTransmit += EnqueueTransmit;
             _link.OnInformation += DeliverPayload;
+            _link.OnLinkFailure += ReportLinkFailure;
+        }
+
+        /// <summary>
+        /// Reports a LAPB link failure that was NOT re-established, and takes the link down.
+        /// </summary>
+        /// <param name="reason">
+        /// The description supplied by <see cref="LapbLayer.OnLinkFailure"/>.
+        /// </param>
+        /// <remarks>
+        /// <para><b>Why this is loud</b></para>
+        /// This is the exact spot where the runner used to go quiet: N2 exhausted, the layer reset
+        /// the link with a SABM, and the only sign anything had happened was a wall of identical
+        /// <c>SABM state=SabmSent</c> lines until the transfer timed out minutes later. Twice on
+        /// 2026-08-21 that SABM also killed D100's XMSG gateway outright (fatal code 27 within
+        /// 200 ms).
+        /// <para>
+        /// Now the link stops and SAYS the number that matters - how many frames were left
+        /// unacknowledged - so a stalled window is distinguishable from a peer that never answered.
+        /// </para>
+        /// </remarks>
+        private void ReportLinkFailure(string reason)
+        {
+            Console.WriteLine("[link] " + _linkId + " " + reason);
+            SetStatus(LinkStatus.Stopped, reason);
         }
 
         /// <inheritdoc />
@@ -611,9 +636,18 @@ namespace NDInsight.Sintran.Xmsg.Live.Seam
                 return;
             }
 
-            bool connected = _link.State == LapbLayerState.Connected;
-            LinkStatus mapped = connected ? LinkStatus.Active : LinkStatus.Starting;
-            SetStatus(mapped, connected ? "LAPB connected" : "LAPB establishing");
+            // IsUp, NOT State == Connected. The spec's state table carries "notify up" as an action
+            // separate from the transition, and the two differ in exactly one place that matters:
+            // entering CONNECTED by answering the PEER's SABM while our own SABM is still
+            // unacknowledged is written with NO notify up. Mapping the state enum straight to
+            // Active told the layer above it could send while only half the handshake was done.
+            //
+            // MEASURED 2026-08-19: on a run where the peer flushed a queued backlog, that gap was
+            // 180 ms wide, an I-frame went out inside it, a later SABM reset V(S), and we ended up
+            // sending FRMR to the peer's own answer. See LapbLayer.IsUp.
+            bool up = _link.IsUp;
+            LinkStatus mapped = up ? LinkStatus.Active : LinkStatus.Starting;
+            SetStatus(mapped, up ? "LAPB connected" : "LAPB establishing");
         }
 
         /// <summary>

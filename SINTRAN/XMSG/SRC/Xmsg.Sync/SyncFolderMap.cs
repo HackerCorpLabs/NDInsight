@@ -255,10 +255,18 @@ namespace NDInsight.Sintran.Xmsg.Sync
         /// <para><b>Two forms, one for a person and one for the wire</b></para>
         /// <para>
         /// A plan is meant to be read, so it names files the way somebody would type them at a
-        /// SINTRAN terminal - machine, user, then the name. The file-access protocol does not carry
-        /// the machine or the user at all: the request already went to that machine's server and
-        /// was already opened under that user, so the name travels as the SERVER's own machine sees
-        /// it.
+        /// SINTRAN terminal - machine, user, then the name. The OPEN request carries only the name,
+        /// because the conversation is already addressed to that machine.
+        /// </para>
+        /// <para><b>The user is NOT thrown away - it moves, and the caller must carry it</b></para>
+        /// <para>
+        /// This used to say "the file-access protocol does not carry the machine or the user at
+        /// all". That is WRONG and it cost a wasted diagnosis on 2026-08-24, when a push logged
+        /// <c>create D100(UTILITY)."XSTART:MODE"</c> and the file arrived as
+        /// <c>(SYSTEM)XSTART:MODE</c>. The protocol carries the user TWICE, in the
+        /// ReserveFileEntry request that opens the conversation - see FaWriteRequests, which
+        /// decodes both copies. So stripping it HERE is only correct if the caller also sets the
+        /// user on its endpoint. Use <see cref="ToUser"/> for that.
         /// </para>
         /// <para>
         /// MEASURED 2026-08-11: handing the addressed form to the open request produced
@@ -282,6 +290,43 @@ namespace NDInsight.Sintran.Xmsg.Sync
             }
 
             return rest.Replace("\"", string.Empty).Trim();
+        }
+
+        /// <summary>
+        /// Recovers the user from an addressed file specification.
+        /// </summary>
+        /// <param name="fileSpec">
+        /// A specification as <see cref="BuildFileSpec"/> produces it, for example
+        /// <c>D100(UTILITY)."XSTART:MODE"</c>.
+        /// </param>
+        /// <returns>
+        /// The user, for example <c>UTILITY</c>, or an empty string when the specification names
+        /// none.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="fileSpec"/> is null.
+        /// </exception>
+        /// <remarks>
+        /// <para><b>Why this is needed at all</b></para>
+        /// <para>
+        /// <see cref="ToWireName"/> reduces the specification to the bare name the OPEN request
+        /// carries. The user still has to reach the machine, and it travels in the
+        /// ReserveFileEntry request instead - so whoever builds an endpoint has to put it back.
+        /// Without this a mapping's user is decoration: it shapes the log line and the ledger key
+        /// and the file lands in the session's own user regardless.
+        /// </para>
+        /// </remarks>
+        public static string ToUser(string fileSpec)
+        {
+            if (fileSpec == null) { throw new ArgumentNullException(nameof(fileSpec)); }
+
+            int open = fileSpec.IndexOf('(');
+            if (open < 0) { return string.Empty; }
+
+            int close = fileSpec.IndexOf(')', open + 1);
+            if (close < 0) { return string.Empty; }
+
+            return fileSpec.Substring(open + 1, close - open - 1).Trim();
         }
 
         /// <summary>

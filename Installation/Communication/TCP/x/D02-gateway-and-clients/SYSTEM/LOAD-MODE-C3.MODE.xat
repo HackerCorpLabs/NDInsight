@@ -1,0 +1,18 @@
+{
+  "ndfs.object_name": "LOAD-MODE-C3",
+  "ndfs.type": "MODE",
+  "ndfs.user_name": "SYSTEM",
+  "ndfs.user_index": 0,
+  "ndfs.access_bits": 255,
+  "ndfs.file_type_flags": 8,
+  "ndfs.file_type": 0,
+  "ndfs.device_number": 0,
+  "ndfs.next_version": 82,
+  "ndfs.prev_version": 82,
+  "ndfs.pages_in_file": 5,
+  "ndfs.bytes_in_file": 8362,
+  "ndfs.date_created": 2450455559,
+  "ndfs.last_read_date": 2602604791,
+  "ndfs.last_write_date": 2602605211,
+  "ndfs.holes": []
+}

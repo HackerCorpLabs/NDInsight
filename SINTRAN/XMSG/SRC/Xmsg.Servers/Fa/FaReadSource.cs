@@ -34,7 +34,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
         /// The captured field is <c>BD</c> then <c>BIGPSH3:TXT'.</c> - thirteen used of fifteen.
         /// The compact form's length lives in a nibble, so fifteen is its ceiling, not a choice.
         /// </remarks>
-        public const int MaxOpenFieldLength = 15;
+        public const int MaxOpenFieldLength = 127;
 
         /// <summary>
         /// The most characters a filespec being READ may have.
@@ -74,7 +74,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
                 throw new ArgumentException(
                     "'" + fileSpec + "' is " + fileSpec.Length + " characters. The open request "
                         + "carries the specification, an apostrophe and one suffix character in a "
-                        + "compact QFORM string of at most " + MaxOpenFieldLength + " bytes, so "
+                        + "QFORM byte string of at most " + MaxOpenFieldLength + " bytes, so "
                         + MaxFileSpecLength + " is the most this can be. If it looks like "
                         + "D100(SYSTEM).\"NAME:TYPE\", drop the machine, the user and the quotes - "
                         + "the FA wire carries the name as the server's own machine sees it.",

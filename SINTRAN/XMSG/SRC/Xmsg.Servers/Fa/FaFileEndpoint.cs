@@ -85,6 +85,8 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
             LetterEchoWord = 0x0002;
             BackgroundProgram = "BAK04";
             User = "SYSTEM";
+            LocalUser = "SYSTEM";
+            PasswordWord = 0;
         }
 
         /// <summary>
@@ -142,8 +144,50 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
         public string BackgroundProgram { get; set; }
 
         /// <summary>
-        /// Gets or sets the user whose directory the file belongs to.
+        /// Gets or sets the REMOTE user whose directory the file belongs to.
         /// </summary>
+        /// <remarks>
+        /// <para><b>This is the one that decides where a file lands</b></para>
+        /// <para>
+        /// The OPEN request carries only the bare name, so nothing in it says which directory is
+        /// meant. The user travels in the RESERVE request instead. Leave this at its default and
+        /// the far end uses its own session user, which is what happened to every push until
+        /// 2026-08-24: the caller asked for UTILITY, nothing set this, and the file arrived in
+        /// SYSTEM.
+        /// </para>
+        /// </remarks>
         public string User { get; set; }
+
+        /// <summary>
+        /// Gets or sets the user we are asking AS, which need not be the one being read.
+        /// </summary>
+        /// <remarks>
+        /// Field 3 of the reserve request - <c>BAK03  SYSTEM</c> in the captures - names the
+        /// background program and this user. Field 4 names <see cref="User"/>. They were believed
+        /// to be the same field twice until a capture appeared with a client reading somebody
+        /// else directory; see <c>FaWriteRequests.ReserveFileEntry</c>.
+        /// </remarks>
+        public string LocalUser { get; set; }
+
+        /// <summary>
+        /// Gets or sets <see cref="User"/> password, already folded to one word, or zero when
+        /// that user has none.
+        /// </summary>
+        /// <remarks>
+        /// <para><b>Folded, never plaintext</b></para>
+        /// <para>
+        /// SINTRAN folds a password to a single 16-bit word and sends only that:
+        /// <c>acc = ROL16(acc,3) + toupper(c)</c>. Use
+        /// <c>NDInsight.Sintran.Xmsg.Api.SintranPassword.Encode</c> to produce it. Confirmed on
+        /// the wire on 2026-07-29 - <c>secret</c> travelled as <c>6D 2A</c> and the plaintext
+        /// appeared nowhere in the frame.
+        /// </para>
+        /// <para>
+        /// Zero means "no password", which is what a user without one needs and what every
+        /// same-user capture shows. A WRONG value answers WRONG PASSWORD rather than failing
+        /// quietly.
+        /// </para>
+        /// </remarks>
+        public ushort PasswordWord { get; set; }
     }
 }

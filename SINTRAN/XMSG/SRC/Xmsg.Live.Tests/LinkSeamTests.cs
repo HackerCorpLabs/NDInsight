@@ -30,6 +30,12 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
             // Inbound wire: the peer (node 100) SABM, then its first I-frame carrying SintranInfo.
             List<byte> inbound = new List<byte>();
             inbound.AddRange(HdlcEncoder.Encode(new byte[] { 0x01, 0x3F, 0x00, 0x64 }));   // peer SABM
+            // The peer's UA answering OUR SABM (Initiate below sends one). Spec 3.1: a station
+            // "MUST answer any received SABM with UA", and the link is UP only when BOTH directions
+            // have completed the exchange. Without this the fixture models a peer that violates a
+            // MUST, and the adapter correctly refuses to report the link usable - see
+            // LapbLinkUpGatingTests for why that gating exists.
+            inbound.AddRange(HdlcEncoder.Encode(new byte[] { 0x01, 0x73, 0x00, 0x64 }));   // peer UA
             byte[] iframeBody = BuildIFrameBody(sendSeq: 0, receiveSeq: 0, SintranInfo);
             inbound.AddRange(HdlcEncoder.Encode(iframeBody));                               // peer I-frame
 

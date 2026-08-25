@@ -100,11 +100,18 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
         /// <summary>
         /// S4 - T1 x N2 -> link down and re-establish with a fresh SABM (uses fast timers).
         /// </summary>
+        /// <remarks>
+        /// This vector asserts the SPEC behaviour, so it opts in with
+        /// <see cref="LapbOptions.ReestablishOnLinkFailure"/>. The live default is the opposite: the
+        /// re-establish SABM kills a real XMSG gateway (measured twice on D100, 2026-08-21, fatal
+        /// code 27 within 200 ms), so the runner reports the failure and stops instead. The guard for
+        /// that default lives in <c>LapbTimerTests.N2_Exhaustion_ByDefault_ReportsFailureAndSendsNoSabm</c>.
+        /// </remarks>
         [Fact]
         public void S4_T1TimesN2_ReEstablishes()
         {
             List<byte[]> sent = new List<byte[]>();
-            LapbOptions fast = new LapbOptions(t1: 100, t3: 1000, n2: 3);
+            LapbOptions fast = new LapbOptions(t1: 100, t3: 1000, n2: 3, windowSize: 7, reestablishOnLinkFailure: true);
             LapbLayer link = NewConnectedInitiator(100, P102Hi, P102Lo, sent, null, fast);
             link.SendInformation(new byte[] { 0xB0 }, currentTicks: 0);   // arms T1
             sent.Clear();

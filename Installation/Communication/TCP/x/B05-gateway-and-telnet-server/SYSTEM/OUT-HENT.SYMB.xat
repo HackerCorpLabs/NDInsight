@@ -1,0 +1,18 @@
+{
+  "ndfs.object_name": "OUT-HENT",
+  "ndfs.type": "SYMB",
+  "ndfs.user_name": "SYSTEM",
+  "ndfs.user_index": 0,
+  "ndfs.access_bits": 1271,
+  "ndfs.file_type_flags": 8,
+  "ndfs.file_type": 0,
+  "ndfs.device_number": 0,
+  "ndfs.next_version": 71,
+  "ndfs.prev_version": 71,
+  "ndfs.pages_in_file": 12,
+  "ndfs.bytes_in_file": 24128,
+  "ndfs.date_created": 86070737,
+  "ndfs.last_read_date": 2522934087,
+  "ndfs.last_write_date": 86070737,
+  "ndfs.holes": []
+}

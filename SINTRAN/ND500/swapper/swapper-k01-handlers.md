@@ -232,6 +232,13 @@ Bound variable `[0x128E4]` (`$1000224344`) is the count of valid Table-A slots:
 workers reject ids `< 7` or `> [0x128E4]` with error code 0o2067 (e.g. idx 0
 worker, lines 1000053727-1000053753). PROVEN.
 
+> **NOT UNIVERSAL - corrected 2026-08-25.** This holds for the idx-0 worker as
+> cited, but is NOT a property of the bound check in general: the **idx-10**
+> worker (1000042045) does the same `[7 .. [0x128E4]]` range test and returns
+> **`0o1030`**, not `0o2067` (site 1000042425). `0o2067` is a generic reject code
+> emitted from nine unrelated sites; it identifies neither the handler nor the
+> kind of failure. See the correction box under idx 10.
+
 The **hot flags** cross-reference is proven: worker 0x0800062F (1000003057)
 tests `[0x23D6C]` and `[0x23D70]` before issuing its MON 377B, skipping the call
 when either is set (lines 1000003077-1000003115); the same flags are tested by
@@ -334,9 +341,140 @@ MSW* named codes proven on the ND-100 side (from the coordinator carve):
 ### idx 10 - entry 0x08008387 (1000101607), worker 1000042045
 - **PROVEN**: stub passes `[0x240BC]`. Worker (frame 0o2104) reads a Table B
   (seg 4) descriptor, a Table A (seg, *0o144) record and a Table D (seg 5)
-  entry, checks state fields (`getbf`, compares 0x15/0x16), increments stats
-  `[0x461134]`, and returns error codes 0o2067 / 0o1030 / 0o1031 on bad state.
-  The worker's call-tree reaches **no** paging primitive and **no** MON 377B.
+  entry, checks state fields (`getbf`), increments stats `[0x461134]`, and
+  returns an error code on bad state. The worker's call-tree reaches **no**
+  paging primitive and **no** MON 377B.
+
+  > **CORRECTED 2026-08-25 by decoding the worker instruction by instruction.**
+  > The three statements struck from the line above were each wrong, and a live
+  > run was about to be read through them. Do not re-adopt them.
+  >
+  > 1. **"compares 0x15/0x16" - WRONG RADIX.** The `$` literals in
+  >    `swapper-k01-pseg.asm` are OCTAL, so the compares are against `0o15`/`0o16`
+  >    = **decimal 13/14**. Proof inside this same worker: `w2 * $144` is the
+  >    Table A stride this document itself calls "0o144 = 100".
+  > 2. **The polarity is backwards.** 13 and 14 are the states that are
+  >    **REJECTED**, not the expected ones - both compares branch AWAY from the
+  >    error (`if << go` when state < 13, `if >> go` when state > 14):
+  >    ```
+  >    1000042437  w1 getbf r.4,$32,$4   ; 4-bit field, record offset 4, start bit 0o32=26
+  >    1000042450  w1 comp $15
+  >    1000042452  if << go $16          ; state < 13 -> skip the error
+  >    1000042454  w1 comp $16
+  >    1000042456  if >> go $12          ; state > 14 -> skip the error
+  >    1000042460  w move $1030,b.14     ; state IS 13 or 14 -> error 0o1030
+  >    ```
+  > 3. **The three codes are not three named bad states of one check.** Within
+  >    this worker:
+  >    - `0o1030` - TWO sites: the id-range compare (1000042425) and the 13/14
+  >      state compare (1000042460).
+  >    - `0o2067` - ONE site (1000042275), a **completely different** check from
+  >      the state field (see below).
+  >    - `0o1031` - **never emitted by this worker.** Its only literal site is
+  >      1000035262, in another worker. Listing it here was an error.
+  >
+  > **What actually emits `0o2067` here** - all three conditions must hold at once:
+  > ```
+  > 1000042246  h1 := r3.(14)   ; Table A record, offset 0o14
+  > 1000042251  w test r1
+  > 1000042253  if >< go $27    ; (a) NONZERO -> skip error
+  > 1000042255  by1 := r3.(5)   ; Table A record, byte at offset 5
+  > 1000042260  by1 and $100    ; bit 0o100 = 0x40
+  > 1000042264  if = go $11     ; (b) bit CLEAR -> skip error
+  > 1000042266  h2 := r.14      ; the REQUEST record (b.24), offset 0o14
+  > 1000042270  h2 comp $31
+  > 1000042273  if = go $7      ; (c) == 0o31 (25) -> skip error
+  > 1000042275  w1 := $2067
+  > 1000042301  retk            ; return K=1
+  > ```
+  > i.e. Table-A `+0o14` is zero **and** Table-A `+5` bit 0x40 is set **and** the
+  > request's `+0o14` is not 0o31.
+  >
+  > > **RETRACTED 2026-08-25 — the "half-initialised Table A entry" reading of
+  > > (a)+(b) was WRONG, and it was an inference, not a carve.** A full-run
+  > > dispatch census with the Table-A state sampled at every request refuted it:
+  > > at `DISP=0x0A` every entry reads `+0o14 = 0001`, so (a) is FALSE, and the
+  > > entry matching the fault additionally reads `+5 = 0x80`, so bit `0o100` is
+  > > clear and (b) is FALSE too. **Both required conditions fail, so site
+  > > `1000042275` cannot be the emitter of an observed `0o2067`.** The
+  > > `+0o14 = 0000` samples that suggested the reading are all at `DISP=0x18`
+  > > (idx 24, "create/define a segment descriptor") and read `0001` on the next
+  > > sample — a construction transient, not a fault state.
+  > >
+  > > The instruction decoding above is unaffected and still holds; what was wrong
+  > > was reasoning from "these two conditions could co-occur" to "this is what
+  > > happened". Confirm a site fires by measuring its inputs, never by finding a
+  > > story its guard would allow.
+  >
+  > **`0o2067` does NOT identify this handler.** It is emitted from NINE sites
+  > across the PSEG (1000006170, 1000006231, 1000035103, 1000042275, 1000052151,
+  > 1000053747, 1000064576, 1000065010, 1000065065) - it is a generic reject.
+  > Section 4's "workers reject ids `< 7` or `> [0x128E4]` with error code 0o2067"
+  > is true of the idx-0 worker but **not** of this one, where the id-range
+  > failure yields `0o1030`. Identify the handler from the dispatch cell
+  > (`DISP@0x240B8`), never from the error value.
+  >
+  > **WHO WRITES THE TWO FIELDS - ANSWERED 2026-08-25 by sweeping every
+  > reference in the PSEG. They have DIFFERENT owners, and that is the point.**
+  >
+  > **`+0o14` is written by the swapper, and only from `idx 9`'s call tree.**
+  > The single writer is worker `1000006650`:
+  > ```
+  > 1000006676  by3 laddr $1000700000+   ; r3 = Table A entry
+  > 1000006715  h4 := r3.(14)            ; the SAME field idx 10 tests
+  > 1000006720  w test r4
+  > 1000006722  if >< go $334            ; already set -> nothing to do
+  > 1000006727  call $1000026217,$0      ; register/link the record
+  > 1000006735  ifkret                   ; FAILS -> return, +0o14 stays ZERO
+  > 1000006746  h3 := $1
+  > 1000006750  h3 =: r.14               ; +0o14 := 1  (only on success)
+  > ```
+  > `1000006650` has exactly three callers: `1000046457` in worker `1000046242`
+  > = **idx 9 (allocate+link a segment)**, `1000054016` in worker `1000053713`
+  > = idx 0 (free/finish), and `1000065102` in worker `1000065035` = idx 15.
+  > `1000026217` links the record into the list at `$1000224714`/`$1000224724`
+  > and can itself fail through two `ifkret` paths (`1000025556`, `1000000137`).
+  >
+  > **`+5` is NEVER written anywhere in this PSEG.** All 20 references to it are
+  > reads (`by := r.5`) - swept with `grep -nE 'r[0-9]?\.\(?5\)?([^0-9]|$)'`.
+  > The swapper only consumes that flag byte; whoever builds the Table-A entry
+  > owns it, and that is outside this domain.
+  >
+  > **The "idx 9 never ran" conclusion drawn from this is ALSO RETRACTED
+  > (2026-08-25).** The same census shows `DISP=0x09` dispatched four times, with
+  > `+0o14 = 0001` on entries 10/11/12 immediately afterwards - i.e. `1000006750`
+  > `h3 =: r.14` executing normally and `1000026217` linking fine. The
+  > allocate-and-link path WORKS in this run. The ownership carve above (who
+  > writes `+0o14`, and that `+5` is never written in this PSEG) stands; only the
+  > diagnosis built on top of it was wrong.
+  >
+  > **WHERE THE `0o2067` MUST ACTUALLY COME FROM.** `0o2067` has nine emitters.
+  > Mapping the other eight to their handlers, and intersecting with the dispatch
+  > codes a run actually issues, narrows it sharply - seven of the eight are the
+  > SAME id-range guard (low bound `$7`, high bound `[$1000224124]`), differing
+  > only in where the id is read from:
+  >
+  > | site | worker | handler | guard |
+  > |---|---|---|---|
+  > | `1000006170` | `1000006134` | **idx 24** create/define a segment descriptor | id from request `+0o20` vs `$7` / `[$1000224124]` |
+  > | `1000006231` | `1000006134` | **idx 24** | **distinct**: Table-A `+0o136 == 0` AND `+0o142 != 0` |
+  > | `1000053747` | `1000053713` | **idx 0** free/finish a segment slot | id from `r.20`, same range guard |
+  > | `1000052151` | `1000052116` | **idx 1** release working set - also called BY idx 0's worker | id from `r.20`, same range guard |
+  > | `1000035103` | `1000035055` | idx 19 swap/fix a segment | same range guard |
+  > | `1000064576` | `1000064543` | idx 21 set two seg-4 fields | same range guard |
+  > | `1000065010` | `1000064760` | idx 14 attach/connect segment | same range guard |
+  > | `1000065065` | `1000065035` | idx 15 mirror of fn 14 | same range guard |
+  >
+  > **Only `idx 24` (`0x18`) and `idx 0` (`0x00`) appear in the measured census**,
+  > so in that run only four sites are reachable: the two in `idx 24`, plus
+  > `1000053747` in `idx 0` and `1000052151` through `idx 0`'s sub-call to
+  > `1000052116`. Three of those four are the same id-range test, so **logging
+  > the id being passed against `[$1000224124]` settles three at once**; if the
+  > id is in range, the only survivor is `idx 24`'s `+0o136`/`+0o142` test.
+  >
+  > Note `idx 24`'s stub `1000103002` calls the worker and then, on `K` set,
+  > `call $1000101241` - the routine that writes `W1` into the fn cell. So a
+  > `0o2067` from `idx 24` reaches the fn cell by the documented path.
 - **INFERRED name**: page-fault notification / accounting (look up the faulting
   segment, validate its state, bump a counter) - a bookkeeping handler that
   itself does no paging.

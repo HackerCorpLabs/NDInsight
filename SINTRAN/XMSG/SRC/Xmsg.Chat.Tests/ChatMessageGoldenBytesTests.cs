@@ -35,6 +35,293 @@ namespace NDInsight.Sintran.Xmsg.Chat.Tests
     public sealed class ChatMessageGoldenBytesTests
     {
         /// <summary>
+        /// The all-rooms answer: no name, and the whole picture in the text.
+        /// </summary>
+        /// <remarks>
+        /// <para><b>Pinned against the PLANC that emits it</b></para>
+        /// <c>buildAllWho</c> in <c>CHATSV.PLNC</c> writes the kind, then a ZERO name length -
+        /// the SERVER is answering, not a member - then the two-byte text length and the text.
+        /// The empty name field is load-bearing: a client that printed the name would print
+        /// nothing, and one that expected a name there would read the length bytes as characters.
+        /// <para><b>The text is ready to read and nothing parses it</b></para>
+        /// Rooms two spaces apart, people one apart. A format nobody parses cannot be parsed
+        /// wrongly, which is the whole reason it is laid out for a person rather than a decoder.
+        /// </remarks>
+        [Fact]
+        public void AnAllWhoMessageHasExactlyTheseBytes()
+        {
+            ChatMessage all = new ChatMessage(ChatMessageKind.AllWho, string.Empty, "LOBBY: ANNA");
+
+            byte[] buffer = new byte[64];
+            int written = all.Encode(buffer);
+
+            //  0F        kind = AllWho (15)
+            //  00        name length - EMPTY, the server is answering
+            //  00 0B     text length, HIGH byte first
+            //  4C 4F 42 42 59 3A 20 41 4E 4E 41   "LOBBY: ANNA"
+            Assert.Equal("0F00000B4C4F424259 3A20414E4E41".Replace(" ", string.Empty),
+                Convert.ToHexString(buffer, 0, written));
+        }
+
+        /// <summary>
+        /// A replayed line: the same shape as a spoken one, under a different kind.
+        /// </summary>
+        /// <remarks>
+        /// <para><b>Same bytes as Said except the first</b></para>
+        /// That is deliberate and is the point of the kind being separate. The layout stays
+        /// familiar so a client renders it with the same code, while the FIRST BYTE still says
+        /// this is history - so a client that timestamps, beeps or counts unread can tell.
+        /// <para><b>Pinned against histReplay in CHATSV.PLNC</b></para>
+        /// Kind, name length, name, two-byte big-endian text length, text - the same universal
+        /// prefix every kind uses.
+        /// </remarks>
+        [Fact]
+        public void AHistoryMessageHasExactlyTheseBytes()
+        {
+            ChatMessage past = new ChatMessage(ChatMessageKind.History, "ANNA", "hei");
+
+            byte[] buffer = new byte[64];
+            int written = past.Encode(buffer);
+
+            //  10        kind = History (16)
+            //  04        nickname length
+            //  41 4E 4E 41   "ANNA"
+            //  00 03     text length, HIGH byte first
+            //  68 65 69  "hei"
+            Assert.Equal("1004414E4E41000368 6569".Replace(" ", string.Empty),
+                Convert.ToHexString(buffer, 0, written));
+
+            // The ONLY difference from Said is the kind byte. If that ever stops being true,
+            // one of the two layouts has drifted.
+            ChatMessage said = new ChatMessage(ChatMessageKind.Said, "ANNA", "hei");
+            byte[] saidBuffer = new byte[64];
+            int saidWritten = said.Encode(saidBuffer);
+
+            Assert.Equal(saidWritten, written);
+            for (int i = 1; i < written; i++)
+            {
+                Assert.Equal(saidBuffer[i], buffer[i]);
+            }
+        }
+
+        /// <summary>
+        /// A forwarded line between servers: the speaker unqualified, the room in front of the text.
+        /// </summary>
+        /// <remarks>
+        /// <para><b>The room travels in the text, split at the FIRST slash</b></para>
+        /// A message may contain slashes and a room name may not, so the first one is the
+        /// separator. Splitting at the last would put half a sentence in the room name.
+        /// <para><b>The speaker is NOT qualified here</b></para>
+        /// The name is who their own machine knows them as. The receiver adds the machine, taken
+        /// from the magic the letter arrived with - so a speaker cannot forge the machine they
+        /// are on by putting it in the name.
+        /// </remarks>
+        [Fact]
+        public void ATrunkSaidMessageHasExactlyTheseBytes()
+        {
+            ChatMessage forwarded = new ChatMessage(ChatMessageKind.TrunkSaid, "ANNA", "LOBBY/hei");
+
+            byte[] buffer = new byte[64];
+            int written = forwarded.Encode(buffer);
+
+            //  33        kind = TrunkSaid (51 decimal)
+            //  04        speaker length, UNQUALIFIED
+            //  41 4E 4E 41   "ANNA"
+            //  00 09     text length, HIGH byte first
+            //  4C 4F 42 42 59 2F 68 65 69   "LOBBY/hei"
+            Assert.Equal("3304414E4E410009 4C4F4242592F686569".Replace(" ", string.Empty),
+                Convert.ToHexString(buffer, 0, written));
+        }
+
+        /// <summary>
+        /// A RELAYED line: the same shape as TrunkSaid with an origin and a hop count in front.
+        /// </summary>
+        /// <remarks>
+        /// <para><b>Why the origin travels and cannot be inferred</b></para>
+        /// The receiver's usual trick is to qualify the speaker with the system the letter arrived
+        /// from. On a relayed message that names the RELAY, not the speaker's own machine, so the
+        /// origin has to be carried explicitly.
+        /// <para><b>Why TrunkSaid was not simply extended</b></para>
+        /// Its bytes are pinned by the test above and the PLANC server reads the same layout.
+        /// Adding fields there would mean every machine had to be upgraded before any trunk
+        /// worked, and these machines are upgraded one at a time.
+        /// </remarks>
+        [Fact]
+        public void ATrunkRelayMessageHasExactlyTheseBytes()
+        {
+            ChatMessage relayed = new ChatMessage("ANNA", "LOBBY/hei", 103, 3);
+
+            byte[] buffer = new byte[64];
+            int written = relayed.Encode(buffer);
+
+            //  34        kind = TrunkRelay (52 decimal)
+            //  00 67     origin system = 103, HIGH byte first
+            //  03        hops remaining
+            //  04        speaker length, UNQUALIFIED
+            //  41 4E 4E 41   "ANNA"
+            //  00 09     text length, HIGH byte first
+            //  4C 4F 42 42 59 2F 68 65 69   "LOBBY/hei"
+            Assert.Equal("34006703 04414E4E41 0009 4C4F4242592F686569".Replace(" ", string.Empty),
+                Convert.ToHexString(buffer, 0, written));
+        }
+
+        /// <summary>
+        /// The other direction: those exact bytes decode back to the same message.
+        /// </summary>
+        /// <remarks>
+        /// A golden for EACH direction is the rule for a new kind - CHAT-FEDERATION-DESIGN.md
+        /// constraint 5. The /nick defect was precisely an unpinned direction: the client wrote
+        /// one field and the server read another, and both ends silently did nothing.
+        /// </remarks>
+        [Fact]
+        public void ThoseExactBytesDecodeBackToARelayedMessage()
+        {
+            byte[] wire = Convert.FromHexString(
+                "34006703" + "04414E4E41" + "0009" + "4C4F4242592F686569");
+
+            ChatMessage decoded;
+            bool ok = ChatMessage.TryDecode(wire, out decoded);
+
+            Assert.True(ok);
+            Assert.Equal(ChatMessageKind.TrunkRelay, decoded.Kind);
+            Assert.Equal((ushort)103, decoded.OriginSystem);
+            Assert.Equal((byte)3, decoded.HopsRemaining);
+            Assert.Equal("ANNA", decoded.Nickname);
+            Assert.Equal("LOBBY/hei", decoded.Text);
+        }
+
+        /// <summary>
+        /// A relay carrying the origin's line number has exactly these bytes.
+        /// </summary>
+        /// <remarks>
+        /// <para><b>Both directions are pinned, and that is the rule for a new kind</b></para>
+        /// CHAT-FEDERATION-DESIGN.md constraint 5. The /nick defect was an unpinned direction: the
+        /// client wrote one field, the server read another, and both ends silently did nothing.
+        /// <para><b>Why the id sits after the hop count</b></para>
+        /// It keeps the first three bytes identical in layout to kind 52, which makes the two
+        /// readable side by side on a trace - which is where these get diagnosed.
+        /// </remarks>
+        [Fact]
+        public void ATrunkRelayIdMessageHasExactlyTheseBytes()
+        {
+            ChatMessage relayed = new ChatMessage("ANNA", "LOBBY/hei", 103, 3, 1234);
+
+            byte[] buffer = new byte[64];
+            int written = relayed.Encode(buffer);
+
+            //  35        kind = TrunkRelayId (53 decimal)
+            //  00 67     origin system = 103, HIGH byte first
+            //  03        hops remaining
+            //  04 D2     line id = 1234, HIGH byte first
+            //  04        speaker length, UNQUALIFIED
+            //  41 4E 4E 41   "ANNA"
+            //  00 09     text length, HIGH byte first
+            //  4C 4F 42 42 59 2F 68 65 69   "LOBBY/hei"
+            Assert.Equal(
+                "3500670304D2 04414E4E41 0009 4C4F4242592F686569".Replace(" ", string.Empty),
+                Convert.ToHexString(buffer, 0, written));
+        }
+
+        /// <summary>
+        /// Those exact bytes decode back, id and all.
+        /// </summary>
+        [Fact]
+        public void ThoseExactBytesDecodeBackToARelayedMessageWithAnId()
+        {
+            byte[] wire = Convert.FromHexString(
+                "3500670304D2" + "04414E4E41" + "0009" + "4C4F4242592F686569");
+
+            ChatMessage decoded;
+            bool ok = ChatMessage.TryDecode(wire, out decoded);
+
+            Assert.True(ok);
+            Assert.Equal(ChatMessageKind.TrunkRelayId, decoded.Kind);
+            Assert.Equal((ushort)103, decoded.OriginSystem);
+            Assert.Equal((byte)3, decoded.HopsRemaining);
+            Assert.Equal((ushort)1234, decoded.LineId);
+            Assert.Equal("ANNA", decoded.Nickname);
+            Assert.Equal("LOBBY/hei", decoded.Text);
+        }
+
+        /// <summary>
+        /// Kind 52 is untouched by the arrival of kind 53.
+        /// </summary>
+        /// <remarks>
+        /// The same guarantee TrunkSaid was given when TrunkRelay arrived, for the same reason: a
+        /// server that has not been upgraded still speaks 52, and its bytes must not have moved
+        /// under it.
+        /// </remarks>
+        [Fact]
+        public void TrunkRelayIsUnchangedByTheArrivalOfTrunkRelayId()
+        {
+            ChatMessage relayed = new ChatMessage("ANNA", "LOBBY/hei", 103, 3);
+
+            byte[] buffer = new byte[64];
+            int written = relayed.Encode(buffer);
+
+            Assert.Equal("34006703" + "04414E4E41" + "0009" + "4C4F4242592F686569",
+                Convert.ToHexString(buffer, 0, written));
+            Assert.Equal((ushort)0, relayed.LineId);
+        }
+
+        /// <summary>
+        /// A kind-53 header cut short is refused, not read as a nickname length.
+        /// </summary>
+        /// <remarks>
+        /// Its header is two bytes longer than kind 52's, so a message long enough to satisfy the
+        /// OLD check can still be too short for this one. That is exactly the case that would read
+        /// the id's high byte as a name length.
+        /// </remarks>
+        [Fact]
+        public void ATruncatedRelayIdHeaderIsRefused()
+        {
+            // Enough bytes for a kind-52 header, one short of a kind-53 one.
+            byte[] wire = Convert.FromHexString("35006703");
+
+            ChatMessage decoded;
+            bool ok = ChatMessage.TryDecode(wire, out decoded);
+
+            Assert.False(ok);
+        }
+
+        /// <summary>
+        /// A relay header cut short is refused, not read as a nickname length.
+        /// </summary>
+        /// <remarks>
+        /// Without the length check this decodes: 0x00 becomes a zero-length nickname, 0x67 and
+        /// the next byte become a text length, and a plausible-looking message comes out of
+        /// rubbish. Dropping it is the whole point of TryDecode rejecting rather than throwing.
+        /// </remarks>
+        [Fact]
+        public void ATruncatedRelayHeaderIsRefused()
+        {
+            byte[] wire = Convert.FromHexString("340067");
+
+            ChatMessage decoded;
+
+            Assert.False(ChatMessage.TryDecode(wire, out decoded));
+        }
+
+        /// <summary>
+        /// TrunkSaid still encodes exactly as it did, with no relay header.
+        /// </summary>
+        /// <remarks>
+        /// This is the promise that made a separate kind worth having: an un-upgraded server must
+        /// keep seeing the bytes it already understands while the rollout is half done.
+        /// </remarks>
+        [Fact]
+        public void TrunkSaidIsUnchangedByTheArrivalOfTrunkRelay()
+        {
+            ChatMessage forwarded = new ChatMessage(ChatMessageKind.TrunkSaid, "ANNA", "LOBBY/hei");
+
+            byte[] buffer = new byte[64];
+            int written = forwarded.Encode(buffer);
+
+            Assert.Equal("3304414E4E410009" + "4C4F4242592F686569",
+                Convert.ToHexString(buffer, 0, written));
+        }
+
+        /// <summary>
         /// A spoken line: kind, name length, name, a two-byte big-endian text length, the text.
         /// </summary>
         [Fact]

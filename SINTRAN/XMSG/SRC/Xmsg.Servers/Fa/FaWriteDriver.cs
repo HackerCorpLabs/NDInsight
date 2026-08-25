@@ -697,7 +697,11 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
                 case FaOperation.ReserveFileEntry:
                     return _conversation.BuildRequest(
                         operation,
-                        FaWriteRequests.ReserveFileEntry(_target.BackgroundProgram, _target.User));
+                        FaWriteRequests.ReserveFileEntry(
+                            _target.BackgroundProgram,
+                            _target.LocalUser,
+                            _target.User,
+                            _target.PasswordWord));
 
                 case FaOperation.OpenFile:
                     return _conversation.BuildRequest(

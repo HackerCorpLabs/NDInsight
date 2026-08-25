@@ -1,0 +1,13 @@
+@NEW RT
+@CC ===========================================================
+@CC   Loading TCSHAR
+@CC ===========================================================
+@RT-LOADER
+CLEAR-SEGMENT TCSHAR
+Y
+NEW-SEG TCSHAR,,,,,,,
+SET-LOAD-ADDRESS TCSHAR,134000
+LOAD (TCP-COMM)TCNESH,TCSHAR,,,,,
+END-LOAD
+END
+EXIT

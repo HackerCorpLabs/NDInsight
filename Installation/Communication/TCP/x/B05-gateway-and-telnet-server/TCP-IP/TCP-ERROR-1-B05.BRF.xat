@@ -1,0 +1,18 @@
+{
+  "ndfs.object_name": "TCP-ERROR-1-B05",
+  "ndfs.type": "BRF",
+  "ndfs.user_name": "TCP-IP",
+  "ndfs.user_index": 7,
+  "ndfs.access_bits": 1087,
+  "ndfs.file_type_flags": 8,
+  "ndfs.file_type": 0,
+  "ndfs.device_number": 0,
+  "ndfs.next_version": 1797,
+  "ndfs.prev_version": 1797,
+  "ndfs.pages_in_file": 206,
+  "ndfs.bytes_in_file": 421260,
+  "ndfs.date_created": 48965042,
+  "ndfs.last_read_date": 86070941,
+  "ndfs.last_write_date": 48965243,
+  "ndfs.holes": []
+}

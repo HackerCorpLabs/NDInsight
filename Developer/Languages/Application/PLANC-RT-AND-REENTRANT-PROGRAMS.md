@@ -356,11 +356,49 @@ behaviour wanted, not a fault in the install.
 differently from an ordinary program, so until it has been run by two logged-in users at once, the
 install is verified and the REENTRANCY is not. It needs XMSG up.
 
-**A note on the name.** `CHAT-CLIENT`, not `CHAT`: the program file `CHAT:PROG` is still there and
-still runs with `@CHAT`, so both routes stayed available while testing. Give the subsystem the
-final name only once you are done comparing the two.
-
 **And it is reversible** - `@DELETE-REENTRANT` takes it out again.
+
+### 3.2a RELOADING one: DELETE FIRST. A rebuild does NOT reach the subsystem.
+
+**MEASURED on D100, 2026-08-19.** Installing over an existing name is REFUSED:
+
+```
+@DUMP-PROGRAM-REENTRANT NDCHAT,CHAT:PROG
+NAME ALREADY USED ON REENTRANT SUBSYSTEM
+```
+
+The correct cycle is **delete, then load again** - both silent on success:
+
+```
+@DELETE-REENTRANT NDCHAT
+@DUMP-PROGRAM-REENTRANT NDCHAT,CHAT:PROG
+@LIST-REENTRANT                       % 14373B  14373B  114B  NDCHAT
+```
+
+**Why this matters more than a one-line error suggests.** A reentrant subsystem is a COPY taken at
+install time. Recompiling the source and relinking the `:PROG` changes NOTHING about what the
+subsystem runs - it goes on serving the old code until you delete and re-install it. The refusal is
+a single line with no `***` and no error number, and in a MODE file it scrolls past without stopping
+anything, so the build "succeeds" and the machine keeps running the previous binary.
+
+**While you are still iterating, the other option is simpler: delete the subsystem and run the
+`:PROG` file directly.** Install it only when the build is final.
+
+**Both parameters work on one line** - `@DUMP-PROGRAM-REENTRANT <name>,<file>` - as well as through
+the `NAME:` / `FILE NAME:` prompts.
+
+### 3.2b The name must not be a prefix-extension of the program file
+
+**This cost hours.** The subsystem was first called `CHAT-CLIENT` while the program file was
+`CHAT:PROG`. SINTRAN matches command names by ABBREVIATION, so **`@CHAT` ran the SUBSYSTEM**, not the
+program - and every rebuild appeared to change nothing, because the thing being tested was the
+frozen install.
+
+The tell: a newly added `OUTPUT` does not print, while a later one in the same routine does.
+
+Reinstalled as **`NDCHAT`** - no shared prefix, so `@CHAT` runs the file and `@NDCHAT` runs the
+subsystem, and the two can be compared honestly. Verified end to end 2026-08-19: `@NDCHAT` read the
+per-user `CHAT:CNFG`, printed `you are OLAV`, joined `(LOBBY)` and answered `/who`.
 
 ### 3.3 Making a PLANC program fit - the part that is on YOU
 
@@ -389,14 +427,18 @@ only thing that is different about being reentrant.
 
 ```
 1  build the ordinary program first and run it by hand      @CHAT
-2  install it                                               @DUMP-PROGRAM-REENTRANT
+2  install it under a NON-prefix name                       @DUMP-PROGRAM-REENTRANT NDCHAT,CHAT:PROG
 3  check it is there                                        @LIST-REENTRANT
-4  run it as TWO different users at the same time
-5  if it is wrong, take it out again                        @DELETE-REENTRANT
+4  run it as TWO different users at the same time           @NDCHAT
+5  to RELOAD after a rebuild - delete FIRST, always         @DELETE-REENTRANT NDCHAT
+                                                            @DUMP-PROGRAM-REENTRANT NDCHAT,CHAT:PROG
 ```
 
 **Step 1 is not optional.** A program that does not work standing alone will not work shared, and
 the reentrant version is far harder to look at while it runs.
+
+**Step 5 is not optional either** - see 3.2a. Skipping the delete gets you
+`NAME ALREADY USED ON REENTRANT SUBSYSTEM` and the OLD code stays installed.
 
 ---
 

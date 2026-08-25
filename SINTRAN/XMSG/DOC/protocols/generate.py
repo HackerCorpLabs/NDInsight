@@ -66,8 +66,15 @@ def render_structure(name, struct, out):
     size = struct.get("size_bytes")
     words = struct.get("words")
     if size:
-        out.append("%s bytes, %s words, %s."
-                   % (size, words, struct.get("byte_order", "big-endian")))
+        # A structure that is not a whole number of words carries no "words" count - the ND link
+        # header is 11 bytes. Printing "None words" there is worse than saying nothing, so the
+        # word clause only appears when the registry actually has one.
+        if words:
+            out.append("%s bytes, %s words, %s."
+                       % (size, words, struct.get("byte_order", "big-endian")))
+        else:
+            out.append("%s bytes, %s."
+                       % (size, struct.get("byte_order", "big-endian")))
         out.append("")
 
     fields = struct.get("fields", [])
@@ -191,6 +198,9 @@ def collect_known_names(doc):
                 known.add(v["name"])
 
     add_values(doc.get("operations"))
+    # The chat registry calls its vocabulary message_kinds - they are messages, not operations on
+    # a file, and naming them "operations" to satisfy this list would have been the tail wagging.
+    add_values(doc.get("message_kinds"))
     add_values(doc.get("services"))
     add_values(doc.get("errors"))
     add_values(doc.get("connection_types"))

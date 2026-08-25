@@ -22,6 +22,13 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
             return new LapbOptions(t1: 100, t3: 1000, n2: 3);
         }
 
+        // The same fast timers, but with the spec's automatic re-establish turned back ON. It is OFF
+        // by default because that SABM kills a real XMSG gateway - see LapbOptions.
+        private static LapbOptions FastReestablishing()
+        {
+            return new LapbOptions(t1: 100, t3: 1000, n2: 3, windowSize: 7, reestablishOnLinkFailure: true);
+        }
+
         /// <summary>
         /// T1 does not fire before its deadline and, on expiry with a frame outstanding, polls the peer
         /// with RR (P=1) (spec 5.1 poll-first).
@@ -59,14 +66,14 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
         }
 
         /// <summary>
-        /// Exceeding N2 retransmissions declares the link failed and auto re-establishes from CONNECTED
-        /// with a fresh SABM (spec 5.1 step 1, S4).
+        /// Exceeding N2 re-establishes from CONNECTED with a fresh SABM when the caller opts in
+        /// (spec 5.1 step 1, S4).
         /// </summary>
         [Fact]
-        public void N2_Exhaustion_AutoReEstablishes()
+        public void N2_Exhaustion_AutoReEstablishes_WhenOptedIn()
         {
             List<byte[]> sent = new List<byte[]>();
-            LapbLayer link = NewConnected(102, sent, null, Fast());   // N2 = 3
+            LapbLayer link = NewConnected(102, sent, null, FastReestablishing());   // N2 = 3
             link.SendInformation(new byte[] { 0x55 }, currentTicks: 0);
             sent.Clear();
 
@@ -80,6 +87,45 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
             Assert.Equal(LapbLayerState.SabmSent, link.State);
             Assert.Equal(0, link.SendVariable);   // Reset cleared outstanding
             Assert.Contains(new byte[] { 0x01, 0x3F, Node102Hi, Node102Lo }, sent);   // fresh SABM P=1
+        }
+
+        /// <summary>
+        /// BY DEFAULT, exceeding N2 on a live link does NOT send a SABM - it reports the failure.
+        /// </summary>
+        /// <remarks>
+        /// This is the regression guard for the thing that took D100 down. The re-establish is
+        /// correct LAPB and it killed a real XMSG gateway twice on 2026-08-21, 147 ms and 201 ms
+        /// after our SABM, with <c>XMSG ERROR CODE: 27</c> both times. A SABM MUST NOT leave this
+        /// layer as the automatic consequence of a stalled window.
+        /// </remarks>
+        [Fact]
+        public void N2_Exhaustion_ByDefault_ReportsFailureAndSendsNoSabm()
+        {
+            List<byte[]> sent = new List<byte[]>();
+            LapbLayer link = NewConnected(102, sent, null, Fast());   // N2 = 3, no re-establish
+            List<string> failures = new List<string>();
+            link.OnLinkFailure += delegate (string reason) { failures.Add(reason); };
+
+            link.SendInformation(new byte[] { 0x55 }, currentTicks: 0);
+
+            Assert.True(link.Tick(100));   // retry 1
+            Assert.True(link.Tick(200));   // retry 2
+            Assert.True(link.Tick(300));   // retry 3
+            sent.Clear();
+            Assert.True(link.Tick(400));   // retry 4 > N2 -> declare dead, say so
+
+            Assert.Equal(LapbLayerState.Disconnected, link.State);
+            Assert.Single(failures);
+            Assert.Contains("N2", failures[0]);
+
+            // THE POINT OF THE TEST: nothing that goes out may be a SABM. Address 0x01 with the
+            // SABM control byte 0x3F is the frame that kills the peer.
+            for (int i = 0; i < sent.Count; i++)
+            {
+                byte[] frame = sent[i];
+                bool isSabm = frame.Length >= 2 && frame[0] == 0x01 && (frame[1] & 0xEF) == 0x2F;
+                Assert.False(isSabm, "a SABM was emitted on N2 exhaustion; that kills the peer's XMSG gateway");
+            }
         }
 
         /// <summary>

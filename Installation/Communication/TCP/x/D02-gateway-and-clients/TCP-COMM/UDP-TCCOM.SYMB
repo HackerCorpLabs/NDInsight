@@ -1,0 +1,283 @@
+MODULE TCCOMM
+
+CONSTANT SLMaxPorts = 1
+CONSTANT SLMaxSockets = 8
+CONSTANT SLMaxSLFork = 1   
+CONSTANT SLSubTaskStackSize = 1  
+CONSTANT SLMainTaskStackSize = 1 
+
+$INCLUDE (TCP-IP)SLIB:DEFS
+$INCLUDE (TCP-IP)SLIB:IMPT
+
+CONSTANT term = 2
+CONSTANT space = 32
+CONSTANT nadmdev = 202B
+
+EXPORT rsock , lastseq , chksum , rstat , count , thisseq , mess_len , currbuff
+
+IMPORT ( ROUTINE BYTE , VOID ( INTEGER ) : MON2 )
+IMPORT ( ROUTINE VOID , VOID ( INTEGER , INTEGER ) : MN104 )
+IMPORT ( ROUTINE VOID , INTEGER ( INTEGER , INTEGER , INTEGER ) : MN122 )
+IMPORT ( ROUTINE VOID , VOID ( INTEGER , INTEGER ) : MN123 )
+
+IMPORT ( INTEGER2 ARRAY : mbuff1(0:3072) )
+IMPORT ( INTEGER2 ARRAY : mbuff2(0:3072) )
+IMPORT ( INTEGER2 ARRAY : mbuff3(0:3072) )
+IMPORT ( INTEGER2 ARRAY : mbuff4(0:3072) )
+IMPORT ( INTEGER2 ARRAY : mbflags(0:4) )
+
+CONSTANT sync1 = 12525252525B          
+CONSTANT sync2 = 25252525252B          
+CONSTANT readbuffsize = 1024
+
+INTEGER ARRAY : stack ( 0 : 4095 )
+INTEGER ARRAY : SocketHeap ( 0 : SLSzWorkArea - 1 )
+
+INTEGER4 ARRAY : scratch4 ( 0 : 511 )
+INTEGER2 ARRAY : scratch2 ( 0 : 1023 ) = scratch4
+BYTES          : scratch1 ( 0 : 2047 ) = scratch4
+
+INTEGER : rsock := 0 , lastseq := 999 , chksum , rstat , count , thisseq , mess_len , currbuff
+SLin_sockAddr : FromAddress
+SLmaxima : maxval
+
+
+
+ROUTINE  VOID , VOID : identify
+
+   output ( term , 'A' , '[TCCOM]: ' )
+ENDROUTINE
+
+
+
+ROUTINE VOID , VOID : etest
+
+INTEGER : xxx
+
+%   output ( 1 , 'A' , '$Input anything to continue' )
+%   input ( 1 , 'I' , xxx )
+ENDROUTINE
+
+
+
+ROUTINE VOID , VOID : retransmit
+
+   0 =: scratch4(0)
+   lastseq + 1 =: scratch4(1)
+%   output ( term , 'A' , '$Retransmit from sequence number ' )
+%   output ( term , 'I' , scratch4(1) )
+   SlsendTo ( rsock , ADDR(scratch1(0)) , 12 , 0 , Addr(FromAddress) , count ) =: rstat
+ENDROUTINE
+
+
+
+ROUTINE  VOID , VOID ( BYTE WRITE ARRAY WRITE PACKED ) : gethostname ( name )
+
+   BYTE ARRAY PACKED : buff ( 0 : 23 )
+   INTEGER4 : num
+   INTEGER4 : digit , digpos
+   BYTES : digstr ( 0 : 10 )
+
+   0 =: num
+   DO                               
+      WHILE num < 31
+         0 =: name ( num )
+         ++ num =: num
+   ENDDO
+   0 =: num
+   DO
+      WHILE num < 10
+         0 =: digstr ( num )
+         ++ num =: num
+   ENDDO
+   0 =: num
+   Monitor_Call ( 'GetSystemInfo' , 0 , buff ( 0 ) )
+   'ND-' =: name ( 0 : 2 )
+   ( buff ( 0 ) SHIFT 8 ) + buff ( 1 ) =: num
+   0 =: digpos
+   DO
+      WHILE num > 0
+         ++ digpos =: digpos
+         num MOD 10 =: digit
+         digit + 48 =: digstr ( digpos - 1 )
+         num / 10 =: num
+   ENDDO
+   1 =: num
+   DO
+      WHILE num <= digpos
+         digstr ( digpos - num ) =: name ( 2 + num )
+         ++ num =: num
+   ENDDO
+ENDROUTINE
+
+
+
+ROUTINE  VOID , INTEGER : init_sl
+
+   USING maxval
+      SLMaxPorts =: max_nports
+      SLMaxSockets =: max_nsockets
+      FALSE =: max_debug
+      1 =: max_debfd
+      NIL =: max_AUserDataP
+      6 =: max_nsallocmsg
+      0 =: max_nballocmsg
+      SLDominoPioc =: max_tcpdev
+   ENDUSING
+   SLinit ( ADDR SocketHeap , maxval , NIL , SLMainTaskStackSize , NIL ) =: rstat
+   IF rstat >< SLEOk THEN
+      -1 RETURN
+   ENDIF
+   0 RETURN
+ENDROUTINE
+
+
+
+
+ROUTINE VOID , INTEGER : open_udp_socket
+
+   INTEGER : sock
+   BYTES : myhostname ( 0 : 31 )
+   SLhostent : lhost
+   SLhostent POINTER : hp
+   SLservent : lserv
+   SLservent POINTER : sp
+   SLin_sockaddr : myaddr_in
+   SLiocInt : IoArg
+
+   INISTACK stack
+   gethostname ( myhostname )
+   SLgHbyName ( myhostname ) =: hp
+   IF hp = NIL THEN
+      -1 RETURN
+   ENDIF
+   Ind ( hp ) =: lhost
+   Addr ( lhost ) =: hp
+   SLgSbyName ( 'tccom' , ADDR 'udp' ) =: sp
+   IF sp = NIL THEN
+      -1 RETURN
+   ENDIF
+   Ind ( sp ) =: lserv
+   Addr ( lserv ) =: sp
+   SLsocket ( af_inet , sock_dgram , 0 , sock ) =: rstat
+   IF rstat >< SLEOk THEN
+      -1 RETURN
+   ENDIF
+   hp.h_addr =: myaddr_in.sin_addr
+   af_inet =: myaddr_in.sa_family
+   sp.s_port =: myaddr_in.sin_port
+   SLbind ( sock , myaddr_in ) =: rstat
+   IF rstat >< SLEOk THEN
+      SLclose ( sock )
+      -1 RETURN
+   ENDIF
+   sock RETURN
+ENDROUTINE
+
+
+
+ROUTINE VOID , INTEGER : mess_read
+
+   INTEGER : rest , start
+   INTEGER : nread , ii , xcount , nsense
+   BOOLEAN : okstat
+   BYTE POINTER : destaddr
+
+   -1 =: scratch2
+   SLrecvFrom ( rsock , ADDR(scratch1(0)) , 1024 , 0 , Addr(FromAddress) , count ) =: rstat
+   IF rstat >< SLeOk THEN
+     output ( term , 'A' , '$SLrecvFrom data error = ' )
+     output ( term , 'O' , rstat )
+   ELSIF count > 0 THEN
+      IF count >< 1024 THEN
+         output ( term , '' , '$SLrecvFrom Data Count  = ' )
+         output ( term , 'I' , count  )
+      ENDIF
+   ENDIF
+   count RETURN
+ENDROUTINE
+
+
+
+
+PROGRAM : tccom
+
+   INTEGER : i , startpos , nwords
+
+   INISTACK stack
+   0 =: rsock
+   init_sl =: rstat
+   open_udp_socket =: rsock
+   999 =: lastseq
+   0 =: mess_len
+   0 =: currbuff
+   0 =: mbflags
+   MN122 ( nadmdev , 1 , 1 ) =: rstat
+   DO WHILE 1 < 2
+      mess_read =: rstat
+%      output ( term , 'A' , '$after mess_read, rstat = ' )
+%      output ( term , 'I' , rstat )
+      1 =: i
+      0 =: chksum
+      DO WHILE i < 512
+         chksum XOR scratch2(i) =: chksum
+         i + 1 =: i
+      ENDDO
+      IF scratch2(0) >< chksum THEN
+         output ( term , 'A' , '$************************Chksum error: Message / Calculated = ' )
+         output ( term , 'I8' , scratch2(0) )
+         output ( term , 'I8' , chksum )
+      ELSE
+%         output ( term , 'A' , '$OK Chksum' )
+         scratch2(1) =: thisseq
+         IF ( thisseq > lastseq + 1 ) OR ( lastseq = 999 AND thisseq >< 1 ) OR ( lastseq >< 999 AND thisseq = 1 ) THEN
+%            output ( term , 'A' , '$========================Lastseq / thisseq = ' )
+%            output ( term , 'I8' , lastseq )
+%            output ( term , 'I8' , thisseq )
+            retransmit
+            thisseq =: lastseq
+         ELSIF ( thisseq < lastseq + 1 ) AND ( lastseq - thisseq < 500 ) THEN
+            output ( term , 'A' , '$------------------------Duplicated message' )
+            output ( term , 'I8' , lastseq )
+            output ( term , 'I8' , thisseq )
+         ELSE
+%            output ( term , 'A' , '$           Sequence number ' )
+%            output ( term , 'I8' , thisseq )
+            scratch2(2) =: startpos
+            scratch2(3) =: nwords
+            mess_len + nwords * 2 =: mess_len
+            IF currbuff = 0 THEN
+               scratch2(8:8+nwords-1) =: mbuff1(startpos:startpos+nwords-1)
+            ELSIF currbuff = 1 THEN
+               scratch2(8:8+nwords-1) =: mbuff2(startpos:startpos+nwords-1)
+            ELSIF currbuff = 2 THEN
+               scratch2(8:8+nwords-1) =: mbuff3(startpos:startpos+nwords-1)
+            ELSIF currbuff = 3 THEN
+               scratch2(8:8+nwords-1) =: mbuff4(startpos:startpos+nwords-1)
+            ENDIF
+            IF scratch2(4) = 1 THEN
+               output ( term , 'A' , '$Message completed, length ' )
+               output ( term , 'I' , mess_len )
+               1 =: mbflags(currbuff)
+               (currbuff FORCE BYTE) MON2 ( nadmdev )
+               etest
+               0 =: mess_len
+               currbuff + 1 =: currbuff
+               IF currbuff = 4 THEN
+                  0 =: currbuff
+               ENDIF
+               DO
+                  WHILE mbflags(currbuff) >< 0
+                     MN104 ( 2 , 1 )
+               ENDDO
+            ENDIF
+            thisseq =: lastseq
+         ENDIF
+      ENDIF
+   ENDDO
+   MN123 ( nadmdev , 1 )
+
+ENDROUTINE
+
+ENDMODULE
+

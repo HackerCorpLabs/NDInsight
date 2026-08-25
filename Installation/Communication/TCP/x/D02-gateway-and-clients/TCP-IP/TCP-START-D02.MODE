@@ -1,0 +1,19 @@
+@CC =================================================================
+@CC = FILE NAME: TCP-START-D:MODE
+@CC = START-UP OF COSMOS TCP/IP GATEWAY VERSION D
+@CC = RUN THIS MODE FILE DURING WARM START, ANYTIME AFTER X-MESSAGE
+@CC = AND TADADM ARE RUNNING.
+@CC =================================================================
+@CC
+@OPERATOR *** START COSMOS TCP/IP GATEWAY ***
+@ABORT ftprt
+@ABORT tcpp
+@(TCP-IP)PO-STOP-D02 0
+@CC *****************
+@CC * TELNET+TCP/IP *
+@CC *****************
+@RT TCPP
+@CC **************
+@CC * FTP-SERVER *
+@CC **************
+@RT FTPRT

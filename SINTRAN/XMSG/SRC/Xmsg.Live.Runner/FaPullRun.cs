@@ -80,6 +80,49 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
         /// </summary>
         private bool _announcedLength;
 
+        // THE CONNECT-LETTER RETRY, PORTED FROM FaPushRun ON 2026-08-21.
+        //
+        // The push grew this on 2026-08-17 and the pull never got it, so for four days a pull whose
+        // first connect letter went unanswered sat in total silence until the 240-second transfer
+        // timeout and then said only "did NOT finish within 240s" - which names nothing. That one
+        // uninformative line sent a whole day into suspecting XMSG, the PLANC compile, the restart
+        // script, the chat programs and the machine itself. The answer was in our own frame log.
+        //
+        // MEASURED, xmsg-runner-seam.log 2026-08-21 18:09:43:
+        //
+        //   .404 [TX] connect letter -> *FA-SERVER, Flags1 0x034B
+        //   .404 [pull] SendConnectLetter: 1 frame(s) sent
+        //   .616 [RX] 100->19999 sub=ReachabilityRequest f1=0x034B
+        //   .618 [seq] node 100: RESET to 0x0000 (was 0x034C); in-memory link dropped
+        //        ... 240 SECONDS OF NOTHING ...
+        //
+        // D100 answered with a ReachabilityRequest - "I have restarted" - which correctly zeroes our
+        // outgoing count. The letter sent under the OLD count is then orphaned: the peer waits for
+        // us to ask again, we wait for an answer that can never come. But the reset is only ONE
+        // reason a first letter goes unanswered; the real defect is that the pull sent it ONCE and
+        // never again, so ANY such reason became a four-minute hang.
+        //
+        // It also explains "the first transfer after a restart is always refused, retry works",
+        // which had been written up as harmless weather. The manual retry was doing by hand exactly
+        // what this does.
+        //
+        // Only the CONNECT letter is retried. Once the peer has answered anything the ladder is
+        // live, and a loss there is a different problem with different evidence.
+        private byte[][]? _connectFrames;
+        private DateTime _connectSentUtc;
+        private int _connectAttempts;
+        private bool _peerAnswered;
+
+        // The transport's refusal count when the connect letter was FIRST handed over. Subtracting
+        // it later separates "the peer ignored us" from "we never actually asked" - a frame our own
+        // transport would not take is OUR fault and must not be reported as the peer's silence.
+        private long _refusedAtConnectStart;
+
+        // Long enough that a busy peer is not hurried, short enough that four attempts still fit
+        // inside a transfer timeout. Same values as the push - they are proven there.
+        private static readonly TimeSpan ConnectRetryAfter = TimeSpan.FromSeconds(5);
+        private const int MaxConnectAttempts = 4;
+
         /// <summary>
         /// Creates a pull.
         /// </summary>
@@ -93,6 +136,32 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
         /// Thrown when any argument is null.
         /// </exception>
         public FaPullRun(string localPath, FaReadSource source)
+            : this(localPath, source, false)
+        {
+        }
+
+        /// <summary>
+        /// Starts a pull, or a diagnostic probe that opens nothing.
+        /// </summary>
+        /// <param name="localPath">
+        /// Where the file lands here. Unused by a probe, which reads no content.
+        /// </param>
+        /// <param name="source">
+        /// Where the file is coming from.
+        /// </param>
+        /// <param name="probeWithoutOpen">
+        /// <c>true</c> to reserve a file entry and set the block size without opening the file.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="localPath"/> or <paramref name="source"/> is null.
+        /// </exception>
+        /// <remarks>
+        /// The probe answers what the follow-on refusal <c>A2 4104</c> means - see
+        /// <see cref="FaReadDriver"/> and <c>DOC/CARVE-FA-READ-REFUSAL-2026-08-18.md</c>. It must be
+        /// pointed at a file that EXISTS, or the ordinary "no such file name" refusal answers first
+        /// and the run measures nothing.
+        /// </remarks>
+        public FaPullRun(string localPath, FaReadSource source, bool probeWithoutOpen)
         {
             if (localPath == null) { throw new ArgumentNullException(nameof(localPath)); }
             if (source == null) { throw new ArgumentNullException(nameof(source)); }
@@ -100,7 +169,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
             _localPath = localPath;
             _serverNode = source.ServerNode;
             _fileSpec = source.FileSpec;
-            _driver = new FaReadDriver(source);
+            _driver = new FaReadDriver(source, probeWithoutOpen);
         }
 
         /// <summary>
@@ -180,6 +249,21 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
                 return;
             }
 
+            // "ANSWERED US", NOT "THE LINK IS BUSY". Every frame on the node comes through here,
+            // including the peer's own requests to OUR file server, which arrive on the same link a
+            // moment later. Setting the flag on any of them would silently disable the retry - the
+            // exact failure it exists to cure, reintroduced one layer up. The push learned this the
+            // hard way; the port keeps both guards.
+            //
+            //   _connectFrames != null   the letter has actually been sent
+            //   DestinationPort == OurPort   the answer belongs to THIS conversation
+            if (_connectFrames != null
+                && frame.SubHeader != null
+                && frame.SubHeader.DestinationPort == _driver.OurPort)
+            {
+                _peerAnswered = true;
+            }
+
             _driver.OnFrame(frame);
         }
 
@@ -246,6 +330,11 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
 
             // What the driver is ABOUT to do, read before building, because building advances the
             // ladder and the operation would then be the next one.
+            // BEFORE THE Wait RETURN, DELIBERATELY. A pull whose connect letter went unanswered has
+            // NOTHING to do - NextAction says Wait on every tick - so a retry placed after that
+            // return would never run in the one case it exists for.
+            RetryConnectLetterIfSilent(host);
+
             FaClientAction action = _driver.NextAction();
             if (action == FaClientAction.Wait)
             {
@@ -268,10 +357,23 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
                     return;
                 }
 
+                byte[][] sent = new byte[frames.Count][];
                 for (int i = 0; i < frames.Count; i++)
                 {
                     byte[] bytes = frames[i].ToArray();
+                    sent[i] = bytes;
                     host.Transport.Send(new ReadOnlySpan<byte>(bytes));
+                }
+
+                // KEEP THE EXACT BYTES OF THE CONNECT LETTER so it can be sent again. Kept, not
+                // rebuilt: a retransmit must carry the SAME sequence, and rebuilding would advance
+                // the ladder instead of repeating the step.
+                if (!_peerAnswered && _connectFrames == null)
+                {
+                    _connectFrames = sent;
+                    _refusedAtConnectStart = host.Transport.RefusedFrames;
+                    _connectSentUtc = DateTime.UtcNow;
+                    _connectAttempts = 1;
                 }
 
                 // Every step logged as it goes out, the same as the push. Without this a stalled
@@ -302,6 +404,86 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
         /// <returns>
         /// <see langword="true"/> when the pull is finished.
         /// </returns>
+        /// <summary>
+        /// Sends the connect letter again when the peer has answered nothing at all.
+        /// </summary>
+        /// <param name="host">
+        /// The node whose transport carries the frames.
+        /// </param>
+        /// <remarks>
+        /// <para>
+        /// Does nothing once the peer has answered, once the attempts are spent, or before the wait
+        /// has elapsed. It gives up out loud rather than retrying for ever: a stall that says why is
+        /// diagnosable, a flood is not.
+        /// </para>
+        /// <para>
+        /// Ported from <c>FaPushRun</c>, where it has been proven since 2026-08-17.
+        /// </para>
+        /// </remarks>
+        private void RetryConnectLetterIfSilent(XmsgNodeHost host)
+        {
+            if (_peerAnswered || _connectFrames == null)
+            {
+                return;
+            }
+
+            if (DateTime.UtcNow - _connectSentUtc < ConnectRetryAfter)
+            {
+                return;
+            }
+
+            if (_connectAttempts >= MaxConnectAttempts)
+            {
+                // SAY WHAT IS KNOWN, NOT WHAT IS ASSUMED. The transport counts the frames it would
+                // not take, so ask it rather than asserting the link was fine. A frame our own
+                // transport refused is OUR problem and must never be reported as the peer's
+                // silence - the push's copy of this message got that wrong twice on live runs.
+                long refused = host.Transport.RefusedFrames - _refusedAtConnectStart;
+
+                if (refused > 0)
+                {
+                    Console.WriteLine(
+                        $"[pull] GIVING UP: {refused} frame(s) were REFUSED BY OUR OWN TRANSPORT"
+                        + " while trying to send the connect letter, so the file server was never"
+                        + " asked. This is our end, not the peer's - the usual cause is sending"
+                        + " before the link is up.");
+                }
+                else
+                {
+                    Console.WriteLine(
+                        $"[pull] GIVING UP: the file server did not answer any of"
+                        + $" {MaxConnectAttempts} connect letters. Our transport accepted every one,"
+                        + " so they did go out. Check whether the FILE SERVER is running - an XMSG"
+                        + " restart takes it down and it must be started by hand with FS-ADMINISTRATOR"
+                        + " / SELECT-FSA / START-SERVER.");
+                }
+
+                _connectFrames = null;
+
+                // SAY SO TO THE DRIVER, not just to the screen, or the transfer reports itself
+                // merely unfinished and nothing above can tell a decided failure from one still in
+                // progress. That is what turned a known answer into a four-minute wait.
+                _driver.Abandon(refused > 0
+                    ? $"our own transport refused {refused} connect frame(s), so the file server"
+                      + " was never asked - send before the link was up"
+                    : $"the file server did not answer any of {MaxConnectAttempts} connect letters"
+                      + " (all were accepted by our transport) - check it is running");
+                return;
+            }
+
+            _connectAttempts++;
+            _connectSentUtc = DateTime.UtcNow;
+
+            for (int i = 0; i < _connectFrames.Length; i++)
+            {
+                host.Transport.Send(new ReadOnlySpan<byte>(_connectFrames[i]));
+            }
+
+            Console.WriteLine(
+                "[pull] no answer to the connect letter - sending it again"
+                + $" (attempt {_connectAttempts} of {MaxConnectAttempts})");
+        }
+
         private bool ReportIfFinished()
         {
             if (!Finished)

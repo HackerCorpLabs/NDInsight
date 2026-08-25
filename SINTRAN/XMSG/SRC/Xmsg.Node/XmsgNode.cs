@@ -595,7 +595,22 @@ namespace NDInsight.Sintran.Xmsg.Node
                     // sequencing reject we can recover from - other codes (e.g. XEIMA 0xFFED) are not.
                     if (ServerHost != null && incoming.Header.Flags2 == unchecked((ushort)XmsgError.XENSE))
                     {
-                        return ServerHost.ResyncAcceptDown(incoming.Header.SourceNode);
+                        XmsgFrame? rebuilt = ServerHost.ResyncAcceptDown(incoming.Header.SourceNode);
+                        if (rebuilt != null)
+                        {
+                            return rebuilt;
+                        }
+
+                        // NO PENDING ACCEPT, SO THE REFUSED FRAME WAS ONE WE ORIGINATED - a push
+                        // connect letter, an FA request. That case had NO recovery at all and this
+                        // is the hole the drift fell through: the refused frame has already spent
+                        // and persisted its Flags 1, so without stepping back, every retry is
+                        // refused one number FURTHER ahead than the last. Measured live 2026-08-24
+                        // against D100: four attempts walked 0x007B -> 0x008C and nothing ever
+                        // landed. Correct the outgoing sequence here; the originating layer's own
+                        // retry then goes out at the corrected number.
+                        ServerHost.ResyncOriginationDown(incoming.Header.SourceNode, incoming.Header.Flags1);
+                        return null;
                     }
 
                     return null;

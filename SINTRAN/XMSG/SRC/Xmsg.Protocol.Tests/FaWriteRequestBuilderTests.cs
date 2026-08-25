@@ -169,18 +169,58 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
         }
 
         /// <summary>
-        /// A specification too long for the compact form is refused, not re-encoded.
+        /// A specification too long for the compact form uses the LONG form instead.
         /// </summary>
         /// <remarks>
-        /// What a real client sends for a longer name is UNKNOWN - the capture only shows fifteen
-        /// bytes. Switching silently to the escaped form would be a guess about bytes no one has
-        /// seen, so this throws and says so.
+        /// <para><b>This test used to assert the opposite, and it was wrong</b></para>
+        /// <para>
+        /// It said "what a real client sends for a longer name is UNKNOWN - the capture only shows
+        /// fifteen bytes", and refused anything longer rather than guess. The read capture had the
+        /// answer all along: <c>FaOpenFileCodec</c> documents an open request as
+        /// <c>B0 10 "PATCH-FILE:OUT" 27 54</c> - the LONG form, a sixteen-byte field holding a
+        /// FOURTEEN-character name. So a client picks the form by length, and both are captured.
+        /// </para>
+        /// <para>
+        /// The old rule capped a specification at 13 characters including its quotes, which forced
+        /// every file deployed to a machine into a shortened name plus a rename afterwards, and
+        /// was written up in two skills as if it were the protocol's own limit.
+        /// </para>
         /// </remarks>
         [Fact]
-        public void AnOverLongFileSpecIsRefusedRatherThanReEncoded()
+        public void AnOverLongFileSpecUsesTheLongStringForm()
         {
-            Assert.Throws<ArgumentException>(
-                () => FaWriteRequests.OpenFile("\"A-VERY-LONG-NAME:SYMB\"", 'W'));
+            byte[] fields = FaWriteRequests.OpenFile("\"XMSG-STARTEX-L03:MODE\"", 'W');
+
+            string hex = Convert.ToHexString(fields).ToUpperInvariant();
+
+            // F2 0002 then B0 <length> - the long form, not BF.
+            Assert.StartsWith("F20002B0", hex);
+
+            // The declared length must be the field's real length: the quoted spec, an
+            // apostrophe and the access letter.
+            int declared = fields[4];
+            Assert.Equal("\"XMSG-STARTEX-L03:MODE\"".Length + 2, declared);
+
+            // And the name must survive intact - a truncation here would still produce a valid
+            // request, for the wrong file.
+            Assert.Contains("XMSG-STARTEX-L03:MODE", System.Text.Encoding.ASCII.GetString(fields));
+        }
+
+        /// <summary>
+        /// A specification that still fits keeps using the compact form.
+        /// </summary>
+        /// <remarks>
+        /// The captured write request is <c>BF</c>, so switching everything to the long form would
+        /// stop matching a real client for the common case.
+        /// </remarks>
+        [Fact]
+        public void AShortFileSpecStillUsesTheCompactForm()
+        {
+            byte[] fields = FaWriteRequests.OpenFile("\"WRTEST1:OUT\"", 'W');
+
+            string hex = Convert.ToHexString(fields).ToUpperInvariant();
+
+            Assert.StartsWith("F20002BF", hex);
         }
 
         /// <summary>

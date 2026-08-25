@@ -1,0 +1,18 @@
+{
+  "ndfs.object_name": "NK-ERRCODE-C03",
+  "ndfs.type": "DEFS",
+  "ndfs.user_name": "TCP-IP",
+  "ndfs.user_index": 14,
+  "ndfs.access_bits": 1073,
+  "ndfs.file_type_flags": 8,
+  "ndfs.file_type": 0,
+  "ndfs.device_number": 0,
+  "ndfs.next_version": 3613,
+  "ndfs.prev_version": 3613,
+  "ndfs.pages_in_file": 3,
+  "ndfs.bytes_in_file": 4399,
+  "ndfs.date_created": 2590419286,
+  "ndfs.last_read_date": 2839806809,
+  "ndfs.last_write_date": 2590419286,
+  "ndfs.holes": []
+}

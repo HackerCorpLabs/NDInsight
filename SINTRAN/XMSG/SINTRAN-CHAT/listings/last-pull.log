@@ -1,0 +1,102 @@
+[runner] topology loaded: self=19999, 2 node(s), file=E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\topology-d19999-hdlc-server.json
+[runner] logging to E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\xmsg-runner-seam.log (level Info, max 2 MB, keep 3).
+2026-08-21 20:21:33.050 | [runner] Xmsg.Live.Runner v1.1.0.0 built 2026-08-21 18:43:43
+2026-08-21 20:21:33.052 | [runner] config folder: E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner
+2026-08-21 20:21:33.052 | [runner] config file:   E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\topology-d19999-hdlc-server.json
+2026-08-21 20:21:33.052 | [runner] log folder:    E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0
+2026-08-21 20:21:33.052 | [runner] log file:      E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\xmsg-runner-seam.log
+2026-08-21 20:21:33.052 | [runner] command line:  E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\Xmsg.Live.Runner.dll --config E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\topology-d19999-hdlc-server.json --originate-from-seed --transfer-timeout 240 --pull CHAT:LIST --pull-from 100 --pull-to E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SINTRAN-CHAT\listings\CHAT.LIST
+2026-08-21 20:21:33.054 | [runner] path=seam connecting to 127.0.0.1:10362 as node 19999 for 3600s
+2026-08-21 20:21:33.060 | [fa] connection numbers 0x0082..0x00C1 (state: E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\fa-connection.state)
+2026-08-21 20:21:33.060 | [fa] file server ON as *FA-SERVER (logical port 4, wire port 0x0257)
+2026-08-21 20:21:33.061 | [fa] serving folder: E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\served-files
+2026-08-21 20:21:33.062 | [fa] files visible now: 0
+2026-08-21 20:21:33.066 | [pull] CHAT:LIST on node 100 (D100) user SYSTEM -> E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SINTRAN-CHAT\listings\CHAT.LIST (we are D19999)
+2026-08-21 20:21:33.089 | [runner] datagram-sequence state file: E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\xmsg-sequence.state
+2026-08-21 20:21:33.091 | [tad] 2 login account(s) loaded
+2026-08-21 20:21:33.094 | [runner] link-seed state file: E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\bin\Debug\net9.0\xmsg-link-seed.state
+2026-08-21 20:21:33.098 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:21:33.099 | [runner] SABM sent; pumping seam link (LAPB + codec + XmsgLayer)...
+2026-08-21 20:21:33.101 | [link] hdlc:127.0.0.1:10362 status Stopped -> Starting (LAPB establishing)
+2026-08-21 20:21:36.125 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:21:39.132 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:21:42.138 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:21:45.144 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:21:48.155 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:21:51.165 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:21:54.175 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:21:57.187 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:22:00.197 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:22:03.210 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:22:06.216 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:22:09.223 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:22:12.237 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:22:15.245 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:22:18.260 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:22:21.269 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:22:24.289 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:22:27.303 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:22:30.317 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:22:33.330 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:22:36.348 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:22:39.364 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:22:42.371 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:22:45.379 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:22:48.394 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:22:51.402 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:22:54.413 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:22:57.428 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:23:00.431 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:23:03.443 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:23:06.457 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:23:09.469 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:23:12.479 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:23:15.490 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:23:18.501 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:23:21.514 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:23:24.530 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:23:27.544 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:23:30.560 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:23:33.572 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:23:36.581 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:23:39.592 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:23:42.613 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:23:45.624 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:23:48.636 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:23:51.646 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:23:54.655 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:23:57.674 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:24:00.687 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:24:03.696 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:24:06.701 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:24:09.717 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:24:12.720 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:24:15.731 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:24:18.746 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:24:21.762 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:24:24.774 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:24:27.784 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:24:30.793 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:24:33.809 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:24:36.824 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:24:39.828 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:24:42.836 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:24:45.853 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:24:48.862 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:24:51.874 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:24:54.880 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:24:57.888 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:25:00.903 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:25:03.906 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:25:06.925 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:25:09.932 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:25:12.935 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:25:15.946 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:25:18.963 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:25:21.980 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:25:24.989 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:25:28.003 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:25:31.023 | [TX] a=0x01 SABM state=SabmSent vs=0 va=0 vr=0
+2026-08-21 20:25:33.087 | [link] stopping: sending DISC so the peer does not hold the link.
+2026-08-21 20:25:33.088 | [TX] a=0x01 U 0x53 state=DiscSent vs=0 va=0 vr=0
+2026-08-21 20:25:33.090 | [runner] the pull did NOT finish within 240s - no file was written. Raise --transfer-timeout for a very large file, or check the link.

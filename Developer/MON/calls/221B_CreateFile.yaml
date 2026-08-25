@@ -23,13 +23,41 @@ parameters:
   io: I
   description: File name. Default file type is :DATA.
 - name: StartAddress
-  type: INTEGER2
+  type: INTEGER4
   io: I
   description: Start address in the directory. Use 0 if you want to create a contiguous or indexed file.
+  note: >-
+    CORRECTED 2026-08-19 from INTEGER2. Four independent sources in the manual this file cites as
+    its own source (ND-860228.2 EN page 125) say FOUR bytes - the PLANC form declares
+    "INTEGER4 : StartAddress, NoOfPages", FORTRAN declares "INTEGER*4", COBOL declares "S9(10)",
+    and the MAC example calls the size "a double word". The schema's own worked example
+    (mon-call-schema.yaml) also types a file-size parameter as LONGINT. NOT validated by calling
+    it - MON221 does not exist in D100's PLANC runtime, see the planc note below.
 - name: NoOfPages
-  type: INTEGER2
+  type: INTEGER4
   io: I
   description: Length of the file in pages. Use 0 if you want to create an indexed file.
+  note: >-
+    CORRECTED 2026-08-19 from INTEGER2 - same evidence as StartAddress above.
+
+# Calling this from PLANC on a real machine - MEASURED on D100 2026-08-19.
+planc:
+  monn_routine_available: false
+  evidence: >-
+    Importing "ROUTINE VOID, VOID (BYTES, INTEGER4, INTEGER4) : MON221" compiles cleanly and then
+    fails at link - BRF-LINKER's LIST-ENTRIES-UNDEFINED reports "MON221...10101 U". So the PLANC
+    runtime (PLANC-1BANK-F00) on SINTRAN VSX/500 K carries no MON221 and a PLANC program cannot
+    create a file directly.
+  routes_that_do_work:
+    - >-
+      Link MON-CALL-1BANK:BRF (between your program and PLANC-1BANK) and use
+      Monitor_Call('CreateFile', FileName, StartAddress, NoOfPages). Not installed on D100.
+    - >-
+      Hand SINTRAN the command through MON70 CallCommand - "CREATE-FILE NAME:TYPE,pages" with NO
+      quotes on a local filespec, apostrophe-terminated, in a BYTES(0:79) buffer.
+    - >-
+      Write a MAC interface routine for 221 and load it ahead of the PLANC runtime library.
+  see_also: Developer/Languages/Application/PLANC-MONITOR-CALLS.md
 examples:
   pascal:
     available: true

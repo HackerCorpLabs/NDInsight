@@ -455,6 +455,46 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Tests
         }
 
         /// <summary>
+        /// The diagnostic probe ladder reserves an entry and sets the block size, and opens nothing.
+        /// </summary>
+        /// <remarks>
+        /// The whole point of the probe is the ABSENCE of the open - it is what separates "no file
+        /// is open" from "an earlier operation failed" in the <c>A2 4104</c> question. If an open
+        /// ever creeps back into this ladder the experiment silently stops measuring anything, and
+        /// the run would look exactly like the ordinary refusal we already have.
+        /// </remarks>
+        [Fact]
+        public void TheProbeLadderHasNoOpen()
+        {
+            FaOperation[] probe = FaReadLadder.ProbeWithoutOpen();
+
+            Assert.Equal(2, probe.Length);
+            Assert.Equal(FaOperation.ReserveFileEntry, probe[0]);
+            Assert.Equal(FaOperation.SetBlockSize, probe[1]);
+
+            for (int i = 0; i < probe.Length; i++)
+            {
+                Assert.NotEqual(FaOperation.OpenFile, probe[i]);
+            }
+        }
+
+        /// <summary>
+        /// The probe ladder does not disturb the real prologue.
+        /// </summary>
+        /// <remarks>
+        /// Guards the reason the probe is a SEPARATE ladder rather than a shortened prologue:
+        /// <see cref="FaReadLadder.PrologueLength"/> feeds the block-index arithmetic on the
+        /// transfer path, so it must keep counting the real four steps.
+        /// </remarks>
+        [Fact]
+        public void TheProbeLeavesTheRealPrologueAlone()
+        {
+            Assert.Equal(4, FaReadLadder.PrologueLength);
+            Assert.Equal(FaReadLadder.PrologueLength, FaReadLadder.Prologue().Length);
+            Assert.Contains(FaOperation.OpenFile, FaReadLadder.Prologue());
+        }
+
+        /// <summary>
         /// Renders bytes as hex, for a failure message.
         /// </summary>
         /// <param name="bytes">

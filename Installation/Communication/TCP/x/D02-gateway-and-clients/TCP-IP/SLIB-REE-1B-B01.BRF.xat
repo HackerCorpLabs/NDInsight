@@ -1,0 +1,18 @@
+{
+  "ndfs.object_name": "SLIB-REE-1B-B01",
+  "ndfs.type": "BRF",
+  "ndfs.user_name": "TCP-IP",
+  "ndfs.user_index": 14,
+  "ndfs.access_bits": 2047,
+  "ndfs.file_type_flags": 8,
+  "ndfs.file_type": 0,
+  "ndfs.device_number": 0,
+  "ndfs.next_version": 3604,
+  "ndfs.prev_version": 3604,
+  "ndfs.pages_in_file": 19,
+  "ndfs.bytes_in_file": 36975,
+  "ndfs.date_created": 2831716829,
+  "ndfs.last_read_date": 2787176181,
+  "ndfs.last_write_date": 2831716831,
+  "ndfs.holes": []
+}

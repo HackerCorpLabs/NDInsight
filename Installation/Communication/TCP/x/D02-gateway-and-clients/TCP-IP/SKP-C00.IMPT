@@ -1,0 +1,174 @@
+¥ÀÀÀÀÀÀÀÀÀÀÀÀÀÀ áõtoíátic çeîeráteä iîclõäe file ÀÀÀÀÀÀÀÀÀÀÀÀÀÀ¥
+¥                                                              ¥
+¥                       SKP:ÉMPÔ                               ¥
+¥                                                              ¥
+¥ÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀÀ¥
+
+¥-----------------------------------------------------------------------------¥
+¥ ÉNVAÌUÅ  ½ fláçó MUSÔ BÅ ZÅÒÏ
+¥ ÏUÔVAÌUÅ ½ ótátõó
+ÉMPÏÒÔ ( ÒÏUÔÉNÅ ÉNÔÅGÅÒ¬óëót(ÉNÔÅGÅÒ AÒÒAY¬ÉNÔÅGÅÒ AÒÒAY¬óëíä¬SKÃSóet©:¦
+SKPiîit ©
+¥  ótáticStoráçeAreá    ½¾ SK-ÌÉB worë áreá
+¥  äùîáíicStoráçeAreá   ½¾ SK-ÌÉB worë áreá
+¥  ðáráíeteró           ½¾ óðecificátioî of íáxiíõí reóoõrceó õóeä
+¥  óõâóùóteíó           ½¾ óðecificátioî of AÌÌ óõâóùóteíó to âe õóeä
+
+
+¥-----------------------------------------------------------------------------¥
+¥ ÉNVAÌUÅ  ½ fláçó MUSÔ BÅ ZÅÒÏ
+¥ ÏUÔVAÌUÅ ½ ótátõó
+ÉMPÏÒÔ ( ÒÏUÔÉNÅ ÉNÔÅGÅÒ¬óëót(ÉNÔÅGÅÒ AÒÒAY¬óëtí¬ÉNÔÅGÅÒ´¬ÉNÔÅGÅÒ´ ×ÒÉÔÅ¬óërö PÏÉNÔÅÒ©:¦
+SKPwáit ©
+¥  ótáticStoráçeAreá    ½¾ SK-ÌÉB worë áreá
+¥  íáx×áitÔiíe          ½¾ íáxiíõí tiíe to wáit (áîä tiíeoõt eöeît©
+¥  reqõeóteäÅöeîtó      ½¾ eöeît íáóë for ðeríitteä eöeîtó ( -± ½¾ AÌÌ eöeîtó ©
+¥  áctõálÅöeîtó         áctõál eöeîtó iî tèoóe ðeríitteä tèát occõreä ½¾
+¥  otèer eöeîtó         ½¾ Òetõrîó otèer eöeîtó (îot PÏÒÔ or ÔÉMÅÒ eöeîtó© (îil ½¾ îotèiîç retõrîeä©
+
+¥-----------------------------------------------------------------------------¥
+¥ ÉNVAÌUÅ  ½ fláçó MUSÔ BÅ ZÅÒÏ
+¥ ÏUÔVAÌUÅ ½ ótátõó
+ÉMPÏÒÔ ( ÒÏUÔÉNÅ ÉNÔÅGÅÒ¬óëót(ÉNÔÅGÅÒ AÒÒAY¬óëtí©:¦
+SKPschedule ALIAS 'SKPSCHEDUL' )
+¥  ótáticStoráçeAreá    ½¾ SK-ÌÉB worë áreá
+¥  tiíeÅöeît            ½¾ tèe iîteröál eöeît ðáráíeteró
+
+
+¥-----------------------------------------------------------------------------¥
+¥ ÉNVAÌUÅ  ½ fláçó MUSÔ BÅ ZÅÒÏ
+¥ ÏUÔVAÌUÅ ½ ótátõó
+ÉMPÏÒÔ ( ÒÏUÔÉNÅ ÉNÔÅGÅÒ¬óëót(ÉNÔÅGÅÒ AÒÒAY¬óëtí©:¦
+SKPcáîcel ©
+¥  ótáticStoráçeAreá    ½¾ SK-ÌÉB worë áreá
+¥  tiíeÅöeît            ½¾ tèe tiíe eöeît to âe cáîcelleä ( 0 ½¾ cáîcel AÌÌ tiíeró ©
+
+
+¥-----------------------------------------------------------------------------¥
+¥ ÉNVAÌUÅ  ½ fláçó NÏÒMAÌÌY ZÅÒÏ
+¥ ÏUÔVAÌUÅ ½ ótátõó
+ÉMPÏÒÔ ( ÒÏUÔÉNÅ ÉNÔÅGÅÒ¬óëót(ÉNÔÅGÅÒ AÒÒAY¬SKÃSóet¬BYÔÅS¬ÉNÔÅGÅÒ´¬óëiä ×ÒÉÔÅ©:¦
+SKPopenPort ALIAS 'SKPOPENPOR')
+¥  ótáticStoráçeAreá    ½¾ SK-ÌÉB worë áreá
+¥  reqõeóteäSõâóùóteíó  ½¾ coííõîicátioî óõóâóùóteíó iî wèicè to oðeî ðort
+¥  îáíeÏfPort           ½¾ îáíe of tèe ðort
+¥  eöeît                ½¾ eöeît to âe óet wèeî á íeóóáçe árriöeó
+¥  ðortÉäeîtifier       SK ðort iäeîtifier to âe õóeä iî láter refereîceó ½¾
+
+
+¥-----------------------------------------------------------------------------¥
+¥ ÉNVAÌUÅ  ½ fláçó MUSÔ BÅ ZÅÒÏ
+¥ ÏUÔVAÌUÅ ½ ótátõó
+ÉMPÏÒÔ ( ÒÏUÔÉNÅ ÉNÔÅGÅÒ¬óëót(ÉNÔÅGÅÒ AÒÒAY¬BYÔÅS¬SKÃSóet¬¦
+                        óëiä ×ÒÉÔÅ¬óëcó ×ÒÉÔÅ©:¦
+SKPcoîîect ©
+¥  ótáticStoráçeAreá    ½¾ SK-ÌÉB worë áreá
+¥  îáíe                 ½¾ îáíe of ðort to coîîect to
+¥  ðeríitteäSõâóùóteíó  ½¾ óõâóùóteíó tèroõçè wèicè ácceóó ió ðeríitteä
+¥  ðortÉäeîtifier       SK ðort iäeîtifier to âe õóeä iî láter refereîceó ½¾
+¥  ácceóóPátè           áctõál óõâóùóteí çiöiîç ácceóó ( NÏÒMAÌÌY ÉGNÏÒÅD © ½¾
+
+
+¥-----------------------------------------------------------------------------¥
+¥ ÉNVAÌUÅ  ½ fláçó MUSÔ BÅ ZÅÒÏ
+¥ ÏUÔVAÌUÅ ½ ótátõó
+ÉMPÏÒÔ ( ÒÏUÔÉNÅ ÉNÔÅGÅÒ¬óëót(ÉNÔÅGÅÒ AÒÒAY¬óëiä¬óëiä ×ÒÉÔÅ©:¦
+SKPhomePort ALIAS 'SKPHOMEPOR')
+¥  ótáticStoráçeAreá    ½¾ SK-ÌÉB worë áreá
+¥  íóçÉäeîtifier        ½¾ SK iäeîtifier of íeóóáçe
+¥  èoíePort             ½¾ SK iäeîtifier of íeóóáçe'ó èoíe ðort
+
+
+¥-----------------------------------------------------------------------------¥
+¥ ÉNVAÌUÅ  ½ fláçó MUSÔ BÅ ZÅÒÏ
+¥ ÏUÔVAÌUÅ ½ ótátõó
+ÉMPÏÒÔ ( ÒÏUÔÉNÅ ÉNÔÅGÅÒ¬óëót(ÉNÔÅGÅÒ AÒÒAY¬óëiä¬óëiä¬ÉNÔÅGÅÒ¬óëiä ×ÒÉÔÅ©:¦
+SKPgetMessage ALIAS 'SKPGETMESS' )
+¥  ótáticStoráçeAreá    ½¾ SK-ÌÉB worë áreá
+¥  locálPort            ½¾ èoíe ðort of íeóóáçe
+¥  reíotePort           ½¾ iîteîäeä äeótiîátioî ðort of íeóóáçe
+¥  íóçÌeîçtè            ½¾ óiúe of íeóóáçe âõffer
+¥  íóçÉäeîtifier        SK iäeîtifier of íeóóáçe to âe õóeä iî láter refereîceó ½¾
+
+
+¥-----------------------------------------------------------------------------¥
+¥ ÉNVAÌUÅ  ½ fláçó MUSÔ BÅ ZÅÒÏ
+¥ ÏUÔVAÌUÅ ½ ótátõó
+ÉMPÏÒÔ ( ÒÏUÔÉNÅ ÉNÔÅGÅÒ¬óëót(ÉNÔÅGÅÒ AÒÒAY¬óëiä©:¦
+SKPreleáóe ©
+¥  ótáticStoráçeAreá    ½¾ SK-ÌÉB worë áreá
+¥  iäeîtifier           ½¾ SK ðort ÏÒ íeóóáçe iäeîtifier
+
+
+
+¥-----------------------------------------------------------------------------¥
+¥ ÉNVAÌUÅ  ½ fláçó NÏÒMAÌÌY ZÅÒÏ
+¥ ÏUÔVAÌUÅ ½ ótátõó
+ÉMPÏÒÔ ( ÒÏUÔÉNÅ ÉNÔÅGÅÒ¬óëót(ÉNÔÅGÅÒ AÒÒAY¬óëiä¬óëiä¬óëiä¬ÉNÔÅGÅÒ©:¦
+SKPóeîä ©
+¥  ótáticStoráçeAreá    ½¾ SK-ÌÉB worë áreá
+¥  íóçÉäeîtifier        ½¾ SK iäeîtifier of íeóóáçe
+¥  locálPort            ½¾ SK iäeîtifier for óoõrce ðort ( 0 ½¾ láót owîer ½ èoíePort ©
+¥  reíotePort           ½¾ SK iäeîtifier for äeótiîátioî ðort ( 0 ½¾ èoíe ðort¬ -± ½¾ láót owîer ©
+¥  íóçÌeîçtè            ½¾ óiúe of íeóóáçe to óeîä ( 0 ½¾ óeîä óiúe of láót writteî íeóóáçe ©
+
+
+¥-----------------------------------------------------------------------------¥
+¥ ÉNVAÌUÅ  ½ fláçó MUSÔ BÅ ZÅÒÏ
+¥ ÏUÔVAÌUÅ ½ ótátõó
+ÉMPÏÒÔ ( ÒÏUÔÉNÅ ÉNÔÅGÅÒ¬óëót(ÉNÔÅGÅÒ AÒÒAY¬óëiä¬óëiä ×ÒÉÔÅ¬ÉNÔÅGÅÒ ×ÒÉÔÅ¬óëít ×ÒÉÔÅ¬¦
+                     óëcó ×ÒÉÔÅ©:¦
+SKPreceiöe ©
+¥  ótáticStoráçeAreá    ½¾ SK-ÌÉB worë áreá
+¥  locálPort            ½¾ SK iäeîtifier for ðort to receiöe oî
+¥  íóçÉäeîtifier        ½¾ SK iäeîtifier of íeóóáçe receiöeä¬ if áîù ( 0 ½¾ îo íeóóáçe receiöeä ©
+¥  íóçÌeîçtè            leîçtè of receiöeä íeóóáçe ( NÏÔ ÉÆ ÒÅÔUÒNÅD MSG © ½¾
+¥  íóçÔùðe              tùðe of receiöeä íeóóáçe ½¾
+¥  öiáSõâóùóteí         óõâóùóteí oî wèicè íeóóáçe árriöeä ( NÏÒMAÌÌY ÉGNÏÒÅD © ½¾
+
+
+¥-----------------------------------------------------------------------------¥
+¥ ÉNVAÌUÅ  ½ fláçó MUSÔ BÅ ZÅÒÏ
+¥ ÏUÔVAÌUÅ ½ ótátõó
+ÉMPÏÒÔ ( ÒÏUÔÉNÅ ÉNÔÅGÅÒ¬óëót(ÉNÔÅGÅÒ AÒÒAY¬óëiä¬ÉNÔÅGÅÒ¬BYÔÅS PÏÉNÔÅÒ¬¦
+                        ÉNÔÅGÅÒ ×ÒÉÔÅ©:¦
+SKPreáä ©
+¥  ótáticStoráçeAreá    ½¾ SK-ÌÉB worë áreá
+¥  íóçÉäeîtifier        ½¾ SK iäeîtifier of íeóóáçe
+¥  íóçÏffóet            ½¾ äióðláceíeît iî íeóóáçe át wèicè to ótárt reáä
+¥  õóerBõffer           ½¾ õóer âõffer áreá iî wèicè to reáä äátá
+¥  reáäÌeîçtè           leîçtè of äátá áctõállù reáä ½¾
+
+
+¥-----------------------------------------------------------------------------¥
+¥ ÉNVAÌUÅ  ½ fláçó MUSÔ BÅ ZÅÒÏ
+¥ ÏUÔVAÌUÅ ½ ótátõó
+ÉMPÏÒÔ ( ÒÏUÔÉNÅ ÉNÔÅGÅÒ¬óëót(ÉNÔÅGÅÒ AÒÒAY¬óëiä¬ÉNÔÅGÅÒ¬BYÔÅS PÏÉNÔÅÒ¬¦
+                        ÉNÔÅGÅÒ ×ÒÉÔÅ©:¦
+SKPwrite ©
+¥  ótáticStoráçeAreá    ½¾ SK-ÌÉB worë áreá
+¥  íóçÉäeîtifier        ½¾ SK iäeîtifier of íeóóáçe
+¥  íóçÏffóet            ½¾ äióðláceíeît iî íeóóáçe át wèicè to âeçiî write ( -± ½¾ õóe cõrreît offóet ©
+¥  õóerDátá             ½¾ õóer äátá to âe writteî
+¥  writteîÌeîçtè        áctõál leîçtè of äátá writteî ½¾
+
+
+¥-----------------------------------------------------------------------------¥
+¥ ÉNVAÌUÅ  ½ fláçó MUSÔ BÅ ZÅÒÏ
+¥ ÏUÔVAÌUÅ ½ ótátõó
+ÉMPÏÒÔ ( ÒÏUÔÉNÅ ÉNÔÅGÅÒ¬óëót(ÉNÔÅGÅÒ AÒÒAY¬BYÔÅS PÏÉNÔÅÒ¬ÉNÔÅGÅÒ ×ÒÉÔÅ©:¦
+SKPerrorÒeðort alias 'SKPERRORRE' ©
+¥  ótáticStoráçeAreá    ½¾ SK-ÌÉB worë áreá
+¥  õóerBõffer           ½¾ õóer âõffer fot two-âùte error óoõrce iäeîtifier
+¥  errorÃoäe            áctõál error coäe eîcoõîtereä ½¾
+
+¥-----------------------------------------------------------------------------¥
+¥ ÉNVAÌUÅ  ½ fláçó MUSÔ BÅ ZÅÒÏ
+¥ ÏUÔVAÌUÅ ½ ótátõó
+ÉMPÏÒÔ ( ÒÏUÔÉNÅ ÉNÔÅGÅÒ¬óëót(ÉNÔÅGÅÒ AÒÒAY¬óëiä¬óëèð ×ÒÉÔÅ©:¦
+SKPreíoteAliöe ALIAS 'SKPREMOTEA' ©
+¥  ótáticStoráçeAreá    ½¾ SK-ÌÉB worë áreá
+¥  èoíePort             ½¾ SK iäeîtifier of reíote ðort
+¥  ðortStáte            ótáte of óðecifieä èoíe ðort ½¾
+
+$ÅÏÆ

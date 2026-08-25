@@ -147,6 +147,19 @@ namespace NDInsight.Sintran.Xmsg.Live
         private LapbLayerState _state;
 
         // Sequence variables, modulo 8 (spec 4.1).
+        // The TWO HALVES of spec 3.1: "the link is UP when BOTH directions have completed a
+        // SABM -> UA exchange". Tracked as halves rather than as the state table's single "notify
+        // up" action because the table's cells assume SABM_SENT is left exactly one way, and real
+        // traffic interleaves: the peer's SABM can move us to CONNECTED before the UA answering
+        // OUR SABM has arrived, and that UA then lands in CONNECTED where the table has no cell.
+        //
+        // _ourSabmAcked starts TRUE and is cleared by Connect(). That is not a fiddle: a PASSIVE
+        // station that never sends a SABM has no outstanding direction to complete, which is the
+        // table's "rx SABM in DISCONNECTED -> notify up" case. Only having a SABM in flight makes
+        // our half something to wait for.
+        private bool _ourSabmAcked = true;
+        private bool _peerSabmAnswered;
+
         private int _sendVariable;      // V(S): next I-frame to send
         private int _receiveVariable;   // V(R): next in-sequence I-frame expected
         private int _acknowledgeVariable; // V(A): oldest unacknowledged I-frame
@@ -204,6 +217,24 @@ namespace NDInsight.Sintran.Xmsg.Live
         public event InformationReceived? OnInformation;
 
         /// <summary>
+        /// Represents the method that is told the link has failed and was NOT re-established.
+        /// </summary>
+        /// <param name="reason">
+        /// A short human-readable description of what failed, suitable for a log line.
+        /// </param>
+        public delegate void LinkFailed(string reason);
+
+        /// <summary>
+        /// Occurs when N2 is exhausted and the link is declared dead without a re-establish.
+        /// </summary>
+        /// <remarks>
+        /// Raised only when <see cref="LapbOptions.ReestablishOnLinkFailure"/> is <c>false</c> (the
+        /// default). The caller should end its run and send a DISC rather than reconnecting: the
+        /// SABM of a reconnect is what kills a real XMSG gateway.
+        /// </remarks>
+        public event LinkFailed? OnLinkFailure;
+
+        /// <summary>
         /// Initialises a new link for a given node number.
         /// </summary>
         /// <param name="ownNode">
@@ -245,6 +276,50 @@ namespace NDInsight.Sintran.Xmsg.Live
         public LapbLayerState State
         {
             get { return _state; }
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether the upper layer has been told the link is usable.
+        /// </summary>
+        /// <remarks>
+        /// <para><b>This is NOT the same as <see cref="State"/> being Connected</b></para>
+        /// <para>
+        /// The spec's state table (section 8) carries "notify up" as a SEPARATE action from the
+        /// state transition, and the two do not coincide. Entering CONNECTED from SABM_SENT by
+        /// receiving the PEER's SABM is written <c>send UA; reset -&gt; CONNECTED</c> with **no
+        /// notify up**; only <c>rx UA</c> in SABM_SENT is <c>reset; notify up -&gt; CONNECTED</c>.
+        /// Section 3.1 says the same thing in prose: the link is up when BOTH directions have
+        /// completed a SABM -&gt; UA exchange.
+        /// </para>
+        /// <para><b>Why it matters, measured 2026-08-19</b></para>
+        /// <para>
+        /// This layer used to expose only <see cref="State"/>, and the adapter above mapped
+        /// Connected straight to an active link. On a run where RetroCore flushed a queued backlog,
+        /// we answered the peer's SABM at T+8ms, were reported up, and the upper layer sent an
+        /// I-frame at T+21ms - while the UA for OUR OWN SABM did not arrive until T+201ms. A later
+        /// SABM then reset V(S) to 0, the peer's legitimate N(R)=1 fell outside [0,0], and section
+        /// 4.3 forced us to FRMR the peer's own answer. Every individual rule was obeyed; the frame
+        /// was simply sent too early.
+        /// </para>
+        /// </remarks>
+        /// <remarks>
+        /// <para><b>Guarded by the state as well as the flag</b></para>
+        /// <para>
+        /// <c>_notifiedUp</c> records the table's "notify up" action; ANDing it with CONNECTED
+        /// means no path that leaves CONNECTED can strand a stale <c>true</c> here. That is
+        /// deliberate belt-and-braces: the state is left in several places, and a fix that depended
+        /// on every one of them remembering to clear a flag would be one edit away from this same
+        /// class of bug returning.
+        /// </para>
+        /// </remarks>
+        public bool IsUp
+        {
+            get
+            {
+                return _ourSabmAcked
+                    && _peerSabmAnswered
+                    && _state == LapbLayerState.Connected;
+            }
         }
 
         /// <summary>
@@ -307,6 +382,10 @@ namespace NDInsight.Sintran.Xmsg.Live
         /// </remarks>
         public void Connect(long currentTicks)
         {
+            // A SABM is about to go out, so our direction is now something to wait for. Only the UA
+            // answering it clears this again. The peer's half is untouched: if it already answered
+            // our earlier SABM, that exchange still stands.
+            _ourSabmAcked = false;
             Reset();
             _retry = 0;
             _state = LapbLayerState.SabmSent;
@@ -490,6 +569,24 @@ namespace NDInsight.Sintran.Xmsg.Live
                     // deviation): stay connected.
                     CaptureNode(frame.Info);
                     SendUnnumbered(UaBase, includeNode: true, pollFinal: true);
+
+                    // "notify up" PER THE STATE TABLE, which differs by the state we came FROM:
+                    //
+                    //   DISCONNECTED -> send UA; reset; NOTIFY UP -> CONNECTED
+                    //   SABM_SENT    -> send UA; reset;           -> CONNECTED   (NO notify up)
+                    //   CONNECTED    -> send UA; reset (mid-session, STAY UP)    (no change)
+                    //   DISC_SENT    -> send UA; reset;           -> CONNECTED   (NO notify up)
+                    //   FRMR_SENT    -> send UA; reset; NOTIFY UP -> CONNECTED
+                    //
+                    // The SABM_SENT cell is the one that matters and it is the one we had wrong:
+                    // answering the peer's SABM does NOT mean our own SABM has been acknowledged,
+                    // so the upper layer must not be told it may send. See IsUp for the
+                    // measurement that this cost.
+                    //
+                    // This completes the PEER's half only. Ours is _ourSabmAcked, and if a SABM of
+                    // ours is still in flight it stays false until its UA arrives.
+                    _peerSabmAnswered = true;
+
                     Reset();
                     _state = LapbLayerState.Connected;
                     StartT3(currentTicks);
@@ -501,9 +598,20 @@ namespace NDInsight.Sintran.Xmsg.Live
 
                 case LapbUnnumberedKind.Ua:
                     CaptureNode(frame.Info);   // UA carries the peer's node number (spec 2.3.1)
+
+                    // OUR half completes here whatever state we are in, and "whatever state" is the
+                    // point. MEASURED 2026-08-19: the peer's SABM moved us to CONNECTED at T+8 ms
+                    // and the UA answering our own SABM did not arrive until T+201 ms - by which
+                    // time we were no longer in SABM_SENT. Honouring it only there would leave the
+                    // link permanently half-up and never usable, which is how the first version of
+                    // this fix failed its own tests.
+                    _ourSabmAcked = true;
+
                     if (_state == LapbLayerState.SabmSent)
                     {
-                        // Our SABM was accepted: reset and go CONNECTED (spec 3.2).
+                        // Our SABM was accepted: reset and go CONNECTED (spec 3.2). Our half was
+                        // already recorded above, before this state test, precisely because the UA
+                        // does not always arrive here.
                         Reset();
                         _state = LapbLayerState.Connected;
                         StartT3(currentTicks);
@@ -824,8 +932,28 @@ namespace NDInsight.Sintran.Xmsg.Live
             {
                 // Link failure (spec 5.1 step 1): from CONNECTED or SABM_SENT, auto re-establish with a
                 // fresh SABM; otherwise drop to DISCONNECTED.
+                //
+                // THE RE-ESTABLISH IS OFF BY DEFAULT AND THAT IS DELIBERATE. It is correct LAPB and it
+                // KILLS A REAL XMSG GATEWAY. Measured twice on D100, 2026-08-21, with the console error
+                // device logged so both ends carry wall-clock stamps:
+                //
+                //   23:38:51.392 [TX] a=0x01 SABM state=SabmSent  -> 23:38:51.539 XMSG CODE 27  (147 ms)
+                //   23:58:35.837 [TX] a=0x01 SABM state=Connected -> 23:58:36.038 XMSG CODE 27  (201 ms)
+                //
+                // Code 27 is XXNER, "network gateway error", at PHYSICAL ADDRESS 141204 both times. In
+                // the first the peer had COMPLETED a transfer 30 seconds earlier, so it was healthy and
+                // nothing else had touched it.
+                //
+                // The second one is also what this branch looked like from our side: a 133KB push, the
+                // peer silent from 23:58:02, fourteen RR polls over 33 seconds, then this code reset a
+                // link it still believed was Connected. Losing the transfer is cheap; taking XMSG down
+                // costs XMSG, COSPO, the file server, TADAD and XMFIDO, each by hand.
+                //
+                // So by default we STOP and SAY SO, and the caller ends its run with a DISC. See
+                // LapbOptions.ReestablishOnLinkFailure for the opt-in.
                 StopT3();
-                if (_state == LapbLayerState.Connected || _state == LapbLayerState.SabmSent)
+                if (_options.ReestablishOnLinkFailure &&
+                    (_state == LapbLayerState.Connected || _state == LapbLayerState.SabmSent))
                 {
                     Reset();
                     SendUnnumbered(SabmBase, includeNode: true, pollFinal: true);
@@ -835,8 +963,24 @@ namespace NDInsight.Sintran.Xmsg.Live
                 }
                 else
                 {
+                    // The reason is built BEFORE the state is cleared - the outstanding-frame count is
+                    // the single most useful number here, and it is what says "the peer stopped
+                    // acknowledging" rather than "the peer never answered at all".
+                    string reason = "LAPB link failure: N2 (" + _options.N2.ToString() +
+                        ") exhausted in state " + _state.ToString() +
+                        " with " + Outstanding.ToString() + " unacknowledged frame(s)" +
+                        (_options.ReestablishOnLinkFailure ? "." : "; NOT re-establishing (a SABM kills the peer's XMSG gateway).");
+
+                    LapbLayerState failedFrom = _state;
                     _state = LapbLayerState.Disconnected;
                     StopT1();
+
+                    // Only announce a failure for a link that was actually carrying something. A
+                    // DISC_SENT or FRMR_SENT timeout ending in DISCONNECTED is an ordinary teardown.
+                    if (failedFrom == LapbLayerState.Connected || failedFrom == LapbLayerState.SabmSent)
+                    {
+                        OnLinkFailure?.Invoke(reason);
+                    }
                 }
 
                 return true;
@@ -1018,6 +1162,21 @@ namespace NDInsight.Sintran.Xmsg.Live
                 _txInfo[i] = null;
             }
 
+            // _pending IS cleared here, and whether it SHOULD be is an OPEN QUESTION - see below.
+            //
+            // The spec defines the word precisely (section 8): "reset" = set V(S)=V(A)=V(R)=0 and
+            // clear the RETRANSMIT queue. The retransmit queue is _txInfo above. _pending holds the
+            // upper layer's work not yet transmitted, which carries no sequence number, so a strict
+            // reading says a reset cannot have invalidated it and it should survive.
+            //
+            // IT IS LEFT ALONE FOR NOW BECAUSE REMOVING IT CHANGES THE WIRE. Dropping the Clear()
+            // makes SeamParityTests differ from the legacy composition at byte 26: a payload that
+            // used to be discarded is now transmitted. That may well be the correct behaviour, but
+            // it is a behaviour change to the bytes we put on a live link and it is NOT what caused
+            // the 2026-08-19 failure - in that capture the connect letter WAS transmitted (I ns=0
+            // is in the log); what the reset discarded was its retransmit record, which 3.2
+            // requires. Decide it deliberately, against the parity corpus, not as a side-effect of
+            // fixing the link-up gating.
             _pending.Clear();
             _peerBusy = false;
             _rejectCondition = false;

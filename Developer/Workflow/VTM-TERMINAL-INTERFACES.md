@@ -174,6 +174,19 @@ not a documented call convention, but a binary-level integration performed once 
   a real `.PICT` screen-picture file format (`%HEADING`/`%CONTROL`/`%DEFINITIONS`/`%ATTRIBUTES`
   sections, `@position`/`@size`/`@field-defaults` directives) — a fourth documented UI-definition
   syntax in this catalog, alongside VTM's raw API, NSHS's "pictures", and UNIQUE's `start-form`.
+  Full PLANC-specific how-to, including the now-decoded `.PICT`->PLANC build pipeline:
+  [PLANC-UI-VTM-GUIDE.md](../Languages/Application/PLANC-UI-VTM-GUIDE.md).
+- **UNIQUE depends on this exact file, confirmed.** "If the file (SYS)DDTABLES-Exx:VTM is not
+  available (does not exist, no access, ambiguous etc.), UNIQUE gets suspended without giving any
+  error message." [`ND-210731-2-EN.md:194`] — the 4GL form interpreter in
+  [ND-210729](../../Installation/Software/ND-210729/README.md) sits on the same `DDBTABLES-n:VTM`
+  mechanism as every other system in this document, not a parallel one.
+- **A fifth box-drawing mechanism, one mention only:** UNIQUE forms can embed "ND-NOTIS
+  graphics (S-format)... to include boxes or special symbols" [`ND-211202-A1-EN.md:40`] — separate
+  from PLANC-SCREEN-H's `frame`/`fullbar`/`sparsebar`, and not documented anywhere further found.
+- **The full side-by-side catalog** (VTM, PLANC-SCREEN-H, NSHS, UNIQUE/UNIQUICK, FOCUS, COBOL
+  built-in — what's confirmed vs. still open for each) is
+  [PLANC-VTM-UI-CATALOG.md](PLANC-VTM-UI-CATALOG.md).
 - [`ND-10013`](../../Installation/Software/ND-10013/README.md) NSHS (NORD Screen Handling
   System) — real BRF runtime files decoded (1-bank/2-bank/reentrant); its own "picture" file
   format looks conceptually close to PLANC-SCREEN-H's `.PICT` format above, but no NSHS manual has
@@ -194,6 +207,10 @@ not a documented call convention, but a binary-level integration performed once 
 
 ## See Also
 
+- **[PLANC-VTM-UI-CATALOG.md](PLANC-VTM-UI-CATALOG.md)** — full comparison of every UI system in
+  this document (VTM, PLANC-SCREEN-H, NSHS, UNIQUE/UNIQUICK, FOCUS, COBOL built-in).
+- **[../Languages/Application/PLANC-UI-VTM-GUIDE.md](../Languages/Application/PLANC-UI-VTM-GUIDE.md)** —
+  the PLANC-specific how-to: drawing boxes/bars and building `.PICT`-based screens.
 - **[LINKING-GUIDE.md](LINKING-GUIDE.md)** — how compiled VTM-array files get loaded alongside a
   program.
 - **[COBOL-DEVELOPER-GUIDE.md](../Languages/Application/COBOL-DEVELOPER-GUIDE.md)** — the

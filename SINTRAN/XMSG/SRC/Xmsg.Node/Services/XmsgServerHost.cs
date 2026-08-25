@@ -33,6 +33,14 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
         // recovered by rebuilding the accept one Flags 1 lower (ResyncAcceptDown). Cleared on the ACK.
         private readonly Dictionary<ushort, PendingAccept> _pendingAccepts = new Dictionary<ushort, PendingAccept>();
 
+        /// <summary>
+        /// Consecutive XENSE step-downs applied to ORIGINATED frames, per remote node. Cleared the
+        /// moment the peer acknowledges anything, because an ACK proves the two sides are back in
+        /// step and the next drift must be counted from scratch rather than inheriting a stale
+        /// count that would send it straight to the zero fallback.
+        /// </summary>
+        private readonly Dictionary<ushort, int> _originationResyncs = new Dictionary<ushort, int>();
+
         // Session port allocation preserves the live-verified first-session value 0x0211 and increments
         // the incarnation for each further session, so ports are unique across servers and sessions.
         private ushort _nextSessionPort;
@@ -67,6 +75,16 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
         /// </para>
         /// </remarks>
         private const int MaxAcceptResyncAttempts = 40;
+
+        /// <summary>
+        /// How many one-step-down corrections an ORIGINATED frame gets after a XENSE before
+        /// <see cref="ResyncOriginationDown"/> stops walking and drops to the post-restart
+        /// baseline of zero. Deliberately small: a real drift between two machines that were in
+        /// step is a handful of frames, so needing more than this says the cause is a peer restart
+        /// we did not witness, and walking a hundred-plus steps at one reject each would take
+        /// minutes of hammering the machine to reach the same place.
+        /// </summary>
+        private const int MaxOriginationResyncAttempts = 8;
 
         // XMCSM low-byte "service" code (XMSG-PROTOCOL.md section 9.1): send a letter (connect / list-systems).
         private const byte XsletServiceByte = 0x41;
@@ -268,6 +286,12 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
             {
                 return;
             }
+
+            // The peer acknowledged something, so our outgoing sequence is in step with it again.
+            // Forget any XENSE step-downs counted against this node - the next drift, if there is
+            // one, starts its own walk. Without this the count survives a recovery and the second
+            // drift of a long session would skip the walk and go straight to the zero fallback.
+            _originationResyncs.Remove(remoteNode);
 
             ushort next = (ushort)(ackedFlags1 + 1);
             ushort current = _store.LoadNextFlags1(remoteNode);
@@ -477,6 +501,109 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
             return AssembleDatagram(link, remoteNode, pending.ClientSystem, pending.ClientPort,
                 pending.SourcePort, pending.ControlService, pending.FrameFlags, pending.Role,
                 pending.Payload, f1);
+        }
+
+        /// <summary>
+        /// Recovers from a XENSE reject of a frame we ORIGINATED (a push connect letter, an FA
+        /// request - anything that is not the connect-accept <see cref="ResyncAcceptDown"/> covers).
+        /// </summary>
+        /// <remarks>
+        /// <para><b>The defect this repairs, measured twice</b></para>
+        /// <para>
+        /// <see cref="ChooseFlags1"/> persists on send, which is right - it is what the kernel does.
+        /// But a frame the peer then refuses with XENSE has ALREADY consumed and persisted its
+        /// number, and nothing anywhere stepped it back. So every rejection left us one FURTHER
+        /// ahead of the peer, and the retry that followed was refused for the same reason at a worse
+        /// number. Measured 2026-08-11 (0x003B -> 0x0040) and again live on 2026-08-24, where four
+        /// connect-letter attempts against D100 walked 0x007B -> 0x008C while nothing got through.
+        /// The recovery existed only for accepts; originations ran off the end.
+        /// </para>
+        /// <para><b>Why stepping DOWN is the right move</b></para>
+        /// <para>
+        /// XENSE (-34, <c>0xFFDE</c>) has exactly one meaning: our number is AHEAD of the value the
+        /// peer expects from us. The peer never transmits that value, so it cannot be read off the
+        /// wire - but the direction is unambiguous, so one step down per reject walks onto it, which
+        /// is the same convergence <see cref="ResyncAcceptDown"/> already used.
+        /// </para>
+        /// <para><b>And why there is a floor of zero rather than only a step</b></para>
+        /// <para>
+        /// A one-per-reject walk converges for a small drift. It does NOT converge in useful time
+        /// for the common large one: the peer's XMSG restarted while we were not connected, which
+        /// sets its expected-from-us back to 0 and sends a ReachabilityRequest we were not there to
+        /// hear. Our store then holds a number that may be hundreds ahead. That case is why the
+        /// manual fix in the notes is "write 0 into xmsg-sequence.state", after which the whole
+        /// ladder climbs on the very next attempt. So when stepping stops converging, this drops to
+        /// 0 - the value the protocol says the peer holds after a restart - and says so loudly
+        /// rather than stalling with the operator none the wiser.
+        /// </para>
+        /// </remarks>
+        /// <param name="remoteNode">
+        /// The node that sent the XENSE.
+        /// </param>
+        /// <param name="refusedFlags1">
+        /// The Flags 1 the peer refused, taken from the rejecting frame's header - it echoes the
+        /// number it would not accept.
+        /// </param>
+        /// <returns>
+        /// True when the outgoing sequence was moved, so the caller's next attempt uses the
+        /// corrected number; false when there is no link for the node.
+        /// </returns>
+        public bool ResyncOriginationDown(ushort remoteNode, ushort refusedFlags1)
+        {
+            if (!_links.TryGetValue(remoteNode, out XmsgLink? link))
+            {
+                return false;
+            }
+
+            if (!_originationResyncs.TryGetValue(remoteNode, out int attempts))
+            {
+                attempts = 0;
+            }
+
+            attempts++;
+            _originationResyncs[remoteNode] = attempts;
+
+            ushort corrected;
+            if (attempts >= MaxOriginationResyncAttempts || refusedFlags1 == 0)
+            {
+                // GIVE UP RATHER THAN GUESS.
+                //
+                // This used to drop the sequence to 0 here, on the theory that a walk which will
+                // not converge means the peer's XMSG restarted. MEASURED 2026-08-24 against D100,
+                // and it was WRONG - actively worse than doing nothing. D100 had not restarted:
+                // LIST-SYSTEMS showed it wanted 122 (0x007A) while we sat at 0x008C, a drift of
+                // eighteen. The reset threw us from eighteen AHEAD to a hundred and twenty-two
+                // BEHIND, and behind is the direction SINTRAN drops in SILENCE - so a loud,
+                // diagnosable refusal became no answer at all.
+                //
+                // The genuine peer-restart case does NOT need guessing for: the peer announces it
+                // with a ReachabilityRequest, and ResetSequence already zeroes us on that. If we
+                // were not connected to hear it, the number is simply not knowable from here - the
+                // peer's expectation of US is never transmitted. So stop, keep the sequence where
+                // stepping left it, and name the one command that answers it.
+                corrected = link.NextFlags1;
+                Log?.Invoke(
+                    $"[seq] node {remoteNode}: GIVING UP after {attempts} XENSE step(s), last refused"
+                    + $" 0x{refusedFlags1:X4}. Stepping down is not converging, and this does NOT"
+                    + " reset the sequence - guessing 0 here once turned an 18-frame drift into a"
+                    + " 122-frame one, which the peer then dropped in silence. The peer's expected"
+                    + " value is never sent on the wire; READ IT with X-COMM LIST-SYSTEMS on the"
+                    + " machine - the RECEIVE column for this node is the next Flags1 it wants from"
+                    + " us - and put that number in the sequence store.");
+            }
+            else
+            {
+                // One below the number that was refused: the peer wants something lower, and this
+                // is the largest value that is certainly lower.
+                corrected = (ushort)(refusedFlags1 - 1);
+                Log?.Invoke(
+                    $"[seq] node {remoteNode}: XENSE at Flags1 0x{refusedFlags1:X4} - we are AHEAD;"
+                    + $" stepping our outgoing sequence down to 0x{corrected:X4} (step {attempts})");
+            }
+
+            link.NextFlags1 = corrected;
+            _store.SaveNextFlags1(remoteNode, corrected);
+            return true;
         }
 
         /// <summary>
@@ -1321,6 +1448,26 @@ namespace NDInsight.Sintran.Xmsg.Node.Services
             // frame that just arrived - deliberately, because the peer's Flags 1 is its own count
             // and says nothing about what it expects from us. Logged because this is the value a
             // restart inherits, and "what did we start from" is half of task #28's question.
+            //
+            // THE STORE IS ONLY RIGHT IF WE ARE THE ONLY PROCESS USING THIS NODE NUMBER, and that
+            // is worth saying out loud because it cost an afternoon on 2026-08-24. The peer keeps
+            // ONE counter per system number. Two runners both calling themselves 19999 - which is
+            // easy to do, a Debug build and a Release build in different bin folders - each keep
+            // their own store, but they share the peer's single counter. Whichever one sends
+            // advances it, and the other is then hundreds behind:
+            //
+            //     bin\Debug\net9.0\xmsg-sequence.state     100=0247   driving the conversation
+            //     bin\Release\net9.0\xmsg-sequence.state   100=0010   every letter discarded
+            //
+            // The symptom does NOT look like a sequence problem. The peer acknowledges every frame
+            // at the link layer and answers nothing above it, while LIST-NAMES shows *FA-SERVER
+            // with 30 free service points - so it reads as a dead or refusing file server. The
+            // machine publishes the number it wants, in the RECEIVE column of
+            //
+            //     X-C: LIST-SYSTEMS -> XROUT system? <peer> -> System? <us>
+            //
+            // and setting the store to that value made an identical push succeed first try. Fix
+            // the duplicate node number; do not paper over it by rewriting the store.
             ushort startingFlags1 = _store.LoadNextFlags1(node);
             Log?.Invoke(
                 $"[seq] node {node}: link created, starting Flags1 0x{startingFlags1:X4} from the store "

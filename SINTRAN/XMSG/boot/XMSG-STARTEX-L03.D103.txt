@@ -1,0 +1,88 @@
+@CC ====================================================================
+@CC  XMSG-STARTEX-L03:MODE  -  D103
+@CC
+@CC  D103 is an HDLC-ONLY machine. It has no COSMOS Ethernet Option, so
+@CC  ENNS0 does not exist here and START-NET-SERVER would fail.
+@CC    HDLC peer   : D100 on link 1360 (this machine's controller 1,
+@CC                  dialling D100's HDLC 2 listener - see RetroCore.ini)
+@CC    Everything else is reached VIA D100.
+@CC ====================================================================
+@CC
+@CC  Stop and restart XMSG, waiting while the segments get fixed.
+@SINTRAN
+@STOP-XMSG
+@EX
+@HOLD 0 0
+@HOLD 2 2
+@SINTRAN
+@START-XMSG
+@EX
+@HOLD 0 0
+@HOLD 3 2
+@CC
+@XMSG-COMMAND
+''
+''  Name every system, INCLUDING this machine's own. Two commas, then
+''  NAME SPACE NUMBER - the space is not a typo.
+DEF-REMOTE,,D100 100
+DEF-REMOTE,,D101 101
+DEF-REMOTE,,D102 102
+DEF-REMOTE,,D103 103
+DEF-REMOTE,,D200 200
+DEF-REMOTE,,D19999 19999
+''
+''  The one wire this machine has.
+START-LINK,1360,,,-1,,
+''
+''  Everything that is not D100 is behind D100.
+DEFINE-SYSTEM-ROUTE,,D102 D100
+DEFINE-SYSTEM-ROUTE,,D200 D100
+DEFINE-SYSTEM-ROUTE,,D19999 D100
+''
+''  Print what we ended up with, so the boot log carries the evidence.
+LIST-LINK,,,,
+LIST-NAMES,,,,
+LIST-ROUT,,,,
+EXIT
+@CC
+@CC ====================================================================
+@CC  THE CHAT SERVER
+@CC
+@CC  This machine got its chat on 2026-08-24. It has NO PLANC compiler
+@CC  and does not need one: CHATSV:BRF was copied from D100, together
+@CC  with the three libraries the RT-loader links against, and loaded
+@CC  onto segment 2521. CHATMN:PROG and CHAT:PROG came the same way.
+@CC
+@CC  The RT description and its segment survive a reboot, so a plain @RT
+@CC  is enough here exactly as it is on D100 and D102.
+@CC
+@CC  THIS FILE USED TO SAY there was no line like this "because nobody
+@CC  has established that D103 has a CHATSER". That is established now -
+@CC  LI-RT-DES,CHATSER answers IN TIME QUEUE, and a message typed on D103
+@CC  reached a client on D100 over the HDLC trunk, both directions.
+@CC ====================================================================
+@RT CHATSER
+@CC
+@CC ====================================================================
+@CC  THE TRUNK TO D100
+@CC
+@CC  D100 is this machine's ONLY neighbour - everything else is behind it
+@CC  - so this is the only trunk D103 can have. D102 is NOT reachable for
+@CC  chat: a message carries no hop count and D100 does not forward it
+@CC  onward. That is Phase D of CHAT-FEDERATION-DESIGN.md and it is not
+@CC  written yet. MEASURED 2026-08-24, with a control: a message from
+@CC  D103 reached D100 and did NOT reach D102, while a message from D100
+@CC  reached D102 seconds later on the same client.
+@CC
+@CC  A MODE file CAN drive CHAT-MON - tested on D100 before this went in,
+@CC  because if the file's input did not reach the program it would wait
+@CC  on MON1 for ever and hang the boot.
+@CC
+@CC  The race is NOT measured: @RT returns when the RT program is STARTED,
+@CC  not when it has claimed its admin port, and CHAT-MON talks to that
+@CC  port. LIST-TRUNKS follows so the boot log says what happened.
+@CC ====================================================================
+@CHAT-MON
+START-TRUNK 100
+LIST-TRUNKS
+EXIT

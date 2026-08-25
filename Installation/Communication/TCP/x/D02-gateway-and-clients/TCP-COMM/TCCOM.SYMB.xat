@@ -1,0 +1,18 @@
+{
+  "ndfs.object_name": "TCCOM",
+  "ndfs.type": "SYMB",
+  "ndfs.user_name": "TCP-COMM",
+  "ndfs.user_index": 30,
+  "ndfs.access_bits": 32767,
+  "ndfs.file_type_flags": 8,
+  "ndfs.file_type": 0,
+  "ndfs.device_number": 0,
+  "ndfs.next_version": 7687,
+  "ndfs.prev_version": 7687,
+  "ndfs.pages_in_file": 5,
+  "ndfs.bytes_in_file": 8741,
+  "ndfs.date_created": 2901184934,
+  "ndfs.last_read_date": 2602605521,
+  "ndfs.last_write_date": 2901188307,
+  "ndfs.holes": []
+}

@@ -42,7 +42,18 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
     {
         private readonly ushort _serverNode;
         private readonly string _serverName;
-        private readonly string _roomName;
+
+        // THE SERVICE NAME, NOT A ROOM NAME - and that is the change the one-port model made here.
+        // This used to be the room: every room registered its own XROUT name, CHAT-LOBBY and
+        // CHAT-GENERAL, and a join was addressed to it. Now there is ONE name, *CHAT, and the room
+        // travels in the Join's text field. A run left on the old model addresses a name that no
+        // longer exists and every join comes back XRUNN.
+        private readonly string _serviceName;
+
+        // Which rooms to spread the users over. One entry means the old single-room run; more than
+        // one is what makes this able to test isolation AT SCALE, which two terminals cannot.
+        private readonly string[] _rooms;
+
         private readonly int _userCount;
         private readonly int _linesEach;
 
@@ -115,8 +126,13 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
         /// <param name="serverName">
         /// That machine's system name, for example <c>D100</c>. XROUT looks the room up by system.
         /// </param>
-        /// <param name="roomName">
-        /// The registered room name, for example <c>CHAT-LOBBY</c>.
+        /// <param name="serviceName">
+        /// The registered SERVICE name to join, which is <c>*CHAT</c> - not a room. See the field
+        /// remarks: rooms stopped being XROUT names when the server moved to one port.
+        /// </param>
+        /// <param name="rooms">
+        /// The rooms to spread the users over, round robin. One entry is a single-room run; two or
+        /// more is an isolation test at a scale terminals cannot reach.
         /// </param>
         /// <param name="userCount">
         /// How many simulated users to create.
@@ -124,14 +140,92 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
         /// <param name="linesEach">
         /// How many lines each welcomed user says.
         /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="serverName"/>, <paramref name="serviceName"/> or
+        /// <paramref name="rooms"/> is null.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when <paramref name="rooms"/> is empty.
+        /// </exception>
         public ChatLoadRun(
-            ushort serverNode, string serverName, string roomName, int userCount, int linesEach)
+            ushort serverNode,
+            string serverName,
+            string serviceName,
+            string[] rooms,
+            int userCount,
+            int linesEach)
         {
             _serverNode = serverNode;
             _serverName = serverName ?? throw new ArgumentNullException(nameof(serverName));
-            _roomName = roomName ?? throw new ArgumentNullException(nameof(roomName));
+            _serviceName = serviceName ?? throw new ArgumentNullException(nameof(serviceName));
+
+            if (rooms == null)
+            {
+                throw new ArgumentNullException(nameof(rooms));
+            }
+
+            if (rooms.Length == 0)
+            {
+                throw new ArgumentException("A run needs at least one room.", nameof(rooms));
+            }
+
+            _rooms = rooms;
             _userCount = userCount;
             _linesEach = linesEach;
+        }
+
+        /// <summary>
+        /// The room a given user joins.
+        /// </summary>
+        /// <param name="user">
+        /// The user's index.
+        /// </param>
+        /// <returns>
+        /// The room name to put in that user's Join.
+        /// </returns>
+        /// <remarks>
+        /// Round robin rather than blocks, so a run with two rooms interleaves them - the joins
+        /// arrive alternating, which is the harder case for a server keeping one flat seat table
+        /// with a room name beside each seat.
+        /// </remarks>
+        private string RoomOf(int user)
+        {
+            return _rooms[user % _rooms.Length];
+        }
+
+        /// <summary>
+        /// How many Said messages a correct server should send, given who ended up where.
+        /// </summary>
+        /// <returns>
+        /// The expected count.
+        /// </returns>
+        /// <remarks>
+        /// <para><b>This number IS the isolation test</b></para>
+        /// Every line said in a room is broadcast to everybody in THAT room, the speaker included.
+        /// So a room of <c>m</c> members saying <c>n</c> lines each produces <c>m * n * m</c> Said
+        /// messages, and the total is the sum of <c>m^2 * n</c> over the rooms - never the square
+        /// of the whole population. A server that ignores rooms lands on the larger number, and a
+        /// server that broadcasts to nobody lands on zero. Both are visible against this without
+        /// reading a single screen.
+        /// </remarks>
+        private int ExpectedSaid()
+        {
+            Dictionary<string, int> perRoom = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            foreach (KeyValuePair<int, ushort> welcomed in _serverPortFor)
+            {
+                string room = RoomOf(welcomed.Key);
+                int already;
+                perRoom.TryGetValue(room, out already);
+                perRoom[room] = already + 1;
+            }
+
+            int total = 0;
+            foreach (KeyValuePair<string, int> room in perRoom)
+            {
+                total += room.Value * room.Value * _linesEach;
+            }
+
+            return total;
         }
 
         /// <summary>
@@ -359,8 +453,9 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
         private void SendAllJoins(XmsgNodeHost host)
         {
             Console.WriteLine(
-                $"[chatload] {_userCount} user(s) joining {_roomName} on {_serverName}"
-                + $" (node {_serverNode}), {_linesEach} line(s) each");
+                $"[chatload] {_userCount} user(s) joining {_serviceName} on {_serverName}"
+                + $" (node {_serverNode}), {_linesEach} line(s) each,"
+                + $" room(s): {string.Join(" ", _rooms)}");
 
             for (int i = 0; i < _userCount; i++)
             {
@@ -368,7 +463,10 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
                 _ports.Add(port);
                 _portToUser[port] = i;
 
-                ChatMessage join = new ChatMessage(ChatMessageKind.Join, NameOf(i), string.Empty);
+                // THE ROOM RIDES IN THE TEXT FIELD. That is the whole one-port model: the Join
+                // already had an empty text field, so naming the room in it changed no byte layout
+                // on either side.
+                ChatMessage join = new ChatMessage(ChatMessageKind.Join, NameOf(i), RoomOf(i));
                 SendLetter(host, port, join);
             }
         }
@@ -436,8 +534,8 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
         {
             XroutMessage letter = XroutRequests.SendLetter(
                 serial: 0x7B,                        // 123, the serial CHAT.PLNC uses
-                portName: _roomName,
-                systemName: null,                    // the room is on the machine we address
+                portName: _serviceName,
+                systemName: null,                    // the service is on the machine we address
                 localAreaOnly: null);
 
             byte[] head = letter.ToArray();
@@ -565,10 +663,38 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
             Console.WriteLine($"[chatload] refused by the room : {_rejected}");
             Console.WriteLine($"[chatload] never answered      : {_userCount - _welcomed - _rejected}");
             Console.WriteLine($"[chatload] frames from the room: {_framesFromRoom}");
+            int expected = ExpectedSaid();
             Console.WriteLine($"[chatload] Said messages heard : {_saidHeard}");
+            Console.WriteLine($"[chatload] Said messages EXPECTED: {expected}   (sum of members^2 x lines, per room)");
             Console.WriteLine($"[chatload] leaves sent         : {_leftSent}");
             Console.WriteLine($"[chatload] letters XROUT refused: {_letterRefused}");
             Console.WriteLine($"[chatload] undecodable bodies  : {_undecodable}");
+
+            // THE VERDICT, SPELLED OUT. A run that prints numbers and leaves the reader to do the
+            // arithmetic is how a wrong one gets called a good one - and with rooms the arithmetic
+            // is no longer obvious enough to do in your head.
+            if (_saidHeard == expected)
+            {
+                Console.WriteLine("[chatload] ROOMS HELD: every line reached its own room and no other.");
+            }
+            else if (_saidHeard == 0 && expected > 0)
+            {
+                Console.WriteLine(
+                    "[chatload] *** NOTHING WAS BROADCAST. The server took the lines and sent them"
+                    + " to nobody - this is what the broadcast defect of 2026-08-20 looked like.");
+            }
+            else if (_saidHeard > expected)
+            {
+                Console.WriteLine(
+                    "[chatload] *** ROOMS LEAKED: more Said messages arrived than the rooms account"
+                    + " for, so somebody heard another room's conversation.");
+            }
+            else
+            {
+                Console.WriteLine(
+                    "[chatload] *** SHORT: fewer Said messages than the rooms account for. Lines"
+                    + " were dropped, or a member was not in the room the run thinks.");
+            }
 
             if (_undecodable > 0)
             {

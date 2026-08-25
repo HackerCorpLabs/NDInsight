@@ -143,6 +143,31 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
         }
 
         /// <summary>
+        /// Starts a DIAGNOSTIC session that reserves a file entry and sets the block size without
+        /// opening the file.
+        /// </summary>
+        /// <returns>
+        /// A session running <see cref="FaReadLadder.ProbeWithoutOpen"/>.
+        /// </returns>
+        /// <remarks>
+        /// <para><b>Not a transfer.</b> It reads nothing and writes nothing.</para>
+        /// It exists to separate the two readings of the follow-on refusal <c>A2 4104</c> - see
+        /// <see cref="FaReadLadder.ProbeWithoutOpen"/> for the question and
+        /// <c>DOC/CARVE-FA-READ-REFUSAL-2026-08-18.md</c> for the working.
+        /// <para>
+        /// <see cref="SetBlockCount"/> must never be called on one of these. It would replace the
+        /// probe ladder with a real transfer ladder, and nothing here can call it: the block count
+        /// arrives in the OPEN reply, and this session never sends an open.
+        /// </para>
+        /// </remarks>
+        public static FaClientReadSession CreateProbeWithoutOpen()
+        {
+            FaClientReadSession session = new FaClientReadSession(0);
+            session._ladder = FaReadLadder.ProbeWithoutOpen();
+            return session;
+        }
+
+        /// <summary>
         /// Gets why the session failed, or an empty string while it has not.
         /// </summary>
         public string Failure

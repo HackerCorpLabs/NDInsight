@@ -1,0 +1,18 @@
+{
+  "ndfs.object_name": "HENT-MODE-C3",
+  "ndfs.type": "MODE",
+  "ndfs.user_name": "SYSTEM",
+  "ndfs.user_index": 0,
+  "ndfs.access_bits": 255,
+  "ndfs.file_type_flags": 8,
+  "ndfs.file_type": 0,
+  "ndfs.device_number": 0,
+  "ndfs.next_version": 80,
+  "ndfs.prev_version": 80,
+  "ndfs.pages_in_file": 5,
+  "ndfs.bytes_in_file": 8559,
+  "ndfs.date_created": 2450455558,
+  "ndfs.last_read_date": 2602605563,
+  "ndfs.last_write_date": 2865271253,
+  "ndfs.holes": []
+}

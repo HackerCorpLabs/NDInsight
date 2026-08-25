@@ -121,6 +121,11 @@ The compiler produces three files:
   handing it a byte prints the byte's NUMBER
 - **Subarrays pass part of a buffer and their bounds may be VARIABLES** -- `name(0:len-1)`. Without
   one, a routine taking `BYTES` receives the array's whole declared length, leftovers included
+- **A NAME DECLARED NOWHERE STILL COMPILES.** Measured: a BOOLEAN stored to and tested in two
+  routines, declared in neither and not at module level, gave **`0 DIAGNOSTICS`** -- and the program
+  ran with it permanently set. The signature is a flag that will not change: printing it
+  immediately after `FALSE =: x` showed `1`. When a variable ignores an assignment, check the
+  DECLARATION before debugging the logic. `SINTRAN/XMSG/tools/planc-lint.py` flags this
 - `BYTES : name := 'string'` declares byte array with implicit length
 - `%` starts a comment to end of line
 - `&` at end of line continues statement on next line

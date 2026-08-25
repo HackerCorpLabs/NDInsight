@@ -139,7 +139,39 @@ namespace NDInsight.Sintran.Xmsg.Ethernet
         /// runner log while the link stayed nominally up.
         /// </para>
         /// </remarks>
-        DisconnectRequest60 = 0x60
+        DisconnectRequest60 = 0x60,
+
+        /// <summary>
+        /// <c>0x70</c> - DC, the confirmation of a disconnect request. INFERRED from where it sits
+        /// in the exchange, not from any document.
+        /// </summary>
+        /// <remarks>
+        /// <para><b>The evidence</b></para>
+        /// <para>
+        /// Three independent occurrences across two captures on 2026-08-24, every one the same
+        /// shape: a connection request is answered by <see cref="DisconnectRequest60"/>, and the
+        /// refused side replies with this. The link ids are those of the disconnect request with
+        /// the two halves swapped, which is what a reply looks like, and the trailing field is
+        /// zero where the disconnect request carried <c>0x0001</c>. It carries no payload.
+        /// </para>
+        /// <para>
+        /// The numbering agrees: <c>0x60</c> and <c>0x6F</c> are the disconnect-request family and
+        /// <c>0x70</c> is the next one up, which is also how the rest of these kinds line up
+        /// against the X.25 family they resemble.
+        /// </para>
+        /// <para><b>WHAT WOULD DISPROVE IT</b></para>
+        /// <para>
+        /// A <c>0x70</c> that does NOT follow a disconnect request. Every sample so far follows
+        /// one immediately, so a single counter-example retires this reading. It is INFERRED, not
+        /// MEASURED - nobody has read it in a manual or carved it out of the kernel.
+        /// </para>
+        /// <para>
+        /// One oddity worth keeping: the FIRST of each pair is addressed to MAC
+        /// <c>08:00:26:00:00:00</c> - system number zero - and only the retry is addressed
+        /// properly. The sender has not learned the peer's identity yet at that point.
+        /// </para>
+        /// </remarks>
+        DisconnectConfirm = 0x70
     }
 
     /// <summary>

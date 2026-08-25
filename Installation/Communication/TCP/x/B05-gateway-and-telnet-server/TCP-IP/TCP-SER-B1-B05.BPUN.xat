@@ -1,0 +1,18 @@
+{
+  "ndfs.object_name": "TCP-SER-B1-B05",
+  "ndfs.type": "BPUN",
+  "ndfs.user_name": "TCP-IP",
+  "ndfs.user_index": 7,
+  "ndfs.access_bits": 1087,
+  "ndfs.file_type_flags": 8,
+  "ndfs.file_type": 0,
+  "ndfs.device_number": 0,
+  "ndfs.next_version": 1794,
+  "ndfs.prev_version": 1794,
+  "ndfs.pages_in_file": 65,
+  "ndfs.bytes_in_file": 131205,
+  "ndfs.date_created": 48964949,
+  "ndfs.last_read_date": 86071014,
+  "ndfs.last_write_date": 48964949,
+  "ndfs.holes": []
+}

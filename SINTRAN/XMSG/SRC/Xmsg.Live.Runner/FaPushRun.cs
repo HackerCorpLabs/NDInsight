@@ -72,6 +72,12 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
         private DateTime _connectSentUtc;
         private int _connectAttempts;
         private bool _peerAnswered;
+
+        // The transport's refusal count at the moment the connect letter was FIRST handed over.
+        // Subtracting it later says how many of OUR OWN frames the transport would not take, which
+        // is the difference between "the peer ignored us" and "we never asked". See the give-up
+        // path for the two live occasions that distinction was got wrong.
+        private long _refusedAtConnectStart;
         private long _pumpTicks;
 
         /// <summary>
@@ -385,6 +391,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
                 if (!_peerAnswered && _connectFrames == null)
                 {
                     _connectFrames = sent;
+                    _refusedAtConnectStart = host.Transport.RefusedFrames;
                     _connectSentUtc = DateTime.UtcNow;
                     _connectAttempts = 1;
                 }
@@ -439,10 +446,40 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
 
             if (_connectAttempts >= MaxConnectAttempts)
             {
-                Console.WriteLine(
-                    $"[push] GIVING UP: node {_serverNode} answered none of {MaxConnectAttempts}"
-                    + " connect letters. The link is up and the frame is well formed, so this is"
-                    + " not a lost frame - stopping rather than flooding the machine.");
+                // SAY WHAT IS KNOWN, NOT WHAT IS ASSUMED.
+                //
+                // This used to add "The link is up and the frame is well formed, so this is not a
+                // lost frame". It had checked neither, and it was WRONG TWICE:
+                //  - 2026-08-19: the peer DID answer. Our own LAPB rejected the reply with FRMR one
+                //    layer below, and this message sent the search off into sequence numbers and
+                //    routing tables for an evening.
+                //  - 2026-08-20: the letters were never transmitted at all. The link was still
+                //    establishing, SendData refused them, and "answered none" was true only
+                //    because none had been sent.
+                //
+                // The transport counts refusals, so ask it instead of asserting. A frame the
+                // transport would not take is OUR problem and must not be reported as the peer's
+                // silence.
+                long refused = host.Transport.RefusedFrames - _refusedAtConnectStart;
+
+                if (refused > 0)
+                {
+                    Console.WriteLine(
+                        $"[push] GIVING UP: {refused} frame(s) were REFUSED BY OUR OWN TRANSPORT"
+                        + " while trying to send the connect letter, so node "
+                        + $"{_serverNode} was never asked. This is our end, not the peer's - the"
+                        + " usual cause is sending before the link is up.");
+                }
+                else
+                {
+                    Console.WriteLine(
+                        $"[push] GIVING UP: node {_serverNode} did not answer any of"
+                        + $" {MaxConnectAttempts} connect letters. Our transport accepted every"
+                        + " one, so they did go out - but whether the peer saw them, or answered"
+                        + " and we discarded the answer lower down, is NOT established here."
+                        + " Check the log for FRMR before blaming the machine.");
+                }
+
                 _connectFrames = null;
 
                 // SAY SO TO THE DRIVER, not just to the screen.
@@ -452,8 +489,11 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
                 // MEASURED 2026-08-18: a push to a user that does not exist gave up at 25 seconds
                 // and the process then sat there until the wall-clock timeout at 45 - it had known
                 // the answer for twenty seconds and had no way to say it.
-                _driver.Abandon(
-                    $"node {_serverNode} answered none of {MaxConnectAttempts} connect letters.");
+                _driver.Abandon(refused > 0
+                    ? $"our own transport refused {refused} connect frame(s), so node"
+                      + $" {_serverNode} was never asked - send before the link was up"
+                    : $"node {_serverNode} did not answer any of {MaxConnectAttempts} connect"
+                      + " letters (all were accepted by our transport)");
                 return;
             }
 

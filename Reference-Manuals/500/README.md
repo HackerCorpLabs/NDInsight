@@ -8,22 +8,24 @@
 
 ## 📖 Overview
 
-This sub-collection contains **20 manuals** covering the ND-500 and ND-5000 high-performance
-processors: CPU and microprogram documentation, ND-5000 hardware descriptions and maintenance,
-the DOMINO / NUCLEUS software environment, multiport memory, single- and double-precision array
-processing, the ND-500 Monitor operations, and course/other technical material.
+This sub-collection contains **23 manuals** covering the ND-500 and ND-5000 high-performance
+processors: CPU and microprogram documentation, the SAMSON CPU design document, ND-5000 hardware
+descriptions and maintenance, system administration, the DOMINO / NUCLEUS software environment,
+multiport memory, single- and double-precision array processing, the ND-500 Monitor operations,
+and course/other technical material.
 
 ### Total Collection
 
 | Category | Manuals | Total Lines |
 |----------|---------|-------------|
-| ND-500 / ND-5000 CPU & Microprogram | 7 | ~22,100 |
+| ND-500 / ND-5000 CPU & Microprogram | 9 | ~26,200 |
 | ND-5000 Hardware | 3 | ~27,400 |
+| ND-5000 System Administration | 1 | ~3,100 |
 | DOMINO / NUCLEUS | 4 | ~28,300 |
 | Multiport Memory | 2 | ~4,600 |
 | Array Processing | 2 | ~7,300 |
 | Course & Other | 2 | ~21,800 |
-| **Total** | **20** | **~111,500** |
+| **Total** | **23** | **~118,700** |
 
 ---
 
@@ -33,6 +35,8 @@ processing, the ND-500 Monitor operations, and course/other technical material.
 
 | Manual | Document # | Lines | Description |
 |--------|-----------|-------|-------------|
+| **SAMSON Expected Behaviour** | ND-SAMSON-1 EN | 3,064 | The SAMSON project's own CPU design document - the internal specification the ND-5000 was built from. 13 chapters: general description with the full block diagram and abbreviation table (ALU, WRF, SRF, IAC/DAC, ILC/DLC, IMM/DMM, IPC/DPC, MIC, TRP, OCT, MPC/MPM, AAP), macro-instruction pipelining, logical and physical caches, micro instruction, trap system, external control, memory management, multiport memory interface, timing, additional arithmetical processors. States the instruction set is that of ND-500/GEPPETTO with minor extensions. Marked by its authors as unfinished and evolving during the design phase. |
+| **ND-5000 Memory Management System** | ND-ND5000-08 EN | 940 | Course handouts on the ND-5000 MMS: logical-address layout from IAC/DAC, direct / single-index / double-index addressing, finding the PST index, the process segment (PRS) and domain information table, data and program capability table entries (direct, indirect same-machine, indirect other-machine), the physical segment table, physical address mapping, page-fault trap conditions, and the MMS sequencer request-type and state-number bit encodings. |
 | **ND-500 Micro Program Guide** | ND-05.012.01 | 3,154 | ND-500 microprogram guide - microcode structure and CPU control |
 | **ND-5000 Microprogram Guide** | ND-05.022.1 EN | 2,999 | ND-5000 (SAMSON) microprogram guide - the 128-bit microword CPU |
 | **Test Micro Program Descriptions for ND-500** | ND-30.013.02 | 5,581 | Descriptions of the ND-500 test/diagnostic microprograms |
@@ -41,7 +45,7 @@ processing, the ND-500 Monitor operations, and course/other technical material.
 | **ND-500 Addressing Modes Reference** | - | 949 | *Note.* Complete addressing-modes reference with binary encoding for disassembly (derived from ND-60.113.02 and ND-05.009.4) |
 | **ND-500-MON Setup and Operations Guide** | - | 401 | *Note.* How to set up, run and supervise an ND-500/ND-5000 via the ND-500 Monitor (derived from ND-60.136.04A) |
 
-**Key Topics:** ND-500 microprogram, ND-5000/SAMSON microcode, microword fields and mnemonics, addressing modes, diagnostic micro programs, ND-500 Monitor operation
+**Key Topics:** ND-500 microprogram, ND-5000/SAMSON microcode, the SAMSON CPU design document, microword fields and mnemonics, addressing modes, memory management system and capability tables, diagnostic micro programs, ND-500 Monitor operation
 
 ---
 
@@ -54,6 +58,16 @@ processing, the ND-500 Monitor operations, and course/other technical material.
 | **ND-5000 ES Model C Hardware Maintenance (Sintran)** | ND-830102.1B EN | 2,264 | ND-5000 ES Model C hardware maintenance manual (SINTRAN edition) |
 
 **Key Topics:** ND-5000 boards, buses, memory, maintenance, service procedures, diagnostics
+
+---
+
+### ND-5000 System Administration
+
+| Manual | Document # | Lines | Description |
+|--------|-----------|-------|-------------|
+| **ND-5000 ES System Administrator Guide** | ND-830147-3 EN | 3,070 | System administrator's guide for the ND-5000 ES (Extended Server) range. |
+
+**Key Topics:** ND-5000 ES administration, day-to-day operation
 
 ---
 

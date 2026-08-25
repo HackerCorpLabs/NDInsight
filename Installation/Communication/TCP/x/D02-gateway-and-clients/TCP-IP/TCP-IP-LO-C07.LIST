@@ -1,0 +1,236 @@
+
+@MODE (TCP-IP)TCP-IP-LO-C07:MODE,,
+
+@CC ====================================================================
+
+@CC =                                                                  =
+
+@CC = FILE NAME: TCP-IP-LO:MODE                                        =
+
+@CC = LOADING OF COSMOS TCP/IP GATEWAY VERSION C                       =
+
+@CC = TO BE RUN DURING COLD-START IN THE FILE HENT-MODE:MODE, ANYWHERE =
+
+@CC = AFTER THE 'INITIALIZE-BACKGROUND-PROGRAMS' COMMAND IS EXECUTED.  =
+
+@CC =                                                                  =
+
+@CC ====================================================================
+
+@CC *********************************************************
+
+@CC * TCP-CONTROL,TELNET+TCP/IP,FTP-START,POWERFAIL-HANDLER *
+
+@CC *********************************************************
+
+@OPERATOR *** COSMOS TCP/IP GATEWAY IS BEING DUMPED ***
+
+@ABORT tcpp
+
+ILLEGAL PARAMETER
+
+@ABORT ftprt
+
+ILLEGAL PARAMETER
+
+@ABORT popwr
+
+ILLEGAL PARAMETER
+
+@(TCP-IP)PO-STOP-C07 0
+
+@SCHEDULE 503
+
+@RT-LOADER
+
+
+REAL TIME LOADER,  SINTRAN III VSX - L
+
+*CLEAR-SEG TCPPS
+
+SEGMENT NAME NOT DEFINED
+*YES
+*DEL-SEG-NAME TCPPS
+
+SEGMENT NAME NOT DEFINED
+*NEW-BACK-SEGMENT TCPPS,,DM,,,,,
+NEW SEGMENT NO:   145
+*READ-PROGFILE (TCP-IP)tcppcont-C07,TCPPS,,,,,
+*DECLARE-PROGRAM TCPP,,,,
+*END-LOAD
+*YES
+*CHANGE-RT-DESCRIPTION TCPP,30,TCPPS,,20,2,,,,,,,,
+*WRITE-SEGMENT TCPPS,,
+
+
+  SEG.  SEG.    LOWER  UPPER  MASS  SEG. RING PIT SEG.  SEG.
+  NO.   NAME    ADDR.  ADDR.  ADDR. FILE          PROT  TYPE
+
+   145 TCPPS        0 111777 12663    0    0   1  RFW   DEMAND
+*SET-PAGE-TABLE 2
+*CLEAR-SEGMENT TCPS0B0
+
+SEGMENT NAME NOT DEFINED
+*Y
+*DELETE-SEGMENT-NAME TCPS0B0
+
+SEGMENT NAME NOT DEFINED
+*NEW-SEGMENT TCPS0B0,,,,,,,,
+NEW SEGMENT NO:   150
+*READ-BI (TCP-IP)TCP-SER-B0-C07:BPUN,,,,
+*SE-LO-AD,,177777
+*END
+*SET-PAGE-TABLE 2
+*CLEAR-SEGMENT TCPS0B1
+
+SEGMENT NAME NOT DEFINED
+*Y
+*DELETE-SEGMENT-NAME TCPS0B1
+
+SEGMENT NAME NOT DEFINED
+*NEW-SEGMENT TCPS0B1,,,,,,,,
+NEW SEGMENT NO:   151
+*READ-BI (TCP-IP)TCP-SER-B1-C07:BPUN,,,,
+*SE-LO-AD,,177777
+*END
+*SET-PAGE-TABLE 2
+*CLEAR-SEGMENT TCPS0B2
+
+SEGMENT NAME NOT DEFINED
+*Y
+*DELETE-SEGMENT-NAME TCPS0B2
+
+SEGMENT NAME NOT DEFINED
+*NEW-SEGMENT TCPS0B2,,,,,,,,
+NEW SEGMENT NO:   152
+*READ-BI (TCP-IP)TCP-SER-B2-C07:BPUN,,,,
+*SE-LO-AD,,177777
+*END
+*SET-PAGE-TABLE 2
+*CLEAR-SEGMENT TCPS0B3
+
+SEGMENT NAME NOT DEFINED
+*Y
+*DELETE-SEGMENT-NAME TCPS0B3
+
+SEGMENT NAME NOT DEFINED
+*NEW-SEGMENT TCPS0B3,,,,,,,,
+NEW SEGMENT NO:   153
+*READ-BI (TCP-IP)TCP-SER-B3-C07:BPUN,,,,
+*SE-LO-AD,,177777
+*END
+*CLEAR-SEGMENT FTPS0
+
+SEGMENT NAME NOT DEFINED
+*Y
+*DELETE-SEGMENT-NAME FTPS0
+
+SEGMENT NAME NOT DEFINED
+*NEW-SEGMENT FTPS0,,,,,,
+NEW SEGMENT NO:   154
+*READ-PROGFILE (TCP-IP)ftprt-C07,,,,,
+*END
+*DECLARE-PROGRAM ftprt,,,
+*CHANGE-RT-DESCRIPTION ftprt,30,FTPS0,,20,,,,,
+*END
+*CLEAR-SEG popwr
+
+SEGMENT NAME NOT DEFINED
+*Y
+*NEW-SEG popwr,,,,,,
+NEW SEGMENT NO:   155
+*READ-PROGFILE (TCP-IP)po-pwrfail-C07:prog,,,,
+*END
+*DECL-PROG popwr,,,,,
+*CHANGE-RT-DESC popwr,50,popwr,,0,,,,,
+*END
+*EXIT
+
+@MODE (TCP-IP)DEFINE-TCPP-C07:MODE,,
+
+@CC %-------------------------------------------------------%
+
+@CC % Patch to install TCPP as a SINTRAN system server      %
+
+@CC %-------------------------------------------------------%
+
+
+@DMAC
+
+
+* DMAC-1915G *
+
+JULY 22, 1988
+
+
+)RESSM
+)CLEAR
+)CLOAD S3PATCH
+176000/004057  SSTAR
+)SYSDF
+)9ASSM SYMBOL-1-LIST
+ **** 000000 DIAGNOSTICS **** 
+
+?
+
+
+
+)CLOAD S3CP
+30002/123567  SGF3=^
+PSSD=SSTAR-1
+% ---------    UPDATE SYSTEM SERVER TABLE INDEX 7B -----
+PSSD/106660  ^+16/000000   SGF3;100002
+% ---------    ADD SERVER NAME ON COMMAND SEGM.   -------
+SGF3/177777  'TCPP'
+
+%--------------------------------------------------------
+)KILL PSSD+
+)KILL SGF3; SGF3=*; SGF3:+123572  
+)CLOAD S3CP
+30002/123567  SGF3
+)9EXIT
+@MODE (TCP-IP)DEFINE-FTPRT-C07:MODE,,
+
+@CC %-------------------------------------------------------%
+
+@CC % Patch to install FTPRT as a SINTRAN system server     %
+
+@CC %-------------------------------------------------------%
+
+
+@DMAC
+
+
+* DMAC-1915G *
+
+JULY 22, 1988
+
+
+)RESSM
+)CLEAR
+)CLOAD S3PATCH
+176000/106775  SSTAR
+)SYSDF
+)9ASSM SYMBOL-1-LIST
+ **** 000000 DIAGNOSTICS **** 
+
+?
+
+
+
+)CLOAD S3CP
+30002/123572  SGF3=^
+PSSD=SSTAR-1
+% ---------    UPDATE SYSTEM SERVER TABLE INDEX 10B -----
+PSSD/106660  ^+20/000000   SGF3;100002
+% ---------    ADD SERVER NAME ON COMMAND SEGM.   -------
+SGF3/053464  'FTPRT'
+
+%--------------------------------------------------------
+)KILL PSSD+
+)KILL SGF3; SGF3=*; SGF3:+123575  
+)CLOAD S3CP
+30002/123572  SGF3
+)9EXIT
+
+

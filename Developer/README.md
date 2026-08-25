@@ -102,6 +102,11 @@ Developer/
 | Language | Guide | Status | When to Use |
 |----------|-------|--------|-------------|
 | **PLANC** | [PLANC-DEVELOPER-GUIDE.md](Languages/Application/PLANC-DEVELOPER-GUIDE.md) | ✅ | Pascal-like, structured programming |
+| **PLANC UI (VTM)** | [PLANC-UI-VTM-GUIDE.md](Languages/Application/PLANC-UI-VTM-GUIDE.md) | ✅ | Screen UI: boxes, bars, editable fields via PLANC-SCREEN-H over VTM |
+| **PLANC VTM programming** | [PLANC-VTM-PROGRAMMING-GUIDE.md](Languages/Application/PLANC-VTM-PROGRAMMING-GUIDE.md) | ✅ | What VTM is, prerequisites, terminal types (incl. type 0 and type 2), the callable surface, and a program compiled and RUN on D100 |
+| **PLANC interactive screens** | [PLANC-INTERACTIVE-SCREEN-PATTERNS.md](Languages/Application/PLANC-INTERACTIVE-SCREEN-PATTERNS.md) | ✅ | **START HERE for a screen program that does anything on its own.** Polling the keyboard, flushing VTM, windows, clipping, scrolling, and the traps - all measured on D100 |
+| **VTM API reference** | [VTM-API-REFERENCE.md](Languages/Application/VTM-API-REFERENCE.md) | ✅ | All 37 VTM routines: argument counts derived from the binary, output arguments, status codes. No ND manual exists |
+| **VTM viewport** | [VTM-VIEWPORT-HOW-TO-USE-IT.md](Languages/Application/VTM-VIEWPORT-HOW-TO-USE-IT.md) | ✅ | `VTDSCR` is a real viewport - it clips, it does not nest, and how to build windows on it |
 | **C** | [C-DEVELOPER-GUIDE.md](Languages/Application/C-DEVELOPER-GUIDE.md) | ✅ | Portable applications |
 | **COBOL** | [COBOL-DEVELOPER-GUIDE.md](Languages/Application/COBOL-DEVELOPER-GUIDE.md) | ✅ | Business applications |
 | **FORTRAN** | [FORTRAN-DEVELOPER-GUIDE.md](Languages/Application/FORTRAN-DEVELOPER-GUIDE.md) | 🔄 | Scientific computing |
@@ -124,6 +129,8 @@ Developer/
 | **[LINKING-GUIDE.md](Workflow/LINKING-GUIDE.md)** | NRL linker, BRF, PROG files | 17KB |
 | **[LINKING-GUIDE-500-DEEP-DIVE.md](Workflow/LINKING-GUIDE-500-DEEP-DIVE.md)** | ND-500 linker deep dive | - |
 | **[CONVERT-DOMAIN-PSEG-DSEG-TO-DOM.md](Workflow/CONVERT-DOMAIN-PSEG-DSEG-TO-DOM.md)** | Convert old PSEG/DSEG/LINK domains to :DOM | - |
+| **[VTM-TERMINAL-INTERFACES.md](Workflow/VTM-TERMINAL-INTERFACES.md)** | VTM terminal-independence layer: terminal types, DDBTABLES, VTM-COMPOUND | - |
+| **[PLANC-VTM-UI-CATALOG.md](Workflow/PLANC-VTM-UI-CATALOG.md)** | Every screen-UI system on ND hardware compared: VTM, PLANC-SCREEN-H, NSHS, UNIQUE, FOCUS | - |
 | **[SCRIPT-GUIDE.md](Workflow/SCRIPT-GUIDE.md)** | MODE files, automation | 15KB |
 | **[TOOLS-REFERENCE.md](Workflow/TOOLS-REFERENCE.md)** | Complete tools reference | 22KB |
 

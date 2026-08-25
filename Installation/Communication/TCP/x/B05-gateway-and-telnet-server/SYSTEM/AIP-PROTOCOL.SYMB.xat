@@ -1,0 +1,18 @@
+{
+  "ndfs.object_name": "AIP-PROTOCOL",
+  "ndfs.type": "SYMB",
+  "ndfs.user_name": "SYSTEM",
+  "ndfs.user_index": 0,
+  "ndfs.access_bits": 1087,
+  "ndfs.file_type_flags": 8,
+  "ndfs.file_type": 0,
+  "ndfs.device_number": 0,
+  "ndfs.next_version": 59,
+  "ndfs.prev_version": 59,
+  "ndfs.pages_in_file": 1,
+  "ndfs.bytes_in_file": 785,
+  "ndfs.date_created": 48964929,
+  "ndfs.last_read_date": 48968994,
+  "ndfs.last_write_date": 48964929,
+  "ndfs.holes": []
+}

@@ -93,6 +93,10 @@ PROGRAM-FILE "CHATSV"
 LOAD CHATSV
 LIBRARY-MODE ON
 LOAD XMP-100-1-B02
+@cc MON-CALL-1B-A00 supplies 5MON_P, which is what MONITOR_CALL compiles into.
+@cc This server needs it for MON 267B TimeOut - the idle sleep in the main loop.
+@cc It goes BETWEEN the program and the runtime, per the vendor's own example.
+LOAD MON-CALL-1B-A00
 LOAD PLANC-1BANK-F00
 LIST-ENTRIES-UNDEFINED
 EXIT

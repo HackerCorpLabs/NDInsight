@@ -29,6 +29,29 @@ Modern, portable system and application programming language.
 
 ---
 
+### START HERE FOR PLANC: [HOW-TO-PROGRAM-PLANC.md](HOW-TO-PROGRAM-PLANC.md)
+
+**Read this before writing or changing any PLANC.** The working guide: the language traps that
+compile clean and go wrong later, how to call a monitor call without killing the program, the
+XMSG receive rules, RT programs, and the build loop that tells you whether it actually worked.
+Written after a two-thousand-line program took days, with every avoidable cost turned into a rule.
+
+Its companions, extracted from the manuals as DATA so tools can use them too:
+
+| file | what it holds |
+|---|---|
+| [PLANC-LANGUAGE-RULES.md](PLANC-LANGUAGE-RULES.md) | 113 checkable rules, each with a detection heuristic and its false-positive traps |
+| [monitor-calls.json](monitor-calls.json) | 258 monitor calls - number, parameters, types, directions, and which 54 the runtime supplies as `MONn` |
+| [PLANC-MONITOR-CALL-RULES.md](PLANC-MONITOR-CALL-RULES.md) | how to call them from PLANC safely |
+| [xmp-api.json](xmp-api.json) | 54 XMP routines and 397 constants, from ND's own shipped declarations |
+| [PLANC-XMSG-API-RULES.md](PLANC-XMSG-API-RULES.md) | the XMSG rules, each with a linter recipe |
+
+`SINTRAN/XMSG/tools/planc-lint.py` reads `xmp-api.json` and checks sources against it. Run it
+before every push - it is free, and it catches on Windows what otherwise costs a ten-minute round
+trip to the machine.
+
+---
+
 ### [PLANC-DEVELOPER-GUIDE.md](PLANC-DEVELOPER-GUIDE.md)
 **PLANC (PLAN-oriented C)**
 

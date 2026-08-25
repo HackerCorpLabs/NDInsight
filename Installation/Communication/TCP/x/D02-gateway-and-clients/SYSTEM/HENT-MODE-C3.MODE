@@ -1,0 +1,225 @@
+@CC ******************************************************************
+@CC *                                                                *
+@CC * [OTS-LOAD-PROC] : HENT-MODE-C3:MODE                            *
+@CC *                   Configured for C3    Sys 16505               *
+@CC ******************************************************************
+@CC *    AUTHOR    :  C-O Falt , Norsk Data                          *
+@CC *    CATEGORY  :  Command Procedure                              *
+@CC *    PURPOSE   :  Perform Cold start on Compact C3               *
+@CC *                                                                *
+@CC *    STATUS    :  Tested                                         *
+@CC *    HISTORY   :  IR-                                            *
+@CC *    HISTORY   :  1986-10-31 Added SPEED:MODE and XON-XOFF:MODE  *
+@CC *                            and File manager                    *
+@CC *                 1986-12-05 COF Added DEFINE-SEGMENTS           *
+@CC *                 1987-03-04 COF Added OTS-HENT:MODE             *
+@CC *                 1990-02-13 PKr New version (L) SINTRAN         *
+@CC *                 1990-02-26 PKr FORTRAN-100-G02 installed.      *
+@CC *                 1992-04-13 GPe TCP-IP installed.               *
+@CC *    COMMENTS  :  System procedure                               *
+@CC *                                                                *
+@CC ******************************************************************
+
+@CC = THIS FILE IS TO BE RUN AFTER CTOM & )HENT HAVE BEEN USED.
+@CC = IT WILL ENTER THE MAIN DIRECTORY, LOAD THE REENTRANT SUBSYSTEMS ETC.
+@CC =   LOAD-MODE:MODE       - THIS CONTAINS A BATCH JOB WHICH INITIALISES
+@CC =                          SINTRAN AFTER A MASTER-CLEAR/LOAD START.
+@CC =   SYSTEM-OUTPUT-1:SYMB - THIS IS A TEMPORARY FILE USED TO CONTAIN THE
+@CC =                          OUTPUT FROM THE LOAD-MODE BATCH JOB.
+@CC =
+@CC = NOTE : IF THE SYSTEM PASSWORD IS CHANGED, REMEMBER THAT IT MUST
+@CC =        BE UPDATED ON ALL BATCH FILES( LOAD-MODE:MODE        ETC.)
+
+@CC ===========================================================================
+@CC =                                                                         =
+@CC =    INITIAL COMMANDS TO ENTER THE MAIN DIRECTORY , EMPTY  TEMPORARY      =
+@CC =    FILES , START BATCH PROCESSOR ETC.                                   =
+@CC =                                                                         =
+@CC =    THESE COMMANDS WILL BE EXECUTED EACH TIME MASTER CLEAR / LOAD        =
+@CC =    IS PERFORMED.                                                        =
+@CC =                                                                         =
+@CC =                 ===== REMEMBER CORRECT DISK SIZE =====                  =
+@CC =                                                                         =
+@CC ===========================================================================
+
+@INITIAL-COMMAND ENTER-DIRECTORY,,DISC-74MB-1 0
+@NEXT-INITIAL-COMMAND CONNECT SYS-OUT-1 105 R
+@NEXT-INITIAL-COMMAND CLOSE 105
+@NEXT-INITIAL-COMMAND BATCH
+@NEXT-INITIAL-COMMAND APPEND-BATCH 1 LOAD-MODE:MODE SYS-OUT-1
+
+@CC ==================================================
+@CC = STANDARD COMMANDS AFTER A COLD START           =
+@CC =  RTENTER AND INIT-BACKROUND MUST BE EXECUTED , =
+@CC =  DMAC LOADED TO SEGMENT 7 AND START 1. BATCH   =
+@CC ==================================================
+
+@RTENTER
+
+@INITIALIZE-BACKGROUND-PROGRAMS
+
+@RT-LOADER
+YES
+READ-BINARY DMAC 7
+YES
+READ-BINARY COS-TADADM 36
+YES
+EXIT
+
+@BATCH
+
+@CC ==================================================
+@CC =  Define segment names                          =
+@CC ==================================================
+
+@MODE (RT)DEFINE-SEGMENTS:MODE,,,
+
+@CC ==================================================
+@CC =  Define RT common                              =
+@CC ==================================================
+
+@SINTRAN-SERVICE
+@DEFINE-RTCOMMON-SIZE 2,,Y Y
+@EXIT
+
+@CC ========================
+@CC =                      =
+@CC = START MAIL SYSTEM    =
+@CC =                      =
+@CC ========================
+
+@MAIL
+@INIT 10
+@RUN-MAIL
+@EXIT
+
+@BATCH
+
+@CC ===========================================================================
+@CC =                                                                         =
+@CC = INITIALISE SPOOLING FILES.  I.E. ENSURE THAT THEY ARE EMPTY             =
+@CC = THIS SET OF COMMANDS SHOULD BE DONE FOR EACH LINE-PRINTER OR TERMINAL   =
+@CC = WITH SPOOLING, AND FOR EACH VERSION FROM 2 UPWARDS OF THOSE FILES.      =
+@CC =                                                                         =
+@CC ===========================================================================
+
+@OPEN LINE-PRINTER;2 R
+@OPEN LINE-PRINTER;3 R
+@OPEN LINE-PRINTER;4 R
+@OPEN LINE-PRINTER;5 R
+@CC @OPEN LINE-PRINTER;6 R
+@CC @OPEN LINE-PRINTER;7 R
+@CC @OPEN LINE-PRINTER;8 R
+@CC @OPEN LINE-PRINTER;9 R
+@CC @OPEN LINE-PRINTER;10 R
+@CC @CLOSE -1
+
+@CC ====================================
+@CC == XON-XOFF terminal handshaking   =
+@CC ====================================
+
+@MODE XON-XOFF-ENAB:MODE,,,
+
+@CC ====================================
+@CC == Terminal speeds                 =
+@CC ====================================
+
+@MODE SPEED:MODE,,,
+
+
+@CC ====================================
+@CC == DUMPING OF ACCOUNTING SYSTEM   ==
+@CC ====================================
+
+@CC @MODE ACCRT-LOAD:MODE,,,
+
+@CC =========================================
+@CC = LOADING SYMBOLIC DEBUGGER  FOR ND-100 =
+@CC =========================================
+
+@DUMP-REENTRANT DEBUGGER-100 0 1 (BPUN-FILES)DEBUGGER-F01:BPUN
+
+@CC ===========================================
+@CC = DUMPING OF BACKUP-SYSTEM AND  SERVER    =
+@CC ===========================================
+
+@MODE (SYSTEM)BACKUP-LOAD-H00:MODE,,,,
+
+@DUMP-PROGRAM-REENTRANT BACKUP-SYSTEM-H (UTILITY)BACKUP-H02
+
+@CC ======================================
+@CC = DUMPING OF BRF-LINKER              =
+@CC ======================================
+
+@CC @DUMP-PROGRAM-REENTRANT BRF-LINKER-B00 (SYSTEM)BRF-LINKER-B00
+
+@CC =========================================  
+@CC = LOADING XMSG INTER  SYSTEM VERSION    =
+@CC =========================================  
+
+@CC @MODE (UTILITY)XMSG-LOAD-K:MODE,,
+
+@CC =========================================
+@CC = LOADING OF COSMOS BASIC MODULE        =
+@CC =========================================
+
+@MODE (COSMOS-BASIC)COS-HENT-F:MODE,,
+
+@CC =========================================
+@CC = LOADING USER-ENVIRONMENT-NOR          =
+@CC = or file-manager                       =
+@CC =========================================
+
+@CC MODE (USER-ENVIRONMENT)UE-LOAD-NO:MODE,,
+@MODE FM-DUMP:MODE,,,
+
+@CC =========================================
+@CC = LOADING PED-ENG-J FOR ND-100          =
+@CC =========================================
+
+@DUMP-PROGRAM-REENTRANT PED-ENG-J (SYSTEM)PED-ENG-J:PROG
+
+@CC =========================================
+@CC = LOADING FORTRAN   FOR ND-100          =
+@CC =========================================
+
+@DUMP-PROGRAM-REENTRANT FORTRAN-100-G02 (SYSTEM)FORTRAN-100-G02
+
+@CC =========================================
+@CC = LOADING PLANC     FOR ND-100          =
+@CC =========================================
+
+@DUMP-PROGRAM-REENTRANT PLANC-100-I01 (SYSTEM)PLANC-100-A-I01,XPLANC1
+@LOAD-REENTRANT-SEGMENT (SYSTEM)PLANC-100-B-I01,XPLANC2
+
+@CC =========================================
+@CC = LOADING TCP/IP    FOR ND-100          =
+@CC =========================================
+
+@MODE (TCP-IP)TCP-IP-LO:MODE,,,
+
+@DUMP-PROGRAM-REENT TELNET-CLIEN-D (TCP-IP)TELNET-CLIEN-D:PROG
+@DUMP-PROGRAM-REENT FTP-CLIEN-D (TCP-IP)FTP-CLIEN-D:PROG
+@DUMP-PROGRAM-REENT RSH-CLIEN-D (TCP-IP)RSH-CLIEN-D:PROG
+
+@CC =========================================
+@CC = Load necessary OTS units              =
+@CC =========================================
+
+@MODE OTS-HENT-C3:MODE,,,
+
+@CC ===========================================
+@CC =                                         =
+@CC = RUN LOAD-MODE TO TERMINATE INITIALISING =
+@CC =                                         =
+@CC ===========================================
+
+@CONNECT SYS-OUT-1 105 R
+@CLOSE 105
+@APPEND-BATCH 1 LOAD-MODE:MODE SYS-OUT-1
+
+@CC =======================
+@CC =                     =
+@CC = END OF HENT-MODE    =
+@CC =                     =
+@CC =======================

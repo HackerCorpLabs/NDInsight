@@ -9,6 +9,34 @@ ND-500 monitor-call family (`410B-427B`) dispatched through the S3SM5 numeric ve
 servicing point is **NOT LOCATED / UNVERIFIED**. All addresses/values are **octal** unless a
 `0x` prefix or `(dec)` marks them hex/decimal.
 
+> ## CLOSED BY LIVE MEASUREMENT, 2026-08-24 — it is NOT serviced anywhere
+>
+> The "serviced elsewhere (ND-100 back-end, UNCONFIRMED)" hop below can be **struck out**. On a
+> live run of this exact image, a real ND-500 domain issued MON 422B and SINTRAN answered it with
+> an ERROR:
+>
+> ```
+> CONTEXT SWITCH X5CPU=0 -> 1 (P=0x0800473A)
+> RESTART write-back: (empty)
+> RESTART K=1 FUNCV=0x0000020B
+> ```
+>
+> `K=1` is the ND-500 error flag and `0x20B` = **1013B** = *"Illegal monitor call number"*
+> (ND-05.017.01 Appendix A.13, "Error codes from monitor calls"). So the empty vector slot is the
+> whole story: nothing services this call in SINTRAN III VSX/500 L.
+>
+> **The measurement is trustworthy because the same path succeeds for another call.** In the same
+> run MON 377B returned `K=0` 88 times over the identical mailbox/MCNO plumbing, so this is not a
+> broken emulator forwarding a mangled call number. The caller was CPU-STAT, whose disassembly
+> names `MON 422B` at two sites, so the CALLG decode is not inventing the number either.
+>
+> Consequence: **CPU-STAT cannot complete on an L-version pack.** GSWSP is the FIRST call its
+> runtime init makes, so it never reaches its own logic.
+>
+> Setup: `Nd500_CpuStat_UnderRealSintran_RealCpu_Capture` in RetroCore
+> `Emulated.Tests\ND100\Nd100SintranNd500BootHarnessTests.cs`, pack `D:\BIGDISK0-L-CPUSTAT.IMG`,
+> real SINTRAN over the 3022 (the C# MON emulation layer answered nothing - asserted).
+
 - **No code body:** this call has no worker in any carved segment - there is **no `.ASM` and
   no `.pseudo.c`** here on purpose. Fabricating one would be wrong; the table below documents
   the absence instead. The manual short name is `GSWSP`; no such symbol appears in any carved

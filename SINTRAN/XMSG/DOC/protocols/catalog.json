@@ -46,6 +46,14 @@
       "title": "XROUT - names, routes and seats",
       "one_line": "the phone book: it turns a registered name into an address, forwards the first letter, and counts the seats",
       "read_order": 4
+    },
+    {
+      "file": "chat-wire.json",
+      "markdown": "chat-wire.md",
+      "title": "CHAT - rooms, members and what they say",
+      "one_line": "the one protocol Norsk Data never shipped: joining a room, saying something, and the two ports that decide who spends a seat",
+      "read_order": 5,
+      "read_first_because": "it is the only registry here whose vocabulary we invented, so it is the one where a new message kind is declared before it is built"
     }
   ],
   "generated": [

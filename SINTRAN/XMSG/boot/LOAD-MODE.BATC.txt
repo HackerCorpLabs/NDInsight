@@ -1,0 +1,15 @@
+@ENTER SYSTEM,,,
+@CC ***  WARM START  ***
+@SET-UNAVAILABLE $'THE COMPUTER IS BEING WARM-STARTED$'
+@CC
+@CC  XMSG, the names, the links and the routes - one file per machine,
+@CC  same name on every machine, tailored to that machine's wiring.
+@CC
+@MODE (PACK-ONE:UTILITY)XMSG-STARTEX-L03:MODE,,
+@CC
+@CC  COSMOS comes AFTER XMSG. It wipes friend grants, so anything that
+@CC  grants a friend has to run after this line, not before it.
+@CC
+@MODE (PACK-ONE:COSMOS-BASIC)COS-START-E04:MODE,,
+@SET-AVAILABLE
+@EXIT

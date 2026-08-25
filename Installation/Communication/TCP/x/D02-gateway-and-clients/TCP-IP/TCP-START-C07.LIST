@@ -1,0 +1,47 @@
+
+@MODE (TCP-IP)TCP-START-C07:MODE,,
+
+@CC =================================================================
+
+@CC =                                                               =
+
+@CC = FILE NAME: TCP-START-C:MODE                                   =
+
+@CC = START-UP OF COSMOS TCP/IP GATEWAY VERSION C                   =
+
+@CC = RUN THIS MODE FILE DURING WARM START, ANYTIME AFTER X-MESSAGE =
+
+@CC = AND TADADM ARE RUNNING.                                       =
+
+@CC =                                                               =
+
+@CC =================================================================
+
+@CC
+
+@OPERATOR *** START COSMOS TCP/IP GATEWAY ***
+
+@ABORT ftprt
+
+@ABORT tcpp
+
+@(TCP-IP)PO-STOP-C07 0
+
+@CC *****************
+
+@CC * TELNET+TCP/IP *
+
+@CC *****************
+
+@RT TCPP
+
+@CC **************
+
+@CC * FTP-SERVER *
+
+@CC **************
+
+@RT FTPRT
+
+
+

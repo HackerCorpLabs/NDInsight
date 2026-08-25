@@ -1,0 +1,18 @@
+{
+  "ndfs.object_name": "TCP-START-D02",
+  "ndfs.type": "MODE",
+  "ndfs.user_name": "TCP-IP",
+  "ndfs.user_index": 14,
+  "ndfs.access_bits": 1023,
+  "ndfs.file_type_flags": 8,
+  "ndfs.file_type": 0,
+  "ndfs.device_number": 0,
+  "ndfs.next_version": 3599,
+  "ndfs.prev_version": 3599,
+  "ndfs.pages_in_file": 1,
+  "ndfs.bytes_in_file": 581,
+  "ndfs.date_created": 2856655393,
+  "ndfs.last_read_date": 2602604766,
+  "ndfs.last_write_date": 2856655394,
+  "ndfs.holes": []
+}

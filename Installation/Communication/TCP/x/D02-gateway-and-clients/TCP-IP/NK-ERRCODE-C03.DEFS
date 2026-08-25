@@ -1,0 +1,84 @@
+
+%===========================================================================%
+%                                                                           %
+%                    N U C L E U S                                          %
+%                                                                           %
+%                    Error codes                                            %
+%                                                                           %
+%===========================================================================%
+%
+%   Revision:
+%   Date       Who          What
+%---------------------------------------------------------------------------
+%   13-Jan-87  RiSe   file header added.
+%   19-Oct-87  HEr    nke_NAMENOTFOUND added
+%   05-Oct-87  HEr    nke_NAMEPORTUSED, nke_NAMEINDEXERROR, nke_INCONSISTENT
+%                     added.
+%   18-Jan-87  Gph    Added nke_PORTCLOSED.
+%    7-Mar-88  TMa    Removed EOF, added ILLPAR and NOACCESS.
+%   12-Apr-88  Gph    Added nke_KICKLOCK.
+%   30-May-88  Gph    Added nke_LAST (last error code used).
+%    6-Sep-88  Gph    Added nke_NOTAVAILABLE and function codes for nkVersion.
+%                     Added nke_ILLVERSION.
+%===========================================================================%
+%
+
+
+CONSTANT nke_ILLPAR=101001B          % invalid parameter value
+CONSTANT nke_ILLTYPE=101002B         % invalid descriptor type
+CONSTANT nke_NOMESS=101003B          % no port and no message in SEND
+CONSTANT nke_ILLNO=101004B           % invalid descriptor number
+CONSTANT nke_NOTLOCAL=101005B        % receive from remote port
+CONSTANT nke_OUTSIDE=101006B         % displacement outside buffer
+CONSTANT nke_DESCARRFULL=101007B     % descriptor table full
+CONSTANT nke_BUFFULL=101010B         % buffer area full
+CONSTANT nke_NAMEFULL=101011B        % name table full
+CONSTANT nke_NAMENOTFOUND=101012B    % name not in name table
+CONSTANT nke_NAMEUSED=101013B        % name already used
+CONSTANT nke_NOACCESS=101014B        % wrong owner
+CONSTANT nke_ILLNETADDRESS=101015B   % net address not found
+CONSTANT nke_ILLKERNELNO=101016B     % invalid kernel number
+CONSTANT nke_NETTABFULL=101017B      % net table full
+CONSTANT nke_PROTOCERROR=101020B     % NUCLEUS protocoll version error
+CONSTANT nke_REJECTED=101021B        % return to sender
+CONSTANT nke_PORTNOTFOUND=101022B    % port not found in name server
+CONSTANT nke_LOCK=101023B            % not able to lock port (nucleus fatal error)
+CONSTANT nke_NOTEVENBYTE=101024B     % displacement not even byte (only for ND100)
+CONSTANT nke_NOTINITIALISED=101025B  % nucleus not started
+CONSTANT nke_NAMEPORTUSED=101026B    % name port already initialized
+CONSTANT nke_NAMEINDEXERROR=101027B  % Index error in nameserver request
+CONSTANT nke_INCONSISTENT=101030B    % Inconsistent structure in name server
+CONSTANT nke_TOOMANYBYTES=101031B    % Too many bytes (maxindex or minindex outside limits)
+CONSTANT nke_PORTCLOSED=101032B      % Receive port is closed.
+CONSTANT nke_ILLFUNC=101033B         % Invalid function code
+CONSTANT nke_PROTECTED=101034B       % Function is protected
+CONSTANT nke_ILLHARDWARE=101035B     % Not correct hardware configuration
+CONSTANT nke_FATAL=101036B           % Fatal error in nucleus
+CONSTANT nke_QTABFULL=101037         % Quota table full
+CONSTANT nke_QUOTAUSED=101040B       % Quota exceeded for this user
+CONSTANT nke_ILLUSER=101041B         % Unknown user identifier
+CONSTANT nke_KICKLOCK=101042B        % not able to lock kicklock 
+CONSTANT nke_DELAYTABFULL=101043B    % No more space in delay abort table
+CONSTANT nke_NOTAVAILABLE=101044B    % nucleus not available (not started or stopped)
+CONSTANT nke_ILLVERSION=101045B      % Invalid version of nucleus library
+CONSTANT nke_ERROR_BASE = 101000B    % base number for NUCLEUS errors            
+constant nke_LAST = nke_ILLVERSION   % Last error code
+
+% Function in nkGetInfo:
+constant nkfSize=0, nkfLength, nkfHomeid, nkfLastid, nkfBuffer, nkfQueue
+
+% Function in nkMove:
+constant nkfRead=0, nkfWrite, nkfInsert
+
+% Function in nkOpenReturnPort
+constant nkfOpenHomePort=0, nkfOpenLastPort
+
+% Function in nkCrePort
+constant nkfNoDelayAbort=0, nkfDelayAbort
+
+% Function in nkClose
+constant nkfremove=0, nkfreject, nkfCPUclose
+
+% Function in nkVersion
+constant nkfLibrary=0, nkfKernel, nkfStation
+$EOF

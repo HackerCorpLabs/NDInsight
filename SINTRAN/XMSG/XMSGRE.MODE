@@ -1,0 +1,198 @@
+@CC ============================================================================
+@CC XMSGRE:MODE - rebuild XMSG and everything behind it after a crash.
+@CC
+@CC   BY HAND:   @MODE XMSGRE:MODE,,
+@CC   ON A CRASH: XROUT appends this to the batch queue ITSELF, once
+@CC               DEFINE-RESTART-FILES and AUTO-RESTART-ON have been given in
+@CC               X-C. (ND-60164-3-EN COSMOS Programmer Guide, XSDAR/XSDRF:
+@CC               "XROUT will, if an XMSG crash occurs, append the files
+@CC               specified as parameter 2 and 3 to the batch input and output
+@CC               queues respectively".)
+@CC
+@CC ONE FILE, BOTH JOBS. The @ENTER line below is USED by the batch processor
+@CC and IGNORED by @MODE - ND-60.050.06 SINTRAN III Users Guide says so in as
+@CC many words: "The ENTER command is ignored when running @MODE. This means
+@CC that the same file can be used for @MODE as well as batch." That is the
+@CC whole reason this is a MODE file and not a script on the PC: it can be
+@CC TESTED BY HAND before it is ever trusted to a crash.
+@CC
+@CC WHY IT EXISTS. An XMSG crash does not take down XMSG alone. It takes COSPO,
+@CC the COSMOS file server (FSART), the TAD administrator and XMFIDO with it,
+@CC and every one of them has needed a human. Measured off the D100 console on
+@CC 2026-08-21, one block:
+@CC
+@CC    ERROR 46 IN DUMMY AT 34360; XMSG FATAL ERROR - INTERNAL ERROR OR ...
+@CC    XMSG ERROR CODE:      27       <- XXNER, "Network gateway error"
+@CC    ERROR 53 IN XROUT AT 21661; SUBERROR: 36   <- XROUT reporting the above
+@CC    *** ERROR IN COSPO:  **** ABORTS, XMSG not running.
+@CC    ERROR 50 IN FSART AT 20474
+@CC    ---- WARNING FROM TAD-ADMINISTRATOR (TADAD) ---- I am now stopping.
+@CC    XMFIDO:  ABORTS, XMSG not running.
+@CC
+@CC THE ORDER IS NOT NEGOTIABLE. Each step says why.
+@CC ============================================================================
+@ENTER SYSTEM,,,30
+@CC
+@CC --- 1. XMSG itself ---------------------------------------------------------
+@CC STOP before START even though the kernel has just died: a HALF-crashed XMSG
+@CC still answers "XMSG is already running" and a bare START is then refused.
+@CC That contradiction - X-COMM saying "not loaded or not started" while
+@CC START-XMSG says "already running" - is the usual shape of this fault.
+@SINTRAN
+@STOP-XMSG
+@START-XMSG
+@EXIT
+@CC
+@CC --- 2. TAD -----------------------------------------------------------------
+@START-TAD
+@SET-AVAILABLE
+@CC
+@CC --- 3. remote names and the HDLC link --------------------------------------
+@CC The NAMES usually survive - a repeat answers "Another port already has this
+@CC name" - but the ROUTES do not. Measured this session: after COSMOS the whole
+@CC system table held ONE entry (D100 itself) while every name was still taken.
+@CC So these are given again unconditionally and the "name taken" answers are
+@CC EXPECTED NOISE, not a failure.
+@XMSG-COMMAND
+DEFINE-REMOTE-NAME,,D100,100
+DEFINE-REMOTE-NAME,,D101,101
+DEFINE-REMOTE-NAME,,D102,102
+DEFINE-REMOTE-NAME,,D103,103
+DEFINE-REMOTE-NAME,,D200,200
+DEFINE-REMOTE-NAME,,D19999,19999
+START-LINK,1362,,,-1,,
+ENABLE-ROUTE-THROUGH
+EXIT
+@CC
+@CC --- 3b. THE ETHERNET NETWORK SERVER ----------------------------------------
+@CC
+@CC CONFIGURED AND PROVED ON THE LIVE MACHINE 2026-08-22. This is a SECOND
+@CC transport beside the HDLC link above, not a replacement for it: D19999 (our
+@CC Windows node) still comes in over HDLC 1362, while D102 is reached over
+@CC Ethernet.
+@CC
+@CC WHY IT IS WORTH HAVING. The crash that has cost this project days is XXHER -
+@CC an HDLC DRIVER error raised inside HDLC link teardown. Traffic that never
+@CC touches the HDLC driver cannot reach that code at all.
+@CC
+@CC @RT ENNS0 IS NOT OPTIONAL AND IT IS NOT JUST "STARTING A PROGRAM". The ND
+@CC Ethernet II controller (ND-110063 / PCB 3094) has NO EPROM: SINTRAN downloads
+@CC the ENCOS firmware into the card's own DRAM and then releases its 68000. That
+@CC is what this does. Afterwards LIST-RT-DESCRIPTION ENNS0 shows
+@CC     PASSIVE ... RTWT   RESERVED DATAFIELDS 50416B LOGICAL UNIT 2240B INPUT
+@CC which is the card sitting on the wire waiting, and is the GOOD state.
+@CC
+@CC The HOLD gives the card time to come up before the server is started.
+@RT ENNS0
+@HOLD 5,2
+@CC
+@CC The four trailing zeros on DEFINE-NETWORK-CONNECTION are the DTE address and
+@CC the three cost parameters. They are MEANINGLESS on a LAN and still MANDATORY -
+@CC ND-210580-02-EN says so in as many words: "Meaningless ... but default is not
+@CC accepted".
+@CC
+@CC "Wide Area Network (Y/N)? N" is what makes it a LAN. The console answers
+@CC     ** XROUT: Network server ENNS0 started, sysid 9800 **
+@CC and LIST-NETWORK-SERVERS then shows one row with Network = LAN.
+@CC
+@CC D103 IS DELIBERATELY NOT LISTED. It has no Ethernet option installed at all -
+@CC @RT ENNS0 there answers ILLEGAL PARAMETER and LIST-FILES ENNS0 finds nothing.
+@CC Naming it here would only produce a route to a machine that cannot answer.
+@XMSG-COMMAND
+START-NETWORK-SERVER ENNS0,,,N
+DEFINE-NETWORK-CONNECTION D102,ENNS0,,0,0,0,0
+EXIT
+@CC
+@CC --- 4. COSMOS --------------------------------------------------------------
+@CC A nested @MODE is safe here: (SYSTEM)LOAD-MODE:MODE, the machine's own warm
+@CC start, calls COS-START-E04 exactly this way.
+@MODE (PACK-ONE:COSMOS-BASIC)COS-START-E04:MODE,,
+@SET-AVAILABLE
+@CC
+@CC --- 5. the COSMOS FILE SERVER ----------------------------------------------
+@CC COS-START-E04 often does NOT leave a server running, and nothing downstream
+@CC names the problem: a pull then just times out with the link CONNECTED and the
+@CC peer silent, which looks nothing like a missing file server. The line that
+@CC says it worked is "No of FACs attached: 30".
+@CC RT FSART FIRST - SELECT-FSA on its own answers "Remote FSA is not running",
+@CC because RT starts the RT program and the SERVER inside it is a separate thing
+@CC that has to be told to start. START-SERVER allocates the NEXT FREE server, so
+@CC "Server 2 started" means "a server is up", never "server 1 was replaced".
+@RT FSART
+@FS-ADMINISTRATOR
+SELECT-FSA,,,,
+START-SERVER 1,,,,
+EXIT
+@CC
+@CC --- 6. friend systems - LAST, and that is the point ------------------------
+@CC COSMOS makes its own system definitions, and a DEFINE-REMOTE-NAME clears the
+@CC friend flag of the system it names. Granting access before COSMOS has run is
+@CC granting it to something that is about to be overwritten.
+@CC MEASURED 2026-08-18: granted early, every entry answered "Ok" and every one
+@CC was GONE by the end of the run - link up, name defined, 30 free seats on the
+@CC FA server, and every transfer refused in TOTAL SILENCE with no error frame of
+@CC any kind. Granting the same entry by hand at that point, changing nothing
+@CC else, made D100 answer the very next connect letter.
+@CC CHECK IT WITH LIST-ROUTING-INFO, NOT LIST-FRIEND-SYSTEMS: the two tables
+@CC disagree, and only the routing one predicts behaviour.
+@CC
+@CC *** THE GRANTS BELOW CANNOT WORK ON THEIR OWN, AND THAT IS NOT A BUG HERE ***
+@CC
+@CC SOLVED 2026-08-22. DEFINE-FRIEND-SYSTEM answers "Ok" whether or not it does
+@CC anything. It only applies to a row that EXISTS in the kernel system table,
+@CC and after a restart that table holds ONE row - this machine. The remote's
+@CC row appears only when the peer actually CONNECTS. This file runs before any
+@CC peer has connected, so its grants land on nothing.
+@CC
+@CC Measured, in one sitting:
+@CC    after restart   LIST-UTILIZATION -> System table: 1 in use
+@CC    DEFINE-FRIEND-SYSTEM 19999 -> Ok
+@CC    push            -> REFUSED, XRMFL (34)   (the attempt still CONNECTS)
+@CC                    LIST-UTILIZATION -> System table: 2 in use   <- row exists
+@CC    DEFINE-FRIEND-SYSTEM 19999 -> Ok
+@CC    push            -> finished: 133477 bytes written
+@CC
+@CC SO AFTER THIS FILE RUNS: let ONE transfer be refused, THEN grant, THEN
+@CC transfer for real. THE FIRST REFUSAL AFTER A RESTART IS EXPECTED - do not
+@CC go to the routing tables for it and do not restart anything.
+@CC
+@CC The grants stay because they are harmless and because they are right for any
+@CC peer that IS already connected when this runs (a crash restart, where the
+@CC link comes back before this reaches step 6).
+@CC
+@CC And check the ROW COUNT, not the friend list: LIST-FRIEND-SYSTEMS listed all
+@CC five systems while every transfer was refused, so it is not evidence.
+@CC
+@CC NO @CC LINES BETWEEN @XMSG-COMMAND AND ITS EXIT. X-C has no comment command:
+@CC it tried to MATCH each one and answered "** Command not recognised **", and
+@CC once "** Ambiguous command **" - which means it got far enough to match more
+@CC than one real command. Comments go outside the X-C block, like this one.
+@CC
+@CC Step 7 (below, inside the same X-C session) re-arms the crash dump. The dump
+@CC file definitions do not survive the crash either, and without them the NEXT
+@CC crash throws the tables away - which is what every crash before 2026-08-21
+@CC did, because LIST-DUMP-FILES had always said "No dump files defined". The
+@CC three bare names after DEFINE-DUMP-FILES are answers to its three prompts.
+@XMSG-COMMAND
+DEFINE-FRIEND-SYSTEM 101
+DEFINE-FRIEND-SYSTEM 102
+DEFINE-FRIEND-SYSTEM 103
+DEFINE-FRIEND-SYSTEM 200
+DEFINE-FRIEND-SYSTEM 19999
+DEFINE-DUMP-FILES
+XMSGDUMP-A
+XMSGDUMP-T
+XMSGDUMP-B
+EXIT
+@CC
+@CC --- 8. WHAT IS DELIBERATELY NOT HERE ---------------------------------------
+@CC The chat server. After an XMSG restart it must be RT-LOADED onto a FRESH
+@CC segment - simply starting the RT program again leaves it PASSIVE with 0 CPU,
+@CC because the segment was linked against the XMSG that died. Choosing a free
+@CC segment number is not something a fixed file can do. Use tools/rt-load.ps1
+@CC -Segment <fresh> -AndStart, then @RT CHATSER.
+@CC
+@CC Also not here: SET-ERROR-DEVICE. The error device survives an XMSG crash
+@CC (verified 2026-08-21 - it still answered 39 afterwards), so re-setting it
+@CC would only risk pointing the console somewhere nobody is watching.
+

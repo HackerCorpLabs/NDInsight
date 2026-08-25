@@ -41,6 +41,16 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
         private readonly string _serverName;
         private readonly Func<bool> _linkReady;
 
+        /// <summary>
+        /// The folded password per user, so a push can enter a directory that is not ours.
+        /// </summary>
+        /// <remarks>
+        /// A user missing from this list is pushed to with NO password, which is right for the
+        /// passwordless users on these machines and produces an honest WRONG PASSWORD refusal for
+        /// anything else - rather than a silent landing in the wrong directory.
+        /// </remarks>
+        private readonly SyncCredentials _credentials;
+
         private FaPushRun? _push;
         private FaPullRun? _pull;
         private string _localPath = string.Empty;
@@ -66,11 +76,13 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
         /// <paramref name="linkReady"/> is null.
         /// </exception>
         public LiveSyncTransferAgent(
-            XmsgNodeHost nodeHost, ushort serverNode, string serverName, Func<bool> linkReady)
+            XmsgNodeHost nodeHost, ushort serverNode, string serverName, Func<bool> linkReady,
+            SyncCredentials credentials)
         {
             _nodeHost = nodeHost ?? throw new ArgumentNullException(nameof(nodeHost));
             _serverName = serverName ?? throw new ArgumentNullException(nameof(serverName));
             _linkReady = linkReady ?? throw new ArgumentNullException(nameof(linkReady));
+            _credentials = credentials;
             _serverNode = serverNode;
         }
 
@@ -182,9 +194,10 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
                 }
 
                 // The plan names the file the way a person would type it at a SINTRAN terminal -
-                // D100(SYSTEM)."NAME:TYPE". The wire carries neither the machine nor the user, so
-                // it is reduced to the bare name here. MEASURED 2026-08-11: passing the addressed
-                // form through was refused as "27 characters" before it ever left.
+                // D100(SYSTEM)."NAME:TYPE". The OPEN request carries only the bare name, because
+                // the conversation is already addressed to that machine. MEASURED 2026-08-11:
+                // passing the addressed form through was refused as "27 characters" before it
+                // ever left.
                 string wireName = SyncFolderMap.ToWireName(request.FileSpec);
 
                 // Quoted to CREATE, bare to replace. The planner already worked out which.
@@ -192,16 +205,54 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
                     ? "\"" + wireName + "\""
                     : wireName;
 
-                _push = new FaPushRun(
-                    request.LocalPath, content, new FaWriteTarget(_serverNode, _serverName, spec));
+                // AND THE USER HAS TO BE PUT BACK. Stripping it above only moves it: the machine
+                // learns who is asking from the ReserveFileEntry request, not from the open. This
+                // line was missing until 2026-08-24, so FaWriteTarget kept its "SYSTEM" default
+                // and EVERY push landed in SYSTEM no matter what the mapping said. The daemon
+                // printed "create D100(UTILITY)." and the file arrived as (SYSTEM) - the log and
+                // the disk disagreed, and the log was the one being believed.
+                FaWriteTarget target = new FaWriteTarget(_serverNode, _serverName, spec);
+                string user = SyncFolderMap.ToUser(request.FileSpec);
+                if (user.Length > 0)
+                {
+                    target.User = user;
+
+                    // AND ITS PASSWORD. SINTRAN checks the password of the user whose directory
+                    // is being opened, so a daemon serving somebody else has to present it or be
+                    // refused. An unlisted user goes with no password, which is correct for the
+                    // passwordless users here and gives an honest refusal for the rest.
+                    ushort word;
+                    if (_credentials.TryGet(user, out word))
+                    {
+                        target.PasswordWord = word;
+                    }
+                }
+
+                _push = new FaPushRun(request.LocalPath, content, target);
                 return true;
             }
 
             // A pull opens a file that already exists, so the name goes BARE - the quotes are
             // only for creating. Same rule as the one-shot --pull.
-            _pull = new FaPullRun(
-                request.LocalPath,
-                new FaReadSource(_serverNode, _serverName, SyncFolderMap.ToWireName(request.FileSpec)));
+            FaReadSource source = new FaReadSource(
+                _serverNode, _serverName, SyncFolderMap.ToWireName(request.FileSpec));
+
+            // Same rule as the push above: the user rides in the reserve, not the open, so it has
+            // to be set here or the read happens as whoever the session already is.
+            string pullUser = SyncFolderMap.ToUser(request.FileSpec);
+            if (pullUser.Length > 0)
+            {
+                source.User = pullUser;
+
+                // Reading another user directory needs the password just as writing does.
+                ushort pullWord;
+                if (_credentials.TryGet(pullUser, out pullWord))
+                {
+                    source.PasswordWord = pullWord;
+                }
+            }
+
+            _pull = new FaPullRun(request.LocalPath, source);
             return true;
         }
 

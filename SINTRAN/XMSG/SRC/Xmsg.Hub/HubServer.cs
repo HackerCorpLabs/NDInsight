@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -109,6 +110,17 @@ namespace NDInsight.Sintran.Xmsg.Hub
         private long _framesDroppedTtl;
 
         /// <summary>
+        /// Where every repeated frame is stored, or null when capture is off.
+        /// </summary>
+        /// <remarks>
+        /// Set through <see cref="StartCapture"/> before the hub is started. Frames are written in
+        /// <see cref="Repeat"/>, which every frame passes through exactly once - a frame is stored
+        /// as it ARRIVES, before the loop and TTL checks drop it, because a frame that got dropped
+        /// is often the one worth looking at.
+        /// </remarks>
+        private PcapWriter? _capture;
+
+        /// <summary>
         /// Occurs when the hub has something worth printing.
         /// </summary>
         public event HubLog? Log;
@@ -135,6 +147,41 @@ namespace NDInsight.Sintran.Xmsg.Hub
             // Identifies frames this hub has already put on a hub link. Random so two hubs that
             // have never met cannot pick the same one; it means nothing beyond "this hub".
             _originId = (uint)Environment.TickCount ^ (uint)(Guid.NewGuid().GetHashCode());
+        }
+
+        /// <summary>
+        /// Starts storing every frame into a pcap file.
+        /// </summary>
+        /// <remarks>
+        /// Call before <c>Start</c>. The file is classic pcap with link type Ethernet, so
+        /// Wireshark and the dissectors in this repository read it directly.
+        /// </remarks>
+        /// <param name="path">
+        /// Where to write. An existing file is replaced.
+        /// </param>
+        /// <exception cref="IOException">
+        /// Thrown when the file cannot be created.
+        /// </exception>
+        public void StartCapture(string path)
+        {
+            PcapWriter? previous = _capture;
+            _capture = new PcapWriter(path);
+            if (previous != null)
+            {
+                previous.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Gets how many frames the capture has stored, or zero when capture is off.
+        /// </summary>
+        public long FramesCaptured
+        {
+            get
+            {
+                PcapWriter? capture = _capture;
+                return capture == null ? 0 : capture.FramesWritten;
+            }
         }
 
         /// <summary>
@@ -287,6 +334,14 @@ namespace NDInsight.Sintran.Xmsg.Hub
             _uplinkThread?.Join(2000);
             _acceptThread = null;
             _uplinkThread = null;
+
+            // Close the capture LAST, once no member thread can still be writing into it.
+            PcapWriter? capture = _capture;
+            _capture = null;
+            if (capture != null)
+            {
+                capture.Dispose();
+            }
         }
 
         /// <summary>
@@ -449,6 +504,15 @@ namespace NDInsight.Sintran.Xmsg.Hub
         internal void Repeat(Member from, byte[] frame, int length, byte ttl, uint originId)
         {
             Interlocked.Increment(ref _framesIn);
+
+            // Store it BEFORE any of the checks below can drop it. A dropped frame is exactly the
+            // kind of thing a capture exists to show, and leaving it out would make the pcap agree
+            // with whatever the hub already believes.
+            PcapWriter? capture = _capture;
+            if (capture != null)
+            {
+                capture.Write(frame, length);
+            }
 
             if (originId == _originId && from.Role == RoleHub)
             {

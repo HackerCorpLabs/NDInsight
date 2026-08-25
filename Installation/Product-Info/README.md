@@ -1,6 +1,6 @@
 # Product-Info — Norsk Data Product Data Sheets
 
-**364 OCR'd Norsk Data product data-sheets/brochures** (document series `ND-nnn(nn)-<rev>-<lang>`, plus a handful of third-party OEM items such as MICOM610 and TCS2000) — one product per document: a short marketing/technical description covering CPU hardware, storage, terminals, printers, communications, networking, and the full SINTRAN III software catalogue from the NORD-10 through ND-5000 era.
+**366 OCR'd Norsk Data product data-sheets/brochures** (document series `ND-nnn(nn)-<rev>-<lang>`, plus a handful of third-party OEM items such as MICOM610 and TCS2000) — one product per document: a short marketing/technical description covering CPU hardware, storage, terminals, printers, communications, networking, and the full SINTRAN III software catalogue from the NORD-10 through ND-5000 era.
 
 Each document is a standalone product sheet: introduction, feature summary and (for hardware) specifications. Unlike the [Installation-Description](../Installation-Description/README.md) collection (formal "Program Description" install/requirements forms), these are descriptive sales/reference sheets. A few are in German or Norwegian (marked below).
 
@@ -56,6 +56,8 @@ Each document is a standalone product sheet: introduction, feature summary and (
 | **[ND 560 32-Bit Computer Systems](./ND-560-C1-EN.md)** | ND-560-C1-EN | ND-500 CPU based super-mini with 32KB cache memory and prefetch processor for high-speed floating point. |
 | **[ND 567 DMA Controller](./ND-567-A2-EN.md)** | ND-567-A2-EN | DMA controller module handling address decoding, requests and interrupts for ND disk and magtape devices. |
 | **[ND-5000 Computer Systems (ND-5700/5800/5900)](./ND-5700-B1-EN.md)** | ND-5700-B1-EN | High-end ND-5000 series computer systems (ND-5700, ND-5800, ND-5900). |
+| **[The ND-5000 ES Series](./ND-198-1-EN.md)** | ND-198-1-EN | The ND-5000 Extended Server range, from small office systems up to heavy computation, large OLTP, electronic mail and network gateway administration - pitched on price/performance, ease of operation, openness to standards, and integration with PCs and mainframes. |
+| **[ND-5000 ES Serien](./ND-226-1-NO.md)** | ND-226-1-NO | (Norwegian) The same ND-5000 Extended Server brochure as ND-198-1-EN. **Note:** the number ND-226 is reused - `ND-226-1-GE` in this folder is the unrelated bibdia library system. |
 | **[ND 810/811 Input/Output Configuration](./ND-810-A3-EN.md)** | ND-810-A3-EN | Analog I/O interface configuration hardware (input/output signal conditioning module) for ND computer systems. |
 | **[ND 820 Analog to Digital Converter](./ND-820-A3-EN.md)** | ND-820-A3-EN | 12-bit, 8-channel analog-to-digital converter module for laboratory, instrumentation, and process applications. |
 | **[ND 852 16-bit Universal DMA Interface and Differential Transceiver](./ND-852-A1-EN.md)** | ND-852-A1-EN | Bidirectional 16-bit DMA interface with differential transceivers for ND-100 I/O and inter-system links. |
@@ -463,4 +465,4 @@ Each document is a standalone product sheet: introduction, feature summary and (
 
 ---
 
-*364 documents. Part of the [NDInsight](../../README.md) Norsk Data / SINTRAN III documentation and preservation project. All manuals are Norsk Data A.S publications, OCR'd from scanned originals.*
+*366 documents. Part of the [NDInsight](../../README.md) Norsk Data / SINTRAN III documentation and preservation project. All manuals are Norsk Data A.S publications, OCR'd from scanned originals.*

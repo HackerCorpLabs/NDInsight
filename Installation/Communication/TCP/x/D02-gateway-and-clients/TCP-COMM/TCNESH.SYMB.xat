@@ -1,0 +1,18 @@
+{
+  "ndfs.object_name": "TCNESH",
+  "ndfs.type": "SYMB",
+  "ndfs.user_name": "TCP-COMM",
+  "ndfs.user_index": 30,
+  "ndfs.access_bits": 32767,
+  "ndfs.file_type_flags": 8,
+  "ndfs.file_type": 0,
+  "ndfs.device_number": 0,
+  "ndfs.next_version": 7684,
+  "ndfs.prev_version": 7684,
+  "ndfs.pages_in_file": 1,
+  "ndfs.bytes_in_file": 333,
+  "ndfs.date_created": 2900661346,
+  "ndfs.last_read_date": 2602605499,
+  "ndfs.last_write_date": 2900661346,
+  "ndfs.holes": []
+}

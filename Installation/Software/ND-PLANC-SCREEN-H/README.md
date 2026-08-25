@@ -111,18 +111,64 @@ sum). This is a genuinely different (and more compact) picture DSL than either V
 UNIQUE's `start-form`/`start-fields` convention — a real fourth documented UI-definition syntax
 for this catalog.
 
+## Installation procedure — INFERRED, NOT VERIFIED
+
+**No PD/PI sheet, no `:MODE`/`:BATC` install script exists for this product.** Nothing below is
+sourced from an install document — it is reconstructed from the floppy's own file layout, the
+demo program's header comment, and the verified installation pattern of the closest documented
+sibling product, [`ND-211464`](../ND-211464/ND-211464A/README.md#installation-procedure). Treat
+every step as a working hypothesis to test on a real system, not a transcribed procedure.
+
+**1. Prerequisites — install these first, separately:**
+- **VTM terminal tables** for your target terminal(s) — see
+  [`ND-211464`](../ND-211464/README.md) (verified procedure), [`ND-210455`](../ND-210455/README.md),
+  [`ND-10459`](../ND-10459/README.md), or [`ND-10465`](../ND-10465/README.md) depending on
+  terminal model. This product's floppy carries no VTM tables of its own — unlike
+  [FOCUS](../ND-10188/README.md), which bundles its own.
+- **`mon-call-lib`** — product [`ND-210913`](../ND-210913/README.md). Install procedure now
+  verified (transcribed from NDWiki; primary PD-sheet PDF still pending) — copy
+  `MON-CALL-NAMES-A:DATA` to `SYSTEM`, the other three files anywhere with public read access.
+- **`planc-lib`** — not a separate product to install; treated in this catalog as a resident
+  system library already present under `(LIBRARIES)` wherever PLANC itself is installed (see
+  [PLANC-UI-VTM-GUIDE.md §4](../../../Developer/Languages/Application/PLANC-UI-VTM-GUIDE.md#4-building-and-linking-a-screen-program)
+  for the full reasoning) — inferred, not confirmed by a manual.
+- The base **PLANC compiler**, [`ND-10309`](../ND-10309/README.md).
+
+**2. Copy the floppy's files** to `SYSTEM` or your own working user — the same plain-copy
+approach every small library floppy in this catalog uses when no installer program exists (e.g.
+`ND-210913`'s `mon-call-lib` floppy). No installer `:PROG`/`:MODE`/`:BATC` was found on this
+floppy to run instead.
+
+**3. Pick the runtime matching your program's bank model** — `INTERF-1B:BRF` (1-bank) or
+`INTERF-2B:BRF` (2-bank), see [TWO-BANK-PROGRAMS.md](../../../Developer/Workflow/TWO-BANK-PROGRAMS.md).
+(`INTERF:NRF` is the ND-500 equivalent, format-consistent with the ND-100 choice being
+per-program rather than per-installation.)
+
+**4. Compile your program with `$INCLUDE screen`** (the interface declared in `SCREEN:SYMB`),
+then link it against the chosen `INTERF-*B:BRF`, your VTM array file, `mon-call-lib`, and
+`planc-lib` — see [PLANC-UI-VTM-GUIDE.md §4](../../../Developer/Languages/Application/PLANC-UI-VTM-GUIDE.md#4-building-and-linking-a-screen-program)
+for the concrete `LOAD-SEGMENT`/`NRL` shape (also inferred, not a verified transcript).
+
+**5. If using a `.PICT`-declared screen**, run it through `PLANC-GEN-A00:PROG` first to produce a
+`:PGEN` PLANC source file, then `$INCLUDE` that generated file and call the picture's
+name-derived routine directly — see
+[PLANC-UI-VTM-GUIDE.md §6](../../../Developer/Languages/Application/PLANC-UI-VTM-GUIDE.md#6-how-a-pict-file-actually-gets-used--symsymb-and-planc-gen-a00prog)
+for the fully decoded example of this step.
+
 ## Documentation
 - No PD sheet, no PI sheet, no ND article number located.
 
 ## Provenance & open items
-- Source: one real floppy image, downloaded via NDwiki and decoded in this session
-  (`ndfs -t`/`ndtool -x` for listing/extraction, `byte & 0x7F` for `SCREEN.SYMB`,
-  `DEMO-SCREEN.SYMB`'s header, and `SUM.PICT`, all in full).
-- **TODO:** `PLANC-GEN-A00:PROG` (likely a picture-file generator/editor, by analogy to NSHS's
-  Screen Picture Maintenance Program) is a compiled binary, not decoded. `SUM:SYMB` (the PLANC
-  source using this interface) was not opened. The relationship to `ND-10013` NSHS remains
-  unconfirmed — worth resolving if an NSHS manual surfaces (the PI sheet alone doesn't show the
-  `.PICT` file syntax to compare against).
+- Source: one real floppy image (`8_nd_f17b_planc-screen-h.img.gz`), mounted and decoded in this
+  session (`ndtool -x -p` for extraction, `byte & 0x7F` for de-parity on `SCREEN:SYMB`,
+  `DEMO-SCREEN:SYMB`'s header, `SUM:PICT`, and `SUM:SYMB`, all in full).
+- `PLANC-GEN-A00:PROG` is identified by strings (a real `.PICT`-to-PLANC-source generator,
+  confirmed by strings referencing `@PICTURE`/`@REPORT` input and emitting `FRAME(...)` calls) but
+  not disassembled — its exact command-line dialogue is unknown.
+- The relationship to `ND-10013` NSHS, and now also to `ND-10188` FOCUS, remains unconfirmed —
+  see the full comparison in
+  [PLANC-VTM-UI-CATALOG.md §8](../../../Developer/Workflow/PLANC-VTM-UI-CATALOG.md#8-what-is-still-open-across-this-whole-catalog).
+- The install procedure above has **not been run live** on any real or emulated SINTRAN system.
 
 ---
 **Parent:** [../README.md](../README.md) (Software catalog)

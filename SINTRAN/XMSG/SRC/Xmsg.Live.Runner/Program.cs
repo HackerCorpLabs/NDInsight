@@ -149,6 +149,28 @@ internal static class Program
         // each file as it settles. --sync-user and --sync-to name the far end.
         string? syncFolder = TakeOption(argList, "--sync");
 
+        // THE SHARED-SERVICE SHAPE. --sync-root names a folder whose SUBFOLDERS are SINTRAN user
+        // names, and every one of them is served by this single daemon:
+        //
+        //     sync-root\SYSTEM\CHATSV.PLNC    ->  (SYSTEM)CHATSV:PLNC
+        //     sync-root\UTILITY\XSTART.MODE   ->  (UTILITY)XSTART:MODE
+        //
+        // A SINTRAN user directory is FLAT, so a folder can only correspond to a user - which is
+        // why the layout is one level of user folders and not an arbitrary tree. Passwords come
+        // from sync-credentials.txt beside the executable.
+        //
+        // Only ONE runner may hold a given node number: the peer keeps a single sequence counter
+        // per system, and two processes sharing the number leave one of them permanently behind,
+        // whereupon the machine acks its frames at the link layer and answers nothing. That is
+        // exactly what a shared service avoids - run this one, and let everybody drop files in.
+        string? syncRoot = TakeOption(argList, "--sync-root");
+
+        // Fetch requests ride the SAME held-open link. Without this the only way to get a file OFF
+        // the machine was a second, one-shot runner, and a one-shot ends with DISC - a link
+        // teardown, which is what kills the peer's XMSG after a transfer. It also could not run
+        // while the daemon held the link at all.
+        string? syncPullFolder = TakeOption(argList, "--sync-pull");
+
         // Send ONE APPEND-REMOTE-BATCH letter to *XFTRA and print whatever comes back. The request
         // bytes have matched a live capture for a while; what had never happened is one of ours
         // actually leaving a socket.
@@ -169,10 +191,26 @@ internal static class Program
         // CHAT-LOBBY has sixteen seats, so --chat-load 20 is ALSO the overload case: four should
         // be refused by XROUT and the sixteen inside should carry on.
         string? chatLoad = TakeOption(argList, "--chat-load");
+
+        // --chat-room NAMES ROOMS NOW, not an XROUT name, and it takes a comma-separated list.
+        // "--chat-room LOBBY,GENERAL" spreads the users over two rooms and turns the run into an
+        // isolation test: see ChatLoadRun.ExpectedSaid, which says what a correct server must send.
         string? chatRoom = TakeOption(argList, "--chat-room");
+
+        // The single registered name the server listens on. Only worth overriding when testing a
+        // second server beside the real one.
+        string? chatService = TakeOption(argList, "--chat-service");
         string? chatToNode = TakeOption(argList, "--chat-to");
         string? chatLines = TakeOption(argList, "--chat-lines");
         string? syncUser = TakeOption(argList, "--sync-user");
+
+        // A root is the same daemon with a marker for the user, so everything downstream - the
+        // readiness gate, the pull side, the ledger - is untouched.
+        if (syncRoot != null)
+        {
+            syncFolder = syncRoot;
+            syncUser = SyncDaemon.RootMarker;
+        }
         string? syncToNode = TakeOption(argList, "--sync-to");
 
         // Ask the peer to open the ND link again, so it drops the sequence it remembers from
@@ -219,6 +257,13 @@ internal static class Program
         string? pullSpec = TakeOption(argList, "--pull");
         string? pullTo = TakeOption(argList, "--pull-to");
         string? pullFromNode = TakeOption(argList, "--pull-from");
+
+        // DIAGNOSTIC, not a transfer. Runs the pull ladder with the OpenFile step left out, to find
+        // out what the server says about setting a block size on an entry nothing has opened. It
+        // answers what the follow-on refusal A2 4104 means - see
+        // DOC/CARVE-FA-READ-REFUSAL-2026-08-18.md. Point it at a file that EXISTS, or the ordinary
+        // "no such file name" refusal answers first and the run measures nothing.
+        bool faProbe = TakeFlag(argList, "--fa-probe-without-open");
 
         // Resolve and load the topology: --config wins, else the topology.json shipped next to the exe.
         System.IO.TextWriter realConsole = Console.Out;
@@ -294,7 +339,7 @@ internal static class Program
         }
 
         // The pull, same reasoning: a bad filespec is reported now, not after a link comes up.
-        FaPullRun? pullRun = TryCreatePull(topology, node, pullSpec, pullTo, pullFromNode);
+        FaPullRun? pullRun = TryCreatePull(topology, node, pullSpec, pullTo, pullFromNode, faProbe);
         if (pullSpec != null && pullRun == null)
         {
             return 1;
@@ -421,7 +466,7 @@ internal static class Program
                 await RunEthernetSeamAsync(
                     topology!, ethernetPeer, node, routingEntries,
                     topology!.Motd, BuildTadUsers(topology), fileServer, pushRun, pullRun, traceFrames,
-                    announceRestart, resyncHard, syncFolder, syncUser, syncToNode, batchInput, batchOutput, requestLink, cts.Token);
+                    announceRestart, resyncHard, syncFolder, syncPullFolder, syncUser, syncToNode, batchInput, batchOutput, requestLink, cts.Token);
             }
             catch (OperationCanceledException)
             {
@@ -517,10 +562,14 @@ internal static class Program
                 await RunSeamAsync(transport, host, port, node, routingEntries, topology?.Motd,
                     BuildTadUsers(topology), fileServer, pushRun, pullRun,
                     announceRestart, resyncHard, originateFromSeed,
-                    syncFolder, resolvedSyncMachine, syncUser ?? "SYSTEM", resolvedSyncNode,
+                    syncFolder, syncPullFolder, resolvedSyncMachine, syncUser ?? "SYSTEM", resolvedSyncNode,
                     batchInput, batchOutput, resolvedBatchMachine, resolvedBatchNode,
                     chatLoad != null ? int.Parse(chatLoad) : 0,
-                    chatRoom ?? "CHAT-LOBBY",
+                    // ONE SERVICE NAME, and the rooms are separate. --chat-room now names ROOMS -
+                    // one, or several separated by commas - and they travel inside the Join rather
+                    // than being XROUT names of their own.
+                    chatService ?? "*CHAT",
+                    SplitRooms(chatRoom),
                     chatToNode != null ? ushort.Parse(chatToNode) : node,
                     resolvedBatchMachine,
                     chatLines != null ? int.Parse(chatLines) : 5,
@@ -769,6 +818,10 @@ internal static class Program
     /// <param name="pullFromNode">
     /// The node to read from, or null to use the topology's neighbour.
     /// </param>
+    /// <param name="probeWithoutOpen">
+    /// <c>true</c> to run the diagnostic probe - reserve a file entry and set the block size with
+    /// no <c>OpenFile</c> - instead of transferring anything.
+    /// </param>
     /// <returns>
     /// The pull, or null when none was asked for OR when it could not be built.
     /// </returns>
@@ -781,7 +834,12 @@ internal static class Program
     /// </para>
     /// </remarks>
     private static FaPullRun? TryCreatePull(
-        TopologyConfig? topology, ushort node, string? pullSpec, string? pullTo, string? pullFromNode)
+        TopologyConfig? topology,
+        ushort node,
+        string? pullSpec,
+        string? pullTo,
+        string? pullFromNode,
+        bool probeWithoutOpen)
     {
         if (pullSpec == null)
         {
@@ -823,8 +881,8 @@ internal static class Program
 
         // REFUSED RATHER THAN OVERWRITTEN. A pull that quietly replaced a local file would be a
         // destructive default, and the whole point of pulling is usually to compare the result
-        // against what is already there.
-        if (System.IO.File.Exists(localPath))
+        // against what is already there. A probe writes nothing, so it has nothing to protect.
+        if (!probeWithoutOpen && System.IO.File.Exists(localPath))
         {
             Console.WriteLine($"[pull] '{localPath}' already exists; move it or give --pull-to");
             return null;
@@ -833,10 +891,27 @@ internal static class Program
         try
         {
             FaReadSource source = new FaReadSource(serverNode, serverName, fileSpec);
-            Console.WriteLine(
-                $"[pull] {fileSpec} on node {serverNode} ({serverName}) user {source.User} " +
-                $"-> {localPath} (we are {ourName})");
-            return new FaPullRun(localPath, source);
+            if (probeWithoutOpen)
+            {
+                // Say plainly that this is not a transfer, and say what it is for. A log that only
+                // showed "[pull] ..." would read as a pull that mysteriously stopped after two
+                // steps, which is exactly what a probe looks like from the outside.
+                Console.WriteLine(
+                    $"[fa-probe] NOT A TRANSFER. Reserve + SetBlockSize with NO OpenFile, against " +
+                    $"{fileSpec} on node {serverNode} ({serverName}) user {source.User} " +
+                    $"(we are {ourName})");
+                Console.WriteLine(
+                    "[fa-probe] the file MUST exist. Reading the A2 value on the SetBlockSize " +
+                    "reply: 4104 means 'no file open', anything else means 'an earlier step failed'.");
+            }
+            else
+            {
+                Console.WriteLine(
+                    $"[pull] {fileSpec} on node {serverNode} ({serverName}) user {source.User} " +
+                    $"-> {localPath} (we are {ourName})");
+            }
+
+            return new FaPullRun(localPath, source, probeWithoutOpen);
         }
         catch (ArgumentException ex)
         {
@@ -1986,14 +2061,54 @@ internal static class Program
         return routes.ToArray();
     }
 
+    /// <summary>
+    /// Turns the <c>--chat-room</c> option into the list of rooms to spread users over.
+    /// </summary>
+    /// <param name="option">
+    /// The option's value, or null when it was not given.
+    /// </param>
+    /// <returns>
+    /// One or more room names, upper-cased. Defaults to LOBBY alone.
+    /// </returns>
+    /// <remarks>
+    /// Upper-cased here rather than left to the server, so the run's own arithmetic in
+    /// <c>ChatLoadRun.ExpectedSaid</c> groups by the same spelling the server files people under.
+    /// Lower-cased input would otherwise count two rooms where the server keeps one.
+    /// </remarks>
+    private static string[] SplitRooms(string? option)
+    {
+        if (string.IsNullOrWhiteSpace(option))
+        {
+            return new string[] { "LOBBY" };
+        }
+
+        string[] parts = option.Split(',');
+        List<string> rooms = new List<string>();
+        for (int i = 0; i < parts.Length; i++)
+        {
+            string name = parts[i].Trim().ToUpperInvariant();
+            if (name.Length > 0)
+            {
+                rooms.Add(name);
+            }
+        }
+
+        if (rooms.Count == 0)
+        {
+            return new string[] { "LOBBY" };
+        }
+
+        return rooms.ToArray();
+    }
+
     private static async Task RunSeamAsync(
         TcpBridgeTransport transport, string host, int port, ushort node,
         IReadOnlyList<RoutingTableEntry> routingEntries, string? motdLine, TadUserDirectory users,
         FaServer? fileServer, FaPushRun? pushRun, FaPullRun? pullRun,
         bool announceRestart, bool resyncHard, bool originateFromSeed,
-        string? syncFolder, string syncMachine, string syncUser, ushort syncNode,
+        string? syncFolder, string? syncPullFolder, string syncMachine, string syncUser, ushort syncNode,
         string? batchInput, string? batchOutput, string batchMachine, ushort batchNode,
-        int chatLoadUsers, string chatRoomName, ushort chatNode, string chatMachine, int chatLines,
+        int chatLoadUsers, string chatServiceName, string[] chatRoomNames, ushort chatNode, string chatMachine, int chatLines,
         CancellationToken token)
     {
         string linkId = $"hdlc:{host}:{port}";
@@ -2014,7 +2129,7 @@ internal static class Program
         if (chatLoadUsers > 0)
         {
             chatLoadRun = new ChatLoadRun(
-                chatNode, chatMachine, chatRoomName, chatLoadUsers, chatLines);
+                chatNode, chatMachine, chatServiceName, chatRoomNames, chatLoadUsers, chatLines);
         }
 
         if (batchInput != null)
@@ -2093,10 +2208,20 @@ internal static class Program
                 syncNode,
                 BuildSyncReadiness(nodeHost, syncNode, originateFromSeed),
                 TimeSpan.FromSeconds(3),
-                TimeSpan.FromSeconds(5));
+                TimeSpan.FromSeconds(5),
+                syncPullFolder);
 
-            Console.WriteLine(
-                $"[sync] watching {syncFolder} -> node {syncNode} ({syncMachine}) user {syncUser}");
+            if (syncUser == SyncDaemon.RootMarker)
+            {
+                Console.WriteLine(
+                    $"[sync] watching ROOT {syncFolder} -> node {syncNode} ({syncMachine}),"
+                    + " one folder per SINTRAN user");
+            }
+            else
+            {
+                Console.WriteLine(
+                    $"[sync] watching {syncFolder} -> node {syncNode} ({syncMachine}) user {syncUser}");
+            }
 
             if (originateFromSeed)
             {
@@ -2458,28 +2583,36 @@ internal static class Program
             // pull driver has the same bounded retry the push has - otherwise it makes the
             // higher-priority path worse to make the lower-priority one testable.
 
-            // The push rides the same tick. It sends nothing until LAPB is Connected, because a
-            // frame we originate before the link is up is simply lost, and nothing after it makes
-            // sense. The driver returns nothing while it waits for the server, so the ladder paces
-            // itself instead of being paced by this timer.
+            // The push rides the same tick. It sends nothing until the link is UP, because a
+            // frame we originate before then is simply lost, and nothing after it makes sense. The
+            // driver returns nothing while it waits for the server, so the ladder paces itself
+            // instead of being paced by this timer.
+            //
+            // IsUp, NOT State == Connected. Spec 3.1: the link is up when BOTH directions have
+            // completed a SABM -> UA exchange, and the state machine reaches CONNECTED on the
+            // FIRST of them. MEASURED 2026-08-20: gating on the state sent the connect letter 20 ms
+            // before the peer's UA arrived, SendData refused it as not-Active, and the push then
+            // failed reporting that node 100 "answered none of 4 connect letters" - which was true,
+            // because none had been sent. Same conflation as LapbLayerAdapter had; fixing one and
+            // not the other just moved the symptom.
             if (pushRun != null)
             {
-                pushRun.Pump(nodeHost, link.State == LapbLayerState.Connected);
+                pushRun.Pump(nodeHost, link.IsUp);
             }
 
             // The pull rides the same tick, gated the same way. Only one of the two can be set -
             // the runner refuses --push and --pull together.
             if (pullRun != null)
             {
-                pullRun.Pump(nodeHost, link.State == LapbLayerState.Connected);
+                pullRun.Pump(nodeHost, link.IsUp);
             }
 
             if (batchRun != null)
             {
-                batchRun.Pump(nodeHost, link.State == LapbLayerState.Connected);
+                batchRun.Pump(nodeHost, link.IsUp);
             }
 
-            chatLoadRun?.Pump(nodeHost, link.State == LapbLayerState.Connected);
+            chatLoadRun?.Pump(nodeHost, link.IsUp);
 
             // The daemon scans on its own timer and carries a file on this tick.
             syncDaemon?.Pump(DateTime.UtcNow);
@@ -2633,6 +2766,7 @@ internal static class Program
         bool announceRestart,
         bool resyncHard,
         string? syncFolder,
+        string? syncPullFolder,
         string? syncUser,
         string? syncToNode,
         string? batchInput,
@@ -2934,7 +3068,8 @@ internal static class Program
                 syncNode,
                 () => link.HasLearnedPeer,
                 TimeSpan.FromSeconds(3),
-                TimeSpan.FromSeconds(5));
+                TimeSpan.FromSeconds(5),
+                syncPullFolder);
         }
 
         if (batchInput != null)

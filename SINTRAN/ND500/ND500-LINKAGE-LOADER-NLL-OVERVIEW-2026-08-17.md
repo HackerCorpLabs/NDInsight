@@ -361,7 +361,7 @@ which is why both toolchains are kept.
 
 NLL's `:PSEG`/`:DSEG` files are not just install artifacts — they are exactly what SINTRAN's
 load rhythm delivers into ND-500 memory at run time. The execution-verified account is
-`E:\Dev\Ronny\ND500UC\docs\ND500-MON-CALL-CONTEXT-SWITCH-AND-DOMAIN-LOADING-2026-08-17.md`
+`E:\Dev\Ronny\ND500UC\docs\ND500-PROCESS-LIFECYCLE.md (chapter 1)`
 section 6:
 
 - **PLACE transfers no bytes.** `PLACE-DOMAIN` builds ND-100-side bookkeeping from the
@@ -401,7 +401,7 @@ runs them.
 | `E:\Dev\Ronny\NDInsight\SINTRAN\ND500-APPS\README.md` | The preserved ND-500 program set incl. LINKER-B01, and the compile/link chain in nd500x |
 | `E:\Dev\Ronny\NDInsight\SINTRAN\ND5000\NLL-INSTALL-ROOT-CAUSE-PLAN-2026-07-30.md` | Why the NLL install gated the ND-5000 bring-up; hypothesis-driven debugging record |
 | `E:\Dev\Ronny\NDInsight\SINTRAN\ND5000\NLL-INSTALL-SWAPFILE-UNBLOCKED-5SWAP-PROTECT-VIOLATION-2026-07-31.md` | The swap-file prerequisite measured live; the 5SWAP protect violation |
-| `E:\Dev\Ronny\ND500UC\docs\ND500-MON-CALL-CONTEXT-SWITCH-AND-DOMAIN-LOADING-2026-08-17.md` | Section 6: the proven load rhythm that delivers NLL's PSEG/DSEG bytes into ND-500 memory |
+| `E:\Dev\Ronny\ND500UC\docs\ND500-PROCESS-LIFECYCLE.md (chapter 1)` | Section 6: the proven load rhythm that delivers NLL's PSEG/DSEG bytes into ND-500 memory |
 | `E:\Dev\Ronny\NDInsight\SINTRAN\ND500\SINTRAN-DOMAIN-SETUP-DEEP-DIVE.md` | Domain placement internals (use with that document's noted corrections) |
 | `E:\Dev\Ronny\NDInsight\SINTRAN\ND500\nll-re\LINKAGE-LOAD-H02.PSEG.dis` | Full disassembly of NLL itself — the evidence base for the `:LINK` decode |
 | `D:\ND\500\linkage-loader\` | The install media export (section 6 above) plus the raw floppy image |

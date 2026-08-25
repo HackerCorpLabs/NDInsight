@@ -173,6 +173,106 @@
           "note": "Seven 16-bit words, big-endian on the wire. A C reader must byte-swap on a little-endian host; the generator should emit accessors rather than a packed struct, because a packed struct silently depends on the host's endianness and alignment."
         }
       }
+    },
+    "nd_link_header": {
+      "size_bytes": 11,
+      "byte_order": "big-endian",
+      "csharp": "NDInsight.Sintran.Xmsg.Ethernet.NdLinkHeader",
+      "note": "The link header on the ETHERNET path. It sits after the 802.3 header and the LLC bytes A8 A8 03, and it is NOT the SINTRAN header - the SINTRAN header follows it as payload on a Data frame. This entry exists because the header was documented only in a C# file, and reading it from a capture without that file is how it gets mis-parsed.",
+      "trap": "THE TWO LINK ID FIELDS ARE NAMED BACKWARDS IN C#. Bytes 5-6 are the DESTINATION and bytes 7-8 are the SOURCE, but NdLinkHeader calls them SenderLinkId and ReceiverLinkId. NdLinkLayer says so in a comment and works around it. Reading the C# names as the wire meaning already cost one bug: every reply addressed D100 as 1 and it answered DR BY NS reason 1 with the link up.",
+      "fields": [
+        {
+          "byte_offset": 0,
+          "width_bits": 8,
+          "name": "header_length",
+          "meaning": "Always 0x0B = 11, which IS the length of this header, not a magic number. The sender computes it, so searching an ND binary for a literal 0B02 finds nothing.",
+          "status": "MEASURED",
+          "evidence": "every frame in every Ethernet capture; NdLinkHeader.Signature0",
+          "c_type": "uint8_t"
+        },
+        {
+          "byte_offset": 1,
+          "width_bits": 8,
+          "name": "signature",
+          "meaning": "Always 0x02. Meaning unknown - it is used together with byte 0 only to recognise the header.",
+          "status": "MEASURED",
+          "evidence": "every frame in every Ethernet capture; NdLinkHeader.Signature1",
+          "c_type": "uint8_t"
+        },
+        {
+          "byte_offset": 2,
+          "width_bits": 8,
+          "name": "frame_kind",
+          "meaning": "Which kind of link frame this is. See the nd_link_frame_kind bitfield.",
+          "status": "MEASURED",
+          "evidence": "DOC/captures/XMSG-DEGRADE-2026-08-24/segment.pcap - 1050 frames of a D100/D102 Ethernet segment, every frame the hub carried",
+          "bitfield": "nd_link_frame_kind",
+          "c_type": "uint8_t",
+          "csharp": [
+            "Kind"
+          ]
+        },
+        {
+          "byte_offset": 3,
+          "width_bits": 8,
+          "name": "unused",
+          "meaning": "Zero on every frame we have ever captured, and our own parser skips it. Whether it carries anything on some frame we have not seen is NOT established.",
+          "status": "UNKNOWN",
+          "evidence": "0x00 in all 1050 frames of DOC/captures/XMSG-DEGRADE-2026-08-24/segment.pcap - 1050 frames of a D100/D102 Ethernet segment, every frame the hub carried",
+          "c_type": "uint8_t"
+        },
+        {
+          "byte_offset": 4,
+          "width_bits": 8,
+          "name": "sequence",
+          "meaning": "Send sequence, ONE byte. Each direction runs its own. An Acknowledge carries the received sequence PLUS ONE - the next expected value.",
+          "status": "MEASURED",
+          "evidence": "DOC/captures/XMSG-DEGRADE-2026-08-24/segment.pcap - 1050 frames of a D100/D102 Ethernet segment, every frame the hub carried; observed stepping 0x43,0x44,0x45 in the 2026-08-03 both-ends capture",
+          "c_type": "uint8_t",
+          "csharp": [
+            "Sequence"
+          ]
+        },
+        {
+          "byte_offset": 5,
+          "width_bits": 16,
+          "name": "destination_link_id",
+          "meaning": "The link reference of the machine this frame is FOR. Zero on a connection request, because the sender does not know the peer's reference yet.",
+          "status": "MEASURED",
+          "evidence": "Lined up across a full setup in DOC/captures/XMSG-DEGRADE-2026-08-24/segment.pcap - 1050 frames of a D100/D102 Ethernet segment, every frame the hub carried: D100's request carries 0000/0789, D102's confirm 0789/0A17, and D100's following data 0A17/0789 - only destination-then-source is consistent with all three.",
+          "csharp": [
+            "SenderLinkId"
+          ],
+          "csharp_name_is_wrong": true,
+          "c_type": "uint16_t"
+        },
+        {
+          "byte_offset": 7,
+          "width_bits": 16,
+          "name": "source_link_id",
+          "meaning": "The sender's own link reference. A node LEARNS the peer's from this field and takes its own from configuration - synthesising one from the node number would be a fabricated constant. The ids are per-session: 0x5062/0x59C1 in one capture, 0x2F48/0x28A4 in another.",
+          "status": "MEASURED",
+          "evidence": "same three-frame line-up as destination_link_id",
+          "csharp": [
+            "ReceiverLinkId"
+          ],
+          "csharp_name_is_wrong": true,
+          "c_type": "uint16_t"
+        },
+        {
+          "byte_offset": 9,
+          "width_bits": 16,
+          "name": "trailing_field",
+          "meaning": "NOT always a length. On Data it is the payload length. On a ConnectionRequest it is the SENDER'S OWN SYSTEM NUMBER (0x0066 = 102) with the real payload length zero. On a DisconnectRequestByNetworkService it is 0x0101, meaning unknown. The 802.3 length field is the authority on how many payload bytes are present.",
+          "status": "MEASURED",
+          "evidence": "both-ends capture 2026-08-03; confirmed again throughout DOC/captures/XMSG-DEGRADE-2026-08-24/segment.pcap - 1050 frames of a D100/D102 Ethernet segment, every frame the hub carried",
+          "c_type": "uint16_t",
+          "csharp": [
+            "PayloadLength"
+          ]
+        }
+      ],
+      "control_frames_carry_no_payload": "0x0F and 0x6F frames have 802.3 length 0x000E = 3 LLC + 11 header + 0 payload. EVERY byte after the eleventh is Ethernet padding up to the 60-byte minimum. Readings that assign meaning to that tail are reading padding - this has now caught two people, so it is written here as well as in the C# file."
     }
   },
   "bitfields": {
@@ -344,6 +444,15 @@
           "meaning": "the other disconnect - D100 sends this one repeatedly once it gives up on a conversation",
           "status": "MEASURED",
           "evidence": "leaving it unrecognised produced an endless run of 'unknown ND frame kind 0x60' in the runner log while the link stayed nominally up"
+        },
+        {
+          "value": "0x70",
+          "name": "DisconnectConfirm",
+          "meaning": "The confirmation of a disconnect request. Read from its position in the exchange - a connection request is refused with DisconnectRequest60 and the refused side answers with this.",
+          "status": "INFERRED",
+          "evidence": "three independent occurrences across DOC/captures/XMSG-DEGRADE-2026-08-24 (segment.pcap and after-fix.pcap), 2026-08-24 - every one immediately after a DisconnectRequest60, link ids swapped, trailing field 0 where the request carried 0x0001, no payload",
+          "would_disprove_it": "A 0x70 that does NOT follow a disconnect request. Every sample so far follows one immediately, so one counter-example retires this reading.",
+          "note": "The FIRST of each pair is addressed to MAC 08:00:26:00:00:00 - system number ZERO - and only the retry is addressed properly, because the sender has not learned the peer's identity yet."
         }
       ],
       "unknown_aspects": [

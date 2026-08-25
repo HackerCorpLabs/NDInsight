@@ -31,6 +31,28 @@ param(
     [string]$WaitFor = "",
     [int]$WaitForTimeoutMs = 120000,
 
+    # ONE PROMPT PER STEP, parallel to -Steps. Use this when the prompts CHANGE from step to step,
+    # which -WaitFor cannot express because it is a single string for the whole run.
+    #
+    # WHY IT EXISTS, measured on D100 2026-08-23: the RT-LOADER answers with a different prompt at
+    # almost every step - "*" between loads, "CHATSER REPLACING?" when the description exists, then
+    # RT-PROGRAM, PRIORITY, SEGMENT ONE and so on from CHANGE-RT-DESCRIPTION. With no prompt to wait
+    # for, every step fell back to the fixed settle, the script ran AHEAD of the loader, and the
+    # transcript shows the result: "LOAD LOAD PLANC-1BANK-F00" and "NO SUCH FILE NAME", MON-CALL
+    # never loaded at all, and END-LOAD then eating EXIT-LOADER, RT and LOGOUT as answers to
+    # "NEGLECTING REFERENCES?". That left the loader holding a terminal and the machine had to be
+    # rebooted. A fixed delay is not a wait; it is a bet.
+    #
+    # An empty entry, or a step past the end of the array, falls back to the settle as before.
+    # Several alternatives can be given for one step, separated by "|", because the loader asks
+    # "REPLACING?" only when there is something to replace.
+    [string[]]$StepWaits = @(),
+
+    # How long ONE step waits for its own prompt. Shorter than WaitForTimeoutMs on purpose: a
+    # loader prompt that has not appeared in this long is not slow, it is out of step, and the
+    # useful thing then is to stop and print the transcript rather than to keep typing into it.
+    [int]$StepWaitTimeoutMs = 60000,
+
     # How long the login waits for each of ITS OWN prompts (ENTER, then PASSWORD:). Short, because
     # a login that has not prompted within this long is wedged, not slow.
     [int]$LoginPromptTimeoutMs = 45000,
@@ -111,10 +133,25 @@ function Read-UntilAny([string[]]$prompts, [int]$timeoutMs) {
     return [pscustomobject]@{ Text = $text + "`r`n*** ndterm: timed out waiting for any of: $($prompts -join ', ') ***"; Matched = "" }
 }
 
-function Send-Line([string]$line, [int]$waitMs) {
+function Send-Line([string]$line, [int]$waitMs, [string]$stepWait = "") {
     $bytes = [System.Text.Encoding]::ASCII.GetBytes($line + "`r")
     $stream.Write($bytes, 0, $bytes.Length)
     $stream.Flush()
+
+    # A prompt named for THIS step wins over the run-wide -WaitFor: it is more specific, and it is
+    # the only one that can follow a loader whose prompt changes as it goes.
+    if ($stepWait -ne "") {
+        $alternatives = $stepWait -split '\|'
+        $got = Read-UntilAny $alternatives $StepWaitTimeoutMs
+        if ($got.Matched -eq "") {
+            # Say WHICH step lost the thread. Without this the transcript shows a pile of confused
+            # output and nothing points at the line that caused it.
+            return $got.Text + "`r`n*** ndterm: step [$line] never saw its prompt [$stepWait] - STOPPING ***"
+        }
+
+        return $got.Text
+    }
+
     if ($WaitFor -ne "") {
         return (Read-UntilPrompt $WaitFor $WaitForTimeoutMs)
     }
@@ -167,9 +204,21 @@ else {
     Write-Output (Read-Available $OpenWaitMs)
 }
 
-foreach ($step in $Steps) {
+for ($stepIndex = 0; $stepIndex -lt $Steps.Count; $stepIndex++) {
+    $step = $Steps[$stepIndex]
+
+    # A short -StepWaits is not an error: the steps past its end simply fall back to the settle.
+    $stepWait = ""
+    if ($stepIndex -lt $StepWaits.Count) { $stepWait = $StepWaits[$stepIndex] }
+
     Write-Output "===> [$step]"
-    Write-Output (Send-Line $step $SettleMs)
+    $answer = Send-Line $step $SettleMs $stepWait
+    Write-Output $answer
+
+    # STOP THE MOMENT A STEP LOSES ITS PROMPT. Carrying on is what turns one missed prompt into a
+    # loader eating every following command as an answer - see the note on -StepWaits. The caller
+    # gets the transcript up to the break, which is where the fault actually is.
+    if ($answer -match 'STOPPING \*\*\*') { break }
 }
 
 if (-not $NoLogout) {

@@ -55,7 +55,7 @@ Install this before installing any other product whose install procedure assumes
 
 | Part | What it is | This release |
 |------|-----------|--------------|
-| **Program Description** (PD-sheet) | 1-page metadata + installation procedure, all in one document for this product | [../../../OS/SUBSYSTEM/ND0117.md](../../../OS/SUBSYSTEM/ND0117.md) (also [210400B_Subsystem_Package_II_combined.md](../../../OS/SUBSYSTEM/210400B_Subsystem_Package_II_combined.md) — independent second scan, same content) |
+| **Program Description** (PD-sheet) | 1-page metadata + installation procedure, all in one document for this product | [../../../OS/SUBSYSTEM/ND0117.md](../../../OS/SUBSYSTEM/ND0117.md) (also [210400B_Subsystem_Package_II.md](../../../OS/SUBSYSTEM/210400B_Subsystem_Package_II.md) — independent second scan, same content) |
 | **Installation** | folded into the PD sheet's section 3 (this product does not ship a separate Installation document) | see below |
 | **Diskette** | floppy directory listing, printed as PD-sheet pages 1–2 | see "Distribution media" below |
 | **Revision Log** | PD-sheet sections 1–2 ("Errors Corrected" / "Modifications") | summarized in Description above |
@@ -187,7 +187,7 @@ configuration, and nothing to `SET-AVAILABLE`. QED/MAC/FMAC/NPL/DITAP are simply
 once dumped reentrant (or run directly if dumped as `:PROG`).
 
 ## Documentation
-- PD-sheet: [../../../OS/SUBSYSTEM/ND0117.md](../../../OS/SUBSYSTEM/ND0117.md) · second independent scan: [../../../OS/SUBSYSTEM/210400B_Subsystem_Package_II_combined.md](../../../OS/SUBSYSTEM/210400B_Subsystem_Package_II_combined.md)
+- PD-sheet: [../../../OS/SUBSYSTEM/ND0117.md](../../../OS/SUBSYSTEM/ND0117.md) · second independent scan: [../../../OS/SUBSYSTEM/210400B_Subsystem_Package_II.md](../../../OS/SUBSYSTEM/210400B_Subsystem_Package_II.md)
 - PI-sheet: not located
 - Manual(s): `ND-60.096.01 EN` MAC User's Guide · `ND-60.151.2A EN` SINTRAN III Utilities Manual
   · `ND-60.031.4C EN` QED User's Manual · `ND-60.047.3A EN` NORD PL User's Guide
@@ -195,7 +195,7 @@ once dumped reentrant (or run directly if dumped as `:PROG`).
 
 ## Provenance & open items
 - Source: two independent OCR'd scans of the same ND Software Library Diskette document
-  (`ND0117.md` and `210400B_Subsystem_Package_II_combined.md`), which agree on every field except
+  (`ND0117.md` and `210400B_Subsystem_Package_II.md`), which agree on every field except
   the one module-name digit flagged above.
 - **TODO:** resolve which of the four differently-hashed `210400B00-XX-01D` floppy image dumps is
   authoritative (see "Distribution media" note above) — not yet checked.

@@ -1,0 +1,17 @@
+@CC =================================================================
+@CC = FILE NAME: TCP-STOP-D:MODE
+@CC = COMTROLLED STOP OF COSMOS TCP/IP GATEWAY VERSION D
+@CC = RUN THIS MODE FILE WHEN STOPPING MACHINE, ANYTIME BEFORE
+@CC = X-MESSAGE AND TADADM ARE STOPPED.
+@CC =================================================================
+@CC
+@OPERATOR *** STOPPING COSMOS TCP/IP GATEWAY ***
+@CC **************
+@CC * FTP-SERVER *
+@CC **************
+@ABORT ftprt
+@CC *****************
+@CC * TELNET+TCP/IP *
+@CC *****************
+@ABORT tcpp
+@(TCP-IP)PO-STOP-D02 0

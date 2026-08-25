@@ -1,0 +1,18 @@
+{
+  "ndfs.object_name": "NK-LIB-100-1",
+  "ndfs.type": "BRF",
+  "ndfs.user_name": "TCP-IP",
+  "ndfs.user_index": 14,
+  "ndfs.access_bits": 32759,
+  "ndfs.file_type_flags": 8,
+  "ndfs.file_type": 0,
+  "ndfs.device_number": 0,
+  "ndfs.next_version": 3609,
+  "ndfs.prev_version": 3609,
+  "ndfs.pages_in_file": 5,
+  "ndfs.bytes_in_file": 9322,
+  "ndfs.date_created": 2569334895,
+  "ndfs.last_read_date": 2839806799,
+  "ndfs.last_write_date": 2577188826,
+  "ndfs.holes": []
+}

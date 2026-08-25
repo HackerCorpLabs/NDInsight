@@ -1,0 +1,23 @@
+@cc
+@cc  Abort the servers
+@cc
+@abort tnserv
+@abort ftprt
+@abort TCPS1
+@cc
+@cc Stop and unload the Ethernet II controller
+@cc
+@PRLS 2241B 1
+@(TCP-)PO-STOP-B05
+1
+@cc
+@cc Start the TCP/IP servers
+@cc
+@rt TCPS1
+@hold 0,0
+@hold 15,2
+@cc
+@cc Start the FTP snd TELNET servers
+@cc
+@rt tnserv
+@rt ftprt

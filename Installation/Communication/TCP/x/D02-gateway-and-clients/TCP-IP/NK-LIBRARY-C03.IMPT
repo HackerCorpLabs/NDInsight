@@ -1,0 +1,20 @@
+
+$if $target-machine = 68000 $then
+ $macro nkspecial; special $endmacro
+$else
+ $macro nkspecial; $endmacro
+$endif
+
+import(routine void,integer4(integer4,integer4,integer4,integer4 write):nkcremessage)
+import(routine nkspecial void,integer4(integer4,integer4,integer4,bytes pointer,integer4 write):nkmove)
+import(routine void,integer4(integer4,integer4,integer4 write):nkcreport)
+import(routine void,integer4(integer4,integer4,bytes pointer,integer4):nkcrename)
+import(routine void,integer4(integer4,bytes pointer,integer4 write):nkopenport)
+import(routine void,integer4(integer4,integer4,integer4 write):nkopenreturnport)
+import(routine nkspecial void,integer4(integer4,integer4,bytes pointer):nkgetinfo)
+import(routine void,integer4(integer4,bytes pointer,integer4):nkdelname)
+import(routine nkspecial void,integer4(integer4,integer4,integer4,integer4):nksend)
+import(routine nkspecial void,integer4(integer4,integer4,integer4 write,integer4 write):nkreceive)
+import(routine void,integer4(integer4,integer4):nkclose)
+import(routine void,integer4(integer4,integer4,bytes pointer):nkVersion)
+$EOF

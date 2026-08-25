@@ -1,0 +1,18 @@
+{
+  "ndfs.object_name": "COMP-TCCOM",
+  "ndfs.type": "MODE",
+  "ndfs.user_name": "TCP-COMM",
+  "ndfs.user_index": 30,
+  "ndfs.access_bits": 32767,
+  "ndfs.file_type_flags": 8,
+  "ndfs.file_type": 0,
+  "ndfs.device_number": 0,
+  "ndfs.next_version": 7680,
+  "ndfs.prev_version": 7680,
+  "ndfs.pages_in_file": 1,
+  "ndfs.bytes_in_file": 126,
+  "ndfs.date_created": 2900661287,
+  "ndfs.last_read_date": 2901463054,
+  "ndfs.last_write_date": 2900662969,
+  "ndfs.holes": []
+}

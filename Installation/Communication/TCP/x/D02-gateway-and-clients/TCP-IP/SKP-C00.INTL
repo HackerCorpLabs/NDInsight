@@ -1,0 +1,131 @@
+%=============================================================================%
+%                                                                             %
+%                          S U P E R K E R N E L                              %
+%                                                                             %
+%                   I N T E R N A L    D E F I N I T I O N S                  %
+%                                                                             %
+%                                                                             %
+%                                                                             %
+%  INITIAL VERSION:  -A-2  15.05.87   RGJ                                     %
+%                                                                             %
+%    MODIFICATIONS:                                                           %
+%  FrIs  ProcessNumber in SKBA                              01A   17.11.87    %
+%  FrIs  Buffersize and free in SKMS                        02A   01.01.88    %
+%=============================================================================%
+
+%
+% TIMER BLOCK used to schedule time events
+%
+
+TYPE skti = RECORD PACK
+   skti POINTER: SKTInext                        % link for list
+   sktm:         SKTIinterval                    % user specification of time interval
+   INTEGER4:     SKTIbasicInterval               % interval in BASIC units
+   INTEGER4:     SKTIend                         % (BASIC) time when interval expires
+ENDRECORD
+
+%-----------------------------------------------------------------------------%
+%
+% SUPERPORT DESCRIPTOR
+%
+TYPE SKPOdesc = ENUMERATION(SKPOown,SKPOremote,SKPOrawXMSG)
+
+TYPE skpo = RECORD
+   skpo POINTER: SKPOnext                        % next in chain
+   skpo POINTER: SKPOnextXMSGport                % next in XMSG port chain
+   INTEGER:      SKPOflag                        % flag for pointer validity check
+   SKPOdesc:     SKPOtype                        % descriptor for own or remote port
+   % IF SKPOtype=SKPOown OR SKPOrawXMSG THEN
+   skcs SET:     SKPOsubsystems                  %   comms system(s) to which port belongs
+   INTEGER4:     SKPOevents                      %   events to set when message arrives
+   INTEGER:      SKPOxmsgID                      %   identifier of XMSG port if open
+   INTEGER:      SKPOnkID                        %       ditto   NK
+   INTEGER4:     SKPOdiocID                      %       ditto   dioc/pioc
+   INTEGER4:     SKPOinternalID                  %       ditto   internal
+   INTEGER4:     SKPO100piocID                   %       ditto   100<->PIOC
+   % ELSE (SKPOtype = SKPOremote) THEN
+   skcs:         SKPOaccessPath &                %   subsystem used to reach remote port
+               = SKPOsubsystems
+   INTEGER4:     SKPOreference                   %   reference to remote port
+   skid:         SKPOmesg                        %   message on port
+   INTEGER4:     SKPOnkSenderID                  %   sender ID of message (don't send to this ID)
+ENDRECORD
+
+%-----------------------------------------------------------------------------%
+%
+% SUPERMESSAGE DESCRIPTOR
+%
+TYPE skms = RECORD
+   skms POINTER: SKMSnext                        % next in chain
+   skms POINTER: SKMSnextOnPort                  % next queued on port
+   INTEGER:      SKMSflag                        % flag for pointer validity check
+   skcs:         SKMSsubsystem                   % comms system to which message belongs
+   INTEGER4:     SKMSid                          % message identifier
+   skpo POINTER: SKMShomePort                    % home port of message
+   INTEGER:      SKMSoffset                      % current read/write offset
+   INTEGER:      SKMSmaxOkBytes                  % max number of bytes in message
+   INTEGER:      SKMScurrNoBytes                 % current number of bytes in message
+   INTEGER:      SKMSbufferSize                  % buffer size (used in SKPgetMessage)
+   BOOLEAN:      SKMSfree                        % free to be used
+   skmt:         SKMStype                        % message type (SKMTnormal/SKMTreturnded/SKMTviaXROUT)
+ENDRECORD
+
+%-----------------------------------------------------------------------------%
+%
+% FLAGs used to check the validity of pointers
+%
+CONSTANT FLAGbase = 125252B                      % BASE record
+CONSTANT FLAGport = 125253B                      % PORT record
+CONSTANT FLAGmesg = 125255B                      % MESG record
+%-----------------------------------------------------------------------------%
+%
+% STATIC BASE RECORD used by SK-LIB
+%
+TYPE skba = RECORD PACK
+   INTEGER2:     SKBAflag                        % check flag
+   SKCSset:      SKBAsubsystems                  % supported subsystems
+   BOOLEAN:      SKBAxmsgLversion                % running on XMSG version L or later?
+   BOOLEAN:      SKBAxmsgWakeBit                     % XMSG wake bit set in 68000?
+   INTEGER4:     SKBApendingEvents               % events waiting for user
+   skti POINTER: SKBAfreeTimerBlocks             % available resources for time events
+   skti POINTER: SKBAtimeEvents                  % queue of scheduled time events
+   skpo POINTER: SKBAfreePorts                   % free port descriptors
+   skpo POINTER: SKBAopenPorts                   % descriptors for ports in use
+   INTEGER2:     SKBAcountXMSGopenPorts          % count of open XMSG ports
+   INTEGER2:     SKBArawXMSGportMask             % IFF >=XMSG-L AND countOpenPorts<=16
+   % THEN bits show which ports are RAW XMSG
+   skpo POINTER: SKBAxmsgOpenPorts               % link through open XMSG *USER* ports
+   skms POINTER: SKBAfreeMessages                % free message descriptors
+   skms POINTER: SKBAqueuedMessages              % descriptors for active messages
+   INTEGER2:     SKBAprocessNumber
+   BYTES:        SKBAerrSource(0:1)              % two-byte specifier source of last error
+   % 'XM','NK','PO','PI','SK','UX'
+   INTEGER:      SKBAerrValue                    % value of last error
+ENDRECORD
+%-----------------------------------------------------------------------------%
+%
+% SUPERKERNEL PROTOCOL UNITS
+%
+TYPE skpu = RECORD PACK
+   BYTE:     SKPUversion                         % protocol version number
+   BYTE:     SKPUtype                            % type of protocol unit
+   INTEGER2: SKPU1check                          % two check fields ensure this
+   INTEGER2: SKPU2check                          % came from another superkernel
+   INTEGER2: SKPUlength                          % length of header
+ENDRECORD
+% <SKPUversion>:
+CONSTANT currentVersion = 0
+% <SKPUtype> values:
+CONSTANT SKPUcr = 0                              % connect request
+CONSTANT SKPUcc = 1                              % connect confirm
+CONSTANT SKPUdr = 2                              % disconnect
+% <SKPU1/2check> values:
+CONSTANT SKPU1flag = 123321B
+CONSTANT SKPU2flag = 135575B
+%
+% identifier used in XROUT header on connect request
+%
+CONSTANT SKXRid = 111
+
+%-----------------------------------------------------------------------------%
+$EOF

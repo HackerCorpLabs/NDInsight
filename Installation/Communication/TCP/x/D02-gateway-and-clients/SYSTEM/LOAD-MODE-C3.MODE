@@ -1,0 +1,213 @@
+@ENTER SYSTEM,FORD,,99
+@CC ******************************************************************
+@CC *                                                                *
+@CC * [OTS-LOAD-PROC] : LOAD-MODE-C3:MODE                            *
+@CC *                   Configured for C3  Sys 16505                 *
+@CC ******************************************************************
+@CC *    AUTHOR    :  C-O Falt , Norsk Data                          *
+@CC *    CATEGORY  :  Command Procedure                              *
+@CC *    PURPOSE   :  Perform Warm start on Compact C3               *
+@CC *                                                                *
+@CC *    STATUS    :  Integrated                                     *
+@CC *    HISTORY   :  IR-   -    1986-??-??  Original version        *
+@CC *                 COF        1986-12-05  Added EPSON error handl *
+@CC *                 PKr        1987-05-14  Added start of STATUP   *
+@CC *                 CVS        1987-07-01  Added start of IDBSERV  *
+@CC *                 PKr        1987-09-14  Start of (RT)PRIOR:MODE *
+@CC *                                        added                   *
+@CC *                 PKr        1988-01-07  Added load of TREND07,  *
+@CC *                                        and start of PROINI,    *
+@CC *                                        GENER and PROX.         *
+@CC *                 PKr        1989-06-06  Fix IDB on page 600     *
+@CC *                 PKr        1990-02-13  New version (L) SINTRAN *
+@CC *                 GPe        1992-04-13  TCP/IP installed        *
+@CC *                                                                *
+@CC *                                                                *
+@CC *    COMMENTS  :  System procedure                               *
+@CC ******************************************************************
+@CC ===========================================================================
+@CC =                                                                         =
+@CC =                                                                         =
+@CC =         BATCH JOB WHICH WILL BE RUN EVERY TIME MASTER-CLEAR/LOAD        =
+@CC =         IS EXECUTED.  THE JOB IS STARTED BY A NEXT-INITIAL-COMMAND      =
+@CC =                                                                         =
+@CC =         THIS FILE MUST BE TAILORED                                      =
+@CC =         TO SUIT EACH INDIVIDUAL SYSTEM                                  =
+@CC =                                                                         =
+@CC =         REMEMBER TO SET-FILE-ACCESS FOR                                 =
+@CC =         FRIEND AND PUBLIC TO NONE, SINCE                                =
+@CC =         THE FILE CONTAINS THE SYSTEM PASSWORD                           =
+@CC =                                                                         =
+@CC =         REMEMBER TO CHANGE THE PASSWORD                                 =
+@CC =         WHEN THE SYSTEM PASSWORD IS CHANGED                             =
+@CC =                                                                         =
+@CC ===========================================================================
+
+@CC ===========================================================================
+@CC =                                                                         =
+@CC = ENTER ALL DIRECTORIES AND SET THEM DEFAULT IF REQUIRED                  =
+@CC = THE NUMBER AND FORM OF THESE COMMANDS IS SYSTEM DEPENDANT.              =
+@CC =                                                                         =
+@CC ===========================================================================
+
+@CC @ENTER-DIRECTORY,<DIR.NAME>,<DEV.NAME>,<UNIT>,<SUBUNIT>
+@CC @SET-DEFAULT-DIRECTORY <DIR.NAME>
+
+@CC =========================================
+@CC =                                       =
+@CC = Setup EPSON as error printout         =
+@CC = Ref SIN-K 88 Nov 1986                 =
+@CC =                                       =
+@CC =========================================
+
+@SINTRAN-SERVICE
+@CHANGE-DATAFIELD 1 I Y N N
+TINFO/20
+.
+@EXIT
+
+@CC =========================================
+@CC =                                       =
+@CC = SET CORRECT TERMINAL TYPES            =
+@CC = ( SYSTEM DEPENDANT )                  =
+@CC =                                       =
+@CC =========================================
+
+@SET-TERMINAL-TYPE 36 -5067
+@SET-TERMINAL-TYPE 37 -5067     
+@SET-TERMINAL-TYPE 38 -5067     
+@SET-TERMINAL-TYPE 39 -5067     
+@SET-TERMINAL-TYPE 48 -5067     
+@SET-TERMINAL-TYPE 49 -5067     
+@SET-TERMINAL-TYPE 50 -5067     
+@SET-TERMINAL-TYPE 51 -5067     
+@SET-TERMINAL-TYPE 1  -5067     
+
+@CC -----------------------------------------
+@CC IDB_0 MUST BE FIXED AT PAGE 600 !!!!
+@CC -----------------------------------------
+
+@CC @FIXC IDB_0 600
+
+
+@CC =========================================
+@CC =                                       =
+@CC = START UP OTHER BATCH PROCESSES        =
+@CC = ( SYSTEM DEPENDANT )                  =
+@CC =                                       =
+@CC =========================================
+
+@BATCH
+
+
+@CC =========================================  
+@CC = START XMSG  INTER  SYSTEM VERSION     =
+@CC =========================================  
+
+@MODE (UTILITY)XMSG-START:MODE,,
+
+@CC =========================================
+@CC = START COSMOS BASIC MODULE             =
+@CC =========================================
+
+@START-TADADM
+
+@MODE (COSMOS-BASIC)COS-START-F:MODE,,
+
+@CC @ABORT XFTRAD
+@CC @RT XFTRAD
+
+@CC @RTON COSPO
+@START-SPOOLING COSMOS-SPOOLING
+@MODE (COSMOS-BASIC)COS-DEF-PRI-F:MODE,,,
+
+@CC @MODE (UTILITY)COS-FA-SER-D:MODE,,,
+
+@CC =========================================
+@CC = START TCP/IP                          =
+@CC =========================================
+
+@MODE (TCP-IP)TCP-START:MODE,,,
+
+@CC =========================================
+@CC = START USER-ENVIRONMENT                =
+@CC =========================================
+
+@CC @RT UEXPS
+
+@CC =========================================
+@CC = DEFINING MASS-STORAGE                 =
+@CC =========================================
+
+@DEF-MAS-STO FL-DISC-1,0
+
+@CC =========================================
+@CC =                                       =
+@CC = START UP SPOOLING PROCESSES           =
+@CC = ( SYSTEM DEPENDANT )                  =
+@CC =                                       =
+@CC =========================================
+
+@CC @START-SPOOLING LINE-PRINTER
+@GIVE-SPO-PAGE 500
+
+@CC =========================================
+@CC =                                       =
+@CC = SET SYSTEM AVAILABLE FOR USERS        =
+@CC =                                       =
+@CC =========================================
+
+@SINTRAN-SERVICE
+@DEF-HDLC 1362B Y 4
+@DEF-HDLC 1363B Y 4
+@DEF-HDLC 1364B Y 4
+@DEF-HDLC 1365B Y 4
+@EXIT
+@CC =========================================
+@CC =                                       =
+@CC = PROBAS PATCH                          =
+@CC =                                       =
+@CC =========================================
+@cc @LOOK-AT RTCOMMON
+@cc 174000/21004
+@cc .
+
+@CC =========================================
+@CC =                                       =
+@CC = Start STATUP to get rid of static     =
+@CC = alarms.                               =
+@CC =========================================
+@cc @MODE (-PREPRO)STATUP-LOAD:MODE,,
+@cc @RT STATUP
+@CC
+@cc @RT IDBSERV
+@CC =========================================
+@CC =                                       =
+@CC = Set correct priority on OTS modules   =
+@CC =                                       =
+@CC =========================================
+@CC
+@cc @MODE (RT)PRIOR:MODE,,
+
+@cc @MODE (RT)LOAD-TREND-07:MODE,,,,
+@cc @RT PROINI
+@cc @HOLD 0,0
+@cc @HOLD 2,2
+@cc @RT GENER
+@cc @HOLD 0,0
+@cc @HOLD 20,2
+@cc @RT PROX
+@cc @HOLD 0,0
+@cc @HOLD 1,3
+
+@SET-AVAILABLE
+
+@CC =========================================
+@CC =                                       =
+@CC = END OF LOAD-MODE:MODE                 =
+@CC =                                       =
+@CC =========================================
+
+@OPERATOR === SYSTEM IS AVAILABLE ===
+
+

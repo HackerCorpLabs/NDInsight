@@ -1,0 +1,984 @@
+% =======================================================================
+% CHATMON - the chat server's configuration program.
+%
+% Phase A of DOC/CHAT-FEDERATION-DESIGN.md. It follows the shape SINTRAN
+% already uses for FSART / FS-ADMINISTRATOR: the server is an RT program
+% holding no terminal, and this is an ORDINARY program that reaches it over
+% XMSG like any other client.
+%
+% WHY A SEPARATE PORT. The server's room port CHAT-LOBBY is a CONNECTION
+% port, and every arrival there spends one of its free connections - a seat
+% a human then cannot have. An operator asking for STATUS must not cost the
+% room a seat, and must still get in when the room is full, which is exactly
+% when they would want to ask. So the server opens CHAT-ADMIN as a NORMAL
+% named port with XMPOPNM and admin messages go there.
+%
+% Trunks are the first thing this program will configure, not the only
+% thing. Anything that needs changing while the server runs belongs here
+% rather than in a rebuild.
+% =======================================================================
+MODULE chatmon
+
+% The includes go INSIDE the module. Above MODULE they compile into the
+% outer scope and the module body cannot see them - the same trap the
+% client's own header records.
+% THE INCLUDE NAMES ARE THE MACHINE'S, NOT THIS REPOSITORY'S.
+%
+% These are the real COSMOS binding, product ND-10609, put on D100 by
+% COS-LIB-IN-B02:PROG. The repository's own XMSG-PL-VALUES-L.INCL and
+% XMSG-PL-IMPORT.INCL are NOT what the build uses.
+%
+% AND THE SEPARATOR IS A COLON. Writing "XMSG-PL-VALUES-L.INCL" put a DOT in
+% the filespec, and a dot in SINTRAN means a REMOTE SYSTEM prefix - the
+% compiler answered UNKNOWN REMOTE SYSTEM NAME, never got its declarations,
+% and then refused EXIT with ILLEGAL MODULE TERMINATION because the module it
+% was reading had never closed. Measured on D100, 2026-08-19.
+%
+% DO NOT ALSO INCLUDE XMSG-PL-VALUES-L:INCL - it and XMP-B02:DEFS share 184
+% constant names, and a redeclaration is not something this compiler carries on
+% past. See the header of CHAT.PLNC.
+$INCLUDE XMP-B02:DEFS
+$INCLUDE XMP-B02:IMPT
+
+    % MON1 IS INBIT - read one byte from a device. The PLANC runtime carries it
+    % as a MONn routine, but it still has to be DECLARED here or the compiler
+    % answers ILLEGAL SYNTAX at the call site. Same declaration CHAT.PLNC uses.
+    IMPORT ( ROUTINE VOID, BYTE (INTEGER) : MON1 )
+
+    INTEGER ARRAY : stack(0:600)
+
+    % ---------------------------------------------------------------
+    % The message kinds. These MUST match DOC/protocols/chat-wire.json
+    % and ChatMessageKind.cs - all three move in the same commit, which
+    % is constraint 5 of the federation design.
+    %
+    % 32 and up are ADMIN and belong on the command port. They share the
+    % room's numbering on purpose: a second vocabulary would mean a
+    % second decoder bound, and that bound has already been left behind
+    % twice, silently both times.
+    % ---------------------------------------------------------------
+    INTEGER : kAdmStat := 32
+    INTEGER : kAdmRepl := 33
+    INTEGER : kAdmStop := 34
+
+    % Trunk configuration. All three are answered with kAdmRepl, the same kind
+    % STATUS uses, so showAnswer needs no new decoding - which is why three new
+    % verbs cost no change to the wire format. These MUST match CHATSV.PLNC and
+    % DOC/protocols/chat-wire.json; all three move in the same commit.
+    INTEGER : kAdmTrunk  := 35
+    INTEGER : kAdmUntrnk := 36
+    INTEGER : kAdmTrunks := 37
+
+    % INITIALIZE <room> <n> - how many messages a room remembers. Answered with
+    % kAdmRepl like the rest, so it too costs no wire change.
+    INTEGER : kAdmInit   := 38
+
+    % The server's command port, by name. XROUT turns this into an
+    % address; nothing here knows or wants the number.
+    BYTES : admName := 'CHAT-ADMIN'
+    INTEGER : lenAdmName := 10
+
+    % Who is asking. Carried in the nickname field so the server's log can
+    % say who stopped it - an unattributed STOP is not worth much.
+    BYTES : operName := 'OPER'
+    INTEGER : lenOperName := 4
+
+    INTEGER : myPort
+    INTEGER : returnStatus
+    % THE SYSTEM NAME IS BYTES, NOT AN INTEGER, and an EMPTY one means the LOCAL
+    % system - which is what we want, since CHAT-ADMIN is on this machine.
+    % Declaring it INTEGER drew
+    %   *** ERROR - ILLEGAL DATA TYPE "XMPBLET"
+    % on the CALL rather than on the declaration, which sends you looking at the
+    % arguments you changed instead of the one you copied wrong. CHAT.PLNC has
+    % the same declaration. Measured on D100, 2026-08-20.
+    BYTES : hereSystem := ''
+    INTEGER : offSet
+    INTEGER : uLength
+    INTEGER : wLength
+    INTEGER : length
+    INTEGER : msgType
+    INTEGER : remotePortHash
+    INTEGER : nBytes
+    INTEGER : waitFlags
+    INTEGER : replyKind
+    INTEGER : replyTextLen
+    INTEGER : replyNameLen
+    BOOLEAN : leaving
+
+    % The command words. Held as BYTES so isVerb can compare byte by byte.
+    BYTES : vExit       := 'EXIT'
+    BYTES : vHelp       := '?'
+    BYTES : vHelpWord   := 'HELP'
+    BYTES : vStatus     := 'STATUS'
+    BYTES : vStop       := 'STOP'
+    BYTES : vStart      := 'START'
+    BYTES : vRestart    := 'RESTART'
+    BYTES : vStartTrunk := 'START-TRUNK'
+    BYTES : vStopTrunk  := 'STOP-TRUNK'
+    BYTES : vRestTrunk  := 'RESTART-TRUNK'
+    BYTES : vListTrunks := 'LIST-TRUNKS'
+    BYTES : vInit       := 'INITIALIZE'
+    INTEGER : i
+
+    % ONE NUMBER PER COMMAND. The matcher below finds WHICH command was typed
+    % before deciding what to do about it, so dispatch is a plain choice on a
+    % number rather than a ladder of tests whose ORDER carries meaning. That
+    % ordering was a standing trap: LIST-TRUNKS, RESTART-TRUNK and START-TRUNK
+    % all had to be tested before the shorter words they begin with, and every
+    % new verb had to be inserted in exactly the right place or it was
+    % swallowed. With a match count the order no longer matters at all.
+    INTEGER : cNone        := 0
+    INTEGER : cExit        := 1
+    INTEGER : cHelp        := 2
+    INTEGER : cStatus      := 3
+    INTEGER : cStop        := 4
+    INTEGER : cStart       := 5
+    INTEGER : cRestart     := 6
+    INTEGER : cStartTrunk  := 7
+    INTEGER : cStopTrunk   := 8
+    INTEGER : cRestTrunk   := 9
+    INTEGER : cListTrunks  := 10
+    INTEGER : cInit        := 11
+
+    % The RT program that IS the chat server. This is the PROGRAM unit's name
+    % from CHATSV.PLNC - "PROGRAM : chatServer" - not the file name, and it is
+    % what CHANGE-RT-DESCRIPTION and @RT CHATSER both use.
+    BYTES : rtProgName := 'CHATSER'
+    INTEGER : rtAddr
+
+    INTEGER : cmdId          % which command matched, when exactly one did
+    INTEGER : cmdCount       % how many matched - 0 unknown, >1 ambiguous
+    INTEGER : cmdWordLen     % length of the typed word, up to the first space
+    INTEGER : hyphenCh := 45 % '-', the separator inside a compound command
+    INTEGER : spaceCh  := 32
+    INTEGER : questCh  := 63 % '?'
+
+    % Only the PROGRAM's line reader uses these. buildAdmin and showAnswer
+    % keep their OWN cursors as locals - a shared cursor across routines is a
+    % latent bug waiting for the day the call order changes.
+    INTEGER : at
+    INTEGER : ch
+    INTEGER : maxLine := 80
+    BOOLEAN : lineReady
+    BYTE : rawCh
+
+    % Terminal reading. Same values and same reasons as the client's reader.
+    INTEGER : ownTerminal := 1        % device number of your own terminal
+    INTEGER : parityMask  := 127      % strip the even-parity bit, see below
+    INTEGER : carriageRet := 13
+    INTEGER : emptyInput  := 3        % InByte in no-wait: nothing was typed
+
+    BYTES : letterBuf(0:63)
+    BYTES : outBuf(0:255)
+    BYTES : inBuf(0:511)
+    BYTES : lineBuf(0:79)
+    % AN INITIALISER IS WHAT GIVES A BYTES ITS LENGTH. Declared bare, the
+    % compiler answers "ARRAY BOUNDS MISSING" and then, further down, warns the
+    % name was never declared - two diagnostics from one omission. CHATSV's
+    % spaceByte is the same idiom.
+    BYTES : oneByte := ' '
+
+    % -----------------------------------------------------------------------
+    % Print a status number beside the call that produced it. A bare number
+    % with no name attached is what makes an XMSG failure take an hour.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID (BYTES, INTEGER) : showStatus(what, status)
+        OUTPUT(1, 'AL', what)
+        OUTPUT(1, 'AL6', ' st = ')
+        OUTPUT(1, 'I6', status)
+        OUTPUT(1, 'AL1', '$')
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Build one admin message into outBuf.
+    %
+    % The format is the room's own, unchanged: kind, then a one-byte name
+    % length and that many bytes of name, then a TWO-byte big-endian text
+    % length and that many bytes of text. Admin messages cost no wire change
+    % precisely because they need no new fields - a request carries empty
+    % text, and the answer puts readable text where a Said would put what
+    % somebody said.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER (INTEGER) : buildAdmin(kind)
+        INTEGER : n
+        INTEGER : p
+        kind =: outBuf(0)
+        lenOperName =: outBuf(1)
+        FOR n IN 0:lenOperName - 1 DO
+            operName(n) =: outBuf(2 + n)
+        ENDFOR
+        2 + lenOperName =: p
+        % Text length, high byte then low. Always zero on a request.
+        0 =: outBuf(p)
+        0 =: outBuf(p + 1)
+        p + 2 RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Send one admin message to CHAT-ADMIN, addressed BY NAME through XROUT.
+    %
+    % By name rather than by address because nothing here knows the server's
+    % port number, and the whole point of a registered name is that it does
+    % not have to. This is the same letter mechanism the client uses to join,
+    % against a NORMAL named port rather than a connection port - which is
+    % what keeps it from spending a seat.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID (INTEGER) : sendAdmin(kind)
+        XMMSGIDENTIFIER : msgIdent
+
+        % XMPBLET takes the port name as BYTES and appends it as parameter 1
+        % of the letter. A PLANC BYTES argument carries its own length, so
+        % handing over the whole declared array would ask XROUT for a name
+        % with the leftovers on the end. The subarray is exactly the name.
+        % NO SUBARRAY HERE, and that is the difference from the client's join.
+        %
+        % CHAT.PLNC declares roomName with explicit bounds (0:20) and fills it at
+        % runtime, so it MUST hand XMPBLET a subarray or the letter would carry
+        % eleven bytes of leftovers. admName is declared with an INITIALISER, so
+        % its implicit length is already exactly 'CHAT-ADMIN' and the whole array
+        % is the name. Writing admName(0:lenAdmName - 1) anyway drew
+        %   830 (170)/SENDADMIN *** ERROR - ILLEGAL DATA TYPE "XMPBLET"
+        % - a variable subarray of a literal-initialised BYTES is not something
+        % this compiler will take. Measured on D100, 2026-08-20.
+        xmpblet(letterBuf, 64, offSet, 123, hereSystem, admName) =: returnStatus
+        IF returnStatus >< XMOK THEN
+            % THIS IS THE NAME LOOKUP, and it is the failure an operator will
+            % meet most often by a long way: CHAT-ADMIN is not registered
+            % because nothing is running to register it. The status number
+            % stays - it is what a second pair of eyes needs - but a number on
+            % its own is not an answer to somebody who just wants the server
+            % up, so say the likely cause and the command that fixes it.
+            showStatus('xmpblet', returnStatus)
+            OUTPUT(1, 'AL44', 'the chat server does not answer - try START$')
+            RETURN
+        ENDIF
+
+        xmpfget(0, 200, msgIdent) =: returnStatus
+        IF returnStatus >< XMOK THEN
+            showStatus('xmpfget', returnStatus)
+            RETURN
+        ENDIF
+
+        % The letter header first...
+        offSet =: uLength
+        xmpfwri(0, 0, &
+            ADDR(letterBuf(0)) FORCE XMUSERADDRESS, &
+            0, uLength, wLength) =: returnStatus
+
+        % ...then our own message after it. XROUT reads only the header and
+        % forwards the rest untouched, so this is where the command rides.
+        buildAdmin(kind) =: length
+        xmpfwri(0, wLength, &
+            ADDR(outBuf(0)) FORCE XMUSERADDRESS, &
+            0, length, offSet) =: returnStatus
+
+        xmprout(0, msgIdent, myPort) =: returnStatus
+        IF returnStatus >< XMOK THEN
+            showStatus('xmprout', returnStatus)
+        ENDIF
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % The same message, but carrying WHAT THE OPERATOR TYPED AFTER THE VERB.
+    %
+    % START-TRUNK and STOP-TRUNK need a system number, and the argument is
+    % simply the rest of the typed line: everything after the verb and the one
+    % space behind it. It is sent as TEXT and the server parses it - this end
+    % does not need to know that a trunk is named by a number, only that the
+    % verb takes an argument.
+    %
+    % A MISSING ARGUMENT IS SENT AS AN EMPTY TEXT rather than refused here. The
+    % server already has to handle a peer sending nonsense, so it owns the
+    % complaint, and there is then ONE place that decides what a valid trunk
+    % argument is instead of two that can disagree.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER (INTEGER) : bldArgMsg(kind)
+        INTEGER : n, p, argAt, argLen
+
+        kind =: outBuf(0)
+        lenOperName =: outBuf(1)
+        FOR n IN 0:lenOperName - 1 DO
+            operName(n) =: outBuf(2 + n)
+        ENDFOR
+        2 + lenOperName =: p
+
+        % cmdWordLen is the verb; one space follows it; the rest is the
+        % argument. "at" is how much was typed altogether.
+        cmdWordLen + 1 =: argAt
+        at - argAt =: argLen
+        IF argLen < 0 THEN
+            0 =: argLen
+        ENDIF
+
+        0 =: outBuf(p)                        % text length, high byte
+        argLen =: outBuf(p + 1)               % low byte - a typed line is short
+        p + 2 =: p
+        FOR n IN 1:argLen DO
+            lineBuf(argAt + n - 1) =: outBuf(p)
+            p + 1 =: p
+        ENDFOR
+        p RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Send an admin message that carries the typed argument.
+    %
+    % Identical to sendAdmin except for which builder it calls. Kept as its own
+    % routine rather than adding a flag to sendAdmin, because the two differ in
+    % exactly one line and a flag would put a branch in the middle of the letter
+    % sequence that is worth keeping straight.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID (INTEGER) : sndArgMsg(kind)
+        XMMSGIDENTIFIER : msgIdent
+
+        xmpblet(letterBuf, 64, offSet, 123, hereSystem, admName) =: returnStatus
+        IF returnStatus >< XMOK THEN
+            showStatus('xmpblet', returnStatus)
+            OUTPUT(1, 'AL44', 'the chat server does not answer - try START$')
+            RETURN
+        ENDIF
+
+        xmpfget(0, 200, msgIdent) =: returnStatus
+        IF returnStatus >< XMOK THEN
+            showStatus('xmpfget', returnStatus)
+            RETURN
+        ENDIF
+
+        offSet =: uLength
+        xmpfwri(0, 0, &
+            ADDR(letterBuf(0)) FORCE XMUSERADDRESS, &
+            0, uLength, wLength) =: returnStatus
+
+        bldArgMsg(kind) =: length
+        xmpfwri(0, wLength, &
+            ADDR(outBuf(0)) FORCE XMUSERADDRESS, &
+            0, length, offSet) =: returnStatus
+
+        xmprout(0, msgIdent, myPort) =: returnStatus
+        IF returnStatus >< XMOK THEN
+            showStatus('xmprout', returnStatus)
+        ENDIF
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Wait for the server's answer and print it.
+    %
+    % BLOCKING on purpose - XFWTF. This program has nothing else to do and a
+    % poll would burn the machine for nothing. It is also the one place where
+    % blocking is safe: unlike the server, CHATMON holds exactly one port.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID : showAnswer
+        XMMSGIDENTIFIER : msgIdent
+        INTEGER : p
+
+        xmpfrcv(waitFlags, myPort, msgType, remotePortHash, msgIdent, nBytes) &
+            =: returnStatus
+
+        % A RECEIVE IS A MESSAGE ONLY WHEN THE STATUS IS A MESSAGE TYPE.
+        % Not "= XMOK" and not "> 0": zero is OK for other calls but is not a
+        % message type, and every error is positive too, so "> 0" would accept
+        % an empty port. XMTNO=1 through XMTPS=6 are the message types.
+        % XMOK IS A SUCCESSFUL RECEIVE, AND THIS TEST MUST ACCEPT ZERO.
+        %
+        % MEASURED on D100 2026-08-20: this printed "xmpfrcv st = 0" and threw
+        % the message away. Zero is XMOK, the type lives in the msgType
+        % out-parameter, and the vendor's Appendix G sample tests
+        % "IF RETURNSTATUS >< XMOK THEN bad status" before looking at the type.
+        %
+        % This is the SAME defect CHAT.PLNC's header records at length - it ate
+        % the welcome there and cost a day. Writing "1..6 only" a second time,
+        % in a new program, with the warning already written down, is exactly
+        % the trap that comment exists to prevent.
+        %
+        % An EMPTY port answers XMXENTM (16896), which is neither XMOK nor 1..6
+        % and is still correctly rejected here.
+        IF returnStatus >< XMOK AND &
+           (returnStatus < XMTNO OR returnStatus > XMTPS) THEN
+            showStatus('xmpfrcv', returnStatus)
+            RETURN
+        ENDIF
+
+        xmpfrea(0, 0, &
+            ADDR(inBuf(0)) FORCE XMUSERADDRESS, &
+            0, nBytes, length) =: returnStatus
+        IF returnStatus >< XMOK THEN
+            showStatus('xmpfrea', returnStatus)
+            RETURN
+        ENDIF
+
+        inBuf(0) =: replyKind
+        IF replyKind >< kAdmRepl THEN
+            OUTPUT(1, 'AL17', 'unexpected kind $')
+            RETURN
+        ENDIF
+
+        % Walk it. The name is variable-length, so the text length cannot be
+        % read from a fixed offset - this format must be WALKED, not indexed.
+        inBuf(1) =: replyNameLen
+        2 + replyNameLen =: p
+        inBuf(p) * 256 + inBuf(p + 1) =: replyTextLen
+        p + 2 =: p
+
+        % NO "CHAT-MON:" IN FRONT OF THE ANSWER. The prompt already says C-M:,
+        % so every reply repeating the program's own name was noise stacked on
+        % top of the one line the operator actually asked for.
+        FOR i IN 0:replyTextLen - 1 DO
+            % One byte at a time through a one-element BYTES. A string literal
+            % cannot be stored into a BYTES element, and 'ALn' formats a
+            % STRING - handing it a byte prints the byte's NUMBER.
+            inBuf(p + i) =: oneByte
+            OUTPUT(1, 'AL1', oneByte)
+        ENDFOR
+        OUTPUT(1, 'AL1', '$')
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Read one command line from the terminal into lineBuf, length in at.
+    %
+    % PARITY. Terminal input carries an even-parity bit in bit 7, so carriage
+    % return arrives as 141, NOT 13. Compare without masking and this never
+    % sees the user press return and looks HUNG rather than wrong.
+    %
+    % MON1 CAN RAISE A ROUTINEERROR and it must be caught - an unhandled one
+    % takes the program down instead of ending the line.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID : readLine
+        0 =: at
+        FALSE =: lineReady
+        DO
+            0 =: ch
+            ON ROUTINEERROR DO
+                IF ErrCode >< emptyInput THEN
+                    OUTPUT(1, 'AL12', 'read failed$')
+                ENDIF
+                0 =: rawCh
+            ENDON
+            MON1(ownTerminal) =: rawCh
+            rawCh =: ch
+            ch AND parityMask =: ch
+
+            IF ch = carriageRet THEN
+                TRUE =: lineReady
+
+                % A CARRIAGE RETURN IS NOT A NEW LINE ON THIS TERMINAL. It puts
+                % the cursor back at column ONE of the line just typed, and
+                % nothing moves it down. So every answer this program printed
+                % landed ON TOP of the command that asked for it - "CHAT-MON:
+                % stop sent" written straight over "STOP" - and the screen read
+                % like the program had mangled the input. It had not; it simply
+                % never ended the line. One end-of-line here, the moment the
+                % user presses return, and the answer starts on a line of its
+                % own.
+                OUTPUT(1, 'AL1', '$')
+            ENDIF
+
+            % Leave the moment the keyboard runs dry or the line is finished.
+            % Going round again on an empty buffer is a spin, not a poll.
+            WHILE ch >< 0 AND NOT lineReady
+
+            IF ch > 31 THEN
+                % PLANC checks no array bound, so this test is the only thing
+                % between a held-down key and the variables laid out after it.
+                IF at < maxLine THEN
+                    ch =: lineBuf(at)
+                    at + 1 =: at
+                ENDIF
+            ENDIF
+        ENDDO
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Print the command list. Reached by ? the way X-C does it.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID : showHelp
+        OUTPUT(1, 'AL19', 'CHAT-MON commands:$')
+        OUTPUT(1, 'AL38', '  STATUS                how it stands$')
+        OUTPUT(1, 'AL40', '  STOP                  stop the server$')
+        OUTPUT(1, 'AL29', '  ? or HELP             this$')
+        OUTPUT(1, 'AL30', '  EXIT                  leave$')
+        OUTPUT(1, 'AL40', '  START                 use @RT CHATSER$')
+        OUTPUT(1, 'AL38', '  RESTART               stops it only$')
+        OUTPUT(1, 'AL40', '  START-TRUNK <sys>     trunk to a peer$')
+        OUTPUT(1, 'AL41', '  STOP-TRUNK <sys>      forget that peer$')
+        OUTPUT(1, 'AL43', '  RESTART-TRUNK <sys>   stop then start it$')
+        OUTPUT(1, 'AL41', '  LIST-TRUNKS           peers and states$')
+        OUTPUT(1, 'AL49', '  INITIALIZE <room> <n> how much that room keeps$')
+        OUTPUT(1, 'AL1',  '$')
+        OUTPUT(1, 'AL57', 'Commands may be shortened: L-T or LI-TRU is LIST-TRUNKS.$')
+        OUTPUT(1, 'AL37', 'Upper or lower case, either is fine.$')
+        OUTPUT(1, 'AL53', 'A trunk is a BELIEF a peer is reachable, not a link.$')
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Say plainly that a command is known but not built yet.
+    %
+    % A SHELL THAT SILENTLY DOES NOTHING IS WORSE THAN ONE THAT REFUSES. The
+    % trunk verbs are declared so the command set is visible and a mode file
+    % can be written against it, but their wire kinds and the server half
+    % arrive with phase B. "Not built yet" is the honest answer; a cheerful
+    % "Ok" that changed nothing would be a lie an operator would act on.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID : notYet
+        OUTPUT(1, 'AL21', 'known, not built yet$')
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Fold one character to upper case.
+    %
+    % TYPING IN LOWER CASE IS NOT A MISTAKE AND MUST NOT BE TREATED AS ONE.
+    % The old matcher compared raw bytes against upper-case keywords, so
+    % "status" was answered "no such command" while "STATUS" worked. Nothing
+    % about this program needs the shift key held down.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER (INTEGER) : upper(c)
+        IF c >= 97 AND c <= 122 THEN
+            c - 32 RETURN
+        ENDIF
+        c RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % How long is the typed command word? It ends at the first space, so an
+    % argument after it does not spoil the match.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER : verbLength
+        INTEGER : n
+        0 =: n
+        DO
+            WHILE n < at AND lineBuf(n) >< spaceCh
+            n + 1 =: n
+        ENDDO
+        n RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % SINTRAN'S OWN ABBREVIATION RULE, and nothing more clever than it.
+    %
+    % A command is a run of parts separated by '-'. What you type must give
+    % EVERY part, and each typed part must be a PREFIX of the matching keyword
+    % part. So LIST-TRUNKS answers to L-T, LI-TRU, LIST-T and LIST-TRUNKS, and
+    % that is exactly how every SINTRAN command has always behaved.
+    %
+    % A BARE "L" DOES NOT MATCH IT. The parts are not optional - dropping one
+    % is a different command, not a shorter spelling of this one. That is what
+    % keeps L-T from colliding with a future LIST verb.
+    %
+    % This routine only answers yes or no about ONE keyword. Deciding what the
+    % typed word MEANS needs the count across all of them, because a prefix
+    % that fits two commands is ambiguous and must be refused rather than
+    % guessed - see matchAll.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, BOOLEAN (BYTES, INTEGER) : abbrevMatch(word, wordLen)
+        INTEGER : ti          % cursor in what was typed
+        INTEGER : ki          % cursor in the keyword
+        INTEGER : partLen     % characters given for the part in hand
+        BOOLEAN : bad
+        BOOLEAN : done
+
+        0 =: ti
+        0 =: ki
+        FALSE =: bad
+        FALSE =: done
+
+        DO
+            WHILE NOT bad AND NOT done
+
+            % ---- the typed part must run down the keyword part ------------
+            0 =: partLen
+            DO
+                WHILE NOT bad AND ti < cmdWordLen AND lineBuf(ti) >< hyphenCh
+                IF ki >= wordLen THEN
+                    TRUE =: bad                 % typed past the end of it
+                ELSE
+                    IF word(ki) = hyphenCh THEN
+                        TRUE =: bad             % this keyword part is shorter
+                    ELSE
+                        IF upper(lineBuf(ti)) >< word(ki) THEN
+                            TRUE =: bad
+                        ELSE
+                            ti + 1 =: ti
+                            ki + 1 =: ki
+                            partLen + 1 =: partLen
+                        ENDIF
+                    ENDIF
+                ENDIF
+            ENDDO
+
+            % An empty part - "-T", or "L--T" - is not an abbreviation.
+            IF NOT bad AND partLen = 0 THEN
+                TRUE =: bad
+            ENDIF
+
+            IF NOT bad THEN
+                % Run the keyword on to the end of ITS part.
+                DO
+                    WHILE ki < wordLen AND word(ki) >< hyphenCh
+                    ki + 1 =: ki
+                ENDDO
+
+                IF ti >= cmdWordLen THEN
+                    % Nothing more was typed, so the keyword must be finished
+                    % too. If it is not, a part was left out.
+                    IF ki < wordLen THEN
+                        TRUE =: bad
+                    ENDIF
+                    TRUE =: done
+                ELSE
+                    % More was typed: both sides are sitting on a '-'.
+                    IF ki >= wordLen THEN
+                        TRUE =: bad
+                    ELSE
+                        ti + 1 =: ti
+                        ki + 1 =: ki
+                    ENDIF
+                ENDIF
+            ENDIF
+        ENDDO
+
+        IF bad THEN
+            FALSE RETURN
+        ENDIF
+        TRUE RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Count one keyword against what was typed, remembering the last hit.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID (BYTES, INTEGER, INTEGER) : tryCmd(word, wordLen, id)
+        IF abbrevMatch(word, wordLen) THEN
+            cmdCount + 1 =: cmdCount
+            id =: cmdId
+        ENDIF
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Print one keyword if it matched - used to say WHICH commands an
+    % ambiguous abbreviation could have meant. Being told "ambiguous" without
+    % being told between what is a riddle, not an error message.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID (BYTES, INTEGER) : showIfMatch(word, wordLen)
+        IF abbrevMatch(word, wordLen) THEN
+            OUTPUT(1, 'AL2', '  ')
+            OUTPUT(1, 'AL', word)
+            OUTPUT(1, 'AL1', '$')
+        ENDIF
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Try every keyword. Afterwards cmdCount says what happened: 0 means no
+    % such command, 1 means cmdId is it, more than 1 means ambiguous.
+    %
+    % ORDER IS DELIBERATELY IRRELEVANT HERE. Every keyword is tried, always.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID : matchAll
+        0 =: cmdCount
+        cNone =: cmdId
+        tryCmd(vExit,       4,  cExit)
+        tryCmd(vHelpWord,   4,  cHelp)
+        tryCmd(vStatus,     6,  cStatus)
+        tryCmd(vStop,       4,  cStop)
+        tryCmd(vStart,      5,  cStart)
+        tryCmd(vRestart,    7,  cRestart)
+        tryCmd(vStartTrunk, 11, cStartTrunk)
+        tryCmd(vStopTrunk,  10, cStopTrunk)
+        tryCmd(vRestTrunk,  13, cRestTrunk)
+        tryCmd(vListTrunks, 11, cListTrunks)
+        tryCmd(vInit,       10, cInit)
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % List what an ambiguous abbreviation could have meant.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID : showAmbiguous
+        OUTPUT(1, 'AL22', 'ambiguous - could be:$')
+        showIfMatch(vExit,       4)
+        showIfMatch(vHelpWord,   4)
+        showIfMatch(vStatus,     6)
+        showIfMatch(vStop,       4)
+        showIfMatch(vStart,      5)
+        showIfMatch(vRestart,    7)
+        showIfMatch(vStartTrunk, 11)
+        showIfMatch(vStopTrunk,  10)
+        showIfMatch(vRestTrunk,  13)
+        showIfMatch(vListTrunks, 11)
+        showIfMatch(vInit,       10)
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % One command.
+    %
+    % ORDER MATTERS WHERE ONE KEYWORD IS A PREFIX OF ANOTHER. LIST-TRUNKS,
+    % UNTRUNK and RETRUNK are all tested before TRUNK, or the shorter word would
+    % swallow the longer ones.
+    % -----------------------------------------------------------------------
+    % -----------------------------------------------------------------------
+    % START THE SERVER. This is NOT a message, and that is why it was missing.
+    %
+    % STOP is a message to a RUNNING server. START cannot be - there is nothing
+    % running to receive it - so it has to be an RT start from THIS side, the
+    % same thing @RT CHATSER does.
+    %
+    % TWO CALLS, NOT ONE. StartRTProgram (RT 100B) takes the ADDRESS of an RT
+    % description, not a name: "Address of RT description. Use 0 for your own".
+    % GetRTAddress (GRTDA 151B) is what turns CHATSER into that address -
+    % name in, address out. Reaching for StartRTProgram alone and passing it a
+    % name would compile, and start whatever RT description happened to live at
+    % the address those bytes make.
+    %
+    % BOTH ARE REACHED BY NAME through MON-CALL-1B-A00, which CHATMN:MODE now
+    % loads. It did not before, because MON1 was this program's only monitor
+    % call and MON1 is one of the runtime's own MONn routines.
+    %
+    % WHAT THIS CANNOT FIX, and an operator needs to know it: an RT program that
+    % uses XMSG must be RT-LOADED AGAIN after every XMSG restart. Starting one
+    % that was linked BEFORE the restart puts it straight into PASSIVE with zero
+    % CPU and not a line in its log. If START says it started and STATUS still
+    % says nothing is there, that is what happened - use tools\rt-load.ps1.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, BOOLEAN : startServer
+        BOOLEAN : failed
+
+        0 =: rtAddr
+
+        ON ROUTINEERROR DO
+            TRUE =: failed
+        ENDON
+        FALSE =: failed
+
+        MONITOR_CALL('GetRTAddress', rtProgName, rtAddr)
+
+        % Clear the handler before anything else can raise under it.
+        ON ROUTINEERROR DO
+        ENDON
+
+        IF failed OR rtAddr = 0 THEN
+            OUTPUT(1, 'AL31', 'cannot find RT program CHATSER$')
+            FALSE RETURN
+        ENDIF
+
+        ON ROUTINEERROR DO
+            TRUE =: failed
+        ENDON
+        FALSE =: failed
+
+        MONITOR_CALL('StartRTProgram', rtAddr)
+
+        ON ROUTINEERROR DO
+        ENDON
+
+        IF failed THEN
+            OUTPUT(1, 'AL24', 'could not start CHATSER$')
+            FALSE RETURN
+        ENDIF
+
+        TRUE RETURN
+    ENDROUTINE
+
+    ROUTINE VOID, VOID : dispatch
+        IF at = 0 THEN
+            RETURN
+        ENDIF
+
+        verbLength =: cmdWordLen
+        IF cmdWordLen = 0 THEN
+            RETURN
+        ENDIF
+
+        % ? IS NOT AN ABBREVIATION OF ANYTHING and must not go near the
+        % matcher. X-C answers ?, and a person coming from anywhere else types
+        % HELP, so both are taken.
+        IF cmdWordLen = 1 AND lineBuf(0) = questCh THEN
+            showHelp
+            RETURN
+        ENDIF
+
+        matchAll
+
+        IF cmdCount = 0 THEN
+            OUTPUT(1, 'AL16', 'no such command$')
+            RETURN
+        ENDIF
+
+        % REFUSE, DO NOT GUESS. "S" fits STATUS, STOP and START, and picking
+        % one of them because it happened to be tested last is how an operator
+        % stops a server they meant to ask about.
+        IF cmdCount > 1 THEN
+            showAmbiguous
+            RETURN
+        ENDIF
+
+        IF cmdId = cExit THEN
+            TRUE =: leaving
+            RETURN
+        ENDIF
+
+        IF cmdId = cHelp THEN
+            showHelp
+            RETURN
+        ENDIF
+
+        IF cmdId = cStatus THEN
+            sendAdmin(kAdmStat)
+            showAnswer
+            RETURN
+        ENDIF
+
+        IF cmdId = cStop THEN
+            sendAdmin(kAdmStop)
+            % A STOP gets no answer - the server is gone by the time one could
+            % be written. Waiting for a reply that is never coming is how a
+            % tool ends up looking hung when it worked.
+            OUTPUT(1, 'AL10', 'stop sent$')
+            RETURN
+        ENDIF
+
+        % START IS BACK TO NOT BUILT, AND THE REASON IS MEASURED.
+        %
+        % StartRTProgram (RT 100B) is REFUSED from here. Typing START answered
+        %
+        %     ERROR 00 AT  12156; ILLEGAL MONITOR CALL
+        %       100
+        %
+        % and took CHAT-MON down with it. GetRTAddress (151B) got through, so it
+        % is 100B specifically - it needs a privilege this program does not have
+        % running as an ordinary background program. The manual's parameter list
+        % was read and its PERMISSION COLUMNS were not.
+        %
+        % AND THE GUARD DOES NOT HELP. ON ROUTINEERROR does NOT catch an ILLEGAL
+        % MONITOR CALL - that is a system trap, not a ROUTINEERROR - so wrapping
+        % it more carefully changes nothing. A command that kills the program is
+        % worse than one that admits it does nothing, so it admits it.
+        %
+        % AND THE MANUAL SAYS SO PLAINLY. ND-860228-2-EN SINTRAN III Monitor
+        % Calls, the availability line under StartRTProgram:
+        %
+        %     | ND-100 and ND-500 | User RT and user SYSTEM | RT programs |
+        %
+        % Three columns: which machine, which USER, and which PROGRAM TYPE. We
+        % are user SYSTEM, which is allowed. We are a BACKGROUND program, which
+        % is not. Page 5 of the same manual states the rule in general - "Other
+        % monitor calls may be used only in RT programs or only in background
+        % programs."
+        %
+        % SO THIS IS NOT A BUG TO BE FIXED, IT IS A CONSTRAINT. An interactive
+        % operator shell IS a background program; making CHAT-MON an RT program
+        % to win this one command would cost it its terminal. @RT CHATSER typed
+        % at SINTRAN works because SINTRAN itself does the starting.
+        %
+        % The honest thing, and what RESTART now does, is to tell the operator
+        % the command rather than pretend to run it.
+        %
+        % Note the ERR column for 100B is BLANK - the call has NO error return,
+        % which is why it traps as ILLEGAL MONITOR CALL instead of handing back
+        % a status, and why no amount of guarding could have caught it.
+        IF cmdId = cStart THEN
+            OUTPUT(1, 'AL32', 'SINTRAN only - type @RT CHATSER$')
+            RETURN
+        ENDIF
+
+        % RESTART IS STOP THEN START, and the two halves travel by different
+        % roads: the stop is a message to the running server, the start is an RT
+        % start from here. The server has to notice the stop and terminate
+        % before the start can take, and nothing here waits for it - so this
+        % says what it did rather than claiming the server is up.
+        % RESTART is STOP then START, and START is refused - see above. The stop
+        % half works, so it does that and says plainly what is left to do by
+        % hand rather than pretending the server is coming back.
+        IF cmdId = cRestart THEN
+            sendAdmin(kAdmStop)
+            OUTPUT(1, 'AL10', 'stop sent$')
+            OUTPUT(1, 'AL31', 'start it yourself: @RT CHATSER$')
+            RETURN
+        ENDIF
+
+        % ---- THE TRUNK VERBS ------------------------------------------------
+        %
+        % These were declared long before they did anything, so the command set
+        % and its abbreviations could be settled and a mode file written against
+        % them. The server half exists now.
+        %
+        % All three answer with kAdmRepl, the same kind STATUS uses, so showAnswer
+        % needs no new decoding - the server sends readable text and this prints
+        % it. That is why adding three verbs costs no wire change.
+        IF cmdId = cStartTrunk THEN
+            sndArgMsg(kAdmTrunk)
+            showAnswer
+            RETURN
+        ENDIF
+
+        % INITIALIZE <room> <n> - how many messages that room remembers.
+        %
+        % TWO FIELDS IN ONE ARGUMENT, and this end does not take them apart.
+        % sndArgMsg sends everything after the verb as text and the SERVER
+        % splits it, for the same reason START-TRUNK does not parse its system
+        % number here: one place decides what a valid argument is, so there are
+        % never two that can disagree about it.
+        IF cmdId = cInit THEN
+            sndArgMsg(kAdmInit)
+            showAnswer
+            RETURN
+        ENDIF
+
+        IF cmdId = cStopTrunk THEN
+            sndArgMsg(kAdmUntrnk)
+            showAnswer
+            RETURN
+        ENDIF
+
+        IF cmdId = cListTrunks THEN
+            sendAdmin(kAdmTrunks)
+            showAnswer
+            RETURN
+        ENDIF
+
+        % RESTART-TRUNK is STOP-TRUNK then START-TRUNK against the same system.
+        % Both halves are ordinary messages here - unlike RESTART above, which
+        % needs an RT start this program is not allowed to make - so it really
+        % does both and says so.
+        IF cmdId = cRestTrunk THEN
+            sndArgMsg(kAdmUntrnk)
+            showAnswer
+            sndArgMsg(kAdmTrunk)
+            showAnswer
+            RETURN
+        ENDIF
+
+        notYet
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % The program.
+    % -----------------------------------------------------------------------
+    PROGRAM : chatMonitor
+        INISTACK stack
+
+        % The flags WORD from its bit position. XFWTF is a BIT NUMBER in the
+        % values file, not a mask - 2**XFWTF is what the call wants.
+        2**XFWTF =: waitFlags
+
+        xmpfopn(0, myPort) =: returnStatus
+        IF returnStatus >< XMOK THEN
+            showStatus('xmpfopn', returnStatus)
+            RETURN
+        ENDIF
+
+        OUTPUT(1, 'AL31', 'CHAT-MON - type ? for commands$')
+
+        % ---- THE COMMAND LOOP -------------------------------------------
+        %
+        % A SHELL, NOT A ONE-SHOT. This used to read one line, send it and
+        % exit, so an operator had to restart the program for every command
+        % and could not use it the way X-C is used. It now prompts, dispatches
+        % and prompts again until EXIT - the same feel as X-C, and the same
+        % shape a boot mode file can drive line by line.
+        FALSE =: leaving
+        DO
+            OUTPUT(1, 'AL5', 'C-M: ')
+            readLine
+            dispatch
+            WHILE NOT leaving
+        ENDDO
+    ENDROUTINE
+
+ENDMODULE

@@ -1,7 +1,7 @@
 # LAPB / SINTRAN Wireshark dissector (`hdlc_tcp.lua`)
 
 A Wireshark/tshark Lua dissector for SINTRAN III traffic on **both** COSMOS
-transports. One file, two protocols:
+transports. One file, three protocols:
 
 - **`hdlc_lapb`** — HDLC carried over the `nd100x --hdlc` TCP bridge (ports 10362 /
   10364 and friends). It de-frames byte-stuffed HDLC, checks the FCS, and decodes
@@ -15,8 +15,40 @@ transports. One file, two protocols:
   SINTRAN datagram inside is handed to exactly the same code the HDLC path uses, so
   everything above the link layer decodes identically on both transports.
 
-The two link layers never appear in the same stream. LAPB is HDLC only; the ND link
-header is Ethernet only.
+- **`ndlink_eth`** — the same ND link layer on a **raw capture of the Ethernet
+  segment** (added 2026-08-24). A file written by `xmsghub --capture` is classic
+  pcap, link type Ethernet, with no TCP and no hub length prefix: Wireshark reads the
+  802.3 header and the LLC header itself and hands the rest over on **DSAP 0xA8**.
+  Before this existed, such a capture decoded as nothing at all. It shares every line
+  of the ND link and SINTRAN decode with `ndlink` — only the framing below it differs.
+
+The three never appear in the same stream. LAPB is HDLC only; the ND link header is
+Ethernet only, either inside the hub's TCP stream or straight off the segment.
+
+## Constants come from the protocol registry, not from this file
+
+The frame kinds, the XROUT services and return codes, the file-server message types
+and operations, the QFORM classes, the TAD opcodes and the chat message kinds are
+**generated** into `hdlc_tcp.lua` from `../../../XMSG/DOC/protocols/*.json`:
+
+```powershell
+python E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\DOC\protocols\generate_lua.py
+python E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\DOC\protocols\generate_lua.py --check
+```
+
+The generator rewrites only the region between
+`-- @@BEGIN GENERATED FROM DOC/protocols BY generate_lua.py - DO NOT EDIT @@` and
+`-- @@END GENERATED@@`. Everything else in the file is hand-written. `--check` writes
+nothing and fails when the block is stale, so it can go in a build.
+
+It writes INTO the dissector rather than beside it because a Wireshark Lua script is
+loaded as one file with `-X lua_script:` and its own directory is not on Lua's search
+path, so a second file it could `require` would not be found.
+
+**Every generated name carries its registry status.** Anything that is not MEASURED
+is shown with the status in brackets — `XSGNI [INFERRED]`, `Class4 [UNKNOWN]` — so a
+value we are guessing at is never displayed with the same confidence as one that was
+read off the wire.
 
 > **Protocol details live in one place.** This README covers only how to *run*
 > the dissector. The wire format it implements is documented in
@@ -177,6 +209,72 @@ was seen on; the other copies are marked `hub fan-out copy` and carry no backlog
 line. Do not count all the copies by hand — that is what made one earlier set of
 block-size numbers unusable.
 
+## Reading a RAW segment capture (classic pcap, link type Ethernet)
+
+`xmsghub --capture` writes a plain pcap of everything on the segment - no TCP, no hub
+length prefix. Just open it; the binding on `llc.dsap == 0xA8` claims the frames on its
+own and nothing has to be forced with "Decode As".
+
+```powershell
+& "C:\Program Files\Wireshark\tshark.exe" `
+    -X lua_script:"E:\Dev\Ronny\NDInsight\SINTRAN\Devices\HDLC\WireShark\hdlc_tcp.lua" `
+    -r segment.pcap -V
+```
+
+Everything the hub path shows, this shows: the frame kind and sequence, the backlog,
+the retransmission warning, the SINTRAN header with its checksum, the XMSG envelope
+and the message body. The same field names work, so `ndlink.kind`, `ndlink.seq`,
+`ndlink.backlog` and `ndlink.dupof` all filter a segment capture too.
+
+Counting what is in a capture, which is usually the first question:
+
+```powershell
+tshark ... -r segment.pcap -T fields -e ndlink.kind          # then group them
+tshark ... -r segment.pcap -Y "ndlink.kind==0x6f" -T fields -e frame.number -e frame.time_relative -e eth.src
+tshark ... -r segment.pcap -Y "fa.msgtype"                   # every file-server message
+tshark ... -r segment.pcap -Y "chat.kind"                    # every chat message
+```
+
+The machines name themselves in the MAC: `08:00:26 | system number, low byte first |
+physical user`, so `08:00:26:64:00:00` is system 100 and `08:00:26:66:00:00` is 102.
+The dissector shows the decoded number as a generated `ndlink.sysno`.
+
+**A kind it does not know is shown as UNKNOWN and nothing is invented for it.**
+`DOC/captures/XMSG-DEGRADE-2026-08-24/segment.pcap` holds two frames of kind `0x70`
+that no registry entry covers; they read as
+`?? kind 0x70 UNKNOWN - not in the protocol registry`. The only thing said about such
+a frame is the NPDU index in its high nibble, and that table carries its own caveat.
+
+## Reading the message body
+
+Since 2026-08-24 the dissector decodes the XMSG message body at its measured offset,
+**absolute 28** - fourteen bytes of SINTRAN header plus fourteen of XMSG sub-header.
+It recognises three families and says plainly when it recognises none:
+
+| Body | Recognised by | Fields |
+|---|---|---|
+| file server (FA) | body word 0 is a known FA message type | `fa.msgtype`, `fa.conversation`, `fa.session`, `fa.operation`, and a full walk of the QFORM tag encoding (`qform.*`) |
+| XROUT | one end of the message is **port 0**, which is XROUT, and body word 0's low byte is a known service (bit 6 set) or return code (bit 6 clear) | `xrout.service`, `xrout.status` |
+| CHAT | the SHAPE fits: a known kind byte and two length fields that land exactly on the end of the body | `chat.kind`, `chat.name`, `chat.text` |
+
+Two of those need a caveat, and both are in the file beside the code:
+
+- **CHAT is recognised by shape, not by a tag.** Nothing on the wire says "this is
+  chat" - it is ordinary XMSG user data sent to a port the server claimed by name, and
+  a dissector cannot know which port that is. The shape test is strong and it runs
+  last, but the tree says it is a shape test.
+- **The XROUT test is gated on port 0 on purpose.** Without that gate a return status
+  of `0x00` is XRSOK, so every TAD terminal-data frame came out labelled
+  "XROUT reply [XRSOK]" - confidently wrong output, which is the one thing this
+  dissector must not produce.
+
+The older fields `xmsg.xmcsm` and `xmsg.xmlen` keep their filter names but were
+**relabelled** at the same time. The carved sub-header is 14 bytes, so those four bytes
+at absolute 26-29 are not one field: 26-27 is the whole 16-bit XMCSM (always equal to
+Flags 2) and 28-29 is the application's first word. `xmsg.xmlen` at 30-31 is body word
+1, which is a length on TAD and XROUT traffic and the CONVERSATION NUMBER on a
+file-server message - not a general user-data length.
+
 ## Validation the dissector performs
 
 **On the HDLC path**, for each data frame it derives the link seed, epoch and
@@ -196,7 +294,7 @@ minutes:
 | Check | Warns when | Why it matters |
 |---|---|---|
 | seven-bit sequence | a data frame's sequence has bit 7 set | the sequence is 7 bits; the highest value in three real captures is `0x7F` and the wrap `0x7F → 0x00` is visible. No real ND emits a `0x80`. |
-| send window | more than **4** frames are unacknowledged from one sender | a real ND sends at most four before waiting. A backlog that climbs and never comes down is THE symptom: the peer starts retransmitting everything, and that reads as a pile of application defects one layer up. |
+| send window | more than **6** frames are unacknowledged from one sender | a real ND has been seen to send six before waiting. A backlog that climbs and never comes down is THE symptom: the peer starts retransmitting everything, and that reads as a pile of application defects one layer up. This row said **4** until 2026-08-24; the code has said 6 since 2026-08-11, and the code is right. The number moved three times in one day and a capture can only ever give a FLOOR - see the long note beside `ND_SEND_WINDOW`. |
 | retransmission | a sender repeats a sequence still unacknowledged | a peer repeating a data frame is never normal — it means it has not seen an acknowledgement. The warning says whether the bytes were byte-for-byte identical. |
 
 The acknowledgement carries the **next expected** sequence, not the one being
@@ -220,7 +318,10 @@ every capture of a run made before the send window existed shows a backlog of 17
 
 Filter fields are namespaced `lapb.*`, `sintran.*`, `xmsg.*`, `tad.*`,
 `routing.*`, `xm.*`, `env.*`, `ack.*`, `reach.*` for the HDLC path and `ndlink.*`
-for the Ethernet hub path. See the `ProtoField` definitions at the top of
+for both Ethernet paths (the hub's TCP stream and a raw segment capture share the
+field names, because they share the decode). The message-body decoders added on
+2026-08-24 use `fa.*`, `qform.*`, `chat.*` and `xrout.*`, and their value strings come
+from the protocol registry with the status attached. See the `ProtoField` definitions at the top of
 `hdlc_tcp.lua` (HDLC) and in the ND link section near the bottom; field meanings are
 explained in the two protocol documents linked above, and the ND link header field
 by field in `../../../XMSG/SRC/Xmsg.Ethernet/NdLinkHeader.cs`.

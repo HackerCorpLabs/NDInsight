@@ -3,11 +3,38 @@
 **Kept because the unknowns kept arriving one at a time, mid-hunt.** This is the standing list, so a
 question can be looked up rather than rediscovered.
 
-**Last swept:** 2026-08-17. Method: every `UNVERIFIED`, `GUESS`, `not established`, `UNPROVEN`,
+**Last swept:** 2026-08-25. Method: every `UNVERIFIED`, `GUESS`, `not established`, `UNPROVEN`,
 `ASSUMPTION` and `not decoded` marker in `SRC/`, plus the open questions in `DOC/`.
 
 Not everything unknown is a problem. The list is ordered by **what it costs us**, not by how
 interesting it is.
+
+---
+
+## OPEN 2026-08-25: does chat dedup actually work? It is deployed and UNPROVED
+
+Kind 53 carries the line number the origin stamped; the server remembers the last 64 `(origin, id)`
+pairs and drops a repeat without showing it or passing it on. Built, compiled clean, RT-loaded on
+D100, D102 and D103, and both relay directions re-tested afterwards. `STATUS` reports a `dupe` count.
+
+**Every machine reports `dupe 0`, and that is the only honest reading - it will stay 0.**
+D100/D102/D103 are a **CHAIN**: exactly one path between any two of them, so no line can arrive
+twice and there is nothing to catch. What has been shown is that the mechanism is in place and does
+no harm. **It has NOT been shown to work.**
+
+**The measurement that would settle it:** add a third trunk, D102-D103, making a triangle. Then a
+line typed on any machine reaches the other two by two routes. Expected: every user still sees each
+line exactly ONCE, and the `dupe` count climbs on the machines that now have two paths. If lines
+double, dedup is broken; if `dupe` stays 0 while lines double, the ids are not travelling.
+
+**Do not read `relay N dupe 0` as evidence of anything but reachability.** It is exactly what a
+completely broken dedup would also print on a chain.
+
+Two limits that are deliberate, both with unit tests so they are not mistaken for defects later:
+
+ - a line older than the 64-entry window is treated as NEW again;
+ - lines arriving on the older kinds 51 and 52 carry no id and are always treated as new, which is
+   the pre-dedup behaviour and is the honest answer.
 
 ---
 
@@ -3494,6 +3521,50 @@ else entirely.
 | F1 | What the FA read-ladder bit MEANS | `FaReadLadder` | Only *when* it is set is known. Mirrored in `protocols/fa-qform.json` |
 | F2 | QFORM classes 4, 5 and 6 | `QformClass` | Seen in captures, never decoded. Nothing we build uses them, which is why it has never cost anything |
 | W9 | Does a real letter arrive as **XMROU**? | `XmsgKernel.ChooseType` | **SETTLED 2026-08-17** from ND's two sample servers. Left here so it is not re-asked |
+| W10 | **What in the FA path makes D100's XMSG gateway die with code 27?** | the FA write/read path, `Fa*` | **OPEN, and it is the biggest one.** Six deaths timed from both sides 2026-08-21/22 - see below |
+
+### W10 - the XMSG gateway death, stated properly so it is not re-guessed
+
+**What is MEASURED** (console error device on a logged terminal, both ends carrying wall-clock
+stamps - see `captures/XMSG-CRASH-2026-08-22/`):
+
+ - Every death prints `XMSG ERROR CODE: 27` (`XXNER`, *network gateway error*) at
+   `PHYSICAL ADDRESS 141204`. Identical every time back to 2026-08-04, so the fault is
+   **deterministic**, not a timer on uptime and not "the machine being unstable".
+ - **6 for 6, every death follows an FA file transfer** - push OR pull.
+ - **The gap has no period**: during-transfer, ~30 s, 4 min 38 s, 4 min 48 s, ~3-6 min, 8 min 39 s.
+ - It is **not** a leaked connection seat: `X-C LIST-CONNECTIONS` for 19999 showed BOTH tables
+   EMPTY minutes after a completed transfer.
+ - It is **not** resource exhaustion: kernel free space read 4273 words in every sample, including
+   minutes before a death. It STOPS, it does not degrade.
+ - It is **not** the chat server or client - neither was running for any of the six.
+ - It is **not** a link restart - four deliberate STOP-LINK/START-LINK cycles produced no fatal.
+
+**THREE THEORIES WERE PUBLISHED AND ALL THREE RETRACTED** in one night. Recorded here because the
+failure mode is the useful part:
+
+ 1. *"dies ~3 minutes after a link restart"* - killed by four deliberate link cycles.
+ 2. *"our SABM kills it"* - two deaths followed one by 147 ms and 201 ms, which looked conclusive;
+    a third had NO runner and NO SABM (ours came 27 s AFTER it) and a fourth had sent ZERO
+    I-frames.
+ 3. *"a completed push kills it at ~4 m 45 s"* - 4:38 and 4:48 looked like a period until a pull
+    gave 8:39.
+
+**The pattern in the reasoning, not the machine: two matching measurements are not a period.**
+And a control window must be LONGER than the longest gap already seen - a 7-minute window was run
+against an 8-minute effect and reported "survived", while read-only queries were issued during the
+wait. Both mistakes are cheap to avoid and were not.
+
+**WHAT TO DO NEXT, and it is not another stopwatch:** `XMSGDUMP-A` (segments 33/34), `-T` (tables)
+and `-B` (buffers) are now written by XROUT on every crash. `XMSGDUMP-T` is already off the machine
+- 38912 bytes, 5.1% non-zero, 658 distinct words, D100's node number `0064` 84 times, a repeating
+record shape. **Decode it against the table layouts in the NPL source, starting at the gateway
+tables**, and compare a push-triggered death with a pull-triggered one. Every timing theory has
+died; the dump is actual evidence.
+
+**Arming this is now permanent and takes two minutes** - see `xmsg-safe` RULE 8b. Without it the
+fatal goes to terminal 1, the physical console, where no agent session can see it: that is what
+made ten earlier controls measure the wrong thing.
 
 ## 3. The machines and the lab
 

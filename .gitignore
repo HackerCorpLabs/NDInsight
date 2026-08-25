@@ -8,12 +8,41 @@ nul
 # the one-shot transfers put files while they run. The CONTENT is throwaway test
 # data (ROUNDTRIP.TXT, FINAL1.TXT, copies of sources being pushed); the code that
 # uses them is in SRC/ and SINTRAN-CHAT/.
+#
+# LISTED ONE BY ONE, A NEW FOLDER APPEARS UNTRACKED EVERY TIME. sync-relay,
+# sync-viewport, sync-root-d102, sync-root-d103 and sync-test have all turned up
+# since this list was written, so the rule for the XMSG root is a GLOB.
+#
+# It matches only DIRECT children of SINTRAN/XMSG/ - a pattern with slashes in it
+# is anchored, so it cannot reach the runner's own folders under SRC/.
+SINTRAN/XMSG/sync-*/
 SINTRAN/XMSG/share/
 SINTRAN/XMSG/syncbox/
 SINTRAN/XMSG/watch/
 
+# The runner's own staging folders, named individually ON PURPOSE. Two folders
+# beside them hold files that are TRACKED - sync-root/ and sync-boot-d100/ - and
+# naming these explicitly keeps the rule obviously correct at a glance.
+#
+# Worth knowing, because it is the thing people expect to be true and it is not:
+# .gitignore has NO effect on a file git already tracks. An ignore pattern only
+# ever hides UNTRACKED files. So a wildcard here would not have untracked or
+# hidden anything - it would just have been harder to read.
+SINTRAN/XMSG/SRC/Xmsg.Live.Runner/sync-root-*/
+SINTRAN/XMSG/SRC/Xmsg.Live.Runner/sync-test/
+SINTRAN/XMSG/SRC/Xmsg.Live.Runner/served-files/
+
 # Run logs from the live runner and its restart scripts
 SINTRAN/XMSG/tools/*.log
 SINTRAN/XMSG/tools/*.err
+SINTRAN/XMSG/sync*.log
 SINTRAN/XMSG/SRC/**/xmsg-runner.log
 SINTRAN/XMSG/SRC/**/push*.log
+SINTRAN/XMSG/sync-testui/
+
+# Live hub capture - xmsghub --capture appends to this WHILE IT RUNS, so any
+# commit of it is a torn mid-write snapshot and it grows without limit
+# (8.2 MB and climbing on 2026-08-25). Untracked with `git rm --cached`, which
+# is required: .gitignore alone does nothing to a file git already tracks.
+SINTRAN/XMSG/DOC/captures/XMSG-DEGRADE-2026-08-24/after-fix.pcap
+

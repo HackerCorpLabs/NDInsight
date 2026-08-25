@@ -6,7 +6,7 @@
 
 ## 📖 Overview
 
-This folder contains **94 complete reference manuals** (in the root) spanning system architecture,
+This folder contains **96 complete reference manuals** (in the root) spanning system architecture,
 ND-100/ND-110 hardware, the SINTRAN III operating system, database systems, programming languages,
 assemblers, editors, compilers, linkers, debuggers, diagnostics/test programs, and development
 tools. Five further sub-collections (NORD-1, NORD-10, ND-500/ND-5000, Device Controllers, and the
@@ -31,7 +31,7 @@ each with its own index:
 |----------------|-------|---------|-------|
 | **NORD-1 Manuals** | [1/README.md](1/README.md) | 5 | NORD-1 reference manual, two-volume hardware manual, connectors/I-O/power system, peripheral binder |
 | **NORD-10 Manuals** | [10/README.md](10/README.md) | 13 | NORD-10 / NORD-10-S CPU reference & microprogram, NORD-50 communication, operator's guides, verification programs, disc system, drawings/wiring |
-| **ND-500 / ND-5000 Manuals** | [500/README.md](500/README.md) | 20 | ND-500/ND-5000 CPU & microprogram (incl. ND-5000 microprogram guide and microcode field/mnemonic references), ND-5000 hardware, DOMINO/NUCLEUS, multiport memory, array processing, course material |
+| **ND-500 / ND-5000 Manuals** | [500/README.md](500/README.md) | 23 | ND-500/ND-5000 CPU & microprogram (incl. ND-5000 microprogram guide and microcode field/mnemonic references), ND-5000 hardware, DOMINO/NUCLEUS, multiport memory, array processing, course material |
 | **Device Controllers** | [Devices/README.md](Devices/README.md) | 7 | Ethernet II Controller manual and its unit-test specification; ECC, 15 MHz SMD, Winchester (ST506/8"), Floppy and NORD-10/HAWK disk-controller manuals |
 | **NOTIS Office System** | [Notis/README.md](Notis/README.md) | 31 | NOTIS office-automation suite (WP, TF, DS, IR, ID, RG, CALC, BG, DRAW, PM), reference cards, diskette listings, notes |
 
@@ -44,7 +44,7 @@ each with its own index:
 | **System & CPU Architecture** | 5 |
 | **Hardware Documentation** | 1 |
 | **ND-100 / ND-110 Hardware & Architecture** | 6 |
-| **SINTRAN III System & OS** | 27 |
+| **SINTRAN III System & OS** | 29 |
 | **Database Systems (SIBAS)** | 6 |
 | **Assemblers** | 7 |
 | **Intel-8080 Cross-Tools** | 2 |
@@ -56,7 +56,7 @@ each with its own index:
 | **Office Software (NOTIS-1)** | 1 |
 | **Diagnostics & Test Programs** | 4 |
 | **Documentation & Catalogues** | 1 |
-| **Total** | **94** |
+| **Total** | **96** |
 
 ---
 
@@ -125,7 +125,9 @@ The core SINTRAN III operating-system manual set. (The **SINTRAN III Monitor Cal
 | **SINTRAN III Real Time Guide** | ND-60.133.02A | 14,445 | Real-time programming under SINTRAN III |
 | **COSMOS Programmer Guide** | ND-60.164.3 EN | 16,900 | Version 3 (05/86), product ND-10609B, based on XMSG version J. The COSMOS programmer library: XMSG task-to-task messaging from PLANC (XMP) and FORTRAN (XMF), RR-LIB remote-routine server/client from PLANC (RRP), and TLIB transport from PLANC (TLP) and FORTRAN (TLF). Per-routine reference sections plus an appendix of the raw XMSG functions - the authoritative source for the XMSG call interface, ports, message buffers and XROUT services. **Its appendix is not complete for later XMSG versions** - see [X-MESSAGE version L, 210373L](../Installation/Installation-Description/ND-210373L-EN.md), which specifies functions and XROUT services this guide predates (`XFGSM` among them) |
 | **SINTRAN III-VSX System Documentation** | ND-820023-1 EN | 12,107 | SINTRAN III-VSX system documentation |
+| **Performance Monitoring, Tuning and Capacity Planning** | ND-830083-1 EN | 3,042 | Why performance matters, response time vs system capacity, resources/queues/bottlenecks, measurement primitives and log macros, sampling vs event counting, how load depends on program type, and a procedure for resolving performance problems. Part 2 is a guide to the Performance Monitor itself - starting it, its parts, the online HELP and the DIAGNOSE command |
 | **SINTRAN III Users Guide** | ND-60.050.06 | 11,589 | General user guide to SINTRAN III |
+| **SINTRAN SLIB Programmers Guide** | ND-860372.1 EN | 8,572 | ND Socket Library (SLIB): BSD-socket-style network programming interface for SINTRAN III over ARPANET/TCP-IP - sockets, communication domains, connection setup/accept, datagram sockets, sending/receiving data, shutdown, and multitasking in SLIB |
 | **SINTRAN III Timesharing / Batch Guide** | ND-60.132.03 | 6,616 | Timesharing and batch processing guide |
 | **SINTRAN III Communication Guide** | ND-60.134.2 EN | 5,740 | Communications / networking under SINTRAN III (dated Nov 1981 - predates ND Ethernet; contains nothing on Ethernet, TCP/IP or ENNS0) |
 | **BACKUP User Guide** | ND-60.250.1 EN | 5,489 | The Backup System: file/backup copying between users, disk, diskette and magnetic tape (interactive, mode file, or batch), `COPY-USERS-FILES`/`MULTIUSER-COPY`/`DEVICE-COPY`, volume create/list/delete. Companion to [Installation/Software/ND-210337](../Installation/Software/ND-210337/README.md) (Backup-System product/install docs) |
@@ -523,7 +525,7 @@ All manuals are high-quality OCR-scanned versions from original NORD/SINTRAN doc
 | System & CPU Architecture | 5 |
 | Hardware Documentation | 1 |
 | ND-100 / ND-110 Hardware | 6 |
-| SINTRAN III System & OS | 27 |
+| SINTRAN III System & OS | 28 |
 | Database (SIBAS) | 6 |
 | Assemblers | 7 |
 | Intel-8080 Cross-Tools | 2 |
@@ -535,19 +537,19 @@ All manuals are high-quality OCR-scanned versions from original NORD/SINTRAN doc
 | Office Software (NOTIS-1) | 1 |
 | Diagnostics & Test Programs | 4 |
 | Documentation & Catalogues | 1 |
-| **Total (Root)** | **94** |
+| **Total (Root)** | **95** |
 
 ### Whole Collection
 
 | Location | Manuals |
 |----------|---------|
-| Root | 94 |
+| Root | 95 |
 | [1/](1/README.md) - NORD-1 | 5 |
 | [10/](10/README.md) - NORD-10 | 13 |
-| [500/](500/README.md) - ND-500 / ND-5000 | 20 |
+| [500/](500/README.md) - ND-500 / ND-5000 | 23 |
 | [Devices/](Devices/README.md) - Device Controllers | 7 |
 | [Notis/](Notis/README.md) - NOTIS Office System | 31 |
-| **Grand Total** | **170** |
+| **Grand Total** | **171** |
 
 ### By Era
 
@@ -639,6 +641,7 @@ All manuals are high-quality OCR-scanned versions from original NORD/SINTRAN doc
 | ND-860117-6 | PLANC - User Guide and Reference | Language (PLANC) | 12,731 |
 | ND-860228-2 | SINTRAN III Monitor Calls (std / web) | System | 31,268 / 30,666 |
 | ND-860289-2 | ND Linker User Guide | Tools | 11,721 |
+| ND-860372.1 | SINTRAN SLIB Programmers Guide | Networking | 8,572 |
 | ND-860452EN1 | WinLink User Guide | SINTRAN III | 919 |
 | ND-891092EN1 | How to install WinLink | SINTRAN III | 89 |
 | ND-899159.1 | Test Program Description Addendum (1998) | Diagnostics | 1,423 |

@@ -77,6 +77,40 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
         }
 
         /// <summary>
+        /// A DIAGNOSTIC ladder that reserves a file entry and then sets the block size, with no
+        /// <see cref="FaOperation.OpenFile"/> in between.
+        /// </summary>
+        /// <returns>
+        /// Reserve then set block size - a fresh array each call.
+        /// </returns>
+        /// <remarks>
+        /// <para><b>This is not a transfer and must never be used as one.</b></para>
+        /// It exists to answer one question about the follow-on refusal <c>A2 4104</c>, which every
+        /// capture so far has produced only on operations issued after a REFUSED
+        /// <see cref="FaOperation.OpenFile"/>. Two readings fit that evidence equally well:
+        ///  - the value means "no file is open on this entry" - a state.
+        ///  - the value means "an earlier operation in this session failed" - a history.
+        /// Nothing separates them, because a refused open creates both conditions at once. Sending
+        /// this ladder against a file that EXISTS creates the first without the second: <c>4104</c>
+        /// again means the state reading, anything else means the history reading.
+        /// <para>
+        /// Deliberately NOT a shortened <see cref="Prologue"/>: <see cref="PrologueLength"/> feeds
+        /// the block-index arithmetic in <c>FaClientReadSession</c>, so changing the real prologue
+        /// to serve a diagnostic would break counting on the transfer path. This ladder stops before
+        /// any block operation, so none of that arithmetic is ever reached.
+        /// </para>
+        /// See <c>DOC/CARVE-FA-READ-REFUSAL-2026-08-18.md</c>.
+        /// </remarks>
+        public static FaOperation[] ProbeWithoutOpen()
+        {
+            return new FaOperation[]
+            {
+                FaOperation.ReserveFileEntry,
+                FaOperation.SetBlockSize,
+            };
+        }
+
+        /// <summary>
         /// How many steps come before the first block request.
         /// </summary>
         /// <remarks>

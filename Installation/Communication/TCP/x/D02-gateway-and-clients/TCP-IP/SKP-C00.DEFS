@@ -1,0 +1,305 @@
+%=============================================================================%
+%                                                                             %
+%                          S U P E R K E R N E L                              %
+%                                                                             %
+%                          D E F I N I T I O N S                              %
+%                                                                             %
+%                                                                             %
+%                                                                             %
+%  INITIAL VERSION:  00A  15.05.87   RGJ                                      %
+%                                                                             %
+%  MODIFICATIONS:                                                             %
+%  FrIs  The constants SKMXtimerEvents,SKMXopenPorts,          01A   26.10.87 %
+%        SKMXremotePorts,SKMXqueuedMessages have to be defined                %                                                     %
+%        by the user before $INCLUDE SKP:DEFS                                 %
+%  FrIs  The internal type definitions removed from SKP:DEFS         26.10.87 %
+%  FrIs  Increased size of SKSZaMESG                           02A   01.01.88 %
+%=============================================================================%
+
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%                   USER-DEFINED  SK parameters                               %
+%                                                                             %
+%      NOTE: these parameters determine the size of the DYNAMIC               %
+%            storage which must be provided to the SK  library                %
+%            (SEE BELOW)                                                      %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+
+% CONSTANT SKMXtimerEvents     = 5                 % ARBITRARY = max outstanding timer
+% CONSTANT SKMXopenPorts       = 5                 % ARBITRARY = max open ports
+% CONSTANT SKMXremotePorts     = 5                 % ARBITRARY = max references to remote
+% CONSTANT SKMXqueuedMessages = 20                 % ARBITRARY = max owned messages
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%        CONSTANTs used in provision of WORKING STORAGE for  SK-LIB           %
+%                                                                             %
+%        The user must provide a fixed-size work area for SK-LIB              %
+%        (via SKPinit) in the form                                            %
+%              INTEGER ARRAY: STATICWORKSPACE(0:SKSZstatic-1)                 %
+%        where                                                                %
+%              SKSZstatic is given below                                      %
+%                                                                             %
+%        IN ADDITION, the user must provide a work area whose size            %
+%        depends on the maximum resources used                                %
+%        (via SKPinit) in the form                                            %
+%              INTEGER ARRAY: DYNAMICWORKSPACE(0:SKSZdynamic-1)               %
+%        where                                                                %
+%              SKSZdynamic is calculated below based on the                   %
+%                             user-defined SK parameters (see above)          %
+%                                                                             %
+%      NOTE: it is the user's responsibility to ensure that the array         %
+%            sizes correspond to the declared parameters                      %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+
+% SK type sizes in BYTEs
+
+CONSTANT SKSZaTIME = Size(BYTE POINTER) + 2*Size(INTEGER2) + 5*Size(INTEGER4) + 4
+CONSTANT SKSZaPORT = 3*Size(BYTE POINTER) + 5*Size(INTEGER) + 5*Size(INTEGER4) + 4
+CONSTANT SKSZaMESG = 3*Size(BYTE POINTER) + 8*Size(INTEGER) + Size(INTEGER4) + 4
+CONSTANT SKSZaBASE = 7*Size(BYTE POINTER) + 5*Size(INTEGER) + 3*Size(INTEGER2) +&
+                     Size(INTEGER4) + 2 + 4      % Size(BYTES(0:1))
+
+% REQUIRED SIZE of STATIC AREA in WORDs
+CONSTANT SKSZstatic = (SKSZaBASE+Size(INTEGER)-1)/Size(INTEGER) % REQUIRED SIZE of STATIC AREA (WORDS)
+% must match SK internal type definition
+
+% PLANC storage manager overhead is:
+CONSTANT SKSZfixedSM   = (18*Size(BYTE POINTER))+Size(INTEGER)+100 % fixed overhead (BYTEs)
+CONSTANT SKSZperItemSM = Size(BYTE POINTER)+Size(INTEGER) % per item overhead (BYTEs)
+
+
+% REQUIRED SIZE of DYNAMIC AREA in WORDs
+
+CONSTANT SKSZdynamic = ( SKSZfixedSM &
+                       + SKMXtimerEvents*(SKSZaTIME+SKSZperItemSM) &
+                       + SKMXopenPorts*(SKSZaPORT+SKSZperItemSM) &
+                       + SKMXremotePorts*(SKSZaPORT+SKSZperItemSM) &
+                       + SKMXqueuedMessages*(SKSZaMESG+SKSZperItemSM) &
+                       + Size(INTEGER) - 1 ) / Size(INTEGER) % ANST responsible !!!!!!!!!!
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%                        MODE SPECIFICATION                                   %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+
+TYPE skmd = RECORD
+   INTEGER: SKMDmxTimerEvents                    % :=SKMXtimerEvents => max simultaneous timer events
+   INTEGER: SKMDmxOpenPorts                      % := SKMXopenPorts => max simultaneous open superports
+   INTEGER: SKMDmxRemotePorts                    % := SKMXremotePorts => max simultaneous remote ports
+   INTEGER: SKMDmxQueuedMessages                 % := SKMXqueuedMessages => max simultaneous supermessages queued
+ENDRECORD
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%             DEFINITION OF AVAILABLE COMMUNICATION SUBSYSTEMS                %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+TYPE skcs = ENUMERATION(SKCSxmsg,&               % XMSG
+                        SKCSnk,&                 % Nucleus Kernel
+                        SKCSinternal,&           % message system between multiple
+                                       % subtasks in one OS process
+SKCSdioc,&                                       % message system between DIOC processes
+SKCS100pioc)                                     % message system between ND100 and PIOC
+TYPE SKCSset = skcs SET
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%                          NAME DEFINITIONS                                   %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+%
+% NOTE: the following characters are RESERVED and should not be used in a name:
+%       '.','@','%','!'
+%
+% CURRENTLY a port name is specified in the form <system>.<port>
+%           a local port may be defined as .<port> or <port>
+%
+
+CONSTANT SKNMmxLength = 32                       % max domain name length
+
+CONSTANT SKNMseparator = #.                      % domain name separator is '.'
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%                        IDENTIFIER DEFINITION                                %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+%
+%  local port, remote port and message identifier
+%
+
+$IF Size(BYTE POINTER) = 2 $THEN
+TYPE skid = INTEGER2                             % recommended by ANST
+$ELSIF Size(BYTE POINTER) = 4 $THEN
+TYPE skid = INTEGER4
+$ENDIF
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%                        MESSAGE DEFINITIONS                                  %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+%
+% message type
+%
+TYPE skmt = ENUMERATION(SKMTnormal,&
+                        SKMTreturned,&           % = XMSG XMTRE
+                        SKMTremoteDead,&         % = XMSG XEIMA
+                        SKMTviaXROUT)            % = XMSG XMROU (ONLY for those using
+%               RAW XMSG directly)
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%                       DESTINATION PORT DEFINITIONS                          %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+%
+%
+CONSTANT SKDPhomePort  =  0                      % send back to home port
+CONSTANT SKDPlastOwner = -1                      % send to the process whick last owned the message
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%                       STATE OF HOME PORT                                    %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+%
+%
+TYPE skhp = ENUMERATION(SKHPalive,&              % assumed open
+                        SKHPdead,&               % assumed closed
+                        SKHPunknown)             % info not available
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%                        TIMER SPECIFICATION                                  %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+%
+% TIME INTERVAL DESCRIPTOR used to schedule and delete time events
+% NB! must match DOMINOS definition
+%
+TYPE sktm = RECORD PACK
+   INTEGER2: SKTMprocessNumber                   % process number (ONLY on IO controller)
+   INTEGER4: SKTMeventNumber                     % identifying event bits
+   INTEGER4: SKTMinterval                        % specifies one or multiple
+   INTEGER4: SKTMtime                            % time period
+   INTEGER2: SKTMunits                           % time units
+ENDRECORD
+%
+% possible values for SKTMunits are:
+%
+CONSTANT SKTMbasicRelative = 2                   % MUST MATCH DOMINOS!
+CONSTANT SKTMsecsRelative  = 3                   %      ditto
+%
+% one possible value for SKTMinterval are:
+%
+CONSTANT SKTMoneShot       = 0
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%                     PRE-DEFINED EVENT CODES                                 %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+%
+% SKEVany can be used to specify ANY event requested in SKPwait
+%
+CONSTANT SKEVany = -1
+
+% NOTE:
+% owing to the underlying OS's and message systems, not all event bits are
+% free for the user's disposition
+% ON THE DIOC THE FOLLOWING EVENTS ARE RESERVED AND MUST NOT BE USED:
+% POEVxmsg = 2**31
+% POEVlock = 2**30
+% NKtimeout,NKkick = 2**30,2**29
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%       Routine type which returns user specified event bits. The pointer to  %
+%       this routine is one of the parameters in SKPwait.                     %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+
+TYPE skrv = ROUTINE INTEGER4,INTEGER4
+
+ 
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%                   SPECIAL FLAGS USED IN CALLING ROUTINES                    %
+%                          (passed in INVALUE)                                %
+%          NOTE: CURRENTLY ONLY for use with the RAW XMSG interface           %
+%                should not normally be used                                  %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+% used with routine:
+CONSTANT SKFLrawXMSG = 2**0                      % SKPopenPort
+CONSTANT SKFLviaXROUT = 2**0                     % SKPsend
+
+%-----------------------------------------------------------------------------%
+%                                                                             %
+%                         STATUS CODES                                        %
+%                                                                             %
+%-----------------------------------------------------------------------------%
+%
+% NB! status defined as type
+%
+TYPE skst = INTEGER
+
+CONSTANT SKok     =   0
+CONSTANT SKERbase =   142000B                    % BASE value for SKP errors
+%                      50176D
+CONSTANT SKERntin =   142001B                    % SK-LIB not initialized (bad workspace?)
+%                      50177D
+CONSTANT SKERsbns =   142002B                    % subsystem not supported
+%                      50178D
+CONSTANT SKERsbnr =   142003B                    % subsystem not running (or crashed)
+%                      50179D
+CONSTANT SKERsbnp =   142004B                    % no subsystem ports
+%                      50180D
+CONSTANT SKERsbnn =   142005B                    % subsystem name space full
+%                      50181D
+CONSTANT SKERsbms =   142006B                    % subsystem message space full
+%                      50182D
+CONSTANT SKERsbmt =   142007B                    % subsystem task message space limit
+%                      50183D
+CONSTANT SKERunex =   142010B                    % unexpected subsystem error
+%                      50184D
+% (use SKPerrorReport for more details)
+CONSTANT SKERdunm =   142011B                    % another port has this name
+%                      50185D
+CONSTANT SKERuknm =   142012B                    % unknown port (/system) name
+%                      50186D
+CONSTANT SKERrmdd =   142013B                    % remote has terminated
+%                      50187D
+CONSTANT SKERrmna =   142014B                    % remote not available
+%                      50188D
+CONSTANT SKERinvr =   142015B                    % incompatible versions
+%                      50189D
+CONSTANT SKERbdfl =   142016B                    % bad flag value
+%                      50190D
+CONSTANT SKERbdid =   142017B                    % bad SK identifier
+%                      50191D
+CONSTANT SKERxstm =   142020B                    % too many SK interval events
+%                      50192D
+CONSTANT SKERxspt =   142021B                    % too many SK ports
+%                      50193D
+CONSTANT SKERxsms =   142022B                    % too many SK messages
+%                      50194D
+CONSTANT SKERbdof =   142023B                    % bad offset in read/write
+%                      50195D
+CONSTANT SKERbdln =   142024B                    % bad length in read/write
+%                      50196D
+CONSTANT SKERbdtm =   142025B                    % bad timer specification
+%                      50197D
+CONSTANT SKERninc =   142026B                    % requested subsystem not included
+%                      50198D
+CONSTANT SKERfatl =   142077B                    % FATAL ERROR
+%                      50239D
+% (use SKPerrorReport for more details)
+
+%-----------------------------------------------------------------------------%
+$EOF

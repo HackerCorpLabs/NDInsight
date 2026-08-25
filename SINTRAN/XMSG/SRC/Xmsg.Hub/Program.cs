@@ -30,10 +30,24 @@ namespace NDInsight.Sintran.Xmsg.Hub
         /// </returns>
         public static int Main(string[] args)
         {
+            // Put a date and time in front of EVERY line before anything is printed.
+            //
+            // Both streams are wrapped, not just the normal one: the bad-command-line messages and
+            // the "hub failed to start" message go to the error stream, and a line without a time
+            // on it is exactly the line you end up trying to place against a runner log later.
+            // The usage text is stamped too. That is on purpose - one rule, no line escapes it.
+            //
+            // The format matches the live runner's TimestampWriter character for character, so hub
+            // and runner logs can be read side by side. See TimestampWriter.cs for why the class is
+            // copied instead of shared.
+            Console.SetOut(new TimestampWriter(Console.Out));
+            Console.SetError(new TimestampWriter(Console.Error));
+
             int port = 5010;
             string? uplinkHost = null;
             int uplinkPort = 0;
             bool quiet = false;
+            string? capturePath = null;
 
             for (int i = 0; i < args.Length; i++)
             {
@@ -63,6 +77,12 @@ namespace NDInsight.Sintran.Xmsg.Hub
                     continue;
                 }
 
+                if (string.Equals(a, "--capture", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
+                {
+                    capturePath = args[++i];
+                    continue;
+                }
+
                 if (string.Equals(a, "--uplink", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
                 {
                     string up = args[++i];
@@ -84,6 +104,23 @@ namespace NDInsight.Sintran.Xmsg.Hub
 
             HubServer hub = new HubServer(port, uplinkHost, uplinkPort);
             hub.Log += message => Console.WriteLine($"[hub] {message}");
+
+            // Open the capture BEFORE Start, so the very first frame of the run is in the file.
+            // A capture that begins after the machines have said hello is missing the part that
+            // sets up everything that follows.
+            if (capturePath != null)
+            {
+                try
+                {
+                    hub.StartCapture(capturePath);
+                    Console.WriteLine($"Capturing every frame to {capturePath} (pcap, link type Ethernet).");
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine($"Cannot write capture file: {ex.GetType().Name} - {ex.Message}");
+                    return 2;
+                }
+            }
 
             try
             {
@@ -118,15 +155,23 @@ namespace NDInsight.Sintran.Xmsg.Hub
                     Console.WriteLine(
                         $"[hub] members {hub.MemberCount} (machines {hub.MachineMemberCount})   " +
                         $"in {hub.FramesIn}  fwd {hub.FramesForwarded}   " +
-                        $"dropped slow {hub.FramesDroppedSlow} / loop {hub.FramesDroppedLoop} / ttl {hub.FramesDroppedTtl}");
+                        $"dropped slow {hub.FramesDroppedSlow} / loop {hub.FramesDroppedLoop} / ttl {hub.FramesDroppedTtl}" +
+                        (capturePath == null ? "" : $"   captured {hub.FramesCaptured}"));
                 }
             }
 
             Console.WriteLine("Stopping...");
+
+            // Read the count BEFORE Stop, which closes the writer and zeroes it.
+            long captured = hub.FramesCaptured;
             hub.Stop();
             Console.WriteLine(
                 $"Final: in {hub.FramesIn}  forwarded {hub.FramesForwarded}  " +
                 $"dropped slow {hub.FramesDroppedSlow} / loop {hub.FramesDroppedLoop} / ttl {hub.FramesDroppedTtl}");
+            if (capturePath != null)
+            {
+                Console.WriteLine($"Capture closed: {captured} frames in {capturePath}");
+            }
             return 0;
         }
 
@@ -141,6 +186,7 @@ namespace NDInsight.Sintran.Xmsg.Hub
             Console.WriteLine("  xmsghub --port 5010 --uplink host:5010   also join a remote hub");
             Console.WriteLine("  xmsghub --port 0                         pick a free port");
             Console.WriteLine("  xmsghub --quiet                          no periodic counters");
+            Console.WriteLine("  xmsghub --capture run.pcap               store every frame (pcap, Ethernet)");
             Console.WriteLine();
             Console.WriteLine("Machines join with:  device add ETH 0 --net=tcp:HOST:PORT");
             Console.WriteLine("A hub with no --uplink is the root of the tree.");

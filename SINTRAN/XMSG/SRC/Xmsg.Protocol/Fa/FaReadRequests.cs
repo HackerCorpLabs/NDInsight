@@ -99,15 +99,33 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
             {
                 throw new ArgumentException(
                     "'" + fileSpec + "' plus its suffix is " + text.Length
-                        + " bytes; the compact string form the captured reader used holds 1 to 15.",
+                        + " bytes; a QFORM byte string holds at most 127.",
                     nameof(fileSpec));
             }
 
             // F2 0002 <string> F2 00FF - and nothing else.
-            byte[] buffer = new byte[3 + 1 + text.Length + 3];
+            // PICK THE FORM BY LENGTH, which is what a real client does. The compact string
+            // carries its length in the tag nibble and so stops at 15 bytes; the long form is
+            // B0 followed by a whole length byte. BOTH are in the captures - BF with a 15-byte
+            // field in the write capture, and B0 10 with a 16-byte field holding
+            // "PATCH-FILE:OUT" in the read one, which is a FOURTEEN-character name.
+            //
+            // Until 2026-08-24 this always wrote the compact form. That capped a specification
+            // at 13 characters including its quotes, so every file deployed to a machine needed
+            // a shortened name and a rename afterwards - and the limit was written up in two
+            // skills as if it were the protocol's.
+            bool compact = text.Length <= QformWriter.MaxCompactByteStringLength;
+            byte[] buffer = new byte[3 + (compact ? 1 : 2) + text.Length + 3];
             QformWriter writer = new QformWriter(buffer);
             writer.WriteSelector(2);
-            writer.WriteByteStringCompact(text);
+            if (compact)
+            {
+                writer.WriteByteStringCompact(text);
+            }
+            else
+            {
+                writer.WriteByteString(text);
+            }
             writer.WriteEndOfList();
             writer.EnsureComplete("Read OpenFile fields");
             return buffer;

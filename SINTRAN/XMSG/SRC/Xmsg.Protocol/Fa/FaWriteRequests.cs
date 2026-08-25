@@ -145,30 +145,101 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
         /// <code>
         /// F2 0001  A2 07D0                      2000, meaning UNKNOWN
         /// F2 0002  8C 06  92 0001  92 0001      a constructed pair, both 1, meaning UNKNOWN
-        /// F2 0003  BD "BAK04  SYSTEM"           the asker: five characters, two spaces, the user
-        /// F2 0004  8C 38                        56 bytes:
-        ///            B0 10 "SYSTEM'" + NULs       the user again, apostrophe-terminated, in 16
-        ///            E1 80                        meaning UNKNOWN
-        ///            B0 10 sixteen NULs           meaning UNKNOWN
+        /// F2 0003  BD "BAK04  SYSTEM"           the asker: five characters, two spaces, the
+        ///                                       LOCAL user - who is making the request
+        /// F2 0004  8C 38                        the CREDENTIALS block, 56 bytes:
+        ///            B0 10 "SECRET'" + NULs       the REMOTE user, apostrophe-terminated, in 16
+        ///            E1 80                        a marker, meaning UNKNOWN
+        ///            B0 10 6D2A + NULs            the FOLDED PASSWORD word, in 16
         ///            B0 10 sixteen NULs           meaning UNKNOWN
         /// </code>
+        /// <para><b>The two users are DIFFERENT users, and that was hidden for a month</b></para>
         /// <para>
-        /// The user appears TWICE, in field 3 and again in field 4. The apostrophe is the same
-        /// terminator the open's file specification uses. Three of the sub-fields are constant and
-        /// unexplained; they are reproduced, not understood.
+        /// This comment used to call field 4 first string "the user again", because in every
+        /// capture it was built from, the client was reading its OWN directory - local and remote
+        /// were both <c>SYSTEM</c>, so the two fields looked like duplicates.
+        /// </para>
+        /// <para>
+        /// The capture <c>fa-access-secret-102-to-100-2026-07-29.pcapng</c> in
+        /// <c>DOC/captures/ARCHIVE-2026-07</c> separates them. Node 102 reads user <c>SECRET</c>
+        /// on node 100, and field 4 carries <c>SECRET</c> while field 3 still carries
+        /// <c>BAK03  SYSTEM</c>. So field 3 is WHO IS ASKING and field 4 is WHOSE DIRECTORY, and
+        /// they are independent.
+        /// </para>
+        /// <para><b>The second slot is the password, folded</b></para>
+        /// <para>
+        /// The same frame carries <c>6D 2A</c> in the slot this builder used to fill with NULs.
+        /// <c>secret</c> folds to 0x6D2A under the algorithm carved from the L-VSX-500
+        /// disassembly and implemented as <c>SintranPassword.Encode</c>. The plaintext never
+        /// appears anywhere in the frame: the client folds locally and sends the word. A
+        /// controlled run with the wrong password changed exactly that one word and answered
+        /// WRONG PASSWORD - see <c>DOC/XMSG-FA-ACCESS-PASSWORD-ON-THE-WIRE-2026-07-29.md</c>.
+        /// </para>
+        /// <para>
+        /// The third slot stays NUL: nothing has ever been seen in it.
         /// </para>
         /// </remarks>
         public static byte[] ReserveFileEntry(string backgroundProgram, string user)
+        {
+            // The historical shape: read our OWN directory, no password. Both users are the same
+            // one, which is exactly why the two fields looked like duplicates for a month.
+            return ReserveFileEntry(backgroundProgram, user, user, 0);
+        }
+
+        /// <summary>
+        /// Builds the fields for <see cref="FaOperation.ReserveFileEntry"/>, naming a remote user
+        /// and password that need not be our own.
+        /// </summary>
+        /// <param name="backgroundProgram">
+        /// The asking process, as SINTRAN names it - <c>BAK03</c>, <c>BAK04</c>, <c>BAK05</c> in
+        /// the captures. Five characters.
+        /// </param>
+        /// <param name="localUser">
+        /// The user making the request, which goes in field 3 beside
+        /// <paramref name="backgroundProgram"/>.
+        /// </param>
+        /// <param name="remoteUser">
+        /// The user whose directory is opened on the far machine. This is the one that decides
+        /// where a pushed file LANDS.
+        /// </param>
+        /// <param name="passwordWord">
+        /// That user password ALREADY FOLDED to a single word, or zero when the user has none.
+        /// <para>
+        /// The fold is deliberately not done here. This assembly decodes and builds wire shapes;
+        /// the folding algorithm lives with the SINTRAN user model in
+        /// <c>NDInsight.Sintran.Xmsg.Api.SintranPassword.Encode</c>, which this one does not
+        /// reference. Taking the word also means a plaintext password is never copied into a
+        /// protocol buffer, which is the right property for the layer that touches the wire.
+        /// </para>
+        /// </param>
+        /// <returns>
+        /// The fields, ending with the end-of-list selector.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when any argument is null.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when a value does not fit its captured field width.
+        /// </exception>
+        public static byte[] ReserveFileEntry(
+            string backgroundProgram, string localUser, string remoteUser, ushort passwordWord)
         {
             if (backgroundProgram == null)
             {
                 throw new ArgumentNullException(nameof(backgroundProgram));
             }
 
-            if (user == null)
+            if (localUser == null)
             {
-                throw new ArgumentNullException(nameof(user));
+                throw new ArgumentNullException(nameof(localUser));
             }
+
+            if (remoteUser == null)
+            {
+                throw new ArgumentNullException(nameof(remoteUser));
+            }
+
+            string user = localUser;
 
             // Field 3 is "BAKnn" + two spaces + the user - thirteen bytes in every capture, which
             // is the compact string form's limit of fifteen only because the user is six long.
@@ -181,20 +252,31 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
                         + " bytes; the captured field holds 1 to 15.", nameof(user));
             }
 
-            // Field 4's first sub-field: the user, apostrophe-terminated, in a 16-byte slot padded
-            // with NULs.
+            // Field 4 first sub-field: the REMOTE user - whose directory we are opening, which
+            // need not be us - apostrophe-terminated, in a 16-byte slot padded with NULs.
             byte[] userSlot = new byte[16];
-            byte[] userBytes = System.Text.Encoding.ASCII.GetBytes(user + "'");
+            byte[] userBytes = System.Text.Encoding.ASCII.GetBytes(remoteUser + "'");
             if (userBytes.Length > userSlot.Length)
             {
                 throw new ArgumentException(
-                    "'" + user + "' does not fit the 16-byte user field with its terminator.",
-                    nameof(user));
+                    "'" + remoteUser + "' does not fit the 16-byte user field with its terminator.",
+                    nameof(remoteUser));
             }
 
             for (int i = 0; i < userBytes.Length; i++)
             {
                 userSlot[i] = userBytes[i];
+            }
+
+            // Field 4 second sub-field: the password, FOLDED to one word and written big-endian,
+            // matching the captured 6D 2A for "secret". An empty password leaves the slot NUL,
+            // which is what every same-user capture shows and what a user without a password
+            // needs. The plaintext is never written into the buffer at all.
+            byte[] passwordSlot = new byte[16];
+            if (passwordWord != 0)
+            {
+                passwordSlot[0] = (byte)(passwordWord >> 8);
+                passwordSlot[1] = (byte)(passwordWord & 0xFF);
             }
 
             byte[] emptySlot = new byte[16];
@@ -226,7 +308,7 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
             writer.WriteConstructed(0x38);
             writer.WriteByteString(userSlot);
             writer.WriteRaw(new byte[] { 0xE1, 0x80 });
-            writer.WriteByteString(emptySlot);
+            writer.WriteByteString(passwordSlot);
             writer.WriteByteString(emptySlot);
 
             writer.WriteEndOfList();
@@ -281,10 +363,28 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
             byte[] text = System.Text.Encoding.ASCII.GetBytes(field);
 
             // F2 0002 <string> F2 0003 92 0001 F2 00FF
-            byte[] buffer = new byte[3 + 1 + text.Length + 3 + 3 + 3];
+            // PICK THE FORM BY LENGTH, which is what a real client does. The compact string
+            // carries its length in the tag nibble and so stops at 15 bytes; the long form is
+            // B0 followed by a whole length byte. BOTH are in the captures - BF with a 15-byte
+            // field in the write capture, and B0 10 with a 16-byte field holding
+            // "PATCH-FILE:OUT" in the read one, which is a FOURTEEN-character name.
+            //
+            // Until 2026-08-24 this always wrote the compact form. That capped a specification
+            // at 13 characters including its quotes, so every file deployed to a machine needed
+            // a shortened name and a rename afterwards - and the limit was written up in two
+            // skills as if it were the protocol's.
+            bool compact = text.Length <= QformWriter.MaxCompactByteStringLength;
+            byte[] buffer = new byte[3 + (compact ? 1 : 2) + text.Length + 3 + 3 + 3];
             QformWriter writer = new QformWriter(buffer);
             writer.WriteSelector(2);
-            writer.WriteByteStringCompact(text);
+            if (compact)
+            {
+                writer.WriteByteStringCompact(text);
+            }
+            else
+            {
+                writer.WriteByteString(text);
+            }
             writer.WriteSelector(3);
             writer.WriteInteger(1);
             writer.WriteEndOfList();

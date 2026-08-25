@@ -1,0 +1,1226 @@
+NOISE (>=12 callers, collapsed out of the trees below):
+   NET_PostStatus                           35 callers
+   TCP:0ADC2                                15 callers
+   SO_ReleaseMessage                        13 callers
+   BUF_FreeOne                              22 callers
+   BUF_FreeChain                            21 callers
+   FSMR_TcpOutput                           14 callers
+   FSMR_ProcessSegment                      12 callers
+   SL_TraceEntry                            12 callers
+   SLtrace:1F5F4                            13 callers
+   XMSG_ReportModuleError                   13 callers
+   XMSG_MapStatusToError                    19 callers
+   XMSGsup:2901A                            31 callers
+   XMSGsup:29EB8                            16 callers
+   XMSGsup:2B254                            13 callers
+   PLANC_MoveBlock                          22 callers
+   ND_IDV                                   18 callers
+
+==============================================================================
+TREE FROM MAIN_MainLoop
+==============================================================================
+MAIN_MainLoop
++- ENMA_Service
+|  +- ENMA:04E0E
+|  +- ENMA:055F6
+|  |  `- ENMA:04BD0
+|  |     +- ENMA:0483E
+|  |     +- ENMA:048AE
+|  |     `- ENMA:0491E
+|  +- ENMA:05666
+|  |  +- ENMA_ReportError
+|  |  |  `- XMSGsup:28D54
+|  |  +- ENMA:04C98
+|  |  |  `- ENMA_ReportError ...
+|  |  +- ENMA:055F6 ...
+|  |  `- ENMA:0561E
+|  |     +- ENMA:04C12
+|  |     +- ENMA:05324
+|  |     +- ENMA:059F4
+|  |     `- ENMA:05EDE
+|  +- ENMA:057FA
+|  |  `- ENMA:05666 ...
+|  +- ENMA:06824
+|  `- XMSGsup:28D54
+|     +- XMSGsup:28F34
+|     `- XMSGsup:28FFE
++- EII_ReceiveFrameLoop
+|  +- ENMA_TransmitFrame
+|  |  `- ENMA:05E1C
+|  +- ENMA_GetReceivedFrame
+|  +- ARP_Input
+|  |  +- AIP_TraceIfEnabled
+|  |  |  `- XMSGsup:28D54 ...
+|  |  +- AIP:08A34
+|  |  +- ARP_SendPacket
+|  |  |  +- ENMA_TransmitFrame ...
+|  |  |  +- AIP_TraceIfEnabled ...
+|  |  |  `- BUF_AllocTry
+|  |  +- AIP:08FA6
+|  |  |  `- AIP:08D30
+|  |  `- IP_FragmentAndSend
+|  |     +- ENMA_TransmitFrame ...
+|  |     +- ARP_Resolve
+|  |     +- NET_OnesComplementSum
+|  |     `- BUF_AllocTry
+|  +- IP_Input
+|  |  +- AIP_TraceIfEnabled ...
+|  |  +- AIP:08A34 ...
+|  |  +- AIP_AgeReassemblyQueue
+|  |  +- ICMP_EchoReply
+|  |  |  +- IP_Output
+|  |  |  `- NET_OnesComplementSum
+|  |  +- AIP_ReassembleFragment
+|  |  |  +- AIP:08A34 ...
+|  |  |  `- AIP:098BA
+|  |  +- TCP_Input
+|  |  |  +- NET_ChecksumBuffer
+|  |  |  +- TCP:0B42A
+|  |  |  +- TCP:0BB90
+|  |  |  `- FSMR:16CBA
+|  |  +- RAWinput
+|  |  |  +- BUF_AllocWait
+|  |  |  +- SO:125D4
+|  |  |  `- FSMR:158C8
+|  |  +- UDP_Input
+|  |  |  +- NET_ChecksumBuffer
+|  |  |  +- SO:125D4
+|  |  |  `- FSMR:158C8
+|  |  `- NET_OnesComplementSum
+|  `- IP_DeliverQueued
+|     +- TCP_Input ...
+|     +- RAWinput ...
+|     +- UDP_Input ...
+|     `- NET_OnesComplementSum
++- BUF_AllocWait
+|  +- PIOC_SleepTicks
+|  |  +- ENMA_Service ...
+|  |  +- EII_ReceiveFrameLoop ...
+|  |  `- SO:11094
+|  |     +- TCP:0A896
+|  |     +- SO:10F2C
+|  |     `- XMSGsess:24EF0
+|  +- BUF_AllocTry
+|  |  `- TCP:0A896
+|  +- FSMR:1606A
+|  |  +- TCP:0AD46
+|  |  `- FSMR:15946
+|  `- TIMER_SlowTick
+|     +- AIP:08D76
+|     |  `- AIP:08D30
+|     `- FSMR_StateMachineStep
+|        `- SO:12000
++- SO:11154
+|  +- SO:10F2C
+|  |  `- XMSGsess:26BF0
+|  `- XMSGsess:26688
+|     `- XMSGsess:274BA
+|        +- XMSGsess:27350
+|        `- XMSGsup:29446
++- SO_NotifyHost
+|  `- SO_SendToHost
+|     +- SO:10F2C ...
+|     +- SO:1245A
+|     |  +- TCP:0B0E0
+|     |  `- FSMR:15660
+|     +- XMSGsess:2625C
+|     |  +- XMSGsess:26F78
+|     |  +- XMSGsess:26FFC
+|     |  +- XMSGsess:270A4
+|     |  `- XMSGsup:295A2
+|     `- XMSGsess:26A22
+|        +- XMSGsess:26F78
+|        `- XMSGsup:29E20
++- SO:1375E
+|  +- TCP:0A7DC
+|  +- TCP_UsrReq
+|  |  +- FSMR_StateMachineStep ...
+|  |  +- SO_Attach
+|  |  |  +- SO_AllocPcb
+|  |  |  +- SO_Reserve
+|  |  |  +- FSMR:15C98
+|  |  |  `- SO_FreePcb
+|  |  +- TCP_UsrReqClose
+|  |  |  +- TCP:0B0E0
+|  |  |  +- TCP:0B1DC
+|  |  |  +- FSMR_StateMachineStep ...
+|  |  |  `- FSMR:15660
+|  |  +- SO_IoctlDispatch
+|  |  |  +- TCP_UsrReq ...
+|  |  |  `- SO:1222E
+|  |  +- SO:1198E
+|  |  |  +- SO:10F2C ...
+|  |  |  `- XMSGsess:26CAA
+|  |  +- SO_NotifyHost ...
+|  |  +- SO:11FAA
+|  |  |  `- SO_NotifyHost ...
+|  |  +- SO:1222E
+|  |  |  +- SO:11C0C
+|  |  |  `- SO:11FAA ...
+|  |  +- SO:12434
+|  |  +- SO:1245A ...
+|  |  +- SO:125D4
+|  |  |  +- SO:11C0C
+|  |  |  `- SO:11FAA ...
+|  |  +- SO:12A4A
+|  |  +- SO:12B16
+|  |  |  `- TCP_UsrReq ...
+|  |  +- FSMR:15528
+|  |  +- FSMR:15CEC
+|  |  |  `- TCP:0C326
+|  |  +- FSMR:15E72
+|  |  |  `- TCP:0C3D0
+|  |  +- FSMR:15FD0
+|  |  +- FSMR:16012
+|  |  +- FSMR:1647A
+|  |  +- TIMER_SlowTick ...
+|  |  `- FSMR_ReceiveData
+|  |     +- TCP:0ACB8
+|  |     +- TCP:0AD46
+|  |     +- FSMR_StateMachineStep ...
+|  |     +- FSMR:15380
+|  |     `- FSMR:16AB8
+|  +- SO:10F2C ...
+|  +- SO_SendToHost ...
+|  +- SO:1192E
+|  +- SO:124AC
+|  |  `- SO:1198E ...
+|  +- SO:12E06
+|  |  +- TCP_UsrReq ...
+|  |  +- SO_SendToHost ...
+|  |  +- SO:1192E ...
+|  |  +- SO:1292E
+|  |  |  +- SO:124AC ...
+|  |  |  `- SO:12756
+|  |  `- SO:12A4A
+|  +- XMSGsess:25BC2
+|  |  +- XMSGsess:25B5C
+|  |  |  `- XMPFMST
+|  |  `- XMSGsup:29CEC
+|  `- XMSGsess:2685A
+|     +- XMSGsess:26FFC
+|     |  +- XMSGsess:26DAA
+|     |  `- XMPFREA
+|     `- XMSGsup:29D9C
+`- TIMER_SlowTick ...
+
+==============================================================================
+TREE FROM EII_ReceiveFrameLoop
+==============================================================================
+EII_ReceiveFrameLoop
++- ENMA_TransmitFrame
+|  `- ENMA:05E1C
++- ENMA_GetReceivedFrame
++- ARP_Input
+|  +- AIP_TraceIfEnabled
+|  |  `- XMSGsup:28D54
+|  |     +- XMSGsup:28F34
+|  |     `- XMSGsup:28FFE
+|  +- AIP:08A34
+|  +- ARP_SendPacket
+|  |  +- ENMA_TransmitFrame ...
+|  |  +- AIP_TraceIfEnabled ...
+|  |  `- BUF_AllocTry
+|  |     `- TCP:0A896
+|  +- AIP:08FA6
+|  |  `- AIP:08D30
+|  `- IP_FragmentAndSend
+|     +- ENMA_TransmitFrame ...
+|     +- ARP_Resolve
+|     |  +- ARP_SendPacket ...
+|     |  `- AIP:08FA6 ...
+|     +- NET_OnesComplementSum
+|     `- BUF_AllocTry ...
++- IP_Input
+|  +- AIP_TraceIfEnabled ...
+|  +- AIP:08A34 ...
+|  +- AIP_AgeReassemblyQueue
+|  +- ICMP_EchoReply
+|  |  +- IP_Output
+|  |  |  `- IP_FragmentAndSend ...
+|  |  `- NET_OnesComplementSum
+|  +- AIP_ReassembleFragment
+|  |  +- AIP:08A34 ...
+|  |  `- AIP:098BA
+|  +- TCP_Input
+|  |  +- NET_ChecksumBuffer
+|  |  |  `- NET_OnesComplementSum
+|  |  +- TCP:0B42A
+|  |  |  +- SO:12000
+|  |  |  +- SO:1222E
+|  |  |  +- SO_Detach
+|  |  |  +- FSMR:184E6
+|  |  |  `- FSMR:18618
+|  |  +- TCP:0BB90
+|  |  |  +- NET_ChecksumBuffer ...
+|  |  |  `- TCP:0A950
+|  |  `- FSMR:16CBA
+|  +- RAWinput
+|  |  +- BUF_AllocWait
+|  |  |  +- PIOC_SleepTicks
+|  |  |  +- BUF_AllocTry ...
+|  |  |  +- FSMR:1606A
+|  |  |  `- TIMER_SlowTick
+|  |  +- SO:125D4
+|  |  |  +- SO:11C0C
+|  |  |  `- SO:11FAA
+|  |  `- FSMR:158C8
+|  |     `- FSMR:154E6
+|  +- UDP_Input
+|  |  +- NET_ChecksumBuffer ...
+|  |  +- SO:125D4 ...
+|  |  `- FSMR:158C8 ...
+|  `- NET_OnesComplementSum
+`- IP_DeliverQueued
+   +- TCP_Input ...
+   +- RAWinput ...
+   +- UDP_Input ...
+   `- NET_OnesComplementSum
+
+==============================================================================
+TREE FROM IP_Input
+==============================================================================
+IP_Input
++- AIP_TraceIfEnabled
+|  `- XMSGsup:28D54
+|     +- XMSGsup:28F34
+|     `- XMSGsup:28FFE
++- AIP:08A34
++- AIP_AgeReassemblyQueue
++- ICMP_EchoReply
+|  +- IP_Output
+|  |  `- IP_FragmentAndSend
+|  |     +- ENMA_TransmitFrame
+|  |     +- ARP_Resolve
+|  |     +- NET_OnesComplementSum
+|  |     `- BUF_AllocTry
+|  `- NET_OnesComplementSum
++- AIP_ReassembleFragment
+|  +- AIP:08A34 ...
+|  `- AIP:098BA
++- TCP_Input
+|  +- NET_ChecksumBuffer
+|  |  `- NET_OnesComplementSum
+|  +- TCP:0B42A
+|  |  +- SO:12000
+|  |  |  +- SO_NotifyHost
+|  |  |  `- SO:11C0C
+|  |  +- SO:1222E
+|  |  |  +- SO:11C0C
+|  |  |  `- SO:11FAA
+|  |  +- SO_Detach
+|  |  |  +- SO_FreePcb
+|  |  |  `- SO_DetachCleanup
+|  |  +- FSMR:184E6
+|  |  |  +- FSMR:1647A
+|  |  |  `- FSMR_SendPacket
+|  |  `- FSMR:18618
+|  |     +- TCP:0B1DC
+|  |     `- FSMR:15660
+|  +- TCP:0BB90
+|  |  +- NET_ChecksumBuffer ...
+|  |  `- TCP:0A950
+|  |     `- IP_Output ...
+|  `- FSMR:16CBA
++- RAWinput
+|  +- BUF_AllocWait
+|  |  +- PIOC_SleepTicks
+|  |  |  +- ENMA_Service
+|  |  |  +- EII_ReceiveFrameLoop
+|  |  |  `- SO:11094
+|  |  +- BUF_AllocTry
+|  |  |  `- TCP:0A896
+|  |  +- FSMR:1606A
+|  |  |  +- TCP:0AD46
+|  |  |  `- FSMR:15946
+|  |  `- TIMER_SlowTick
+|  |     +- AIP:08D76
+|  |     `- FSMR_StateMachineStep
+|  +- SO:125D4
+|  |  +- SO:11C0C
+|  |  |  +- SO:11680
+|  |  |  `- FSMR:14E84
+|  |  `- SO:11FAA
+|  |     `- SO_NotifyHost
+|  `- FSMR:158C8
+|     `- FSMR:154E6
++- UDP_Input
+|  +- NET_ChecksumBuffer ...
+|  +- SO:125D4 ...
+|  `- FSMR:158C8 ...
+`- NET_OnesComplementSum
+
+==============================================================================
+TREE FROM IP_Output
+==============================================================================
+IP_Output
+`- IP_FragmentAndSend
+   +- ENMA_TransmitFrame
+   |  `- ENMA:05E1C
+   +- ARP_Resolve
+   |  +- ARP_SendPacket
+   |  |  +- ENMA_TransmitFrame ...
+   |  |  +- AIP_TraceIfEnabled
+   |  |  `- BUF_AllocTry
+   |  `- AIP:08FA6
+   |     `- AIP:08D30
+   +- NET_OnesComplementSum
+   `- BUF_AllocTry
+      `- TCP:0A896
+
+==============================================================================
+TREE FROM TCP_Input
+==============================================================================
+TCP_Input
++- NET_ChecksumBuffer
+|  `- NET_OnesComplementSum
++- TCP:0B42A
+|  +- SO:12000
+|  |  +- SO_NotifyHost
+|  |  |  `- SO_SendToHost
+|  |  `- SO:11C0C
+|  |     +- SO:11680
+|  |     `- FSMR:14E84
+|  +- SO:1222E
+|  |  +- SO:11C0C ...
+|  |  `- SO:11FAA
+|  |     `- SO_NotifyHost ...
+|  +- SO_Detach
+|  |  +- SO_FreePcb
+|  |  |  +- SO:12C40
+|  |  |  `- FSMR:15C6A
+|  |  `- SO_DetachCleanup
+|  |     +- TCP:0AC0E
+|  |     +- TCP:0B1DC
+|  |     `- FSMR:156D0
+|  +- FSMR:184E6
+|  |  +- FSMR:1647A
+|  |  `- FSMR_SendPacket
+|  |     +- IP_Output
+|  |     +- BUF_AllocWait
+|  |     +- NET_OnesComplementSum
+|  |     +- BUF_AllocTry
+|  |     `- FSMR:150AE
+|  `- FSMR:18618
+|     +- TCP:0B1DC
+|     `- FSMR:15660
+|        `- FSMR:15528
++- TCP:0BB90
+|  +- NET_ChecksumBuffer ...
+|  `- TCP:0A950
+|     `- IP_Output
+|        `- IP_FragmentAndSend
+`- FSMR:16CBA
+
+==============================================================================
+TREE FROM FSMR_StateMachineStep
+==============================================================================
+FSMR_StateMachineStep
+`- SO:12000
+   +- SO_NotifyHost
+   |  `- SO_SendToHost
+   |     +- SO:10F2C
+   |     +- SO:1245A
+   |     +- XMSGsess:2625C
+   |     `- XMSGsess:26A22
+   `- SO:11C0C
+      +- SO:11680
+      |  +- SO:1245A
+      |  +- SO:124AC
+      |  +- SO:12584
+      |  +- XMSGsess:25DDC
+      |  +- XMSGsess:2625C
+      |  `- XMSGsess:26A22
+      `- FSMR:14E84
+
+==============================================================================
+TREE FROM FSMR_TcpOutput
+==============================================================================
+FSMR_TcpOutput
++- SO_NotifyHost
+|  `- SO_SendToHost
+|     +- SO:10F2C
+|     |  `- XMSGsess:26BF0
+|     +- SO:1245A
+|     |  +- TCP:0B0E0
+|     |  `- FSMR:15660
+|     +- XMSGsess:2625C
+|     |  +- XMSGsess:26F78
+|     |  +- XMSGsess:26FFC
+|     |  +- XMSGsess:270A4
+|     |  `- XMSGsup:295A2
+|     `- XMSGsess:26A22
+|        +- XMSGsess:26F78
+|        `- XMSGsup:29E20
+`- FSMR_SendPacket
+   +- IP_Output
+   |  `- IP_FragmentAndSend
+   |     +- ENMA_TransmitFrame
+   |     +- ARP_Resolve
+   |     +- NET_OnesComplementSum
+   |     `- BUF_AllocTry
+   +- BUF_AllocWait
+   |  +- PIOC_SleepTicks
+   |  |  +- ENMA_Service
+   |  |  +- EII_ReceiveFrameLoop
+   |  |  `- SO:11094
+   |  +- BUF_AllocTry
+   |  |  `- TCP:0A896
+   |  +- FSMR:1606A
+   |  |  +- TCP:0AD46
+   |  |  `- FSMR:15946
+   |  `- TIMER_SlowTick
+   |     +- AIP:08D76
+   |     `- FSMR_StateMachineStep
+   +- NET_OnesComplementSum
+   +- BUF_AllocTry ...
+   `- FSMR:150AE
+      `- SO:10D46
+
+==============================================================================
+TREE FROM TELNET_Main
+==============================================================================
+TELNET_Main
++- TELNET_ReportError
+|  `- XMSGsup:28D54
+|     +- XMSGsup:28F34
+|     `- XMSGsup:28FFE
++- TELNET:1A3E6
+|  +- TELNET_ReportError ...
+|  `- SLib:1C84A
++- TELNET:1B326
+|  `- XMSGsup:2B766
++- TELNET_ServerInit
+|  +- TELNET_ReportError ...
+|  +- TELNET:1A3E6 ...
+|  +- TELNET:1A49E
+|  |  +- TELNET_ReportError ...
+|  |  `- TELNET:1A440
+|  |     +- TELNET:19F52
+|  |     +- TELNET_CloseConnection
+|  |     `- TELNET:1A3E6 ...
+|  +- TELNET_AcceptLoop
+|  |  +- TELNET_ReportError ...
+|  |  +- TELNET:19EDE
+|  |  +- TELNET_CloseConnection
+|  |  |  +- TELNET:1A1A0
+|  |  |  +- SLshutdown
+|  |  |  `- SLclose
+|  |  +- TELNET:1B2A2
+|  |  |  +- TELNET:19F20
+|  |  |  +- TELNET:1A440 ...
+|  |  |  +- TELNET:1AFA2
+|  |  |  +- TELNET:1B076
+|  |  |  `- TELNET_PollSocket
+|  |  +- TELNET:1B326 ...
+|  |  +- TELNET:1B7F0
+|  |  |  +- TELNET_ReportError ...
+|  |  |  +- TELNET:19F52
+|  |  |  +- TELNET:1A49E ...
+|  |  |  +- TELNET_TearDownConnection
+|  |  |  +- TELNET_ReportServerAvailable
+|  |  |  +- SLib:1C87C
+|  |  |  `- SLioctl
+|  |  +- SLib:1D040
+|  |  |  `- SLib:1C47C
+|  |  +- SLsleep
+|  |  |  `- SLtrace:1FBE2
+|  |  +- SLaccept
+|  |  |  +- FSMR:14AE2
+|  |  |  +- SLtrace:1F942
+|  |  |  +- SLtrace:1FC6E
+|  |  |  +- SLtrace:1FE60
+|  |  |  +- SLtrace:20364
+|  |  |  +- SL_LookupSocketId
+|  |  |  `- SLtrace:20474
+|  |  +- SLsend
+|  |  |  +- FSMR:14370
+|  |  |  +- SLtrace:1E10C
+|  |  |  +- SLtrace:1FC6E
+|  |  |  `- SL_LookupSocketId
+|  |  +- SLshutdown
+|  |  |  +- SLtrace:1FE60
+|  |  |  +- SLtrace:2024C
+|  |  |  +- SL_LookupSocketId
+|  |  |  `- SLtrace:207BA
+|  |  +- SLclose
+|  |  |  +- SLtrace:1FE60
+|  |  |  +- SLtrace:20364
+|  |  |  +- SL_LookupSocketId
+|  |  |  `- SLtrace:20474
+|  |  `- SLtrace:1F7B4
+|  |     +- MAIN_MainLoop
+|  |     +- SLtrace:1F500
+|  |     +- SLtrace:1F55A
+|  |     +- SLtrace:1F6FC
+|  |     +- SLtrace:1F78A
+|  |     +- SLtrace:20C16
+|  |     `- XMSGsess:24EF0
+|  +- SLsocket
+|  |  +- FSMR:14AE2
+|  |  +- SLib:1D0B4
+|  |  +- SLib:1D112
+|  |  +- SLclose ...
+|  |  +- SLtrace:1FE60
+|  |  |  +- SLtrace:1EE7C
+|  |  |  +- SLtrace:1FDD2
+|  |  |  `- SLtrace:1FE02
+|  |  +- SLtrace:202F4
+|  |  `- SLtrace:20364
+|  |     `- SLtrace:2024C
+|  +- SLbind
+|  |  +- SLtrace:1FE60 ...
+|  |  `- SL_LookupSocketId
+|  +- SLlisten
+|  |  +- SLtrace:1FE60 ...
+|  |  `- SL_LookupSocketId
+|  +- SLshutdown ...
+|  +- SLclose ...
+|  +- SLioctl
+|  |  +- FSMR:149E6
+|  |  +- SLtrace:1E10C
+|  |  +- SLtrace:1FFA0
+|  |  |  +- SLtrace:1EE7C
+|  |  |  `- SLtrace:1FE02
+|  |  `- SL_LookupSocketId
+|  `- ND_UTBY
+|     +- POMN:07FE8
+|     |  `- PLANCrt:2BE04
+|     +- XMSGsup:2AE68
+|     |  +- POMN:07FE8 ...
+|     |  `- ND_ERROR
+|     `- XMSGsup:2AFB6
++- TELNET:1C058
+|  +- TELNET:1A49E ...
+|  `- XMSG_TelnetSessionEntry
+|     +- SO:105D2
+|     |  +- PIOC_ReportError
+|     |  +- TCP:0AB36
+|     |  +- SO:11390
+|     |  +- SO:128A6
+|     |  +- FSMR:14C1C
+|     |  +- FSMR:15B5A
+|     |  `- XMSGsess:24F9E
+|     +- SLtrace:1EC9E
+|     |  +- SLtrace:1E2AE
+|     |  `- XMSGsess:2579E
+|     +- SLtrace:1F3A4
+|     +- SLtrace:1FA7C
+|     |  +- SLtrace:1F2F0
+|     |  +- SLtrace:1F500
+|     |  `- SLtrace:1F942
+|     +- XMSGsess:21454
+|     |  +- SL_TraceMessageWait
+|     |  `- XMSGsup:2B440
+|     +- XMSGsess:214F8
+|     +- XMSGsess:22262
+|     |  `- XMSGsess:24556
+|     +- XMSGsess:25094
+|     |  +- XMSGsess:25030
+|     |  +- XMPFCLS
+|     |  `- XMSGsup:2935E
+|     +- XMSGsess:25DDC
+|     |  +- XMSGsess:25D82
+|     |  `- XMSGsup:29B12
+|     +- XMSG_ReleaseMessage
+|     |  +- XMPFCLS
+|     |  +- XMPFREL
+|     |  `- XMSGsup:29BF4
+|     `- XMSGsup:2B292
++- SLib:1C6E2
+|  `- XMSGsup:28D54 ...
+`- XMSGsup:28D54 ...
+
+==============================================================================
+TREE FROM TELNET_AcceptLoop
+==============================================================================
+TELNET_AcceptLoop
++- TELNET_ReportError
+|  `- XMSGsup:28D54
+|     +- XMSGsup:28F34
+|     `- XMSGsup:28FFE
++- TELNET:19EDE
++- TELNET_CloseConnection
+|  +- TELNET:1A1A0
+|  |  `- TELNET:19FBC
+|  |     +- TELNET:1A35E
+|  |     `- SLsend
+|  +- SLshutdown
+|  |  +- SLtrace:1FE60
+|  |  |  +- SLtrace:1EE7C
+|  |  |  +- SLtrace:1FDD2
+|  |  |  `- SLtrace:1FE02
+|  |  +- SLtrace:2024C
+|  |  |  +- SLtrace:1E2AE
+|  |  |  +- XMSG_ReleaseMessage
+|  |  |  `- XMSGsess:2625C
+|  |  +- SL_LookupSocketId
+|  |  `- SLtrace:207BA
+|  |     `- SLtrace:2078A
+|  `- SLclose
+|     +- SLtrace:1FE60 ...
+|     +- SLtrace:20364
+|     |  `- SLtrace:2024C ...
+|     +- SL_LookupSocketId
+|     `- SLtrace:20474
++- TELNET:1B2A2
+|  +- TELNET:19F20
+|  +- TELNET:1A440
+|  |  +- TELNET:19F52
+|  |  |  +- TELNET:1A49E
+|  |  |  `- SLib:1C922
+|  |  +- TELNET_CloseConnection ...
+|  |  `- TELNET:1A3E6
+|  |     +- TELNET_ReportError ...
+|  |     `- SLib:1C84A
+|  +- TELNET:1AFA2
+|  |  +- TELNET:1A35E
+|  |  |  +- TELNET_ReportError ...
+|  |  |  `- TELNET:1A312
+|  |  +- TELNET:1A9CE
+|  |  |  +- TELNET:1A35E ...
+|  |  |  +- TELNET:1A49E
+|  |  |  `- SLib:1CA24
+|  |  +- SLib:1C8DA
+|  |  `- SLib:1D040
+|  |     `- SLib:1C47C
+|  +- TELNET:1B076
+|  |  `- SLib:1C962
+|  `- TELNET_PollSocket
+|     +- TELNET:1A114
+|     |  +- TELNET:19FBC ...
+|     |  `- TELNET_SendToSocket
+|     +- TELNET:1A312
+|     |  +- TELNET:19F52 ...
+|     |  `- TELNET_CloseConnection ...
+|     +- TELNET:1A35E ...
+|     +- TELNET_RecvFromSocket
+|     |  +- TELNET:1A35E ...
+|     |  `- SLrecv
+|     +- TELNET:1A9CE ...
+|     +- TELNET:1AAA4
+|     |  +- TELNET:1A35E ...
+|     |  +- TELNET:1A49E
+|     |  `- SLib:1CD0E
+|     +- TELNET:1ABC8
+|     |  +- TELNET:1A35E ...
+|     |  +- TELNET:1A5CE
+|     |  +- TELNET:1A82E
+|     |  `- SLib:1CC5A
+|     +- SLsense
+|     |  +- FSMR:148FE
+|     |  +- SLtrace:1E10C
+|     |  +- SLtrace:1F942
+|     |  `- SL_LookupSocketId
+|     `- SLioctl
+|        +- FSMR:149E6
+|        +- SLtrace:1E10C
+|        +- SLtrace:1FFA0
+|        `- SL_LookupSocketId
++- TELNET:1B326
+|  `- XMSGsup:2B766
++- TELNET:1B7F0
+|  +- TELNET_ReportError ...
+|  +- TELNET:19F52 ...
+|  +- TELNET:1A49E
+|  |  +- TELNET_ReportError ...
+|  |  `- TELNET:1A440 ...
+|  +- TELNET_TearDownConnection
+|  |  +- TELNET_ReportError ...
+|  |  +- TELNET:1A440 ...
+|  |  +- SLshutdown ...
+|  |  `- SLclose ...
+|  +- TELNET_ReportServerAvailable
+|  |  +- TELNET:1A1A0 ...
+|  |  +- XMSGsess:23CE4
+|  |  |  `- XMSGsess:23850
+|  |  +- XMSGsess:2408C
+|  |  `- XMSGsess:2443E
+|  +- SLib:1C87C
+|  |  +- SLib:1C47C
+|  |  |  `- SLib:1C3E8
+|  |  `- SLib:1C4CE
+|  |     +- SLib:1C300
+|  |     `- PLANCrt:2BA7E
+|  `- SLioctl ...
++- SLib:1D040 ...
++- SLsleep
+|  `- SLtrace:1FBE2
+|     +- SL_TraceSleepAndWake
+|     |  +- SLib:1DFB6
+|     |  +- SLtrace:1E050
+|     |  `- PLANC_FormatInteger
+|     +- SLtrace:1F4A8
+|     |  `- SLtrace:1F286
+|     `- SLtrace:1FB84
+|        `- SLtrace:1FA7C
++- SLaccept
+|  +- FSMR:14AE2
+|  +- SLtrace:1F942
+|  |  +- SLtrace:1F2F0
+|  |  |  +- MAIN_MainLoop
+|  |  |  +- SLtrace:1E2AE
+|  |  |  `- XMSGsess:24EF0
+|  |  +- SLtrace:1F3CC
+|  |  |  `- SLtrace:1F286
+|  |  +- SLtrace:1F500
+|  |  |  +- SLtrace:1F286
+|  |  |  `- SLtrace:1F456
+|  |  +- SLtrace:1F55A
+|  |  |  `- SLtrace:1F456
+|  |  +- SLtrace:1F6FC
+|  |  |  `- SLtrace:1F456
+|  |  +- SLtrace:1F78A
+|  |  |  `- SLtrace:1F55A ...
+|  |  `- SLtrace:20C16
+|  |     +- SLtrace:1E10C
+|  |     +- SL_TraceNewConnectionId
+|  |     +- SL_TraceMessageWait
+|  |     +- SLtrace:1ED06
+|  |     +- SLtrace:20140
+|  |     +- SLtrace:207DC
+|  |     +- SLtrace:208C0
+|  |     +- SLtrace:2097A
+|  |     +- SLtrace:209F0
+|  |     +- SK_ReportLostMessage
+|  |     +- XMSG_ReleaseMessage
+|  |     +- XMSGsess:26688
+|  |     `- XMSGsess:2685A
+|  +- SLtrace:1FC6E
+|  |  +- SL_TraceSleepAndWake ...
+|  |  +- SLtrace:1F4A8 ...
+|  |  `- SLtrace:1FB84 ...
+|  +- SLtrace:1FE60 ...
+|  +- SLtrace:20364 ...
+|  +- SL_LookupSocketId
+|  `- SLtrace:20474
++- SLsend
+|  +- FSMR:14370
+|  |  +- FSMR_StateMachineStep
+|  |  |  `- SO:12000
+|  |  `- BUF_AllocTry
+|  |     `- TCP:0A896
+|  +- SLtrace:1E10C
+|  +- SLtrace:1FC6E ...
+|  `- SL_LookupSocketId
++- SLshutdown ...
++- SLclose ...
+`- SLtrace:1F7B4
+   +- MAIN_MainLoop
+   |  +- ENMA_Service
+   |  |  +- ENMA:04E0E
+   |  |  +- ENMA:055F6
+   |  |  +- ENMA:05666
+   |  |  +- ENMA:057FA
+   |  |  +- ENMA:06824
+   |  |  `- XMSGsup:28D54 ...
+   |  +- EII_ReceiveFrameLoop
+   |  |  +- ENMA_TransmitFrame
+   |  |  +- ENMA_GetReceivedFrame
+   |  |  +- ARP_Input
+   |  |  +- IP_Input
+   |  |  `- IP_DeliverQueued
+   |  +- BUF_AllocWait
+   |  |  +- PIOC_SleepTicks
+   |  |  +- BUF_AllocTry ...
+   |  |  +- FSMR:1606A
+   |  |  `- TIMER_SlowTick
+   |  +- SO:11154
+   |  |  +- SO:10F2C
+   |  |  `- XMSGsess:26688
+   |  +- SO_NotifyHost
+   |  |  `- SO_SendToHost
+   |  +- SO:1375E
+   |  |  +- TCP:0A7DC
+   |  |  +- TCP_UsrReq
+   |  |  +- SO:10F2C
+   |  |  +- SO_SendToHost
+   |  |  +- SO:1192E
+   |  |  +- SO:124AC
+   |  |  +- SO:12E06
+   |  |  +- XMSGsess:25BC2
+   |  |  `- XMSGsess:2685A
+   |  `- TIMER_SlowTick
+   |     +- AIP:08D76
+   |     `- FSMR_StateMachineStep ...
+   +- SLtrace:1F500 ...
+   +- SLtrace:1F55A ...
+   +- SLtrace:1F6FC ...
+   +- SLtrace:1F78A ...
+   +- SLtrace:20C16 ...
+   `- XMSGsess:24EF0
+      `- XMSGsess:24BD2
+         +- XMSGsess:249C0
+         `- XMSGsess:274BA
+
+==============================================================================
+TREE FROM TELNET_PollSocket
+==============================================================================
+TELNET_PollSocket
++- TELNET:1A114
+|  +- TELNET:19FBC
+|  |  +- TELNET:1A35E
+|  |  |  +- TELNET_ReportError
+|  |  |  `- TELNET:1A312
+|  |  `- SLsend
+|  |     +- FSMR:14370
+|  |     +- SLtrace:1E10C
+|  |     +- SLtrace:1FC6E
+|  |     `- SL_LookupSocketId
+|  `- TELNET_SendToSocket
+|     +- TELNET:1A35E ...
+|     `- SLsend ...
++- TELNET:1A312
+|  +- TELNET:19F52
+|  |  +- TELNET:1A49E
+|  |  |  +- TELNET_ReportError
+|  |  |  `- TELNET:1A440
+|  |  `- SLib:1C922
+|  |     +- SLib:1C47C
+|  |     `- SLib:1C4CE
+|  `- TELNET_CloseConnection
+|     +- TELNET:1A1A0
+|     |  `- TELNET:19FBC ...
+|     +- SLshutdown
+|     |  +- SLtrace:1FE60
+|     |  +- SLtrace:2024C
+|     |  +- SL_LookupSocketId
+|     |  `- SLtrace:207BA
+|     `- SLclose
+|        +- SLtrace:1FE60
+|        +- SLtrace:20364
+|        +- SL_LookupSocketId
+|        `- SLtrace:20474
++- TELNET:1A35E ...
++- TELNET_RecvFromSocket
+|  +- TELNET:1A35E ...
+|  `- SLrecv
+|     +- FSMR:1461E
+|     |  +- FSMR:15528
+|     |  `- FSMR_ReceiveData
+|     +- SLtrace:1E10C
+|     +- SLtrace:1FC6E
+|     |  +- SL_TraceSleepAndWake
+|     |  +- SLtrace:1F4A8
+|     |  `- SLtrace:1FB84
+|     `- SL_LookupSocketId
++- TELNET:1A9CE
+|  +- TELNET:1A35E ...
+|  +- TELNET:1A49E ...
+|  `- SLib:1CA24
+|     +- SLib:1C47C
+|     |  `- SLib:1C3E8
+|     +- SLib:1C4CE
+|     |  +- SLib:1C300
+|     |  `- PLANCrt:2BA7E
+|     `- SLib:1C56A
++- TELNET:1AAA4
+|  +- TELNET:1A35E ...
+|  +- TELNET:1A49E ...
+|  `- SLib:1CD0E
+|     +- SLib:1C47C ...
+|     +- SLib:1C4CE ...
+|     `- SLib:1C5FC
++- TELNET:1ABC8
+|  +- TELNET:1A35E ...
+|  +- TELNET:1A5CE
+|  |  +- TELNET:19FBC ...
+|  |  +- TELNET_FormatHex
+|  |  `- SLib:1C9B4
+|  +- TELNET:1A82E
+|  |  `- TELNET:19FBC ...
+|  `- SLib:1CC5A
++- SLsense
+|  +- FSMR:148FE
+|  +- SLtrace:1E10C
+|  +- SLtrace:1F942
+|  |  +- SLtrace:1F2F0
+|  |  |  +- MAIN_MainLoop
+|  |  |  +- SLtrace:1E2AE
+|  |  |  `- XMSGsess:24EF0
+|  |  +- SLtrace:1F3CC
+|  |  |  `- SLtrace:1F286
+|  |  +- SLtrace:1F500
+|  |  |  +- SLtrace:1F286
+|  |  |  `- SLtrace:1F456
+|  |  +- SLtrace:1F55A
+|  |  |  `- SLtrace:1F456
+|  |  +- SLtrace:1F6FC
+|  |  |  `- SLtrace:1F456
+|  |  +- SLtrace:1F78A
+|  |  |  `- SLtrace:1F55A ...
+|  |  `- SLtrace:20C16
+|  |     +- SLtrace:1E10C
+|  |     +- SL_TraceNewConnectionId
+|  |     +- SL_TraceMessageWait
+|  |     +- SLtrace:1ED06
+|  |     +- SLtrace:20140
+|  |     +- SLtrace:207DC
+|  |     +- SLtrace:208C0
+|  |     +- SLtrace:2097A
+|  |     +- SLtrace:209F0
+|  |     +- SK_ReportLostMessage
+|  |     +- XMSG_ReleaseMessage
+|  |     +- XMSGsess:26688
+|  |     `- XMSGsess:2685A
+|  `- SL_LookupSocketId
+`- SLioctl
+   +- FSMR:149E6
+   +- SLtrace:1E10C
+   +- SLtrace:1FFA0
+   |  +- SLtrace:1EE7C
+   |  |  +- SLtrace:1E2AE
+   |  |  +- SL_TraceMessageWait
+   |  |  +- SLtrace:1ED06
+   |  |  +- SLtrace:1FCF4
+   |  |  +- XMSGsess:25DDC
+   |  |  +- XMSGsess:2625C
+   |  |  `- XMSGsess:26A22
+   |  `- SLtrace:1FE02
+   |     `- SLtrace:1FC6E ...
+   `- SL_LookupSocketId
+
+==============================================================================
+TREE FROM TCP_UsrReq
+==============================================================================
+TCP_UsrReq
++- FSMR_StateMachineStep
+|  `- SO:12000
+|     +- SO_NotifyHost
+|     |  `- SO_SendToHost
+|     `- SO:11C0C
+|        +- SO:11680
+|        `- FSMR:14E84
++- SO_Attach
+|  +- SO_AllocPcb
+|  |  +- TCP:0AA76
+|  |  `- TCP:0ABAC
+|  +- SO_Reserve
+|  +- FSMR:15C98
+|  |  `- FSMR:15BFA
+|  `- SO_FreePcb
+|     +- SO:12C40
+|     |  +- SO:1192E
+|     |  `- SO:12A4A
+|     `- FSMR:15C6A
++- TCP_UsrReqClose
+|  +- TCP:0B0E0
+|  |  `- TCP:0AD46
+|  +- TCP:0B1DC
+|  +- FSMR_StateMachineStep ...
+|  `- FSMR:15660
+|     `- FSMR:15528
++- SO_IoctlDispatch
+|  +- TCP_UsrReq ...
+|  `- SO:1222E
+|     +- SO:11C0C ...
+|     `- SO:11FAA
+|        `- SO_NotifyHost ...
++- SO:1198E
+|  +- SO:10F2C
+|  |  `- XMSGsess:26BF0
+|  `- XMSGsess:26CAA
+|     `- XMSG_XFM2P_MagicToSysAndPort
++- SO_NotifyHost ...
++- SO:11FAA ...
++- SO:1222E ...
++- SO:12434
++- SO:1245A
+|  +- TCP:0B0E0 ...
+|  `- FSMR:15660 ...
++- SO:125D4
+|  +- SO:11C0C ...
+|  `- SO:11FAA ...
++- SO:12A4A
++- SO:12B16
+|  `- TCP_UsrReq ...
++- FSMR:15528 ...
++- FSMR:15CEC
+|  `- TCP:0C326
++- FSMR:15E72
+|  `- TCP:0C3D0
++- FSMR:15FD0
++- FSMR:16012
++- FSMR:1647A
++- TIMER_SlowTick
+|  +- AIP:08D76
+|  |  `- AIP:08D30
+|  `- FSMR_StateMachineStep ...
+`- FSMR_ReceiveData
+   +- TCP:0ACB8
+   +- TCP:0AD46
+   +- FSMR_StateMachineStep ...
+   +- FSMR:15380
+   `- FSMR:16AB8
+
+==============================================================================
+TREE FROM TIMER_SlowTick
+==============================================================================
+TIMER_SlowTick
++- AIP:08D76
+|  `- AIP:08D30
+`- FSMR_StateMachineStep
+   `- SO:12000
+      +- SO_NotifyHost
+      |  `- SO_SendToHost
+      `- SO:11C0C
+         +- SO:11680
+         `- FSMR:14E84
+
+==============================================================================
+TREE FROM Lance_InterruptService
+==============================================================================
+Lance_InterruptService
+
+==============================================================================
+TREE FROM ENMA_Service
+==============================================================================
+ENMA_Service
++- ENMA:04E0E
++- ENMA:055F6
+|  `- ENMA:04BD0
+|     +- ENMA:0483E
+|     |  `- ENMA:04E24
+|     +- ENMA:048AE
+|     |  +- ENMA:04E24
+|     |  `- ENMA:04EBA
+|     `- ENMA:0491E
+|        +- ENMA:047EA
+|        `- ENMA:04E24
++- ENMA:05666
+|  +- ENMA_ReportError
+|  |  `- XMSGsup:28D54
+|  |     +- XMSGsup:28F34
+|  |     `- XMSGsup:28FFE
+|  +- ENMA:04C98
+|  |  `- ENMA_ReportError ...
+|  +- ENMA:055F6 ...
+|  `- ENMA:0561E
+|     +- ENMA:04C12
+|     |  +- ENMA:04866
+|     |  `- ENMA:048E6
+|     +- ENMA:05324
+|     |  `- ENMA:05284
+|     +- ENMA:059F4
+|     |  +- ENMA:05078
+|     |  +- ENMA:05894
+|     |  `- ENMA:06946
+|     `- ENMA:05EDE
+|        +- ENMA:05666 ...
+|        +- ENMA:059F4 ...
+|        +- ENMA:05E1C
+|        `- ENMA:0687C
++- ENMA:057FA
+|  `- ENMA:05666 ...
++- ENMA:06824
+`- XMSGsup:28D54 ...
+
+==============================================================================
+TREE FROM TCPD_ClientSession
+==============================================================================
+TCPD_ClientSession
++- XMSGsess:23104
+|  `- XMSGsess:22E32
+|     `- XMSGsess:22C3A
+|        +- XMSGsess:223CA
+|        +- XMSGsess:224B4
+|        `- XMSGsess:224EA
++- XMSGsess:23C5A
+|  +- XMSGsess:22F5C
+|  |  `- XMSGsess:22F08
+|  |     `- XMSGsess:22E32 ...
+|  `- XMSGsess:23850
+|     +- XMSG_FormatHex
+|     `- XMSGsess:243E8
++- XMSGsess:23D98
+|  `- XMSGsess:230CC
+|     `- XMSGsess:22F5C ...
++- XMSGsess:2443E
++- XMSGsess:24556
+|  +- XMPFPRV
+|  +- XMPFDMM
+|  +- XMSG_XFDUM_Dummy
+|  +- XMSGsup:29346
+|  `- XMSGsup:2B292
++- XMSGsess:24EF0
+|  `- XMSGsess:24BD2
+|     +- XMSGsess:249C0
+|     |  +- XMSG_ReceiveRequestAndReply
+|     |  +- XMPFREL
+|     |  `- XMPFPST
+|     `- XMSGsess:274BA
+|        +- XMSGsess:27350
+|        `- XMSGsup:29446
++- XMSGsess:25094
+|  +- XMSGsess:25030
+|  |  +- XMSG_RequestReply
+|  |  |  +- XMSG_SendAndRoute
+|  |  |  +- XMPFOPN
+|  |  |  +- XMPFCLS
+|  |  |  +- XMPFGET
+|  |  |  +- XMPFREL
+|  |  |  +- XMPFREA
+|  |  |  +- XMPFWRI
+|  |  |  +- XMPFRCV
+|  |  |  +- XMSGsup:28A84
+|  |  |  +- XMSGsup:28B04
+|  |  |  +- XMSGsup:28B64
+|  |  |  `- XMPXRTS
+|  |  `- XMPFOPN
+|  +- XMPFCLS
+|  `- XMSGsup:2935E
+|     +- XMSGsup:290FC
+|     |  +- XMSGsup:28F34
+|     |  `- XMSGsup:28FFE
+|     `- XMSGsup:298B4
+|        +- XMSGsup:28F34
+|        `- XMSGsup:28FFE
++- XMSGsess:2579E
+|  +- XMSGsess:2544E
+|  |  +- XMSGsess:26DAA
+|  |  |  `- XMPFREL
+|  |  +- XMPFOPN ...
+|  |  +- XMPFCLS ...
+|  |  +- XMPFREL
+|  |  +- XMPFREA
+|  |  +- XMPFRCV
+|  |  +- XMPFMST
+|  |  `- XMSGsup:28958
+|  |     +- XMSGsup:28A84
+|  |     +- XMSGsup:28B04
+|  |     +- XMSGsup:28B64
+|  |     `- XMSGsup:28D32
+|  `- XMSGsup:293F0
+|     `- XMSGsup:299F0
+|        +- XMSGsup:28F34
+|        +- XMSGsup:28FFE
+|        `- XMSGsup:2B4B0
++- XMSGsess:25DDC
+|  +- XMSGsess:25D82
+|  |  `- XMPFGET
+|  `- XMSGsup:29B12
+|     `- XMSGsup:2904A
++- XMSG_ReleaseMessage
+|  +- XMPFCLS ...
+|  +- XMPFREL ...
+|  `- XMSGsup:29BF4
+|     `- XMSGsup:2904A ...
++- XMSGsess:2625C
+|  +- XMSGsess:26F78
+|  |  +- XMPFWRI
+|  |  `- XMPFSCM
+|  +- XMSGsess:26FFC
+|  |  +- XMSGsess:26DAA ...
+|  |  `- XMPFREA ...
+|  +- XMSGsess:270A4
+|  |  `- XMSGsess:26DAA ...
+|  `- XMSGsup:295A2
+|     `- XMSGsup:2904A ...
++- XMSGsess:26688
+|  `- XMSGsess:274BA ...
++- XMSGsess:2685A
+|  +- XMSGsess:26FFC ...
+|  `- XMSGsup:29D9C
+`- XMSGsess:26A22
+   +- XMSGsess:26F78 ...
+   `- XMSGsup:29E20

@@ -86,6 +86,19 @@ COMPILE CHAT:PLNC,"CHAT:LIST","CHAT"
 EXIT
 
 @cc --- step 2: link the program, the XMSG library and the PLANC runtime -----
+@cc
+@cc MON-CALL-1B-A00:BRF is the SINTRAN III Monitor Call Package (product
+@cc ND-210913), installed on D100 2026-08-19 from floppy 210913A00-XX-01D. It is
+@cc what supplies 5MON_P, the entry MONITOR_CALL compiles into - without it any
+@cc MONITOR_CALL leaves "5MON_P ... U" undefined, which is why every program here
+@cc used the MONn routines instead.
+@cc
+@cc IT GOES BETWEEN THE PROGRAM AND THE RUNTIME. The vendor's own PLANC example
+@cc in Developer/MON/Monitor Calls.md is
+@cc      LOAD EX-PROG:BRF, MON-CALL-1BANK:BRF, PLANC-1BANK:BRF
+@cc so: program first, then the library that satisfies it, then the runtime.
+@cc
+@cc The 2-bank build (SEPARATE-DATA ON) wants MON-CALL-2B-A00 instead.
 @cc 5MON_P comes from PLANC-1BANK-F00 - it is what MONITOR_CALL compiles into,
 @cc so the runtime is needed even though this program calls nothing else in it.
 @BRF-LINKER-C01
@@ -93,6 +106,7 @@ PROGRAM-FILE "CHAT"
 LOAD CHAT
 LIBRARY-MODE ON
 LOAD XMP-100-1-B02
+LOAD MON-CALL-1B-A00
 LOAD PLANC-1BANK-F00
 LIST-ENTRIES-UNDEFINED
 EXIT

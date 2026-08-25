@@ -149,11 +149,48 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
         /// request is built. One rather than zero so the ladder is always well formed.
         /// </remarks>
         public FaReadDriver(FaReadSource source)
+            : this(source, false)
+        {
+        }
+
+        /// <summary>
+        /// Starts a pull, or a diagnostic probe that opens nothing.
+        /// </summary>
+        /// <param name="source">
+        /// Where the file is coming from.
+        /// </param>
+        /// <param name="probeWithoutOpen">
+        /// <c>true</c> to run <see cref="FaReadLadder.ProbeWithoutOpen"/> instead of a transfer:
+        /// reserve a file entry, set the block size, and stop. <c>false</c> for an ordinary pull.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="source"/> is null.
+        /// </exception>
+        /// <remarks>
+        /// <para>
+        /// <b>The probe transfers nothing.</b> It exists to answer what the follow-on refusal
+        /// <c>A2 4104</c> means - see <see cref="FaReadLadder.ProbeWithoutOpen"/> and
+        /// <c>DOC/CARVE-FA-READ-REFUSAL-2026-08-18.md</c>. Point it at a file that EXISTS: the
+        /// question is what the server says about a block size on an entry nothing has opened, and
+        /// a missing file would put the ordinary refusal in the way of the answer.
+        /// </para>
+        /// <para>
+        /// A separate constructor rather than a flag with a default, so no existing caller can
+        /// acquire probe behaviour by accident.
+        /// </para>
+        /// </remarks>
+        public FaReadDriver(FaReadSource source, bool probeWithoutOpen)
         {
             if (source == null) { throw new ArgumentNullException(nameof(source)); }
 
             _source = source;
-            _session = new FaClientReadSession(1);
+
+            // The session starts with a ONE-block ladder, which is a placeholder and not a guess
+            // about the file: the real count replaces it the moment the open reply arrives, before
+            // any block request is built. One rather than zero so the ladder is always well formed.
+            _session = probeWithoutOpen
+                ? FaClientReadSession.CreateProbeWithoutOpen()
+                : new FaClientReadSession(1);
 
             // Opening values only. The letter is the one message that goes out before the server
             // has told us anything; the confirmation then replaces both.
@@ -188,6 +225,38 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
         public ushort OurPort
         {
             get { return _ourPort; }
+        }
+
+        /// <summary>
+        /// Ends the transfer as failed, for a reason the caller worked out rather than the peer.
+        /// </summary>
+        /// <param name="reason">
+        /// What went wrong, in words that will be shown to a person.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="reason"/> is null.
+        /// </exception>
+        /// <remarks>
+        /// <para><b>Why the driver needs this at all</b></para>
+        /// <para>
+        /// Some ways a transfer dies are not visible from inside the ladder. The commonest is
+        /// silence: the caller sends its connect letter four times, nothing ever answers, and it
+        /// stops. That decision is made ABOVE the driver, so without this the driver has no idea the
+        /// transfer is over and goes on reporting itself unfinished.
+        /// </para>
+        /// <para><b>The write driver has had this since 2026-08-18; the read driver did not</b></para>
+        /// <para>
+        /// Which is why the pull could not be given a connect-letter retry at all - there was no way
+        /// to tell the driver it had given up. A pull whose first letter went unanswered therefore
+        /// sat silent for the whole 240-second transfer timeout and reported only "did NOT finish".
+        /// See <c>FaPullRun.RetryConnectLetterIfSilent</c>.
+        /// </para>
+        /// </remarks>
+        public void Abandon(string reason)
+        {
+            if (reason == null) { throw new ArgumentNullException(nameof(reason)); }
+
+            _session.OnRejected(reason);
         }
 
         /// <summary>
@@ -737,7 +806,11 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
                     // Identical to a write's. The reserve says WHO IS ASKING, not what for.
                     return _conversation.BuildRequest(
                         operation,
-                        FaWriteRequests.ReserveFileEntry(_source.BackgroundProgram, _source.User));
+                        FaWriteRequests.ReserveFileEntry(
+                            _source.BackgroundProgram,
+                            _source.LocalUser,
+                            _source.User,
+                            _source.PasswordWord));
 
                 case FaOperation.OpenFile:
                     // NOT the write builder: a read's open carries no access selector and no

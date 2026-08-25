@@ -1,0 +1,99 @@
+@cc ===========================================================================
+@cc CHATMN:MODE - build the chat server's configuration program on D100.
+@cc
+@cc   @MODE CHATMN:MODE,,
+@cc
+@cc Carried to D100 as CHATMN:MODE - see the name note below. CHATCC:MODE has the
+@cc full explanation of where the 13-character budget comes from.
+@cc
+@cc Needs these under SYSTEM:
+@cc
+@cc   CHATMN:PLNC          this program, carried over by our own file transfer.
+@cc                        THE SOURCE AND THE PROGRAM HAVE DIFFERENT NAMES ON PURPOSE.
+@cc                        The program is CHAT-MON - it is created LOCALLY by the
+@cc                        compiler and the linker, which have no name-length limit.
+@cc                        The SOURCE has to arrive over FA, where a CREATE quotes the
+@cc                        specification and the whole thing must fit 13 characters:
+@cc                        "CHAT-MON:PLNC" is 13 plus two quotes = 15 and is refused
+@cc                        before a byte goes out. So the source travels short and is
+@cc                        compiled into the full name. Do not "fix" this.
+@cc                        NOTE THE SHORT NAME. A CREATE quotes the specification, and
+@cc                        the open request carries spec + apostrophe + access letter in
+@cc                        a QFORM string of at most 15 bytes - 13 characters of name.
+@cc                        "CHATMON:PLNC" is 14 WITH the quotes and is refused before a
+@cc                        byte goes out; "CHATMN:PLNC" is 13 and fits. The compiled
+@cc                        outputs are created LOCALLY by the compiler and carry no such
+@cc                        limit, so they keep the full CHATMON name.
+@cc   XMP-B02:DEFS         the constants          )  the real COSMOS binding,
+@cc   XMP-B02:IMPT         the declarations       )  product ND-10609, put on
+@cc   XMP-100-1-B02:BRF    the code               )  by COS-LIB-IN-B02:PROG
+@cc
+@cc The three rules CHATCC:MODE spells out apply here unchanged and are not
+@cc repeated: the source must be CRLF, every included file must end with $EOF,
+@cc and the XMP library is linked in a SEPARATE step because nothing pulls it
+@cc in on its own. Read that file if any of those bite.
+@cc
+@cc WHAT IS DIFFERENT HERE: NO MON-CALL-1B-A00.
+@cc
+@cc That package supplies 5MON_P, which is what MONITOR_CALL compiles into.
+@cc This program does not use MONITOR_CALL - the only monitor call it makes is
+@cc MON1, InByte, and MON1 is one of the MONn ROUTINES the PLANC runtime
+@cc already carries in PLANC-1BANK-F00. Loading a library nothing refers to
+@cc supplies nothing, so it is left out rather than carried along for symmetry.
+@cc
+@cc If a later CHAT-MON command does need a monitor call the MONn set has no
+@cc routine for, the package goes back in BETWEEN the program and the runtime,
+@cc exactly as CHATCC:MODE does it.
+@cc ===========================================================================
+
+@cc --- clear the old build; a "NO SUCH FILE NAME" on a first run is expected --
+@DELETE-FILE CHAT-MON:PROG
+@DELETE-FILE CHAT-MON:LIST
+@DELETE-FILE CHAT-MON:BRF
+
+@cc --- step 1: compile to an object file ------------------------------------
+@cc Quoting: no quotes means the file must already exist, "quotes" means create.
+@cc No PROG-FILE here on purpose - with it set the compiler links straight into
+@cc the program file and leaves the BRF empty.
+@PLANC-100-F00
+COMPILE CHATMN:PLNC,"CHAT-MON:LIST","CHAT-MON"
+EXIT
+
+@cc --- step 2: link the program, the XMSG library and the PLANC runtime -----
+@cc Program first, THEN the libraries that satisfy it.
+@BRF-LINKER-C01
+PROGRAM-FILE "CHAT-MON"
+LOAD CHAT-MON
+LIBRARY-MODE ON
+LOAD XMP-100-1-B02
+@cc MON-CALL-1B-A00 supplies 5MON_P, which is what MONITOR_CALL compiles into.
+@cc CHAT-MON needs it for GetRTAddress (151B) and StartRTProgram (100B) - the
+@cc two calls behind START and RESTART. It was NOT loaded before, because MON1
+@cc was this program's only monitor call and MON1 is one of the runtime's own
+@cc MONn routines. It goes BETWEEN the program and the runtime, per the vendor's
+@cc own example and exactly as CHATSV:MODE does it.
+@cc
+@cc IT ALSO NEEDS MON-CALL-NAMES-A:DATA ON THE MACHINE - a SEPARATE file from
+@cc this library. Without it the build SAYS IT SUCCEEDED and the listing carries
+@cc   *** ERROR - THE MON-CALL-NAMES FILE WAS NOT FOUND
+@cc once per MONITOR_CALL. That is the whole reason the listing gate exists.
+LOAD MON-CALL-1B-A00
+LOAD PLANC-1BANK-F00
+LIST-ENTRIES-UNDEFINED
+EXIT
+
+@cc ===========================================================================
+@cc CHECK THE LISTING BEFORE BELIEVING THE BUILD.
+@cc
+@cc   @LIST-FILE CHAT-MON:LIST,,   and look for "*** ERROR"
+@cc
+@cc The count that matters is the one on the COMPILE line, not the one after
+@cc EXIT. If LINES COMPILED is far short of the source, look for a missing
+@cc $EOF before looking at the program.
+@cc ===========================================================================
+@cc Built CHAT-MON:PROG. Run it with @CHAT-MON; it prompts "C-M: " until EXIT.
+@cc
+@cc IT NEEDS THE SERVER RUNNING: @RT CHATSER. CHAT-MON addresses CHAT-ADMIN by
+@cc NAME through XROUT, so if the server is not up the letter has nowhere to go
+@cc and the status number says so.
+@cc ===========================================================================

@@ -298,6 +298,8 @@ Documented products link from the **Doc** column below.
 | ND-10400 | Subsystem Package II | ND-100 | 80 |
 | ND-210375 | Telefix for User Sites | ND-100 | 80 |
 | ND-210400 | Subsystem Package II | ND-100 | 80 |
+| ND-10459 | VTM terminal tables (DEC VT100) | ND-100 | 80 |
+| ND-10465 | VTM terminal tables (DEC VT52) | ND-100 | 80 |
 | ND-210455 | VTM terminal tables (Standard) | ND-100 | 80 |
 | ND-210507 | Software Keys | ND-100 | 80 |
 | ND-210518 | User-Environment | ND-100 | 80 |
@@ -405,6 +407,7 @@ Documented products link from the **Doc** column below.
 | [ND-250405 PLANC for Intel-386 on ND-500/5000](ND-250405/README.md) | STUB — no source located |
 | [ND-211039 COBOL-85 Runtime](ND-211039/README.md) | STUB — no source located |
 | [ND-250009 NDP](ND-250009/README.md) | STUB — no source located |
+| [ND-250247 ND-5000 Test Microprograms](ND-250247/README.md) | STUB — diskette directory listing decoded (20 files, per-CPU-block tests), no floppy image located |
 | [ND-211159 LED-FORTRAN](ND-211159/README.md) | STUB — real floppy decoded, no installer program on it |
 | [ND-211158 LED-PLANC](ND-211158/README.md) | STUB — no source located |
 | [ND-230050 LED for OWS](ND-230050/README.md) | STUB — no source located |
@@ -419,6 +422,10 @@ Documented products link from the **Doc** column below.
 | [ND-10130 Xmessage for SINTRAN-III/VS](ND-10130/README.md) | IN-PROGRESS — real J-version floppy decoded, full load/start `:MODE`/`:BATC` scripts |
 | [ND-10373 IS XMSG (Inter System)](ND-10373/README.md) | IN-PROGRESS — real J-version floppy decoded, XFTRA file-transfer extra confirmed |
 | [PLANC-SCREEN-H — PLANC Screen Handling Library](ND-PLANC-SCREEN-H/README.md) | IN-PROGRESS — real floppy decoded, real PLANC interface + `.PICT` screen format; no ND article number |
+| [ND-210913 SINTRAN III Monitor Call Package](ND-210913/README.md) | VERIFIED install procedure (this is the real `mon-call-lib` product) — sourced from NDWiki, primary PD-sheet PDF still pending |
+| [ND-10459 VTM terminal tables (DEC VT100)](ND-10459/README.md) | IN-PROGRESS — real floppy confirmed, no PD/PI sheet |
+| [ND-10465 VTM terminal tables (DEC VT52)](ND-10465/README.md) | IN-PROGRESS — real floppy confirmed, no PD/PI sheet |
+| [ND-10188 FOCUS Level 1 Screen Handling System](ND-10188/README.md) | IN-PROGRESS — real 4-disk floppy set decoded, real PI sheet, built in PLANC, ships its own VTM bridge |
 | [ND-10704 FORTRAN Interface (T2000 patch)](ND-10704/README.md) | IN-PROGRESS — real floppy decoded, real QED patch script |
 | [ND-10516 FILE-HANDLER](ND-10516/README.md) | IN-PROGRESS — real floppy decoded, installer + main program + samples found |
 | [ND-10732 ND Telex](ND-10732/README.md) | IN-PROGRESS — real floppy decoded, complete real SINTRAN monitor-call install (DMAC assembly) |

@@ -1,0 +1,53 @@
+@cc ===========================================================================
+@cc TESTUI:MODE - build the PLANC-SCREEN-H / VTM screen demo on D100.
+@cc
+@cc   @MODE TESTUI:MODE,,
+@cc
+@cc Needs these under SYSTEM before it will link:
+@cc
+@cc   TESTUI:PLNC       the source
+@cc   SCREEN:SYMB       the PLANC-SCREEN-H interface, $INCLUDEd by the source
+@cc   INTRF1B:BRF       the PLANC-SCREEN-H 1-bank runtime (INTERF-1B renamed)
+@cc   VTMR:BRF          VTM routines - off the FOCUS floppy ND-10188. WITHOUT THESE the
+@cc   VTMDATA:BRF       link leaves nine VT* entries undefined and the program misbehaves.
+@cc   VTMARR:BRF        VTMCPOS and VTMCPAR are NOT needed - VTMR already defines them.
+@cc
+@cc SCREEN:SYMB and INTRF1B:BRF come off the PLANC-SCREEN-H floppy and are
+@cc NOT part of a stock SINTRAN - see README.md in the repo folder for where
+@cc they come from and how to put them on. MON-CALL-1B-A00 and PLANC-1BANK-F00
+@cc are already on D100.
+@cc
+@cc LIBRARY-MODE ON means a library hands over only the units something has
+@cc already asked for, so loading MON-CALL-1B-A00 costs nothing if the screen
+@cc library turns out not to call into it. The vendor demo's header says it is
+@cc needed, so it is loaded rather than guessed about.
+@cc
+@cc READ WHAT LIST-ENTRIES-UNDEFINED PRINTS. An undefined entry does NOT fail
+@cc the build - BRF-LINKER still writes a runnable TESTUI:PROG that then
+@cc misbehaves in ways that look like a bug in the program. Anything listed is
+@cc a library missing or loaded in the wrong order.
+@cc
+@cc In particular: the vendor demo's header comment says Vtm must be loaded
+@cc with the program. Whether that means a VTM BRF has to appear in this LOAD
+@cc list, or whether the VTM routines are already inside SINTRAN and only the
+@cc DDBTABLES:VTM data file matters, is NOT known. This is the command that
+@cc answers it: if VTM symbols come out undefined, a VTM array BRF is needed.
+@cc ===========================================================================
+@DELETE-FILE TESTUI:PROG
+@DELETE-FILE TESTUI:LIST
+@DELETE-FILE TESTUI:BRF
+@PLANC-100-F00
+COMPILE TESTUI:PLNC,"TESTUI:LIST","TESTUI"
+EXIT
+@BRF-LINKER-C01
+PROGRAM-FILE "TESTUI"
+LOAD TESTUI
+LIBRARY-MODE ON
+LOAD INTRF1B
+LOAD VTMR
+LOAD VTMDATA
+LOAD VTMARR
+LOAD MON-CALL-1B-A00
+LOAD PLANC-1BANK-F00
+LIST-ENTRIES-UNDEFINED
+EXIT

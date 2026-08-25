@@ -1,0 +1,24 @@
+#=======================================================================
+#
+#        A I P - N E T W O R K S : S Y M B
+#
+#     This file contains information regarding the know networks 
+#     comprising Internet.
+#
+#     For each network, a single line should be present
+#     with the following information:
+#
+#     Official-Network-Name   Network-Number   Aliases
+#
+#=======================================================================
+#
+# example from Sun customer networks
+#
+loopback 127
+sun-ether   192.9.200   sunether ethernet localnet
+sun-oldether   125      sunoldether
+#
+# Internet networks
+#
+arpanet     10    arpa
+ucb-ether   46    ucbether

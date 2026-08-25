@@ -47,7 +47,18 @@ param(
     # answer "-45: XMSG is either not generated, not loaded or not started", after which every
     # later command failed the same way - so START-LINK never ran and the machine looked broken in
     # a way that took a long time to attribute correctly.
-    [switch]$WithEthernet
+    [switch]$WithEthernet,
+
+    # Leave the chat server alone at the end. It is this project's own program, so somebody
+    # restarting XMSG for an unrelated reason should not have it started underneath them. It is
+    # otherwise brought up by step 7, because forgetting it by hand is what most often makes a
+    # restart look like it did not work.
+    [switch]$SkipChatServer,
+
+    # A FREE segment to RT-LOAD the chat server onto at the end. Zero means "do not", and the
+    # script then says what is left to do instead of running a command that will not work - see
+    # step 7 for why a bare RT start is not enough after an XMSG restart.
+    [int]$ChatSegment = 0
 )
 
 $ErrorActionPreference = "Stop"
@@ -68,7 +79,17 @@ function Invoke-Steps([string[]]$steps, [string]$waitFor, [int]$settleMs, [strin
         SettleMs   = $settleMs
     }
     if ($waitFor -ne "") { $args["WaitFor"] = $waitFor }
-    & $ndterm @args
+
+    # The machine's answers are kept as well as shown, so a later step can CHECK one instead of
+    # leaving it to whoever reads the scrollback. See the file-server check after step 5: the one
+    # line that says whether the file server came up sits in the middle of a long COSMOS log, and
+    # on 2026-08-20 it said "Server full! Come back later." while this script still exited 0.
+    # TEE, not capture-then-print. Capturing into a variable and printing afterwards holds a
+    # whole step's output back until the step ENDS - and the X-C and COSMOS steps run for
+    # minutes, so the screen sits on a bare "=== 4 ===" heading with no sign of life. Tee-Object
+    # passes each line through as it arrives AND fills the variable.
+    & $ndterm @args 2>&1 | Tee-Object -Variable out
+    $script:LastStepsOutput = ($out | Out-String)
 }
 
 # --- 1. Stop XMSG -------------------------------------------------------------------------------
@@ -189,6 +210,67 @@ Invoke-Steps $xcSteps.ToArray() "X-C:" 8000 "4. XMSG configuration (X-C)"
 # window, so the only way back is typing SET-AVAILABLE on the GUI console.
 Invoke-Steps @("MODE (PACK-ONE:COSMOS-BASIC)COS-START-E04:MODE,,", "SET-AVAIL") "" 45000 "5. COSMOS, then set available"
 
+# --- 5b. DID THE FILE SERVER ACTUALLY COME UP? -------------------------------------------------
+# CHECKED, not left to the reader. COS-START-E04 either says
+#
+#     Server 1 started.     No of FACs attached: 30
+#
+# or it says "Server full! Come back later." - and on 2026-08-20 it said the second one while this
+# script still exited 0 and every step after it answered Ok. Nothing downstream names the problem
+# either: a push then climbs LAPB, sends its connect letter, and node 100 ANSWERS - with a TAD
+# REJE carrying the ASCII "D100". That reads as a live machine refusing us for some access reason,
+# and an hour can go into the routing tables before anybody looks at this line.
+#
+# Told here, the cure is three commands and it is printed with the warning.
+$fileServerUp = $script:LastStepsOutput -match 'No of FACs attached'
+$serverFull   = $script:LastStepsOutput -match 'Server full'
+if (-not $fileServerUp) {
+    Write-Host ""
+    Write-Host "*** THE COSMOS FILE SERVER DID NOT START - STARTING IT ***" -ForegroundColor Yellow
+    if ($serverFull) {
+        Write-Host "    COS-START-E04 answered 'Server full! Come back later.'" -ForegroundColor Yellow
+    } else {
+        Write-Host "    No 'No of FACs attached' line came back from COS-START-E04." -ForegroundColor Yellow
+    }
+
+    # DO IT, DO NOT JUST SAY IT.
+    #
+    # This block printed the three commands and left them for a person to type, and on 2026-08-21
+    # that cost most of a day: EVERY pull after a restart timed out at 240 seconds with no file
+    # server to answer it, the failure was read as an XMSG death, and five controlled experiments
+    # were run around a machine that simply had nothing serving files. A tool that knows the cure
+    # and only prints it is a tool that will be ignored at exactly the moment it matters.
+    #
+    # RT FSART FIRST. SELECT-FSA on its own answers "Remote FSA is not running" straight after a
+    # COSMOS restart - RT starts the RT program, and the SERVER inside it is a separate thing that
+    # has to be told to start.
+    Invoke-Steps @(
+        "RT FSART",
+        "FS-ADMINISTRATOR",
+        "SELECT-FSA,,,,",
+        "START-SERVER 1,,,,",
+        "EXIT"
+    ) "" 45000 "5c. start the COSMOS file server"
+
+    # CHECK IT TOOK. "Server N started" is the only line that says so, and N is NOT the number
+    # asked for - START-SERVER allocates the next free server, so a second run answers "Server 2".
+    # Read it as "a server is up", never as "server 1 was replaced".
+    if ($script:LastStepsOutput -match 'No of FACs attached') {
+        Write-Host "    file server is up." -ForegroundColor Green
+    } else {
+        Write-Host ""
+        Write-Host "*** THE FILE SERVER IS STILL NOT UP ***" -ForegroundColor Red
+        Write-Host "    Every FA PULL will now time out after 240s with the link CONNECTED and the" -ForegroundColor Yellow
+        Write-Host "    peer silent - which looks nothing like a missing server. Check by hand:" -ForegroundColor Yellow
+        Write-Host "        @RT FSART" -ForegroundColor Yellow
+        Write-Host "        @FS-ADMINISTRATOR" -ForegroundColor Yellow
+        Write-Host "        FSA: SELECT-FSA,,,,          -> 'Connection established'" -ForegroundColor Yellow
+        Write-Host "        FSA(own system): START-SERVER 1,,,,   -> 'No of FACs attached: 30'" -ForegroundColor Yellow
+        Write-Host "        FSA(own system): EXIT" -ForegroundColor Yellow
+        Write-Host ""
+    }
+}
+
 # --- 6. Friend systems - LAST, because COSMOS wipes them --------------------------------------
 # This is the step that has to come after everything else that touches the routing tables.
 #
@@ -221,8 +303,69 @@ $friendSteps.Add("EXIT")
 
 Invoke-Steps $friendSteps.ToArray() "X-C:" 8000 "6. friend systems (AFTER COSMOS - it wipes them)"
 
+# --- 7. The chat server ------------------------------------------------------------------------
+# THE ONE THING THAT DIES WITH XMSG AND WAS STILL BEING STARTED BY HAND EVERY SINGLE TIME.
+#
+# Measured across ten XMSG deaths on 2026-08-20/21: a restart takes down FOUR things, not one, and
+# every failure names something ELSE -
+#
+#   TADADM missing      -> START-SERVER says "Terminal access not running or unknown port name"
+#   file server missing -> a push climbs LAPB, D100 ANSWERS, and the answer is a TAD REJE carrying
+#                          the ASCII "D100" - which reads as an access problem and is not
+#   link missing        -> our SABM goes unanswered for ever; the runner just times out at 240s
+#   CHATSER missing     -> clients get nothing at all
+#
+# Steps 3, 4 and 5 already cover the first three - the link is started at the END of step 4, see
+# the START-LINK line in $xcSteps. Only the chat server was left to the operator, and it is the
+# easiest of the four to forget because nothing complains until somebody tries to join.
+#
+# DO NOT ADD START-LINK HERE. It was in this step for one commit and it was redundant: step 4 has
+# already started the link, and starting it twice answers
+#
+#     Error in communicating with XROUT.
+#     XMSG Routing/Naming error: Illegal/Reserved Logical Unit Number (LUN) for link
+#
+# which is the same message the command gives when the link does not exist YET. That message says
+# "this LUN is not in a state where this command applies" and NOTHING about which verb you used -
+# measured 2026-08-21 both ways round, once too early and once too late.
+#
+# THE SAME ORDERING TRAP CATCHES CHATSER, which is why it is last: started before XROUT is
+# configured it goes straight to PASSIVE, because xmpopcn has nothing to register against.
+# AND A BARE "RT CHATSER" IS NOT ENOUGH AFTER A RESTART - it goes straight to PASSIVE.
+#
+# Measured 2026-08-21, twice within minutes, same source, same machine:
+#   segment 2526, linked BEFORE this restart -> PASSIVE, 0 CPU units, no log line written
+#   segment 2527, same source, linked AFTER  -> IN TIME QUEUE ... TMOUT, alive and serving
+# A foreground run works either way, because it loads from its :PROG each time. That difference
+# made the RT path look broken for most of a session.
+#
+# So the segment must be RT-LOADED again, which needs a FRESH segment number this script cannot
+# invent. Give -ChatSegment to have it done here; without it, say plainly what is left to do
+# rather than running a command that will quietly fail.
+if ($SkipChatServer) {
+    Write-Host ""
+    Write-Host "=== 7. SKIPPED (-SkipChatServer): chat server not started ===" -ForegroundColor DarkGray
+} elseif ($ChatSegment -gt 0) {
+    $rtLoad = Join-Path $PSScriptRoot "rt-load.ps1"
+    Write-Host ""
+    Write-Host "=== 7. the chat server (RT-LOAD onto segment $ChatSegment) ===" -ForegroundColor Cyan
+    & $rtLoad -Port $Port -Segment $ChatSegment -User $User -Password $Password `
+        -RemoteHost $RemoteHost -AndStart
+} else {
+    Write-Host ""
+    Write-Host "=== 7. the chat server - NOT STARTED, and a bare RT start will not work ===" -ForegroundColor Yellow
+    Write-Host "    An RT program that uses XMSG must be RT-LOADED AGAIN after an XMSG restart;" -ForegroundColor Yellow
+    Write-Host "    a segment linked before the restart goes PASSIVE with 0 CPU units." -ForegroundColor Yellow
+    Write-Host "    Run:  tools\rt-load.ps1 -Port $Port -Segment <a free one> -AndStart" -ForegroundColor Yellow
+    Write-Host "    or re-run this script with -ChatSegment <a free one>." -ForegroundColor Yellow
+}
+
 Write-Host ""
 Write-Host "Done. Expect these and ignore them:" -ForegroundColor Green
 Write-Host "  - printer definitions failing for ND-969 / ND-1068 / ND-5005 (those systems do not exist here)"
 Write-Host "  - 'File already exists, but it does not belong to COSMOS-SPOOLING'"
-Write-Host "Look for: 'Server 1 started.  No of FACs attached: 30'"
+if ($fileServerUp) {
+    Write-Host "File server: UP - COS-START-E04 reported its FACs attached." -ForegroundColor Green
+} else {
+    Write-Host "File server: NOT RUNNING - see the red block above. FA transfers will be refused." -ForegroundColor Red
+}

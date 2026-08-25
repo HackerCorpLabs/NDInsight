@@ -1,0 +1,5941 @@
+{
+  "ExitFromProgram": {
+    "number": "0B",
+    "shortName": "LEAVE",
+    "longName": "ExitFromProgram",
+    "params": [],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": false,
+    "plancRoutine": "MON0",
+    "notes": "Terminates the program. Does not return. Callers: All users. Programs: All programs."
+  },
+  "InByte": {
+    "number": "1B",
+    "shortName": "INBT",
+    "longName": "InByte",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Byte",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON1",
+    "notes": "In no-wait mode a read with nothing typed gives ErrCode 3. Callers: All users. Programs: All programs."
+  },
+  "OutByte": {
+    "number": "2B",
+    "shortName": "OUTBT",
+    "longName": "OutByte",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Byte",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON2",
+    "notes": "As MON2 the byte is the IN-VALUE: b MON2(dev), not MON2(dev, b). Callers: All users. Programs: All programs."
+  },
+  "SetEcho": {
+    "number": "3B",
+    "shortName": "ECHOM",
+    "longName": "SetEcho",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "EchoStrategy",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "EchoTable",
+        "type": "ARR",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON3",
+    "notes": "Echo table is 256 bits. Callers: All users. Programs: All programs."
+  },
+  "SetBreak": {
+    "number": "4B",
+    "shortName": "BRKM",
+    "longName": "SetBreak",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "BreakStrategy",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "BreakTable",
+        "type": "ARR",
+        "dir": "I"
+      },
+      {
+        "name": "MaxCharsBeforeBreak",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON4",
+    "notes": "Break table is 128 bits. Callers: All users. Programs: All programs."
+  },
+  "ReadScratchFile": {
+    "number": "5B",
+    "shortName": "RDISK",
+    "longName": "ReadScratchFile",
+    "params": [
+      {
+        "name": "StartBlockNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Data",
+        "type": "ARR",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "WriteScratchFile": {
+    "number": "6B",
+    "shortName": "WDISK",
+    "longName": "WriteScratchFile",
+    "params": [
+      {
+        "name": "StartBlockNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Data",
+        "type": "ARR",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: Background programs."
+  },
+  "ReadBlock": {
+    "number": "7B",
+    "shortName": "RPAGE",
+    "longName": "ReadBlock",
+    "params": [
+      {
+        "name": "FileNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "BlockNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Data",
+        "type": "ARR",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "WriteBlock": {
+    "number": "10B",
+    "shortName": "WPAGE",
+    "longName": "WriteBlock",
+    "params": [
+      {
+        "name": "FileNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "BlockNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Data",
+        "type": "ARR",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "GetBasicTime": {
+    "number": "11B",
+    "shortName": "TIME",
+    "longName": "GetBasicTime",
+    "params": [
+      {
+        "name": "InternalTime",
+        "type": "INT4",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON11",
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "SetCommandBuffer": {
+    "number": "12B",
+    "shortName": "SETCM",
+    "longName": "SetCommandBuffer",
+    "params": [
+      {
+        "name": "CommandString",
+        "type": "STR",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON12",
+    "notes": "Callers: All users. Programs: Background programs."
+  },
+  "ClearInBuffer": {
+    "number": "13B",
+    "shortName": "CIBUF",
+    "longName": "ClearInBuffer",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON13",
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "ClearOutBuffer": {
+    "number": "14B",
+    "shortName": "COBUF",
+    "longName": "ClearOutBuffer",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON14",
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "GetTerminalType": {
+    "number": "16B",
+    "shortName": "MGTTY",
+    "longName": "GetTerminalType",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "TerminalType",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON16",
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "SetTerminalType": {
+    "number": "17B",
+    "shortName": "MSTTY",
+    "longName": "SetTerminalType",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "TerminalType",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON17",
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "WCI": {
+    "number": "20B",
+    "shortName": "WCI",
+    "longName": "WCI",
+    "params": [],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Internal use only. Section 2.14 lists the number and short name and gives no long name and no parameters. UNVERIFIED. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "InUpTo8Bytes": {
+    "number": "21B",
+    "shortName": "M8INB",
+    "longName": "InUpTo8Bytes",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "BytesRead",
+        "type": "INT",
+        "dir": "O"
+      },
+      {
+        "name": "Bytes",
+        "type": "STR",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON21",
+    "notes": "MON21 has a different PLANC signature on ND-100 and on ND-500. Callers: All users. Programs: All programs."
+  },
+  "OutUpTo8Bytes": {
+    "number": "22B",
+    "shortName": "M8OUT",
+    "longName": "OutUpTo8Bytes",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Bytes",
+        "type": "STR",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON22",
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "In8Bytes": {
+    "number": "23B",
+    "shortName": "B8INB",
+    "longName": "In8Bytes",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "BytesRead",
+        "type": "INT",
+        "dir": "O"
+      },
+      {
+        "name": "Bytes",
+        "type": "STR",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "Out8Bytes": {
+    "number": "24B",
+    "shortName": "B8OUT",
+    "longName": "Out8Bytes",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Bytes",
+        "type": "STR",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON24",
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "GetLastByte": {
+    "number": "26B",
+    "shortName": "LASTC",
+    "longName": "GetLastByte",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "LastByte",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "GetRTDescr": {
+    "number": "27B",
+    "shortName": "RTDSC",
+    "longName": "GetRTDescr",
+    "params": [
+      {
+        "name": "RTDescriptionAddress",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "RTDescription",
+        "type": "ARR",
+        "dir": "O"
+      },
+      {
+        "name": "ConnectedDevices",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "RT description is 52 bytes; a RECORD may be passed instead of an array. Callers: User RT and user SYSTEM. Programs: RT programs."
+  },
+  "GetOwnRTAddress": {
+    "number": "30B",
+    "shortName": "GETRT",
+    "longName": "GetOwnRTAddress",
+    "params": [
+      {
+        "name": "RTDescriptionAddress",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON30",
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "IOInstruction": {
+    "number": "31B",
+    "shortName": "EXIOX",
+    "longName": "IOInstruction",
+    "params": [
+      {
+        "name": "RegisterBefore",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "DeviceRegisterAddress",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "RegisterAfter",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: User RT and user SYSTEM. Programs: RT programs."
+  },
+  "OutMessage": {
+    "number": "32B",
+    "shortName": "MSG",
+    "longName": "OutMessage",
+    "params": [
+      {
+        "name": "Text",
+        "type": "STR",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON32",
+    "notes": "Callers: All users. Programs: Background programs."
+  },
+  "AltPageTable": {
+    "number": "33B",
+    "shortName": "ALTON",
+    "longName": "AltPageTable",
+    "params": [
+      {
+        "name": "PageTableNumber",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "NormalPageTable": {
+    "number": "34B",
+    "shortName": "ALTOFF",
+    "longName": "NormalPageTable",
+    "params": [],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "OutNumber": {
+    "number": "35B",
+    "shortName": "IOUT",
+    "longName": "OutNumber",
+    "params": [
+      {
+        "name": "OctalOrDecimal",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Number",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: Background programs."
+  },
+  "NoWaitSwitch": {
+    "number": "36B",
+    "shortName": "NOWT",
+    "longName": "NoWaitSwitch",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "InputOrOutputFlag",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "NoWaitFlag",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "ReadADChannel": {
+    "number": "37B",
+    "shortName": "AIRDW",
+    "longName": "ReadADChannel",
+    "params": [],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Section 2.2 lists no parameters for this call. Section 2.16 lists 37B as no longer supported. Callers: All users. Programs: All programs."
+  },
+  "CloseSpoolingFile": {
+    "number": "40B",
+    "shortName": "SPCLO",
+    "longName": "CloseSpoolingFile",
+    "params": [
+      {
+        "name": "FileNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Message",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "NumberOfCopies",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "PrintFlag",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "ReadObjectEntry": {
+    "number": "41B",
+    "shortName": "ROBJE",
+    "longName": "ReadObjectEntry",
+    "params": [
+      {
+        "name": "FileNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "ObjectEntry",
+        "type": "ARR",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON41",
+    "notes": "Object entry is 64 bytes. Callers: All users. Programs: All programs."
+  },
+  "CloseFile": {
+    "number": "43B",
+    "shortName": "CLOSE",
+    "longName": "CloseFile",
+    "params": [
+      {
+        "name": "FileNumber",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON43",
+    "notes": "43B is CLOSE. 54B is DELETE. Do not swap them. Callers: All users. Programs: All programs."
+  },
+  "GetUserEntry": {
+    "number": "44B",
+    "shortName": "RUSER",
+    "longName": "GetUserEntry",
+    "params": [
+      {
+        "name": "UserName",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "UserEntry",
+        "type": "ARR",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON44",
+    "notes": "User entry is 64 bytes. Callers: All users. Programs: All programs."
+  },
+  "DefineBreakpoint": {
+    "number": "45B",
+    "shortName": "DBRK",
+    "longName": "DefineBreakpoint",
+    "params": [
+      {
+        "name": "RegisterBlock",
+        "type": "ARR",
+        "dir": "I"
+      },
+      {
+        "name": "BreakHandler",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": "MON45",
+    "notes": "Internal use only (section 2.14). Parameter names taken from the PLANC MON45 signature. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "GetBreakpointInfo": {
+    "number": "46B",
+    "shortName": "GBRK",
+    "longName": "GetBreakpointInfo",
+    "params": [],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Internal use only (section 2.14). Parameters not documented. UNVERIFIED. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "SetBreakpoint": {
+    "number": "47B",
+    "shortName": "SBRK",
+    "longName": "SetBreakpoint",
+    "params": [
+      {
+        "name": "RegisterBlock",
+        "type": "ARR",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": "MON47",
+    "notes": "Internal use only (section 2.14). Parameter taken from the PLANC MON47 signature. Section 2.16 lists 47B as no longer supported. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "OpenFile": {
+    "number": "50B",
+    "shortName": "OPEN",
+    "longName": "OpenFile",
+    "params": [
+      {
+        "name": "FileNumber",
+        "type": "INT",
+        "dir": "IO"
+      },
+      {
+        "name": "AccessCode",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "FileName",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "DefaultFileType",
+        "type": "STR",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON50",
+    "notes": "Access codes: 0 seq write, 1 seq read, 2 random read/write, 3 random read, 4 seq read/write, 5 seq write append, 6 random read/write common contiguous, 7 random read common contiguous, 8 random read/write contiguous, 9 random read plus write append. The PLANC MON50 routine takes (file, defaultType, accessCode) and RETURNS the file number as its out-value. Callers: All users. Programs: All programs."
+  },
+  "DMACBreakpoint": {
+    "number": "51B",
+    "shortName": "DMAC",
+    "longName": "DMACBreakpoint",
+    "params": [],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Internal use only (section 2.14). Parameters not documented. Section 2.16 lists 51B as no longer supported. UNVERIFIED. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "TerminalMode": {
+    "number": "52B",
+    "shortName": "TERMO",
+    "longName": "TerminalMode",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "TerminalMode",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "GetSegmentEntry": {
+    "number": "53B",
+    "shortName": "RSEGM",
+    "longName": "GetSegmentEntry",
+    "params": [
+      {
+        "name": "SegmentNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "SegmentEntry",
+        "type": "ARR",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Segment entry is 10 bytes. Callers: User RT and user SYSTEM. Programs: All programs."
+  },
+  "DeleteFile": {
+    "number": "54B",
+    "shortName": "MDLFI",
+    "longName": "DeleteFile",
+    "params": [
+      {
+        "name": "FileName",
+        "type": "STR",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON54",
+    "notes": "DELETES the file. The PLANC MON54 routine takes one BYTES parameter, the file name. Callers: All users. Programs: All programs."
+  },
+  "GetSpoolingEntry": {
+    "number": "55B",
+    "shortName": "RSPQE",
+    "longName": "GetSpoolingEntry",
+    "params": [
+      {
+        "name": "PrinterLDN",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "SpoolingEntry",
+        "type": "ARR",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Spooling entry is 272 bytes. Callers: All users. Programs: All programs."
+  },
+  "SetUserParam": {
+    "number": "56B",
+    "shortName": "PASET",
+    "longName": "SetUserParam",
+    "params": [
+      {
+        "name": "UserParameters",
+        "type": "ARR",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Five user parameters: 5*16 bit on ND-100, 5*32 bit on ND-500. Callers: All users. Programs: All programs."
+  },
+  "GetUserParam": {
+    "number": "57B",
+    "shortName": "PAGET",
+    "longName": "GetUserParam",
+    "params": [
+      {
+        "name": "UserParameters",
+        "type": "ARR",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Five user parameters: 5*16 bit on ND-100, 5*32 bit on ND-500. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "ND500Function": {
+    "number": "60B",
+    "shortName": "N500M",
+    "longName": "ND500Function",
+    "params": [],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Internal use only (section 2.14). Controls the ND-500 from the ND-100. Parameters not documented. UNVERIFIED. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "MemoryAllocation": {
+    "number": "61B",
+    "shortName": "FIXC5",
+    "longName": "MemoryAllocation",
+    "params": [
+      {
+        "name": "FunctionCode",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Param2",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Param3",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Param4",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Param5",
+        "type": "INT",
+        "dir": "O"
+      },
+      {
+        "name": "Param6",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Function code must be 4, 5 or 6. Parameters 2 to 6 depend on the function code. Callers: User RT and user SYSTEM. Programs: All programs."
+  },
+  "GetBytesInFile": {
+    "number": "62B",
+    "shortName": "RMAX",
+    "longName": "GetBytesInFile",
+    "params": [
+      {
+        "name": "FileNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "NumberOfBytes",
+        "type": "INT4",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON62",
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "In4x2Bytes": {
+    "number": "63B",
+    "shortName": "B4INW",
+    "longName": "In4x2Bytes",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "BytesRead",
+        "type": "INT",
+        "dir": "O"
+      },
+      {
+        "name": "Bytes",
+        "type": "STR",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON63",
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "WarningMessage": {
+    "number": "64B",
+    "shortName": "ERMSG",
+    "longName": "WarningMessage",
+    "params": [
+      {
+        "name": "ErrorCode",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON64",
+    "notes": "Error code is octal in the manual's tables. Prints the message and continues. Callers: All users. Programs: All programs."
+  },
+  "ErrorMessage": {
+    "number": "65B",
+    "shortName": "QERMS",
+    "longName": "ErrorMessage",
+    "params": [
+      {
+        "name": "ErrorCode",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON65",
+    "notes": "Prints the message and STOPS the program. Callers: All users. Programs: All programs."
+  },
+  "InBufferSpace": {
+    "number": "66B",
+    "shortName": "ISIZE",
+    "longName": "InBufferSpace",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "BytesInBuffer",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON66",
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "OutBufferSpace": {
+    "number": "67B",
+    "shortName": "OSIZE",
+    "longName": "OutBufferSpace",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "BytesFree",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "CallCommand": {
+    "number": "70B",
+    "shortName": "COMND",
+    "longName": "CallCommand",
+    "params": [
+      {
+        "name": "Command",
+        "type": "STR",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON70",
+    "notes": "The PLANC buffer is BYTES(0:79) - eighty bytes, space padded. No leading @. The command text ends with an apostrophe. Your program may TERMINATE if the command fails; ExecuteCommand (317B) is the newer call that does not. Callers: All users. Programs: Background programs."
+  },
+  "DisableEscape": {
+    "number": "71B",
+    "shortName": "DESCF",
+    "longName": "DisableEscape",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON71",
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "EnableEscape": {
+    "number": "72B",
+    "shortName": "EESCF",
+    "longName": "EnableEscape",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON72",
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "SetMaxBytes": {
+    "number": "73B",
+    "shortName": "SMAX",
+    "longName": "SetMaxBytes",
+    "params": [
+      {
+        "name": "FileNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "MaxFileSizeInBytes",
+        "type": "INT4",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON73",
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "SetStartByte": {
+    "number": "74B",
+    "shortName": "SETBT",
+    "longName": "SetStartByte",
+    "params": [
+      {
+        "name": "FileNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "NextByte",
+        "type": "INT4",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON74",
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "GetStartByte": {
+    "number": "75B",
+    "shortName": "REABT",
+    "longName": "GetStartByte",
+    "params": [
+      {
+        "name": "FileNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "NextByte",
+        "type": "INT4",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON75",
+    "notes": "The file must be open for sequential access. Not for peripheral files. Callers: All users. Programs: All programs."
+  },
+  "SetBlockSize": {
+    "number": "76B",
+    "shortName": "SETBS",
+    "longName": "SetBlockSize",
+    "params": [
+      {
+        "name": "FileNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "BlockSizeInBytes",
+        "type": "INT4",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON76",
+    "notes": "Section 2.1 of the manual prints this as GetBlockSize; sections 2.2 and 2.15 both say SetBlockSize. Callers: All users. Programs: All programs."
+  },
+  "SetStartBlock": {
+    "number": "77B",
+    "shortName": "SETBL",
+    "longName": "SetStartBlock",
+    "params": [
+      {
+        "name": "FileNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "BlockNumber",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "StartRTProgram": {
+    "number": "100B",
+    "shortName": "RT",
+    "longName": "StartRTProgram",
+    "params": [
+      {
+        "name": "RTDescriptionAddress",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: User RT and user SYSTEM. Programs: RT programs."
+  },
+  "DelayStart": {
+    "number": "101B",
+    "shortName": "SET",
+    "longName": "DelayStart",
+    "params": [
+      {
+        "name": "RTDescriptionAddress",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "NumberOfTimeUnits",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "TypeOfTimeUnits",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: User RT and user SYSTEM. Programs: RT programs."
+  },
+  "StartupTime": {
+    "number": "102B",
+    "shortName": "ABSET",
+    "longName": "StartupTime",
+    "params": [
+      {
+        "name": "RTDescriptionAddress",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Seconds",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Minutes",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Hours",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "StartupInterval": {
+    "number": "103B",
+    "shortName": "INTV",
+    "longName": "StartupInterval",
+    "params": [
+      {
+        "name": "RTDescriptionAddress",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "NumberOfTimeUnits",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "TypeOfTimeUnits",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: User RT and user SYSTEM. Programs: RT programs."
+  },
+  "SuspendProgram": {
+    "number": "104B",
+    "shortName": "HOLD",
+    "longName": "SuspendProgram",
+    "params": [
+      {
+        "name": "NumberOfTimeUnits",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "TypeOfTimeUnits",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON104",
+    "notes": "Use this to wait between two dependent CallCommands, for example CreateFile then OpenFile. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "StopRTProgram": {
+    "number": "105B",
+    "shortName": "ABORT",
+    "longName": "StopRTProgram",
+    "params": [
+      {
+        "name": "RTDescriptionAddress",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: User RT and user SYSTEM. Programs: RT programs."
+  },
+  "StartOnInterrupt": {
+    "number": "106B",
+    "shortName": "CONCT",
+    "longName": "StartOnInterrupt",
+    "params": [
+      {
+        "name": "RTDescriptionAddress",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "NoInterruptStart": {
+    "number": "107B",
+    "shortName": "DSCNT",
+    "longName": "NoInterruptStart",
+    "params": [
+      {
+        "name": "RTDescriptionAddress",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: User RT and user SYSTEM. Programs: RT programs."
+  },
+  "SetRTPriority": {
+    "number": "110B",
+    "shortName": "PRIOR",
+    "longName": "SetRTPriority",
+    "params": [
+      {
+        "name": "RTDescriptionAddress",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Priority",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "PreviousPriority",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: User RT and user SYSTEM. Programs: RT programs."
+  },
+  "SetClock": {
+    "number": "111B",
+    "shortName": "UPDAT",
+    "longName": "SetClock",
+    "params": [
+      {
+        "name": "Minutes",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Hours",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Days",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Months",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Years",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: User RT and user SYSTEM. Programs: RT programs."
+  },
+  "AdjustClock": {
+    "number": "112B",
+    "shortName": "CLADJ",
+    "longName": "AdjustClock",
+    "params": [
+      {
+        "name": "NumberOfTimeUnits",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "TypeOfTimeUnit",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: User RT and user SYSTEM. Programs: RT programs."
+  },
+  "GetCurrentTime": {
+    "number": "113B",
+    "shortName": "CLOCK",
+    "longName": "GetCurrentTime",
+    "params": [
+      {
+        "name": "TimeAndDate",
+        "type": "ARR",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON113",
+    "notes": "Seven elements. Callers: All users. Programs: All programs."
+  },
+  "GetTimeUsed": {
+    "number": "114B",
+    "shortName": "TUSED",
+    "longName": "GetTimeUsed",
+    "params": [
+      {
+        "name": "CpuTimeUsed",
+        "type": "INT4",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON114",
+    "notes": "Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "FixScattered": {
+    "number": "115B",
+    "shortName": "FIX",
+    "longName": "FixScattered",
+    "params": [
+      {
+        "name": "SegmentNumber",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Section 2.1 prints this as FixScatter; sections 2.2 and 2.15 say FixScattered. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "UnFixSegment": {
+    "number": "116B",
+    "shortName": "UNFIX",
+    "longName": "UnFixSegment",
+    "params": [
+      {
+        "name": "SegmentNumber",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: User RT and user SYSTEM. Programs: RT programs."
+  },
+  "ReadFromFile": {
+    "number": "117B",
+    "shortName": "RFILE",
+    "longName": "ReadFromFile",
+    "params": [
+      {
+        "name": "FileNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "WaitFlag",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Data",
+        "type": "ARR",
+        "dir": "O"
+      },
+      {
+        "name": "BlockNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "NumberOfBytes",
+        "type": "INT4",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON117",
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "WriteToFile": {
+    "number": "120B",
+    "shortName": "WFILE",
+    "longName": "WriteToFile",
+    "params": [
+      {
+        "name": "FileNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "WaitFlag",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Data",
+        "type": "ARR",
+        "dir": "I"
+      },
+      {
+        "name": "BlockNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "NumberOfBytes",
+        "type": "INT4",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON120",
+    "notes": "Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "AwaitFileTransfer": {
+    "number": "121B",
+    "shortName": "WAITF",
+    "longName": "AwaitFileTransfer",
+    "params": [
+      {
+        "name": "FileNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "WaitFlag",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "TransferStatus",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: User RT and user SYSTEM. Programs: RT programs."
+  },
+  "ReserveResource": {
+    "number": "122B",
+    "shortName": "RESRV",
+    "longName": "ReserveResource",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "InputOrOutputFlag",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "WaitFlag",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "ReturnStatus",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON122",
+    "notes": "Return status is used only when the wait flag is 1. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "ReleaseResource": {
+    "number": "123B",
+    "shortName": "RELES",
+    "longName": "ReleaseResource",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "InputOrOutputFlag",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON123",
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "ForceReserve": {
+    "number": "124B",
+    "shortName": "PRSRV",
+    "longName": "ForceReserve",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "InputOrOutputFlag",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "RTDescriptionAddress",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "ReturnStatus",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Return status is a dummy on the ND-500. Callers: User RT and user SYSTEM. Programs: RT programs."
+  },
+  "ForceRelease": {
+    "number": "125B",
+    "shortName": "PRLS",
+    "longName": "ForceRelease",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "InputOrOutputFlag",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: User RT and user SYSTEM. Programs: RT programs."
+  },
+  "ExactDelayStart": {
+    "number": "126B",
+    "shortName": "DSET",
+    "longName": "ExactDelayStart",
+    "params": [
+      {
+        "name": "RTDescriptionAddress",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "BasicTimeIntervals",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "ExactStartup": {
+    "number": "127B",
+    "shortName": "DABST",
+    "longName": "ExactStartup",
+    "params": [
+      {
+        "name": "RTDescriptionAddress",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "StartupTime",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "ExactInterval": {
+    "number": "130B",
+    "shortName": "DINTV",
+    "longName": "ExactInterval",
+    "params": [
+      {
+        "name": "RTDescriptionAddress",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "PeriodInBasicTimeUnits",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: User RT and user SYSTEM. Programs: RT programs."
+  },
+  "DataTransfer": {
+    "number": "131B",
+    "shortName": "ABSTR",
+    "longName": "DataTransfer",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "FunctionCode",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "PhysicalMemoryAddress",
+        "type": "INT4",
+        "dir": "I"
+      },
+      {
+        "name": "BlockAddress",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "NumberOfBlocks",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "ReturnStatus",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "JumpToSegment": {
+    "number": "132B",
+    "shortName": "MCALL",
+    "longName": "JumpToSegment",
+    "params": [
+      {
+        "name": "RoutineAddress",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "NewSegments",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": "MON132",
+    "notes": "Section 2.16 lists 132B as no longer supported. Callers: User RT and user SYSTEM. Programs: RT programs."
+  },
+  "ExitFromSegment": {
+    "number": "133B",
+    "shortName": "MEXIT",
+    "longName": "ExitFromSegment",
+    "params": [
+      {
+        "name": "SegmentNumbers",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Section 2.16 lists 133B as no longer supported. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "ExitRTProgram": {
+    "number": "134B",
+    "shortName": "RTEXT",
+    "longName": "ExitRTProgram",
+    "params": [],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": false,
+    "plancRoutine": null,
+    "notes": "Terminates the RT program. Does not return. Callers: All users. Programs: All programs."
+  },
+  "WaitForRestart": {
+    "number": "135B",
+    "shortName": "RTWT",
+    "longName": "WaitForRestart",
+    "params": [],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: User RT and user SYSTEM. Programs: RT programs."
+  },
+  "EnableRTStart": {
+    "number": "136B",
+    "shortName": "RTON",
+    "longName": "EnableRTStart",
+    "params": [
+      {
+        "name": "RTDescriptionAddress",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: User RT and user SYSTEM. Programs: RT programs."
+  },
+  "DisableRTStart": {
+    "number": "137B",
+    "shortName": "RTOFF",
+    "longName": "DisableRTStart",
+    "params": [
+      {
+        "name": "RTDescriptionAddress",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: User RT and user SYSTEM. Programs: RT programs."
+  },
+  "ReservationInfo": {
+    "number": "140B",
+    "shortName": "WHDEV",
+    "longName": "ReservationInfo",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "InputOrOutputFlag",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "RTDescriptionAddress",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "DeviceControl": {
+    "number": "141B",
+    "shortName": "IOSET",
+    "longName": "DeviceControl",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "InputOrOutputFlag",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "RTDescriptionAddress",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "ControlFlag",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "ReturnStatus",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON141",
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "ToErrorDevice": {
+    "number": "142B",
+    "shortName": "ERMON",
+    "longName": "ToErrorDevice",
+    "params": [
+      {
+        "name": "ErrorNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "SubErrorNumber",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "User-defined errors are 50 to 69. Callers: User RT and user SYSTEM. Programs: RT programs."
+  },
+  "ExecutionInfo": {
+    "number": "143B",
+    "shortName": "RSIO",
+    "longName": "ExecutionInfo",
+    "params": [
+      {
+        "name": "ExecutionMode",
+        "type": "INT",
+        "dir": "O"
+      },
+      {
+        "name": "CommandInputDeviceLDN",
+        "type": "INT",
+        "dir": "O"
+      },
+      {
+        "name": "CommandOutputDeviceLDN",
+        "type": "INT",
+        "dir": "O"
+      },
+      {
+        "name": "OwnerIndexes",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON143",
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "DeviceFunction": {
+    "number": "144B",
+    "shortName": "MAGTP",
+    "longName": "DeviceFunction",
+    "params": [
+      {
+        "name": "FunctionCode",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Buffer",
+        "type": "ARR",
+        "dir": "I"
+      },
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "DeviceParam1",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "DeviceParam2",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON144",
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "PrivInstruction": {
+    "number": "146B",
+    "shortName": "IPRIV",
+    "longName": "PrivInstruction",
+    "params": [
+      {
+        "name": "MachineInstruction",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Octal instruction number. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "CAMACFunction": {
+    "number": "147B",
+    "shortName": "CAMAC",
+    "longName": "CAMACFunction",
+    "params": [
+      {
+        "name": "Data",
+        "type": "INT",
+        "dir": "IO"
+      },
+      {
+        "name": "ReturnStatus",
+        "type": "INT",
+        "dir": "O"
+      },
+      {
+        "name": "CrateNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "StationNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Subaddress",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Function",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Parameter 1 is input on write and output on read. Callers: User RT and user SYSTEM. Programs: RT programs."
+  },
+  "CAMACGLRegister": {
+    "number": "150B",
+    "shortName": "GL",
+    "longName": "CAMACGLRegister",
+    "params": [
+      {
+        "name": "Flag",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "CrateNumber",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: User RT and user SYSTEM. Programs: RT programs."
+  },
+  "GetRTAddress": {
+    "number": "151B",
+    "shortName": "GRTDA",
+    "longName": "GetRTAddress",
+    "params": [
+      {
+        "name": "RTProgramName",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "RTProgramAddress",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "GetRTName": {
+    "number": "152B",
+    "shortName": "GRTNA",
+    "longName": "GetRTName",
+    "params": [
+      {
+        "name": "RTDescriptionAddress",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "RTProgramName",
+        "type": "STR",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All programs. Programs: ."
+  },
+  "CAMACIOInstruction": {
+    "number": "153B",
+    "shortName": "IOXN",
+    "longName": "CAMACIOInstruction",
+    "params": [
+      {
+        "name": "Data",
+        "type": "INT",
+        "dir": "IO"
+      },
+      {
+        "name": "PhysicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Parameter 1 is input on write and output on read. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "AssignCAMACLAM": {
+    "number": "154B",
+    "shortName": "ASSIG",
+    "longName": "AssignCAMACLAM",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "GradedLAMNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "CrateNumber",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: User RT and user SYSTEM. Programs: RT programs."
+  },
+  "GraphicFunction": {
+    "number": "155B",
+    "shortName": "GRAPHI",
+    "longName": "GraphicFunction",
+    "params": [
+      {
+        "name": "X",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Y",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "IntegerCode",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "FunctionCode",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "PlotOutput",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "SegmentToPageTable": {
+    "number": "157B",
+    "shortName": "ENTSG",
+    "longName": "SegmentToPageTable",
+    "params": [
+      {
+        "name": "SegmentNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "PageTable",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "InterruptLevel",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "StartAddress",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: User RT and user SYSTEM. Programs: RT programs."
+  },
+  "FixContiguous": {
+    "number": "160B",
+    "shortName": "FIXC",
+    "longName": "FixContiguous",
+    "params": [
+      {
+        "name": "SegmentNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "FirstPhysicalPage",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "ReturnStatus",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: User RT and user SYSTEM. Programs: RT programs."
+  },
+  "InString": {
+    "number": "161B",
+    "shortName": "INSTR",
+    "longName": "InString",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Characters",
+        "type": "STR",
+        "dir": "O"
+      },
+      {
+        "name": "MaxBytes",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "TerminatingCharacter",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "ReturnStatus",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON161",
+    "notes": "Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "OutString": {
+    "number": "162B",
+    "shortName": "OUTST",
+    "longName": "OutString",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Characters",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "NumberOfCharacters",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "ReturnStatus",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON162",
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "AwaitRequest": {
+    "number": "163B",
+    "shortName": "WRQI",
+    "longName": "AwaitRequest",
+    "params": [],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Internal use only (section 2.14). Waits for a request over ND-Net. Parameters not documented. Section 2.16 lists 163B as no longer supported. UNVERIFIED. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "SaveSegment": {
+    "number": "164B",
+    "shortName": "WSEG",
+    "longName": "SaveSegment",
+    "params": [
+      {
+        "name": "SegmentNumber",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "GetInRegisters": {
+    "number": "165B",
+    "shortName": "DIW",
+    "longName": "GetInRegisters",
+    "params": [
+      {
+        "name": "NumberOfRegisters",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "LogicalUnitBuffer",
+        "type": "ARR",
+        "dir": "I"
+      },
+      {
+        "name": "DataBuffer",
+        "type": "ARR",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Section 2.16 lists 165B as no longer supported. Callers: User RT and user SYSTEM. Programs: RT programs."
+  },
+  "SetOutRegisters": {
+    "number": "166B",
+    "shortName": "DOLW",
+    "longName": "SetOutRegisters",
+    "params": [],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Internal use only (section 2.14). Sets device-interface registers. Parameters not documented. UNVERIFIED. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "AttachSegment": {
+    "number": "167B",
+    "shortName": "REENT",
+    "longName": "AttachSegment",
+    "params": [
+      {
+        "name": "SegmentNumber",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": "MON167",
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "UserDef0": {
+    "number": "170B",
+    "shortName": "US0",
+    "longName": "UserDef0",
+    "params": [],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "User-defined monitor call. Parameters are whatever the installation's own routine expects. UNVERIFIED. Callers: All users. Programs: All programs."
+  },
+  "UserDef1": {
+    "number": "171B",
+    "shortName": "US1",
+    "longName": "UserDef1",
+    "params": [],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "User-defined monitor call. Parameters are whatever the installation's own routine expects. UNVERIFIED. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "UserDef2": {
+    "number": "172B",
+    "shortName": "US2",
+    "longName": "UserDef2",
+    "params": [],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "User-defined monitor call. Parameters are whatever the installation's own routine expects. UNVERIFIED. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "UserDef3": {
+    "number": "173B",
+    "shortName": "US3",
+    "longName": "UserDef3",
+    "params": [],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "User-defined monitor call. Parameters are whatever the installation's own routine expects. UNVERIFIED. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "UserDef4": {
+    "number": "174B",
+    "shortName": "US4",
+    "longName": "UserDef4",
+    "params": [],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "User-defined monitor call. Parameters are whatever the installation's own routine expects. UNVERIFIED. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "UserDef5": {
+    "number": "175B",
+    "shortName": "US5",
+    "longName": "UserDef5",
+    "params": [],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "User-defined monitor call. Parameters are whatever the installation's own routine expects. UNVERIFIED. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "UserDef6": {
+    "number": "176B",
+    "shortName": "US6",
+    "longName": "UserDef6",
+    "params": [],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "User-defined monitor call. Parameters are whatever the installation's own routine expects. UNVERIFIED. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "UserDef7": {
+    "number": "177B",
+    "shortName": "US7",
+    "longName": "UserDef7",
+    "params": [],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "User-defined monitor call. Parameters are whatever the installation's own routine expects. UNVERIFIED. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "XMSGFunction": {
+    "number": "200B",
+    "shortName": "XMSG",
+    "longName": "XMSGFunction",
+    "params": [],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Program-to-program communication. Section 2.2 lists no parameters. In practice this is reached through the COSMOS XMP library, not by hand. Section 2.16 lists 200B as no longer supported by the monitor call package. Callers: All users. Programs: All programs."
+  },
+  "HDLCFunction": {
+    "number": "201B",
+    "shortName": "MHDLC",
+    "longName": "HDLCFunction",
+    "params": [
+      {
+        "name": "FunctionCode",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "DriverControlBlockAddress",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "DriverControlBlockSize",
+        "type": "INT",
+        "dir": "IO"
+      },
+      {
+        "name": "FunctionDependent",
+        "type": "INT",
+        "dir": "IO"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Sections 2.1 and 2.15 print the long name as HDLFunction, sections 2.2 and 2.13 as HDLCfunction. The spelling to use with MONITOR_CALL by name is UNVERIFIED. Section 2.16 lists 201B as no longer supported. Callers: All users. Programs: All programs."
+  },
+  "TerminationHandling": {
+    "number": "206B",
+    "shortName": "EDTRM",
+    "longName": "TerminationHandling",
+    "params": [
+      {
+        "name": "OnOrOffFlag",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Circumstances",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "GetErrorInfo": {
+    "number": "207B",
+    "shortName": "RERRP",
+    "longName": "GetErrorInfo",
+    "params": [
+      {
+        "name": "ErrorInformation",
+        "type": "ARR",
+        "dir": "O"
+      },
+      {
+        "name": "ReturnStatus",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Error information is 12 bytes. Callers: User RT and user SYSTEM. Programs: RT programs."
+  },
+  "ReentrantSegment": {
+    "number": "212B",
+    "shortName": "SREEN",
+    "longName": "ReentrantSegment",
+    "params": [
+      {
+        "name": "SegmentNumber",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "GetDirUserIndexes": {
+    "number": "213B",
+    "shortName": "MUIDI",
+    "longName": "GetDirUserIndexes",
+    "params": [
+      {
+        "name": "DirectoryAndUserName",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "DirectoryIndex",
+        "type": "INT",
+        "dir": "O"
+      },
+      {
+        "name": "UserIndex",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "GetUserName": {
+    "number": "214B",
+    "shortName": "GUSNA",
+    "longName": "GetUserName",
+    "params": [
+      {
+        "name": "UserName",
+        "type": "STR",
+        "dir": "O"
+      },
+      {
+        "name": "DirectoryIndex",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "UserIndex",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "RemoteFlag",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "RemoteSystemId",
+        "type": "STR",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Remote system identification is a dummy on the ND-500. Callers: All users. Programs: All programs."
+  },
+  "GetObjectEntry": {
+    "number": "215B",
+    "shortName": "DROBJ",
+    "longName": "GetObjectEntry",
+    "params": [
+      {
+        "name": "ObjectEntry",
+        "type": "ARR",
+        "dir": "O"
+      },
+      {
+        "name": "DirectoryIndex",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "UserIndex",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "ObjectIndex",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "RemoteFlag",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "RemoteSystemId",
+        "type": "STR",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Object entry is 64 bytes. Callers: All users. Programs: All programs."
+  },
+  "SetObjectEntry": {
+    "number": "216B",
+    "shortName": "DWOBJ",
+    "longName": "SetObjectEntry",
+    "params": [
+      {
+        "name": "ObjectEntry",
+        "type": "ARR",
+        "dir": "I"
+      },
+      {
+        "name": "DirectoryIndex",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "UserIndex",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "ObjectIndex",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "RemoteFlag",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "RemoteSystemId",
+        "type": "STR",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Object entry is 64 bytes. Callers: All users. Programs: All programs."
+  },
+  "GetAllFileIndexes": {
+    "number": "217B",
+    "shortName": "GUIOI",
+    "longName": "GetAllFileIndexes",
+    "params": [
+      {
+        "name": "FileNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "DirectoryIndex",
+        "type": "INT",
+        "dir": "O"
+      },
+      {
+        "name": "UserIndex",
+        "type": "INT",
+        "dir": "O"
+      },
+      {
+        "name": "ObjectIndex",
+        "type": "INT",
+        "dir": "O"
+      },
+      {
+        "name": "RemoteFlag",
+        "type": "INT",
+        "dir": "O"
+      },
+      {
+        "name": "RemoteSystemId",
+        "type": "STR",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "DirectOpen": {
+    "number": "220B",
+    "shortName": "DOPEN",
+    "longName": "DirectOpen",
+    "params": [
+      {
+        "name": "FileNumber",
+        "type": "INT",
+        "dir": "O"
+      },
+      {
+        "name": "AccessCode",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "FileName",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "FileType",
+        "type": "STR",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "CreateFile": {
+    "number": "221B",
+    "shortName": "CRALF",
+    "longName": "CreateFile",
+    "params": [
+      {
+        "name": "FileName",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "StartAddress",
+        "type": "INT4",
+        "dir": "I"
+      },
+      {
+        "name": "LengthInPages",
+        "type": "INT4",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "The file name is the WHOLE filespec in one buffer of 64 bytes, name and type together, unlike OpenFile which takes them separately. Both size parameters zero gives an indexed file that grows as it is written. INT4 parameters cannot be passed as constants from PLANC. There is no MON221 routine in the PLANC runtime. Callers: All users. Programs: All programs."
+  },
+  "GetAddressArea": {
+    "number": "222B",
+    "shortName": "GBSIZ",
+    "longName": "GetAddressArea",
+    "params": [
+      {
+        "name": "BackgroundSegmentSize",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "SetEscLocalChars": {
+    "number": "227B",
+    "shortName": "MSDAE",
+    "longName": "SetEscLocalChars",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "LocalCharacter",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "EscapeCharacter",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "GetEscLocalChars": {
+    "number": "230B",
+    "shortName": "MGDAE",
+    "longName": "GetEscLocalChars",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "LocalCharacter",
+        "type": "INT",
+        "dir": "O"
+      },
+      {
+        "name": "EscapeCharacter",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "ExpandFile": {
+    "number": "231B",
+    "shortName": "EXPFI",
+    "longName": "ExpandFile",
+    "params": [
+      {
+        "name": "FileName",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "AdditionalPages",
+        "type": "INT4",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "RenameFile": {
+    "number": "232B",
+    "shortName": "MRNFI",
+    "longName": "RenameFile",
+    "params": [
+      {
+        "name": "OldFileName",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "NewFileNameAndType",
+        "type": "STR",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "SetTemporaryFile": {
+    "number": "233B",
+    "shortName": "STEFI",
+    "longName": "SetTemporaryFile",
+    "params": [
+      {
+        "name": "FileName",
+        "type": "STR",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "SetPeripheralName": {
+    "number": "234B",
+    "shortName": "SPEFI",
+    "longName": "SetPeripheralName",
+    "params": [
+      {
+        "name": "FileName",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: User SYSTEM. Programs: All programs."
+  },
+  "ScratchOpen": {
+    "number": "235B",
+    "shortName": "SCROP",
+    "longName": "ScratchOpen",
+    "params": [
+      {
+        "name": "FileNumber",
+        "type": "INT",
+        "dir": "O"
+      },
+      {
+        "name": "AccessCode",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "FileName",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "DefaultFileType",
+        "type": "STR",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "SetPermanentOpen": {
+    "number": "236B",
+    "shortName": "SPERD",
+    "longName": "SetPermanentOpen",
+    "params": [
+      {
+        "name": "FileNumber",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "SetFileAccess": {
+    "number": "237B",
+    "shortName": "SFACC",
+    "longName": "SetFileAccess",
+    "params": [
+      {
+        "name": "FileName",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "PublicAccess",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "FriendAccess",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "OwnAccess",
+        "type": "STR",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "AppendSpooling": {
+    "number": "240B",
+    "shortName": "APSPF",
+    "longName": "AppendSpooling",
+    "params": [
+      {
+        "name": "FileName",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "PrinterPeripheralName",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "NumberOfCopies",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Message",
+        "type": "STR",
+        "dir": "I"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "The message is optional. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "NewUser": {
+    "number": "241B",
+    "shortName": "SUSCN",
+    "longName": "NewUser",
+    "params": [
+      {
+        "name": "NewUserName",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "Password",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "ProjectPassword",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "ReturnStatus",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "The manual types the password as INT in section 2.2. UNVERIFIED - a STR would be expected. Callers: User RT and user SYSTEM. Programs: Background programs."
+  },
+  "OldUser": {
+    "number": "242B",
+    "shortName": "RUSCN",
+    "longName": "OldUser",
+    "params": [],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Section 2.2 lists no parameters. Callers: All users. Programs: Background programs."
+  },
+  "GetDirNameIndex": {
+    "number": "243B",
+    "shortName": "FDINA",
+    "longName": "GetDirNameIndex",
+    "params": [
+      {
+        "name": "DirectoryName",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "DirectoryIndex",
+        "type": "INT",
+        "dir": "O"
+      },
+      {
+        "name": "NameIndex",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "GetDirEntry": {
+    "number": "244B",
+    "shortName": "GDIEN",
+    "longName": "GetDirEntry",
+    "params": [
+      {
+        "name": "DirectoryIndex",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "DirectoryEntry",
+        "type": "ARR",
+        "dir": "O"
+      },
+      {
+        "name": "SpareTrackFlag",
+        "type": "INT",
+        "dir": "O"
+      },
+      {
+        "name": "RemoteFlag",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "RemoteSystemId",
+        "type": "STR",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Directory entry is 42 bytes. Callers: User RT and user SYSTEM. Programs: All programs."
+  },
+  "GetNameEntry": {
+    "number": "245B",
+    "shortName": "GNAEN",
+    "longName": "GetNameEntry",
+    "params": [
+      {
+        "name": "NameIndex",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "NameTableEntry",
+        "type": "ARR",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Name table entry is 28 bytes. Callers: All users. Programs: All programs."
+  },
+  "ReserveDir": {
+    "number": "246B",
+    "shortName": "REDIR",
+    "longName": "ReserveDir",
+    "params": [
+      {
+        "name": "DirectoryIndex",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "ReleaseDir": {
+    "number": "247B",
+    "shortName": "RLDIR",
+    "longName": "ReleaseDir",
+    "params": [
+      {
+        "name": "DirectoryIndex",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "GetDefaultDir": {
+    "number": "250B",
+    "shortName": "FDFDI",
+    "longName": "GetDefaultDir",
+    "params": [
+      {
+        "name": "UserName",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "DirectoryIndex",
+        "type": "INT",
+        "dir": "O"
+      },
+      {
+        "name": "UserIndex",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "CopyPage": {
+    "number": "251B",
+    "shortName": "COPAG",
+    "longName": "CopyPage",
+    "params": [
+      {
+        "name": "SourceFileNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "DestinationFileNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "PageAddressAddress",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "BufferAddress",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Section 2.16 lists 251B as no longer supported. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "BackupClose": {
+    "number": "252B",
+    "shortName": "BCLOS",
+    "longName": "BackupClose",
+    "params": [
+      {
+        "name": "FileNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "ModifiedFlag",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "NewFileVersion": {
+    "number": "253B",
+    "shortName": "CRALN",
+    "longName": "NewFileVersion",
+    "params": [
+      {
+        "name": "FileNameWithVersion",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "StartAddress",
+        "type": "INT4",
+        "dir": "I"
+      },
+      {
+        "name": "FileSizeInPages",
+        "type": "INT4",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "GetErrorDevice": {
+    "number": "254B",
+    "shortName": "GERDV",
+    "longName": "GetErrorDevice",
+    "params": [
+      {
+        "name": "ErrorDeviceLDN",
+        "type": "INT",
+        "dir": "O"
+      },
+      {
+        "name": "RTDescriptionAddress",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: User SYSTEM. Programs: All programs."
+  },
+  "PIOCFunction": {
+    "number": "255B",
+    "shortName": "PIOCM",
+    "longName": "PIOCFunction",
+    "params": [
+      {
+        "name": "ModuleLDN",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "SlotNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "FunctionNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Message",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "SegmentNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "PageNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "StatusCode",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Message is 2 bytes. Status code is octal. Sections 2.1 prints the name as PIOFunction and 2.15 as PIOCFuntion; 2.2 says PIOCfunction. Section 2.16 lists 255B as no longer supported. Callers: User RT and user SYSTEM. Programs: All programs."
+  },
+  "FullFileName": {
+    "number": "256B",
+    "shortName": "DEABF",
+    "longName": "FullFileName",
+    "params": [
+      {
+        "name": "AbbreviatedFileName",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "FullFileName",
+        "type": "STR",
+        "dir": "O"
+      },
+      {
+        "name": "DefaultFileType",
+        "type": "STR",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Default file type is a dummy on the ND-500. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "OpenFileInfo": {
+    "number": "257B",
+    "shortName": "FOPFN",
+    "longName": "OpenFileInfo",
+    "params": [
+      {
+        "name": "FileName",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "FileType",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "FileNumber",
+        "type": "INT",
+        "dir": "O"
+      },
+      {
+        "name": "AccessCode",
+        "type": "INT",
+        "dir": "O"
+      },
+      {
+        "name": "PeripheralLDN",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Section 2.15 prints the short name as FOPEN and chapter 3 as POPFN; section 2.2 says FOPFN. UNVERIFIED. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "UserControl": {
+    "number": "260B",
+    "shortName": "USCNT",
+    "longName": "UserControl",
+    "params": [],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Internal use only (section 2.14). Sets user control of a device. Parameters not documented. Section 2.16 lists 260B as no longer supported. UNVERIFIED. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "SystemControl": {
+    "number": "261B",
+    "shortName": "SYNCT",
+    "longName": "SystemControl",
+    "params": [],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Internal use only (section 2.14). Parameters not documented. Section 2.16 lists 261B as no longer supported. UNVERIFIED. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "GetSystemInfo": {
+    "number": "262B",
+    "shortName": "CPUST",
+    "longName": "GetSystemInfo",
+    "params": [
+      {
+        "name": "Number",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "SystemInformation",
+        "type": "ARR",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "The number must be zero. System information is 24 bytes. Callers: All users. Programs: All programs."
+  },
+  "GetDeviceType": {
+    "number": "263B",
+    "shortName": "GDEVT",
+    "longName": "GetDeviceType",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "InputOrOutputFlag",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "DeviceType",
+        "type": "INT",
+        "dir": "O"
+      },
+      {
+        "name": "DeviceInformation",
+        "type": "INT4",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON263",
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "ND500ReadFile": {
+    "number": "264B",
+    "shortName": "500RF",
+    "longName": "ND500ReadFile",
+    "params": [],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Internal use only (section 2.14). Parameters not documented. Section 2.16 lists 264B as no longer supported. UNVERIFIED. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "ND500WriteFile": {
+    "number": "265B",
+    "shortName": "500WF",
+    "longName": "ND500WriteFile",
+    "params": [],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Internal use only (section 2.14). Parameters not documented. Section 2.16 lists 265B as no longer supported. UNVERIFIED. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "ND500MagTape": {
+    "number": "266B",
+    "shortName": "500MT",
+    "longName": "ND500MagTape",
+    "params": [],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Internal use only (section 2.14). Parameters not documented. Section 2.16 lists 266B as no longer supported. UNVERIFIED. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "TimeOut": {
+    "number": "267B",
+    "shortName": "TMOUT",
+    "longName": "TimeOut",
+    "params": [
+      {
+        "name": "NumberOfTimeUnits",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "TypeOfTimeUnit",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "RestartCause",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Section 2.2 marks this available on both machines; the chapter-3 availability line as scanned says ND-500 only. Treated as both. UNVERIFIED. Callers: All users. Programs: All programs."
+  },
+  "ReadDiskPage": {
+    "number": "270B",
+    "shortName": "RDPAG",
+    "longName": "ReadDiskPage",
+    "params": [
+      {
+        "name": "DirectoryIndex",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Buffer",
+        "type": "ARR",
+        "dir": "I"
+      },
+      {
+        "name": "FirstPageAddress",
+        "type": "INT4",
+        "dir": "I"
+      },
+      {
+        "name": "NumberOfPages",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: User RT and user SYSTEM. Programs: Background programs."
+  },
+  "WriteDiskPage": {
+    "number": "271B",
+    "shortName": "WDPAG",
+    "longName": "WriteDiskPage",
+    "params": [
+      {
+        "name": "DirectoryIndex",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Buffer",
+        "type": "ARR",
+        "dir": "I"
+      },
+      {
+        "name": "FirstPageAddress",
+        "type": "INT4",
+        "dir": "I"
+      },
+      {
+        "name": "NumberOfPages",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: User RT and user SYSTEM. Programs: Background programs."
+  },
+  "DeletePage": {
+    "number": "272B",
+    "shortName": "DELPG",
+    "longName": "DeletePage",
+    "params": [
+      {
+        "name": "FileNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "FirstPage",
+        "type": "INT4",
+        "dir": "I"
+      },
+      {
+        "name": "LastPage",
+        "type": "INT4",
+        "dir": "I"
+      },
+      {
+        "name": "PagesDeleted",
+        "type": "INT4",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "GetFileName": {
+    "number": "273B",
+    "shortName": "MGFIL",
+    "longName": "GetFileName",
+    "params": [
+      {
+        "name": "DirectoryIndex",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "UserIndex",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "ObjectIndex",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "FileName",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "RemoteFlag",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "RemoteSystemId",
+        "type": "STR",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Section 2.2 marks the file name as an input parameter. A returned name would be expected. UNVERIFIED. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "GetFileIndexes": {
+    "number": "274B",
+    "shortName": "FOBJN",
+    "longName": "GetFileIndexes",
+    "params": [
+      {
+        "name": "FileName",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "FileType",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "DirectoryIndex",
+        "type": "INT",
+        "dir": "O"
+      },
+      {
+        "name": "UserIndex",
+        "type": "INT",
+        "dir": "O"
+      },
+      {
+        "name": "ObjectIndex",
+        "type": "INT",
+        "dir": "O"
+      },
+      {
+        "name": "NextVersionObjectIndex",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "File type is a dummy on the ND-100. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "SetTerminalName": {
+    "number": "275B",
+    "shortName": "STRFI",
+    "longName": "SetTerminalName",
+    "params": [
+      {
+        "name": "FileName",
+        "type": "STR",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: User SYSTEM. Programs: All programs."
+  },
+  "EnableLocal": {
+    "number": "276B",
+    "shortName": "ELOFU",
+    "longName": "EnableLocal",
+    "params": [
+      {
+        "name": "ProgramAddress",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "DisableLocal": {
+    "number": "277B",
+    "shortName": "DLOFU",
+    "longName": "DisableLocal",
+    "params": [],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "SetEscapeHandling": {
+    "number": "300B",
+    "shortName": "EUSEL",
+    "longName": "SetEscapeHandling",
+    "params": [
+      {
+        "name": "EscapeRoutineStart",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "StopEscapeHandling": {
+    "number": "301B",
+    "shortName": "DUSEL",
+    "longName": "StopEscapeHandling",
+    "params": [],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: Background programs."
+  },
+  "OnEscLocalFunction": {
+    "number": "302B",
+    "shortName": "ELON",
+    "longName": "OnEscLocalFunction",
+    "params": [],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "OffEscLocalFunction": {
+    "number": "303B",
+    "shortName": "ELOFF",
+    "longName": "OffEscLocalFunction",
+    "params": [],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "SendSIBASMessage": {
+    "number": "304B",
+    "shortName": "MAPSIB",
+    "longName": "SendSIBASMessage",
+    "params": [],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Internal use only (section 2.14). Section 2.14 prints 304B for both SendSIBASMessage and Performance; section 2.17 gives Performance 344B. Section 2.16 lists 304B as no longer supported. UNVERIFIED. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "GetSIBASMessage": {
+    "number": "305B",
+    "shortName": "MSIBB",
+    "longName": "GetSIBASMessage",
+    "params": [],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Internal use only (section 2.14). Parameters not documented. UNVERIFIED. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "GetTerminalMode": {
+    "number": "306B",
+    "shortName": "GTMOD",
+    "longName": "GetTerminalMode",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "TerminalMode",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "TerminalNoWait": {
+    "number": "307B",
+    "shortName": "TNOWAI",
+    "longName": "TerminalNoWait",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "InputOrOutputFlag",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "NoWaitFlag",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "ReturnStatus",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Return status is a dummy on the ND-500. There is no MON307 routine in the PLANC runtime. Callers: All users. Programs: All programs."
+  },
+  "In8AndFlag": {
+    "number": "310B",
+    "shortName": "T8INB",
+    "longName": "In8AndFlag",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "BytesRead",
+        "type": "INT",
+        "dir": "O"
+      },
+      {
+        "name": "Bytes",
+        "type": "STR",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON310",
+    "notes": "Section 2.1 prints the long name as InAndFlag; 2.2 and 2.15 say In8AndFlag. Callers: All users. Programs: All programs."
+  },
+  "WriteDirEntry": {
+    "number": "311B",
+    "shortName": "WDIEN",
+    "longName": "WriteDirEntry",
+    "params": [
+      {
+        "name": "DirectoryIndex",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "DirectoryEntry",
+        "type": "ARR",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Directory entry is 48 bytes here, against 42 bytes for GetDirEntry. That difference is what the manual prints. Callers: User SYSTEM. Programs: All programs."
+  },
+  "CheckMonCall": {
+    "number": "312B",
+    "shortName": "MOINF",
+    "longName": "CheckMonCall",
+    "params": [
+      {
+        "name": "MonitorCallNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "EntryAddress",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON312",
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "InBufferState": {
+    "number": "313B",
+    "shortName": "IBRSIZ",
+    "longName": "InBufferState",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "BytesInBuffer",
+        "type": "INT",
+        "dir": "O"
+      },
+      {
+        "name": "BytesBeforeBreak",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "DefaultRemoteSystem": {
+    "number": "314B",
+    "shortName": "SRUSI",
+    "longName": "DefaultRemoteSystem",
+    "params": [
+      {
+        "name": "RemoteSystemName",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "RemoteUserName",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "RemoteUserPassword",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "RemoteProjectPassword",
+        "type": "STR",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "LAMUFunction": {
+    "number": "315B",
+    "shortName": "MLAMU",
+    "longName": "LAMUFunction",
+    "params": [
+      {
+        "name": "FunctionCode",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Param2",
+        "type": "INT",
+        "dir": "IO"
+      },
+      {
+        "name": "Param3",
+        "type": "INT",
+        "dir": "IO"
+      },
+      {
+        "name": "Param4",
+        "type": "INT",
+        "dir": "IO"
+      }
+    ],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Parameters 2 to 4 depend on the function code. Callers: All users. Programs: All programs."
+  },
+  "SetRemoteAccess": {
+    "number": "316B",
+    "shortName": "SRLMO",
+    "longName": "SetRemoteAccess",
+    "params": [
+      {
+        "name": "RemoteModeFlag",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "ExecuteCommand": {
+    "number": "317B",
+    "shortName": "UECOM",
+    "longName": "ExecuteCommand",
+    "params": [
+      {
+        "name": "Command",
+        "type": "STR",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "The PLANC buffer is BYTES(0:35) - thirty-six bytes. No leading @. Prints a message on error and lets the program continue, unlike CallCommand (70B) which may terminate it. There is no MON317 routine in the PLANC runtime. Callers: All users. Programs: Background programs."
+  },
+  "UELogin": {
+    "number": "320B",
+    "shortName": "UELOG",
+    "longName": "UELogin",
+    "params": [],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Internal use only (section 2.14). Section 2.16 lists 320B as no longer supported. UNVERIFIED. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "UEAdministrator": {
+    "number": "321B",
+    "shortName": "UEADM",
+    "longName": "UEAdministrator",
+    "params": [],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Internal use only (section 2.14). Section 2.16 lists 321B as no longer supported. UNVERIFIED. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "GetSegmentNo": {
+    "number": "322B",
+    "shortName": "GSGNO",
+    "longName": "GetSegmentNo",
+    "params": [
+      {
+        "name": "SegmentName",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "SegmentNumber",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "SegmentOverlay": {
+    "number": "323B",
+    "shortName": "SPLRE",
+    "longName": "SegmentOverlay",
+    "params": [
+      {
+        "name": "SegmentNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "FirstPageArea1",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "PagesArea1",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "FirstPageArea2",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "PagesArea2",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "ClearFlag",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: Background programs."
+  },
+  "OctobusFunction": {
+    "number": "324B",
+    "shortName": "OCTO",
+    "longName": "OctobusFunction",
+    "params": [
+      {
+        "name": "FunctionNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "FunctionDependent",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Section 2.16 lists 324B as no longer supported. Callers: All users. Programs: All programs."
+  },
+  "BatchModeEcho": {
+    "number": "325B",
+    "shortName": "MBECH",
+    "longName": "BatchModeEcho",
+    "params": [
+      {
+        "name": "BitMask",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Bit 0 no echo in batch and mode, bit 1 output on terminal from mode, bit 2 input from terminal in mode. A value of -1 returns the previous bit mask in the A register. Callers: All users. Programs: Background programs."
+  },
+  "LogInStart": {
+    "number": "326B",
+    "shortName": "MLOGI",
+    "longName": "LogInStart",
+    "params": [
+      {
+        "name": "TerminalLDN",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "UserName",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "Password",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "ProjectPassword",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "Subsystem",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "UserParameters",
+        "type": "ARR",
+        "dir": "I"
+      },
+      {
+        "name": "ReturnStatus",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "User parameters: 5*16 bit on ND-100, 5*32 bit on ND-500. Callers: All users. Programs: All programs."
+  },
+  "FileSystemFunction": {
+    "number": "327B",
+    "shortName": "FSMTY",
+    "longName": "FileSystemFunction",
+    "params": [
+      {
+        "name": "FunctionCode",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "FileNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Param3",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Param4",
+        "type": "INT",
+        "dir": "O"
+      },
+      {
+        "name": "Param5",
+        "type": "INT",
+        "dir": "O"
+      },
+      {
+        "name": "Param6",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Parameters 3 to 6 depend on the function code. The direction of parameters 4 to 6 as printed in section 2.2 is UNVERIFIED - the OCR of that row is damaged. Callers: All users. Programs: All programs."
+  },
+  "TerminalStatus": {
+    "number": "330B",
+    "shortName": "TERST",
+    "longName": "TerminalStatus",
+    "params": [
+      {
+        "name": "TerminalLDN",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Information",
+        "type": "ARR",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Information is 44 bytes. Callers: All users. Programs: All programs."
+  },
+  "DiskMirroring": {
+    "number": "331B",
+    "shortName": "MSYSU",
+    "longName": "DiskMirroring",
+    "params": [],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Internal use only (section 2.14). Parameters not documented. UNVERIFIED. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "TerminalLineInfo": {
+    "number": "332B",
+    "shortName": "TREPP",
+    "longName": "TerminalLineInfo",
+    "params": [
+      {
+        "name": "FunctionCode",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "TerminalLDN",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "LineInformation",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: Background programs."
+  },
+  "DMAFunction": {
+    "number": "333B",
+    "shortName": "UDMA",
+    "longName": "DMAFunction",
+    "params": [
+      {
+        "name": "DMAChannelLDN",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "FunctionCode",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "AddressOrLDN",
+        "type": "ARR",
+        "dir": "I"
+      },
+      {
+        "name": "InputParameter",
+        "type": "INT4",
+        "dir": "I"
+      },
+      {
+        "name": "OutputParameter",
+        "type": "INT4",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Parameter 3 is a logical memory address of data or the LDN of a device, depending on the function code. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "GetErrorMessage": {
+    "number": "334B",
+    "shortName": "GETXM",
+    "longName": "GetErrorMessage",
+    "params": [
+      {
+        "name": "ErrorCode",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "ErrorMessageText",
+        "type": "STR",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Error message text is 128 bytes. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "TransferData": {
+    "number": "335B",
+    "shortName": "EXABS",
+    "longName": "TransferData",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "FunctionCode",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "PhysicalMemoryAddress",
+        "type": "INT4",
+        "dir": "I"
+      },
+      {
+        "name": "BlockAddress",
+        "type": "INT4",
+        "dir": "I"
+      },
+      {
+        "name": "NumberOfBlocks",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "ErrorCode",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "TerminalFunction": {
+    "number": "336B",
+    "shortName": "IOMTY",
+    "longName": "TerminalFunction",
+    "params": [
+      {
+        "name": "FunctionCode",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "ParameterArrayLength",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "ParameterArray",
+        "type": "ARR",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: Background programs."
+  },
+  "ChangeSegment": {
+    "number": "337B",
+    "shortName": "SPCHG",
+    "longName": "ChangeSegment",
+    "params": [
+      {
+        "name": "Function",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: User RT and user SYSTEM. Programs: RT programs."
+  },
+  "ReadSystemRecord": {
+    "number": "340B",
+    "shortName": "RSREC",
+    "longName": "ReadSystemRecord",
+    "params": [
+      {
+        "name": "RecordTypeCode",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "RTAddressOrSegment",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "BufferAddress",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Format",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Result",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Format is ND-500 only. Parameter 5 depends on parameter 1. Listed in section 2.17 as a new monitor call number old compilers do not know. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "SegmentFunction": {
+    "number": "341B",
+    "shortName": "SGMTY",
+    "longName": "SegmentFunction",
+    "params": [
+      {
+        "name": "FunctionCode",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "StartOrReturnAddress",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "NewSegment1",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "NewSegment2",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "NewPageIndexTables",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "FunctionDependent",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Listed in section 2.17 as a new monitor call number old compilers do not know. Callers: User RT and user SYSTEM. Programs: RT programs."
+  },
+  "UELAMUFunction": {
+    "number": "342B",
+    "shortName": "ADP",
+    "longName": "UELAMUFunction",
+    "params": [],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Internal use only (sections 2.14 and 2.17). Parameters not documented. UNVERIFIED. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "Configuration": {
+    "number": "343B",
+    "shortName": "CONFG",
+    "longName": "Configuration",
+    "params": [],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Internal use only (sections 2.14 and 2.17). Parameters not documented. UNVERIFIED. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "Performance": {
+    "number": "344B",
+    "shortName": "PERF",
+    "longName": "Performance",
+    "params": [],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Internal use only. Section 2.17 gives 344B and short name PERF0; section 2.14 prints 304B and PERF. 344B is taken as correct. UNVERIFIED. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "MTAFunction": {
+    "number": "345B",
+    "shortName": "MTAD",
+    "longName": "MTAFunction",
+    "params": [],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Internal use only. Section 2.14 calls it MTAFunction, section 2.17 MTADFunction. Parameters not documented. UNVERIFIED. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "NucleusFunction": {
+    "number": "347B",
+    "shortName": "NUCL",
+    "longName": "NucleusFunction",
+    "params": [],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Internal use only (section 2.14). Parameters not documented. UNVERIFIED. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "ErrorReturn": {
+    "number": "400B",
+    "shortName": "MACROE",
+    "longName": "ErrorReturn",
+    "params": [],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": false,
+    "plancRoutine": null,
+    "notes": "Section 2.2 lists no parameters. Callers: All users. Programs: All programs."
+  },
+  "DisAssemble": {
+    "number": "401B",
+    "shortName": "DISASS",
+    "longName": "DisAssemble",
+    "params": [
+      {
+        "name": "ProgramAddress",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Instruction",
+        "type": "STR",
+        "dir": "O"
+      },
+      {
+        "name": "MaxCharacters",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "GetInputFlags": {
+    "number": "402B",
+    "shortName": "RFLAG",
+    "longName": "GetInputFlags",
+    "params": [
+      {
+        "name": "FlagValues",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Flag values as a 32-bit integer. Callers: All users. Programs: All programs."
+  },
+  "SetOutputFlags": {
+    "number": "403B",
+    "shortName": "WFLAG",
+    "longName": "SetOutputFlags",
+    "params": [
+      {
+        "name": "FlagValues",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "FixIOArea": {
+    "number": "404B",
+    "shortName": "IOFIX",
+    "longName": "FixIOArea",
+    "params": [
+      {
+        "name": "StartAddress",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "NumberOfBytes",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "SwitchUserBreak": {
+    "number": "405B",
+    "shortName": "USTBRK",
+    "longName": "SwitchUserBreak",
+    "params": [
+      {
+        "name": "OnOffFlag",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "ProgramAddress",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Section 2.1 and chapter 3 print the short name as USTRBK; section 2.15 says USTBRK. UNVERIFIED. Callers: All users. Programs: All programs."
+  },
+  "AccessRTCommon": {
+    "number": "406B",
+    "shortName": "RWRTC",
+    "longName": "AccessRTCommon",
+    "params": [
+      {
+        "name": "Function",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "RTCommonAddress",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "NumberOfBytes",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Data",
+        "type": "ARR",
+        "dir": "I"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Function 0 reads, 1 writes. The RT common address is a logical ND-100 WORD address. Callers: User RT and user SYSTEM. Programs: RT programs."
+  },
+  "GetStopInfo": {
+    "number": "407B",
+    "shortName": "TPSTRA",
+    "longName": "GetStopInfo",
+    "params": [],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Internal use only (section 2.14). Section 2.16 lists 407B as no longer supported. UNVERIFIED. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "FixInMemory": {
+    "number": "410B",
+    "shortName": "FIXMEM",
+    "longName": "FixInMemory",
+    "params": [
+      {
+        "name": "TypeOfFixing",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "StartAddress",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "LengthInBytes",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "PhysicalMemoryAddress",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: User RT and user SYSTEM. Programs: RT programs."
+  },
+  "MemoryUnFix": {
+    "number": "411B",
+    "shortName": "UNFIXM",
+    "longName": "MemoryUnFix",
+    "params": [
+      {
+        "name": "Address",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "FileAsSegment": {
+    "number": "412B",
+    "shortName": "FSCNT",
+    "longName": "FileAsSegment",
+    "params": [
+      {
+        "name": "FileNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "LogicalSegmentNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "AccessType",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "SelectedSegmentNumber",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON412",
+    "notes": "Parameter 4 returns the segment chosen when parameter 2 is zero. Callers: All users. Programs: All programs."
+  },
+  "FileNotAsSegment": {
+    "number": "413B",
+    "shortName": "FSDCNT",
+    "longName": "FileNotAsSegment",
+    "params": [
+      {
+        "name": "FileNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "SegmentNumber",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": "MON413",
+    "notes": "Section 2.15 prints the short name as FSCDNT; section 2.2 says FSDCNT. Callers: All users. Programs: All programs."
+  },
+  "BCNAFCAMAC": {
+    "number": "414B",
+    "shortName": "BCNAF",
+    "longName": "BCNAFCAMAC",
+    "params": [
+      {
+        "name": "Function",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Address",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Data",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Status",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: User RT and user SYSTEM. Programs: RT programs."
+  },
+  "BCNAF1CAMAC": {
+    "number": "415B",
+    "shortName": "BCNAF1",
+    "longName": "BCNAF1CAMAC",
+    "params": [
+      {
+        "name": "Function",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Address",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Data",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Status",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Same as monitor call 176B, a user-defined monitor call. Callers: User RT and user SYSTEM. Programs: RT programs."
+  },
+  "SaveND500Segment": {
+    "number": "416B",
+    "shortName": "WSEGN",
+    "longName": "SaveND500Segment",
+    "params": [
+      {
+        "name": "LogicalSegmentNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "FirstLogicalPage",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "LastLogicalPage",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "MaxPagesInMemory": {
+    "number": "417B",
+    "shortName": "MXPISG",
+    "longName": "MaxPagesInMemory",
+    "params": [
+      {
+        "name": "LogicalSegmentNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "SegmentType",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "NumberOfPages",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "GetUserRegisters": {
+    "number": "420B",
+    "shortName": "GRBLK",
+    "longName": "GetUserRegisters",
+    "params": [
+      {
+        "name": "Registers",
+        "type": "ARR",
+        "dir": "O"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "154 bytes. Callers: All users. Programs: All programs."
+  },
+  "GetActiveSegment": {
+    "number": "421B",
+    "shortName": "GASGM",
+    "longName": "GetActiveSegment",
+    "params": [
+      {
+        "name": "Buffer",
+        "type": "ARR",
+        "dir": "O"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "A 2048-byte buffer of pointers to segment names. Callers: All users. Programs: All programs."
+  },
+  "GetScratchSegment": {
+    "number": "422B",
+    "shortName": "GSWSP",
+    "longName": "GetScratchSegment",
+    "params": [
+      {
+        "name": "SegmentSizeInBytes",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "LogicalSegmentNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "SelectedSegmentNumber",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Parameter 3 returns the segment chosen when parameter 2 is zero. Callers: All users. Programs: All programs."
+  },
+  "CopyCapability": {
+    "number": "423B",
+    "shortName": "CAPCOP",
+    "longName": "CopyCapability",
+    "params": [
+      {
+        "name": "SourceSegmentNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "SourceSegmentType",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "DestinationSegmentNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "DestinationSegmentType",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "AccessMode",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "ReturnedSegmentNumber",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "ClearCapability": {
+    "number": "424B",
+    "shortName": "CAPCLE",
+    "longName": "ClearCapability",
+    "params": [
+      {
+        "name": "LogicalSegmentNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "SegmentType",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "SetProcessName": {
+    "number": "425B",
+    "shortName": "SPRNAM",
+    "longName": "SetProcessName",
+    "params": [
+      {
+        "name": "ProcessName",
+        "type": "STR",
+        "dir": "I"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "GetProcessNo": {
+    "number": "426B",
+    "shortName": "GPRNUM",
+    "longName": "GetProcessNo",
+    "params": [
+      {
+        "name": "ProcessName",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "ProcessAndMagicNumber",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "GetOwnProcessInfo": {
+    "number": "427B",
+    "shortName": "GPRNAME",
+    "longName": "GetOwnProcessInfo",
+    "params": [
+      {
+        "name": "ProcessName",
+        "type": "STR",
+        "dir": "O"
+      },
+      {
+        "name": "ProcessAndMagicNumber",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Process name is 34 bytes. Callers: All users. Programs: All programs."
+  },
+  "TranslateAddress": {
+    "number": "430B",
+    "shortName": "ADR100",
+    "longName": "TranslateAddress",
+    "params": [
+      {
+        "name": "ND500LogicalAddress",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "ND100PhysicalWordAddress",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "AwaitTransfer": {
+    "number": "431B",
+    "shortName": "MWAITF",
+    "longName": "AwaitTransfer",
+    "params": [
+      {
+        "name": "FileNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "WaitFlag",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "BytesTransferred",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "SIBASFunction": {
+    "number": "432B",
+    "shortName": "SIBFU",
+    "longName": "SIBASFunction",
+    "params": [],
+    "nd100": true,
+    "nd500": false,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Internal use only (section 2.14). Section 2.16 lists 432B as no longer supported. UNVERIFIED. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "ForceTrap": {
+    "number": "435B",
+    "shortName": "PRT",
+    "longName": "ForceTrap",
+    "params": [
+      {
+        "name": "ProcessNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "ReasonCode",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Section 2.16 lists 435B as no longer supported. Callers: All users. Programs: All programs."
+  },
+  "SetND500Param": {
+    "number": "436B",
+    "shortName": "5PASET",
+    "longName": "SetND500Param",
+    "params": [
+      {
+        "name": "UserParameters",
+        "type": "ARR",
+        "dir": "I"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Five user parameters: 5*16 bit on ND-100, 5*32 bit on ND-500. Callers: All users. Programs: All programs."
+  },
+  "GetND500Param": {
+    "number": "437B",
+    "shortName": "5PAGET",
+    "longName": "GetND500Param",
+    "params": [
+      {
+        "name": "UserParameters",
+        "type": "ARR",
+        "dir": "O"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Five user parameters: 5*16 bit on ND-100, 5*32 bit on ND-500. Callers: All users. Programs: Background programs."
+  },
+  "Attach500Segment": {
+    "number": "440B",
+    "shortName": "AT5SGM",
+    "longName": "Attach500Segment",
+    "params": [
+      {
+        "name": "FunctionCode",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Param2",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Param3",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Param4",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Param5",
+        "type": "STR",
+        "dir": "I"
+      },
+      {
+        "name": "Param6",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Param7",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Parameters 3 to 7 are optional and depend on the function code. Listed in section 2.17 as a new monitor call number old compilers do not know. Callers: All users. Programs: All programs."
+  },
+  "StartProcess": {
+    "number": "500B",
+    "shortName": "STARTP",
+    "longName": "StartProcess",
+    "params": [
+      {
+        "name": "ProcessNumber",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "StopProcess": {
+    "number": "501B",
+    "shortName": "STOPPR",
+    "longName": "StopProcess",
+    "params": [],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Section 2.2 lists no parameters. Callers: All users. Programs: All programs."
+  },
+  "SwitchProcess": {
+    "number": "502B",
+    "shortName": "SWITCHP",
+    "longName": "SwitchProcess",
+    "params": [
+      {
+        "name": "ProcessNumber",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "InputString": {
+    "number": "503B",
+    "shortName": "DVINST",
+    "longName": "InputString",
+    "params": [
+      {
+        "name": "LogicalDeviceNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "MaxBytes",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "BytesRead",
+        "type": "INT",
+        "dir": "O"
+      },
+      {
+        "name": "Buffer",
+        "type": "ARR",
+        "dir": "I"
+      },
+      {
+        "name": "BreakStrategy",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "EchoStrategy",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "BreakTable0",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "BreakTable32",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "BreakTable64",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "BreakTable96",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "EchoTable0",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "EchoTable32",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "EchoTable64",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "EchoTable96",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "The break and echo tables are four 32-bit words each, bits 0:31, 32:63, 64:95 and 96:127. Callers: All users. Programs: All programs."
+  },
+  "OutputString": {
+    "number": "504B",
+    "shortName": "DVOUTS",
+    "longName": "OutputString",
+    "params": [
+      {
+        "name": "LDNOrFileNumber",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "NumberOfBytes",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "Data",
+        "type": "ARR",
+        "dir": "I"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "GetTrapReason": {
+    "number": "505B",
+    "shortName": "GERRCOD",
+    "longName": "GetTrapReason",
+    "params": [
+      {
+        "name": "ErrorCode",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: All users. Programs: All programs."
+  },
+  "AnswerSIBAS": {
+    "number": "506B",
+    "shortName": "SIBSURV",
+    "longName": "AnswerSIBAS",
+    "params": [],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Internal use only (section 2.14). Section 2.16 lists 506B as no longer supported. UNVERIFIED. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "SetProcessPriority": {
+    "number": "507B",
+    "shortName": "SPRIO",
+    "longName": "SetProcessPriority",
+    "params": [
+      {
+        "name": "Priority",
+        "type": "INT",
+        "dir": "I"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Callers: User RT and user SYSTEM. Programs: All programs."
+  },
+  "CallSwapper": {
+    "number": "510B",
+    "shortName": "SWAPMC",
+    "longName": "CallSwapper",
+    "params": [],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Internal use only (section 2.14). Section 2.16 lists 510B as no longer supported. UNVERIFIED. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "ND500TimeOut": {
+    "number": "514B",
+    "shortName": "5TMOUT",
+    "longName": "ND500TimeOut",
+    "params": [
+      {
+        "name": "NumberOfTimeUnits",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "TypeOfTimeUnits",
+        "type": "INT",
+        "dir": "I"
+      },
+      {
+        "name": "RestartCause",
+        "type": "INT",
+        "dir": "O"
+      }
+    ],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  },
+  "MultipleDataTransfer": {
+    "number": "515B",
+    "shortName": "5MTRANS",
+    "longName": "MultipleDataTransfer",
+    "params": [],
+    "nd100": false,
+    "nd500": true,
+    "canRaise": true,
+    "plancRoutine": null,
+    "notes": "Internal use only (sections 2.14 and 2.17). Fast disk transfer for the ND-500(0). Parameters not documented. UNVERIFIED. Availability taken from the section 2.2 dot columns - this call's chapter-3 page did not survive the scan. UNVERIFIED."
+  }
+}

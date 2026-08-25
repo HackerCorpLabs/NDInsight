@@ -50,6 +50,509 @@ local function bxor(a, b)   return a ~ b  end
 local function lshift(a, n) return a << n end
 local function rshift(a, n) return a >> n end
 
+-- @@BEGIN GENERATED FROM DOC/protocols BY generate_lua.py - DO NOT EDIT @@
+-- Constant tables read straight out of DOC/protocols. Regenerate with:
+--     python DOC/protocols/generate_lua.py
+-- and check for staleness with --check. Editing between the markers by
+-- hand is pointless - the next run overwrites it.
+--
+-- Each block gives REG.<name> (the full record, with the status and the
+-- plain-English meaning) and REG.<name>_vs (a Wireshark value string, with
+-- the status appended whenever it is not MEASURED).
+local REG = {}
+
+-- nd_link_frame_kind -- from sintran-wire.json bitfields/nd_link_frame_kind. 6 values.
+REG.nd_link_frame_kind = {
+    [0xF] = { name = "ConnectionRequest", status = "MEASURED" },
+    [0x20] = { name = "Data", status = "MEASURED" },
+    [0x3F] = { name = "Acknowledge", status = "MEASURED" },
+    [0x60] = { name = "DisconnectRequest60", status = "MEASURED", meaning = "the other disconnect - D100 sends this one repeatedly once it gives up on a conversation" },
+    [0x6F] = { name = "DisconnectRequestByNetworkService", status = "MEASURED" },
+    [0x70] = { name = "DisconnectConfirm", status = "INFERRED", meaning = "The confirmation of a disconnect request. Read from its position in the exchange - a connection request is ..." },
+}
+REG.nd_link_frame_kind_vs = {
+    [0xF] = "ConnectionRequest",
+    [0x20] = "Data",
+    [0x3F] = "Acknowledge",
+    [0x60] = "DisconnectRequest60",
+    [0x6F] = "DisconnectRequestByNetworkService",
+    [0x70] = "DisconnectConfirm [INFERRED]",
+}
+
+-- xrout_service -- from xrout-services.json services. 33 values.
+REG.xrout_service = {
+    [0x40] = { name = "XSNUL", status = "INFERRED", meaning = "do nothing - the no-op" },
+    [0x41] = { name = "XSLET", status = "MEASURED", meaning = "deliver this letter to a service I only know by NAME. XROUT looks the name up, spends one of that service's..." },
+    [0x42] = { name = "XSNAM", status = "MEASURED", meaning = "claim a name for my port, so others can find me by asking for it instead of needing my address" },
+    [0x43] = { name = "XSCNM", status = "MEASURED", meaning = "give my name back, so nobody is sent to a port that has closed" },
+    [0x44] = { name = "XSGNM", status = "INFERRED", meaning = "tell me the name registered for this address" },
+    [0x45] = { name = "XSGNI", status = "INFERRED", meaning = "tell me more about a registered name - who holds it and how much room it has" },
+    [0x46] = { name = "XSRME", status = "INFERRED", meaning = "find me the address of a named port on ANOTHER machine. Asked of our own XROUT, which does the asking onwards" },
+    [0x47] = { name = "XSGMG", status = "INFERRED", meaning = "give me the address behind this name" },
+    [0x48] = { name = "XSCMG", status = "INFERRED", meaning = "forget that address - one XROUT telling another that a port is gone. Privileged, and not something a normal..." },
+    [0x49] = { name = "XSDRN", status = "MEASURED", meaning = "record that a remote system exists and what number it has. This is what the DEF-REMOTE operator command doe..." },
+    [0x4A] = { name = "XSDMC/XSDSY", status = "INFERRED", meaning = "record how to reach another machine - which link, and how far away it is" },
+    [0x4B] = { name = "XSGMC/XSGSY", status = "INFERRED", meaning = "tell me what you know about that machine - can you reach it, and how" },
+    [0x4C] = { name = "XSLKI", status = "INFERRED", meaning = "tell me about the links this machine has - what is connected and in what state" },
+    [0x4D] = { name = "XSTIN", status = "INFERRED", meaning = "tell me the time, as this machine has it" },
+    [0x4E] = { name = "XSTCL", status = "INFERRED", meaning = "Close tracing (privileged)" },
+    [0x4F] = { name = "XSTDC", status = "INFERRED", meaning = "Define tracing conditions (privileged)" },
+    [0x50] = { name = "XSCRS", status = "INFERRED", meaning = "Create service (name, init no of SP's)" },
+    [0x51] = { name = "XSNSP", status = "INFERRED", meaning = "New service point(s) (increment/decrement in SP's)" },
+    [0x52] = { name = "XSGIN", status = "INFERRED", meaning = "Get information about name" },
+    [0x53] = { name = "XSDLO", status = "INFERRED", meaning = "Define local system (privileged)" },
+    [0x54] = { name = "XSLEK", status = "INFERRED", meaning = "Send letter and kick if unavailable (privileged)" },
+    [0x55] = { name = "XSNET", status = "INFERRED", meaning = "Start/stop gateway (network server) (privileged)" },
+    [0x56] = { name = "XSSCI", status = "INFERRED", meaning = "Set crash information (privileged)" },
+    [0x57] = { name = "XSGAT", status = "INFERRED", meaning = "Get/check attribute" },
+    [0x58] = { name = "XSDAT", status = "INFERRED", meaning = "Define/remove attribute (privileged)" },
+    [0x59] = { name = "XSNSI", status = "INFERRED", meaning = "Get network server information (privileged)" },
+    [0x5A] = { name = "XSLIN", status = "INFERRED", meaning = "Get information about a link (privileged)" },
+    [0x5B] = { name = "XSPIN", status = "INFERRED", meaning = "Get information about named ports" },
+    [0x5C] = { name = "XSLSY", status = "INFERRED", meaning = "Get information about a system (privileged)" },
+    [0x5D] = { name = "XSGSU", status = "INFERRED", meaning = "Get info about system utilization (privileged)" },
+    [0x5E] = { name = "XSCRM", status = "INFERRED", meaning = "Start/stop Cosmos routing manager (priv - COSROUT only!)" },
+    [0x5F] = { name = "XSGLI", status = "INFERRED", meaning = "Get information from link tables (priv - COSROUT only!)" },
+    [0x60] = { name = "XSGSG/XSMAX", status = "INFERRED", meaning = "Get info about system generation variables (privileged)" },
+}
+REG.xrout_service_vs = {
+    [0x40] = "XSNUL [INFERRED]",
+    [0x41] = "XSLET",
+    [0x42] = "XSNAM",
+    [0x43] = "XSCNM",
+    [0x44] = "XSGNM [INFERRED]",
+    [0x45] = "XSGNI [INFERRED]",
+    [0x46] = "XSRME [INFERRED]",
+    [0x47] = "XSGMG [INFERRED]",
+    [0x48] = "XSCMG [INFERRED]",
+    [0x49] = "XSDRN",
+    [0x4A] = "XSDMC/XSDSY [INFERRED]",
+    [0x4B] = "XSGMC/XSGSY [INFERRED]",
+    [0x4C] = "XSLKI [INFERRED]",
+    [0x4D] = "XSTIN [INFERRED]",
+    [0x4E] = "XSTCL [INFERRED]",
+    [0x4F] = "XSTDC [INFERRED]",
+    [0x50] = "XSCRS [INFERRED]",
+    [0x51] = "XSNSP [INFERRED]",
+    [0x52] = "XSGIN [INFERRED]",
+    [0x53] = "XSDLO [INFERRED]",
+    [0x54] = "XSLEK [INFERRED]",
+    [0x55] = "XSNET [INFERRED]",
+    [0x56] = "XSSCI [INFERRED]",
+    [0x57] = "XSGAT [INFERRED]",
+    [0x58] = "XSDAT [INFERRED]",
+    [0x59] = "XSNSI [INFERRED]",
+    [0x5A] = "XSLIN [INFERRED]",
+    [0x5B] = "XSPIN [INFERRED]",
+    [0x5C] = "XSLSY [INFERRED]",
+    [0x5D] = "XSGSU [INFERRED]",
+    [0x5E] = "XSCRM [INFERRED]",
+    [0x5F] = "XSGLI [INFERRED]",
+    [0x60] = "XSGSG/XSMAX [INFERRED]",
+}
+
+-- xrout_error -- from xrout-services.json errors. 57 values.
+REG.xrout_error = {
+    [0x0] = { name = "XRSOK", status = "MEASURED", meaning = "it worked" },
+    [0x1] = { name = "XRISN", status = "INFERRED", meaning = "Illegal service number" },
+    [0x2] = { name = "XRUNN", status = "MEASURED", meaning = "nobody here has registered that name - either the service is not running, or the name is spelled differently" },
+    [0x3] = { name = "XRDDF", status = "INFERRED", meaning = "Another port already has this name" },
+    [0x4] = { name = "XRNSP", status = "MEASURED", meaning = "that service is full. Its free-slot count is zero, so XROUT will not forward another letter to it until som..." },
+    [0x5] = { name = "XRIPT", status = "INFERRED", meaning = "Illegal parameter type" },
+    [0x6] = { name = "XRMMP", status = "INFERRED", meaning = "Missing mandatory parameter" },
+    [0x7] = { name = "XRUNM", status = "MEASURED", meaning = "that address means nothing here - the port it named has closed" },
+    [0x8] = { name = "XRMTL", status = "INFERRED", meaning = "Too short message or resulting message too long" },
+    [0x9] = { name = "XRSMF", status = "INFERRED", meaning = "Standard message format not handled" },
+    [0xA] = { name = "XRPRV", status = "INFERRED", meaning = "Caller was not privileged" },
+    [0xB] = { name = "XRISY", status = "INFERRED", meaning = "Illegal system number parameter" },
+    [0xC] = { name = "XRNRO", status = "INFERRED", meaning = "No access to remote system" },
+    [0xD] = { name = "XRIIV", status = "INFERRED", meaning = "Illegal integer value" },
+    [0xE] = { name = "XRNEI", status = "INFERRED", meaning = "Cannot define route to a neighbour" },
+    [0xF] = { name = "XRNXM", status = "INFERRED", meaning = "Invalid service request - not available to current caller" },
+    [0x10] = { name = "XRILN", status = "INFERRED", meaning = "Illegal/Reserved Logical Unit Number (LUN) for link" },
+    [0x11] = { name = "XRNXL", status = "INFERRED", meaning = "No more Link Descriptors (XL-blocks) for start-link/netserver" },
+    [0x12] = { name = "XRNXD", status = "INFERRED", meaning = "Not enough resources (XD/XF/XM-Blocks) for start-link/netserver" },
+    [0x13] = { name = "XRNTR", status = "INFERRED", meaning = "No trace generated (no trace buffer available)'" },
+    [0x14] = { name = "XRTRA", status = "INFERRED", meaning = "Trace already active" },
+    [0x15] = { name = "XRTRP", status = "INFERRED", meaning = "Trace passive" },
+    [0x16] = { name = "XRTFE", status = "INFERRED", meaning = "Trace/dump file open error (see parameter 1)" },
+    [0x17] = { name = "XRTRT", status = "INFERRED", meaning = "Trace RT-prog (XTRACE) not found" },
+    [0x18] = { name = "XRTIS", status = "INFERRED", meaning = "Illegal trace system number" },
+    [0x19] = { name = "XRBLK", status = "INFERRED", meaning = "Bad link - open unsuccessful" },
+    [0x1A] = { name = "XRSYD", status = "INFERRED", meaning = "Attempt to redefine local system no" },
+    [0x1B] = { name = "XRNLS", status = "INFERRED", meaning = "No local system number defined" },
+    [0x1C] = { name = "XRTRE", status = "INFERRED", meaning = "Too many remote names to this system" },
+    [0x1D] = { name = "XRRNA", status = "INFERRED", meaning = "Old service calls (below 64) cannot go remote" },
+    [0x1E] = { name = "XRBUS", status = "INFERRED", meaning = "Service points busy" },
+    [0x1F] = { name = "XRNSE", status = "INFERRED", meaning = "This is not a service port" },
+    [0x20] = { name = "XRRPN", status = "INFERRED", meaning = "Remote port statically declared" },
+    [0x21] = { name = "XRUKS", status = "INFERRED", meaning = "Unknown remote system name or number" },
+    [0x22] = { name = "XRMFL", status = "INFERRED", meaning = "Remote system message table space full" },
+    [0x23] = { name = "XRROV", status = "INFERRED", meaning = "Remote task message space used up" },
+    [0x24] = { name = "XRRFU", status = "INFERRED", meaning = "Routing table full (too many systems)" },
+    [0x25] = { name = "XRNRB", status = "INFERRED", meaning = "No remote batch service available" },
+    [0x26] = { name = "XRURT", status = "INFERRED", meaning = "Unknown RT name" },
+    [0x27] = { name = "XRSNR", status = "INFERRED", meaning = "This server is not running" },
+    [0x28] = { name = "XRRND", status = "INFERRED", meaning = "Netserver: remote system is not defined" },
+    [0x29] = { name = "XRNNA", status = "INFERRED", meaning = "Netserver: network not available" },
+    [0x2A] = { name = "XRISE", status = "INFERRED", meaning = "Netserver: internal server error" },
+    [0x2B] = { name = "XRIRQ", status = "INFERRED", meaning = "Netserver: invalid request" },
+    [0x2C] = { name = "XRNGA", status = "INFERRED", meaning = "XMSG not congfigurated with gateway code" },
+    [0x2D] = { name = "XRRNL", status = "INFERRED", meaning = "Remote system not on same LAN" },
+    [0x2E] = { name = "XRNCO", status = "MEASURED", meaning = "there is no connection to work with" },
+    [0x2F] = { name = "XRAMB", status = "INFERRED", meaning = "Ambiguous name" },
+    [0x30] = { name = "XRFFU", status = "INFERRED", meaning = "Friend system table full (too many friends)" },
+    [0x31] = { name = "XRNTA", status = "INFERRED", meaning = "Netserver: network temporarily not available" },
+    [0x32] = { name = "XRMTO", status = "INFERRED", meaning = "Netserver: message too old" },
+    [0x33] = { name = "XRCNR", status = "INFERRED", meaning = "COSMOS routing manager is not running" },
+    [0x34] = { name = "XRICR", status = "INFERRED", meaning = "COSMOS routing manager is already running" },
+    [0x35] = { name = "XRRID", status = "INFERRED", meaning = "Routing information defined (start/stop inhibited)" },
+    [0x36] = { name = "XRIRR", status = "INFERRED", meaning = "COSMOS routing manager: invalid request" },
+    [0x37] = { name = "XRILX", status = "INFERRED", meaning = "XRILX - Illegal link number parameter. SOURCE DISCREPANCY: present in XMSG-PL-VALUES-L.INCL (\"CONSTANT XRIL..." },
+    [0x4240] = { name = "XRXXX", status = "INFERRED", meaning = "Base for XROUT errors: 41100B" },
+}
+REG.xrout_error_vs = {
+    [0x0] = "XRSOK",
+    [0x1] = "XRISN [INFERRED]",
+    [0x2] = "XRUNN",
+    [0x3] = "XRDDF [INFERRED]",
+    [0x4] = "XRNSP",
+    [0x5] = "XRIPT [INFERRED]",
+    [0x6] = "XRMMP [INFERRED]",
+    [0x7] = "XRUNM",
+    [0x8] = "XRMTL [INFERRED]",
+    [0x9] = "XRSMF [INFERRED]",
+    [0xA] = "XRPRV [INFERRED]",
+    [0xB] = "XRISY [INFERRED]",
+    [0xC] = "XRNRO [INFERRED]",
+    [0xD] = "XRIIV [INFERRED]",
+    [0xE] = "XRNEI [INFERRED]",
+    [0xF] = "XRNXM [INFERRED]",
+    [0x10] = "XRILN [INFERRED]",
+    [0x11] = "XRNXL [INFERRED]",
+    [0x12] = "XRNXD [INFERRED]",
+    [0x13] = "XRNTR [INFERRED]",
+    [0x14] = "XRTRA [INFERRED]",
+    [0x15] = "XRTRP [INFERRED]",
+    [0x16] = "XRTFE [INFERRED]",
+    [0x17] = "XRTRT [INFERRED]",
+    [0x18] = "XRTIS [INFERRED]",
+    [0x19] = "XRBLK [INFERRED]",
+    [0x1A] = "XRSYD [INFERRED]",
+    [0x1B] = "XRNLS [INFERRED]",
+    [0x1C] = "XRTRE [INFERRED]",
+    [0x1D] = "XRRNA [INFERRED]",
+    [0x1E] = "XRBUS [INFERRED]",
+    [0x1F] = "XRNSE [INFERRED]",
+    [0x20] = "XRRPN [INFERRED]",
+    [0x21] = "XRUKS [INFERRED]",
+    [0x22] = "XRMFL [INFERRED]",
+    [0x23] = "XRROV [INFERRED]",
+    [0x24] = "XRRFU [INFERRED]",
+    [0x25] = "XRNRB [INFERRED]",
+    [0x26] = "XRURT [INFERRED]",
+    [0x27] = "XRSNR [INFERRED]",
+    [0x28] = "XRRND [INFERRED]",
+    [0x29] = "XRNNA [INFERRED]",
+    [0x2A] = "XRISE [INFERRED]",
+    [0x2B] = "XRIRQ [INFERRED]",
+    [0x2C] = "XRNGA [INFERRED]",
+    [0x2D] = "XRRNL [INFERRED]",
+    [0x2E] = "XRNCO",
+    [0x2F] = "XRAMB [INFERRED]",
+    [0x30] = "XRFFU [INFERRED]",
+    [0x31] = "XRNTA [INFERRED]",
+    [0x32] = "XRMTO [INFERRED]",
+    [0x33] = "XRCNR [INFERRED]",
+    [0x34] = "XRICR [INFERRED]",
+    [0x35] = "XRRID [INFERRED]",
+    [0x36] = "XRIRR [INFERRED]",
+    [0x37] = "XRILX [INFERRED]",
+    [0x4240] = "XRXXX [INFERRED]",
+}
+
+-- xrout_connection_type -- from xrout-services.json connection_types. 5 values.
+REG.xrout_connection_type = {
+    [0x0] = { name = "Unavailable", status = "MEASURED" },
+    [0x1] = { name = "Neighbour", status = "MEASURED", meaning = "the machine is on the same wire - we can talk to it without being told a path" },
+    [0x2] = { name = "Via", status = "MEASURED", meaning = "the machine is further away, and another machine passes traffic along for us" },
+    [0x3] = { name = "ViaNetworkServer", status = "UNKNOWN" },
+    [0x4] = { name = "Local", status = "MEASURED" },
+}
+REG.xrout_connection_type_vs = {
+    [0x0] = "Unavailable",
+    [0x1] = "Neighbour",
+    [0x2] = "Via",
+    [0x3] = "ViaNetworkServer [UNKNOWN]",
+    [0x4] = "Local",
+}
+
+-- fa_operation -- from fa-qform.json operations. 13 values.
+REG.fa_operation = {
+    [0x1] = { name = "FileEntryDisconnect", status = "MEASURED", meaning = "let go of a file slot" },
+    [0x2] = { name = "ReserveFileEntry", status = "MEASURED", meaning = "claim one of the far machine file slots before doing anything with a file" },
+    [0x3] = { name = "ReleaseFileEntry", status = "MEASURED", meaning = "give that slot back when finished" },
+    [0x4] = { name = "ChangeFileEntryId", status = "INFERRED", meaning = "renumber a slot" },
+    [0x5] = { name = "OpenFile", status = "MEASURED", meaning = "open a file by name, for reading or for writing" },
+    [0x6] = { name = "CloseFile", status = "MEASURED", meaning = "close it" },
+    [0x7] = { name = "SetBlockSize", status = "MEASURED", meaning = "agree how big each chunk of data will be" },
+    [0x8] = { name = "ReadFile", status = "MEASURED", meaning = "send me the contents" },
+    [0x9] = { name = "WriteFile", status = "MEASURED", meaning = "here are the contents to store" },
+    [0xA] = { name = "CreateFile", status = "MEASURED", meaning = "make a new file with this name and this many pages" },
+    [0xB] = { name = "DeleteFile", status = "MEASURED", meaning = "delete a file" },
+    [0xC] = { name = "SiiiSpecial", status = "INFERRED", meaning = "a SINTRAN-specific request" },
+    [0xD] = { name = "DeviceFunction", status = "UNKNOWN", meaning = "operate on a device rather than a file" },
+}
+REG.fa_operation_vs = {
+    [0x1] = "FileEntryDisconnect",
+    [0x2] = "ReserveFileEntry",
+    [0x3] = "ReleaseFileEntry",
+    [0x4] = "ChangeFileEntryId [INFERRED]",
+    [0x5] = "OpenFile",
+    [0x6] = "CloseFile",
+    [0x7] = "SetBlockSize",
+    [0x8] = "ReadFile",
+    [0x9] = "WriteFile",
+    [0xA] = "CreateFile",
+    [0xB] = "DeleteFile",
+    [0xC] = "SiiiSpecial [INFERRED]",
+    [0xD] = "DeviceFunction [UNKNOWN]",
+}
+
+-- fa_status -- from fa-qform.json status_codes. 7 values.
+REG.fa_status = {
+    [0x0] = { name = "Ok", status = "MEASURED", meaning = "it worked" },
+    [0x2E] = { name = "NoSuchFile", status = "MEASURED", meaning = "no file of that name on that machine" },
+    [0x30] = { name = "WrongPassword", status = "MEASURED", meaning = "the file is protected and the password did not match" },
+    [0x61] = { name = "StoreError", status = "INFERRED", meaning = "the machine could not write it - out of room, or the disc complained" },
+    [0x81] = { name = "NotSupported", status = "INFERRED", meaning = "that machine does not offer this operation" },
+    [0xC5] = { name = "EndOfDirectory", status = "MEASURED", meaning = "no more files - the end of a listing, not a fault" },
+    [0xD3] = { name = "BadRequest", status = "INFERRED", meaning = "the request did not make sense to the far end" },
+}
+REG.fa_status_vs = {
+    [0x0] = "Ok",
+    [0x2E] = "NoSuchFile",
+    [0x30] = "WrongPassword",
+    [0x61] = "StoreError [INFERRED]",
+    [0x81] = "NotSupported [INFERRED]",
+    [0xC5] = "EndOfDirectory",
+    [0xD3] = "BadRequest [INFERRED]",
+}
+
+-- fa_message_type -- from fa-qform.json message_types. 6 values.
+REG.fa_message_type = {
+    [0x781] = { name = "SessionFinishedAlternate", status = "MEASURED" },
+    [0x782] = { name = "SessionFinished", status = "MEASURED" },
+    [0x7A2] = { name = "ShortAck", status = "MEASURED" },
+    [0x7C0] = { name = "Close", status = "MEASURED" },
+    [0x7D2] = { name = "ConnectionConfirm", status = "MEASURED" },
+    [0x7F0] = { name = "Request", status = "MEASURED" },
+}
+REG.fa_message_type_vs = {
+    [0x781] = "SessionFinishedAlternate",
+    [0x782] = "SessionFinished",
+    [0x7A2] = "ShortAck",
+    [0x7C0] = "Close",
+    [0x7D2] = "ConnectionConfirm",
+    [0x7F0] = "Request",
+}
+
+-- qform_class -- from fa-qform.json qform/classes. 8 values.
+REG.qform_class = {
+    [0x0] = { name = "Constructed", status = "MEASURED", meaning = "length-delimited, content itself tagged" },
+    [0x1] = { name = "Integer", status = "MEASURED" },
+    [0x2] = { name = "TypedInteger", status = "MEASURED", meaning = "carries the SINTRAN error number in a rejection - 0x0030 = 48 = wrong password" },
+    [0x3] = { name = "ByteString", status = "MEASURED" },
+    [0x4] = { name = "Class4", status = "UNKNOWN" },
+    [0x5] = { name = "Class5", status = "UNKNOWN" },
+    [0x6] = { name = "Class6Unknown", status = "UNKNOWN" },
+    [0x7] = { name = "Selector", status = "MEASURED", meaning = "names the field whose value follows" },
+}
+REG.qform_class_vs = {
+    [0x0] = "Constructed",
+    [0x1] = "Integer",
+    [0x2] = "TypedInteger",
+    [0x3] = "ByteString",
+    [0x4] = "Class4 [UNKNOWN]",
+    [0x5] = "Class5 [UNKNOWN]",
+    [0x6] = "Class6Unknown [UNKNOWN]",
+    [0x7] = "Selector",
+}
+
+-- xmcsm_service -- from tad-wire.json control_services. 7 values.
+REG.xmcsm_service = {
+    [0x60000] = { name = "SessionNotify", status = "INFERRED", meaning = "tell the other side something about the session itself, rather than carrying data" },
+    [0x80000] = { name = "BareTadControl", status = "MEASURED", meaning = "bare TAD control - ESCA, DCON, the 0xFD notify" },
+    [0x1000100] = { name = "XsgsyReply", status = "MEASURED", meaning = "the answer to that question" },
+    [0x100014B] = { name = "XsgsyRequest", status = "MEASURED", meaning = "ask another machine what it knows about a system" },
+    [0x1080000] = { name = "TerminalData", status = "MEASURED", meaning = "terminal data phase" },
+    [0x4000000] = { name = "SessionSetup", status = "MEASURED", meaning = "session setup control word" },
+    [0x4000041] = { name = "XsletLetter", status = "MEASURED", meaning = "XROUT connect letter / setup. Low byte 0x41 is the XROUT service code." },
+}
+REG.xmcsm_service_vs = {
+    [0x60000] = "SessionNotify [INFERRED]",
+    [0x80000] = "BareTadControl",
+    [0x1000100] = "XsgsyReply",
+    [0x100014B] = "XsgsyRequest",
+    [0x1080000] = "TerminalData",
+    [0x4000000] = "SessionSetup",
+    [0x4000041] = "XsletLetter",
+}
+
+-- tad_op -- from tad-wire.json operations. 33 values.
+REG.tad_op = {
+    [0x1] = { name = "Bdat", status = "MEASURED", meaning = "here is some text - the characters going to or from the screen. The workhorse: almost all terminal traffic ..." },
+    [0x2] = { name = "Rfi", status = "MEASURED", meaning = "your turn to type - the far end is waiting for input" },
+    [0x3] = { name = "Eckm", status = "INFERRED", meaning = "decide who echoes what you type - the terminal itself, or the machine at the far end" },
+    [0x4] = { name = "Bmmx", status = "MEASURED", meaning = "BREAK parameters: a break-strategy byte, a 16-bit BRKMAX word, and for strategy 7 a 16-byte break table. It..." },
+    [0x8] = { name = "Esca", status = "MEASURED", meaning = "the user pressed the escape key - break out of whatever is running" },
+    [0x9] = { name = "Dcon", status = "MEASURED", meaning = "end the session and hang up" },
+    [0xB] = { name = "Lun", status = "MEASURED", meaning = "the TAD logical-unit index in the port assignment; the unit the user sees is 768 + this value" },
+    [0xC] = { name = "Tmod", status = "MEASURED", meaning = "how the terminal should behave - a line at a time or a character at a time, and similar settings" },
+    [0xD] = { name = "Ttyp", status = "MEASURED", meaning = "what kind of terminal this is, so the far end knows what it can draw" },
+    [0xE] = { name = "Cesc", status = "MEASURED", meaning = "enable (payload 1) or disable (payload 0) the escape function for this session. Choosing WHICH key means es..." },
+    [0xF] = { name = "Desc", status = "INFERRED", meaning = "define what the escape key does" },
+    [0x13] = { name = "Sycn", status = "MEASURED", meaning = "the SYSTEM CONTROL word - one 16-bit payload word on a general control channel. Its user-control twin is US..." },
+    [0x14] = { name = "Uscn", status = "INFERRED", meaning = "the USER CONTROL word - one 16-bit payload word; the sender then waits for an ERRS response" },
+    [0x15] = { name = "Fbsi", status = "INFERRED", meaning = "field/buffer size tag in the port assignment; we emit the two-byte value 01 08 copied from a real capture" },
+    [0x16] = { name = "Rese", status = "MEASURED", meaning = "start clean. Sent twice while a session is being set up, which is why it appears in the accept ladder" },
+    [0x17] = { name = "Reco", status = "MEASURED", meaning = "reset confirm - the answer to a RESE. Not 'pick up a session again after it was interrupted', which this en..." },
+    [0x18] = { name = "Dumm", status = "MEASURED", meaning = "a placeholder that carries nothing. Real machines send one during setup, so we do too" },
+    [0x1F] = { name = "Opsv", status = "INFERRED", meaning = "OPSV - OS / protocol version handshake (0x1F)" },
+    [0x20] = { name = "Esrs", status = "MEASURED", meaning = "the host answering the terminal ESCA - sent with Rese as the pair that lets the login prompt follow" },
+    [0x21] = { name = "Cers", status = "INFERRED", meaning = "CERS - escape / CESC response (0x21). Asker-sent after each host burst / CESC change" },
+    [0x22] = { name = "Isrq", status = "INFERRED", meaning = "remote ISIZE request - empty I-field. Asks the far end how many input characters are waiting" },
+    [0x23] = { name = "Isrs", status = "INFERRED", meaning = "remote ISIZE response - two data bytes, big-endian character count" },
+    [0x24] = { name = "Nowt", status = "INFERRED", meaning = "nowait status - one status byte; the variant chosen when the entry status is zero" },
+    [0x25] = { name = "Tnow", status = "INFERRED", meaning = "nowait status - one status byte; the variant chosen when the entry status is non-zero" },
+    [0x26] = { name = "Nwre", status = "INFERRED", meaning = "nowait restart - high priority, empty. The receiver bounces it straight back and then restarts its suspende..." },
+    [0x27] = { name = "Rloc", status = "INFERRED", meaning = "remote local / rubout for NORD-NET - high priority, empty. Handled in the same branch as ESCA" },
+    [0x29] = { name = "Edrs", status = "INFERRED", meaning = "escape response sent when the escape function is DISABLED - high priority, empty. This is the answer to ESC..." },
+    [0x2A] = { name = "Trep", status = "INFERRED", meaning = "terminal report status - two data bytes, big-endian. Bit 2 buffer overrun, bit 3 parity error, bit 4 framin..." },
+    [0x2B] = { name = "Umod", status = "INFERRED", meaning = "a mode message that appears alongside 78MOD from Release L onwards; meaning not established" },
+    [0x2C] = { name = "Mod8", status = "INFERRED", meaning = "8-bit mode negotiation for the terminal line; we neither send nor handle it" },
+    [0xFA] = { name = "Cpco", status = "INFERRED", meaning = "completion code - four data bytes, two 16-bit words" },
+    [0xFB] = { name = "Errs", status = "INFERRED", meaning = "error response - two data bytes, big-endian; the answer to USCN" },
+    [0xFE] = { name = "Reje", status = "INFERRED", meaning = "reject - one data byte, the type of the message being rejected. Three bytes on the wire: FE 01 type" },
+}
+REG.tad_op_vs = {
+    [0x1] = "Bdat",
+    [0x2] = "Rfi",
+    [0x3] = "Eckm [INFERRED]",
+    [0x4] = "Bmmx",
+    [0x8] = "Esca",
+    [0x9] = "Dcon",
+    [0xB] = "Lun",
+    [0xC] = "Tmod",
+    [0xD] = "Ttyp",
+    [0xE] = "Cesc",
+    [0xF] = "Desc [INFERRED]",
+    [0x13] = "Sycn",
+    [0x14] = "Uscn [INFERRED]",
+    [0x15] = "Fbsi [INFERRED]",
+    [0x16] = "Rese",
+    [0x17] = "Reco",
+    [0x18] = "Dumm",
+    [0x1F] = "Opsv [INFERRED]",
+    [0x20] = "Esrs",
+    [0x21] = "Cers [INFERRED]",
+    [0x22] = "Isrq [INFERRED]",
+    [0x23] = "Isrs [INFERRED]",
+    [0x24] = "Nowt [INFERRED]",
+    [0x25] = "Tnow [INFERRED]",
+    [0x26] = "Nwre [INFERRED]",
+    [0x27] = "Rloc [INFERRED]",
+    [0x29] = "Edrs [INFERRED]",
+    [0x2A] = "Trep [INFERRED]",
+    [0x2B] = "Umod [INFERRED]",
+    [0x2C] = "Mod8 [INFERRED]",
+    [0xFA] = "Cpco [INFERRED]",
+    [0xFB] = "Errs [INFERRED]",
+    [0xFE] = "Reje [INFERRED]",
+}
+
+-- tad_error -- from tad-wire.json error_codes. 4 values.
+REG.tad_error = {
+    [0xCC] = { name = "TER00", status = "INFERRED", meaning = "input completed while a delayed escape action was still pending" },
+    [0xCD] = { name = "TER01", status = "INFERRED", meaning = "the message was rejected - the driver sent a REJE and failed its caller with this" },
+    [0xCE] = { name = "TER02", status = "INFERRED", meaning = "the TAD is not connected - its port number is zero" },
+    [0x4200] = { name = "XKXXX", status = "MEASURED", meaning = "the base a negated XMSG error code is OR-ed onto to make a SINTRAN error number" },
+}
+REG.tad_error_vs = {
+    [0xCC] = "TER00 [INFERRED]",
+    [0xCD] = "TER01 [INFERRED]",
+    [0xCE] = "TER02 [INFERRED]",
+    [0x4200] = "XKXXX",
+}
+
+-- chat_kind -- from chat-wire.json message_kinds. 27 values.
+REG.chat_kind = {
+    [0x0] = { name = "None", status = "MEASURED", meaning = "not a valid message - guards against a zeroed buffer being read as a real one" },
+    [0x1] = { name = "Join", status = "MEASURED", meaning = "client to server: let me into the room, and know me by this nickname" },
+    [0x2] = { name = "Welcome", status = "MEASURED", meaning = "server to client: you are in. Sent to the caller's own address, learned from the arrived join, so everythin..." },
+    [0x3] = { name = "Reject", status = "MEASURED", meaning = "server to client: refused, with a reason" },
+    [0x4] = { name = "Say", status = "MEASURED", meaning = "client to server: say this to the room" },
+    [0x5] = { name = "Said", status = "MEASURED", meaning = "server to clients: somebody said something" },
+    [0x6] = { name = "Leave", status = "MEASURED", meaning = "client to server: I am going" },
+    [0x7] = { name = "Joined", status = "MEASURED", meaning = "server to clients: somebody entered the room" },
+    [0x8] = { name = "Left", status = "MEASURED", meaning = "server to clients: somebody left the room" },
+    [0x9] = { name = "Rename", status = "MEASURED", meaning = "member to server: know me by a different name from now on. A REQUEST, not a statement - it can be refused f..." },
+    [0xA] = { name = "Renamed", status = "MEASURED", meaning = "server to room: somebody is now known by a different name. Carries BOTH names, because a client showing a t..." },
+    [0xB] = { name = "Who", status = "MEASURED", meaning = "client asks who is in the room; server answers the asker alone with the member names" },
+    [0xC] = { name = "Map", status = "PROVED LIVE ON D100", meaning = "a member asks to see the network, and the server's answer. ONE KIND BOTH DIRECTIONS, like Who: the client s..." },
+    [0xD] = { name = "Rooms", status = "PROVED LIVE ON D100", meaning = "a member asks which rooms exist, and the server's answer. ONE KIND BOTH DIRECTIONS like Who and Map: the cl..." },
+    [0xE] = { name = "Topic", status = "PROVED LIVE ON D100", meaning = "set a room's topic, and the room being told it changed. A ROOM kind - it changes what a room IS called abou..." },
+    [0xF] = { name = "AllWho", status = "PROVED LIVE ON D100", meaning = "SERVER TO CLIENT ONLY - the answer to Who when the asker holds NO SEAT. Text is every room and the people i..." },
+    [0x10] = { name = "History", status = "PROVED ON D100", meaning = "SERVER TO CLIENT ONLY - one per remembered message, replayed to a joiner alone, oldest first, AFTER the wel..." },
+    [0x20] = { name = "AdminStatus", status = "INFERRED", meaning = "CHAT-MON to server: report what you are doing. Arrives on the COMMAND port, not CHAT-LOBBY, so it spends no..." },
+    [0x21] = { name = "AdminStatusReply", status = "INFERRED", meaning = "server to CHAT-MON: the answer, as readable text in the text field. Text rather than a struct because the s..." },
+    [0x22] = { name = "AdminStop", status = "INFERRED", meaning = "CHAT-MON to server: shut down cleanly. The point is a stop that does not need STOP-TERMINAL, NOT releasing ..." },
+    [0x23] = { name = "AdminStartTrunk", status = "BUILT, NOT YET OBSERVED ON A WIRE", meaning = "CHAT-MON to server: trunk to the system named in the TEXT, as decimal digits. The server adds a peer row, g..." },
+    [0x24] = { name = "AdminStopTrunk", status = "BUILT, NOT YET OBSERVED ON A WIRE", meaning = "CHAT-MON to server: forget the peer named in the TEXT. Answers AdminStatusReply. Removing a trunk does not ..." },
+    [0x25] = { name = "AdminListTrunks", status = "BUILT, NOT YET OBSERVED ON A WIRE", meaning = "CHAT-MON to server: every configured peer and what we believe about it, answered as AdminStatusReply text -..." },
+    [0x30] = { name = "TrunkHello", status = "PROVED LIVE ON D100 AND D102", meaning = "SERVER TO SERVER, on the CHAT-TRUNK port. ONE KIND BOTH DIRECTIONS, and the TEXT'S FIRST BYTE says which wa..." },
+    [0x31] = { name = "TrunkWho", status = "PROVED LIVE ON D100 AND D102", meaning = "SERVER TO SERVER: who is on you? Empty text - the kind IS the question. Sent on EVERY hello, not only the f..." },
+    [0x32] = { name = "TrunkMembers", status = "PROVED LIVE ON D100 AND D102", meaning = "SERVER TO SERVER: the answer to TrunkWho - 'NAME/ROOM NAME/ROOM ...', space between people, slash between a..." },
+    [0x33] = { name = "TrunkSaid", status = "PROVED LIVE ON D100 AND D102", meaning = "SERVER TO SERVER: one of my members spoke. NAME field is the speaker as their own machine knows them, unqua..." },
+}
+REG.chat_kind_vs = {
+    [0x0] = "None",
+    [0x1] = "Join",
+    [0x2] = "Welcome",
+    [0x3] = "Reject",
+    [0x4] = "Say",
+    [0x5] = "Said",
+    [0x6] = "Leave",
+    [0x7] = "Joined",
+    [0x8] = "Left",
+    [0x9] = "Rename",
+    [0xA] = "Renamed",
+    [0xB] = "Who",
+    [0xC] = "Map [PROVED LIVE ON D100]",
+    [0xD] = "Rooms [PROVED LIVE ON D100]",
+    [0xE] = "Topic [PROVED LIVE ON D100]",
+    [0xF] = "AllWho [PROVED LIVE ON D100]",
+    [0x10] = "History [PROVED ON D100]",
+    [0x20] = "AdminStatus [INFERRED]",
+    [0x21] = "AdminStatusReply [INFERRED]",
+    [0x22] = "AdminStop [INFERRED]",
+    [0x23] = "AdminStartTrunk [BUILT, NOT YET OBSERVED ON A WIRE]",
+    [0x24] = "AdminStopTrunk [BUILT, NOT YET OBSERVED ON A WIRE]",
+    [0x25] = "AdminListTrunks [BUILT, NOT YET OBSERVED ON A WIRE]",
+    [0x30] = "TrunkHello [PROVED LIVE ON D100 AND D102]",
+    [0x31] = "TrunkWho [PROVED LIVE ON D100 AND D102]",
+    [0x32] = "TrunkMembers [PROVED LIVE ON D100 AND D102]",
+    [0x33] = "TrunkSaid [PROVED LIVE ON D100 AND D102]",
+}
+
+-- Byte values the registry lists as CONSTANTS beside the kind enum
+-- (sintran-wire.json nd_link_frame_kind/constants). They are real wire
+-- bytes, so a decoder needs them even though the C# enum has no member.
+REG.nd_link_frame_kind[0x1F] = { name = "ConnectionConfirm", status = "MEASURED" }
+REG.nd_link_frame_kind_vs[0x1F] = "ConnectionConfirm"
+
+-- @@END GENERATED@@
+
 -- ── Value strings ─────────────────────────────────────────────────────────────
 
 -- LAPB address byte (XMSG-PROTOCOL.md §3.1). Bit 0x80 = odd-info-length marker:
@@ -437,11 +940,25 @@ pf.dc_ctr1       = ProtoField.uint8 ("dc.ctr1",        "Counter",          base.
 pf.dc_sub_type   = ProtoField.uint8 ("dc.sub_type",    "Sub-Type",         base.HEX)
 pf.dc_flags86    = ProtoField.uint8 ("xmsg.flags86", "Frame Flags",        base.HEX)
 pf.dc_role       = ProtoField.uint8 ("xmsg.role",   "Role (send-options)", base.HEX)
-pf.dc_cmd        = ProtoField.uint32("xmsg.xmcsm",  "XMCSM (class/service)",base.HEX, vs_dc_cmd)
--- XMLEN is 16-bit: sub-header offset 17 (formerly decoded as a "pad" byte) is
--- the HIGH byte of the user-data length. Proven by 255-byte output chunks:
--- bytes 01 01 → 0x0101 = 257 = 2-byte BDAT header + 255 data (TAD spec §22.3).
-pf.dc_tlen       = ProtoField.uint16("xmsg.xmlen",  "XMLEN (user data len, 16-bit)", base.DEC)
+-- RELABELLED 2026-08-24, same bytes and same filter name. These four bytes at
+-- absolute 26-29 are NOT one field: the carved sub-header is 14 bytes, so 26-27 is
+-- the whole 16-bit XMCSM (which always equals Flags 2) and 28-29 is the first word
+-- of the message BODY. That is why the "service byte" here works - it is the body
+-- first word low byte. See the note beside dissect_xmsg_body. The abbrev stays
+-- xmsg.xmcsm so existing capture filters keep working.
+pf.dc_cmd        = ProtoField.uint32("xmsg.xmcsm",  "XMCSM + body word 0 (26-29)", base.HEX, vs_dc_cmd)
+-- RELABELLED 2026-08-24. This word is at absolute 30-31, which is body word 1, and
+-- its meaning belongs to whichever application owns the body: a length on an XROUT
+-- letter, the CONVERSATION NUMBER on a file-server message. It is not a general
+-- XMSG user-data length.
+--
+-- The comment it replaces read: "XMLEN is 16-bit: sub-header offset 17 (formerly
+-- decoded as a pad byte) is the HIGH byte of the user-data length. Proven by
+-- 255-byte output chunks: bytes 01 01 = 0x0101 = 257 = 2-byte BDAT header + 255
+-- data (TAD spec 22.3)." That reading holds for the TAD family, where body word 1
+-- really is the chain length, and it is why the mistake survived - it is kept here
+-- because it says what the field means on the traffic it was measured on.
+pf.dc_tlen       = ProtoField.uint16("xmsg.xmlen",  "Body word 1 (30-31; a length on TAD/XROUT, the conversation on FA)", base.DEC)
 pf.dc_trailer    = ProtoField.bytes ("xmsg.userdata","User Data")
 pf.xmsg_dsy      = ProtoField.uint16("xmsg.xmdsy",  "XMDSY (dest system)",  base.DEC)
 pf.xmsg_dpt      = ProtoField.uint16("xmsg.xmdpt",  "XMDPT (dest port)",    base.DEC)
@@ -451,6 +968,47 @@ pf.xmsg_spt      = ProtoField.uint16("xmsg.xmspt",  "XMSPT (src port)",     base
 -- XROUT letter TLVs (XMCSM 0x04000041 = XSLET; spec §18.8 S10a/S10b)
 pf.letter_name   = ProtoField.string("xmsg.letter.name",   "Server Name")
 pf.letter_target = ProtoField.string("xmsg.letter.target", "Target System Name")
+
+-- ── The message body at absolute 28 ──────────────────────────────────────────
+-- Added 2026-08-24 with the body decoders. The value strings come from the
+-- generated REG tables, so a name here is whatever the registry says today and a
+-- status that is not MEASURED is shown beside it.
+pf.xmsg_body     = ProtoField.bytes ("xmsg.body",       "Message body (absolute 28)")
+
+-- File server (FA). DOC/protocols/fa-qform.json.
+pf.fa_body       = ProtoField.bytes ("fa.body",         "File server message")
+pf.fa_msgtype    = ProtoField.uint16("fa.msgtype",      "FA message type",  base.HEX, REG.fa_message_type_vs)
+pf.fa_conversation = ProtoField.uint16("fa.conversation", "Conversation number", base.DEC)
+pf.fa_session    = ProtoField.bytes ("fa.session",      "Session header (counter, zero, token)")
+pf.fa_qform      = ProtoField.bytes ("fa.qform",        "QFORM body")
+-- Read from the C# codec, not from the registry - see the note beside
+-- dissect_fa_body. The field is marked generated so it is plainly a derived value.
+pf.fa_operation  = ProtoField.uint16("fa.operation",    "FA operation (from the C# codec, not the registry)",
+                                     base.HEX, REG.fa_operation_vs)
+
+-- QFORM items.
+pf.qform_item    = ProtoField.bytes ("qform.item",      "QFORM item")
+pf.qform_tag     = ProtoField.uint8 ("qform.tag",       "Tag byte",         base.HEX)
+pf.qform_class   = ProtoField.uint8 ("qform.class",     "Class",            base.DEC, REG.qform_class_vs)
+pf.qform_len     = ProtoField.uint16("qform.len",       "Value length",     base.DEC)
+pf.qform_value   = ProtoField.bytes ("qform.value",     "Value")
+pf.qform_text    = ProtoField.string("qform.text",      "Text")
+pf.qform_end     = ProtoField.uint8 ("qform.end",       "End of stream",    base.HEX)
+pf.qform_pad     = ProtoField.uint8 ("qform.pad",       "Even-length pad",  base.HEX)
+
+-- CHAT. DOC/protocols/chat-wire.json. The one protocol here Norsk Data never
+-- shipped, so every name is ours.
+pf.chat_body     = ProtoField.bytes ("chat.body",       "CHAT message")
+pf.chat_kind     = ProtoField.uint8 ("chat.kind",       "Kind",             base.DEC, REG.chat_kind_vs)
+pf.chat_namelen  = ProtoField.uint8 ("chat.namelen",    "Nickname length",  base.DEC)
+pf.chat_name     = ProtoField.string("chat.name",       "Nickname")
+pf.chat_textlen  = ProtoField.uint16("chat.textlen",    "Text length",      base.DEC)
+pf.chat_text     = ProtoField.string("chat.text",       "Text")
+
+-- XROUT named from the registry rather than from the hand table further up.
+pf.xrout_body    = ProtoField.bytes ("xrout.body",      "XROUT message")
+pf.xrout_service = ProtoField.uint8 ("xrout.service",   "XROUT service",    base.HEX, REG.xrout_service_vs)
+pf.xrout_status  = ProtoField.uint8 ("xrout.status",    "XROUT return status", base.HEX, REG.xrout_error_vs)
 
 -- XSGSY routing-reply parameter blocks (4 bytes each: param-number + length + value)
 pf.xm_param      = ProtoField.uint8 ("xm.param",       "XSGSY Parameter",  base.DEC, vs_xsgsy_param)
@@ -479,6 +1037,15 @@ lapb_proto.fields = {
     pf.letter_name, pf.letter_target,
     pf.xm_param, pf.xm_value_raw,
     pf.xm_sysno, pf.xm_conntype, pf.xm_extrainfo, pf.xm_netinfo,
+    -- The body decoders added 2026-08-24.
+    pf.xmsg_body,
+    pf.fa_body, pf.fa_msgtype, pf.fa_conversation, pf.fa_session,
+    pf.fa_qform, pf.fa_operation,
+    pf.qform_item, pf.qform_tag, pf.qform_class, pf.qform_len,
+    pf.qform_value, pf.qform_text, pf.qform_end, pf.qform_pad,
+    pf.chat_body, pf.chat_kind, pf.chat_namelen, pf.chat_name,
+    pf.chat_textlen, pf.chat_text,
+    pf.xrout_body, pf.xrout_service, pf.xrout_status,
 }
 
 -- ── CRC-16-CCITT ─────────────────────────────────────────────────────────────
@@ -952,6 +1519,320 @@ local function dissect_xrout_letter(tvb, pinfo, tree, off, tlen)
     end
 end
 
+-- =============================================================================
+-- THE XMSG MESSAGE BODY - absolute offset 28                    [added 2026-08-24]
+-- =============================================================================
+--
+-- WHERE THE BODY STARTS, AND WHY IT IS NOT WHERE THIS FILE USED TO PUT IT.
+--
+-- The XMSG sub-header is FOURTEEN bytes and it starts at absolute wire offset 14,
+-- straight after the seven-word SINTRAN header. So the message body begins at
+-- absolute 28. That is not a reading of ours - it is pinned by the C# reference
+-- implementation and by a test written to fail if it moves:
+--
+--   SINTRAN/XMSG/SRC/Xmsg.Protocol/Wire/XmsgSubHeader.cs   (corrected 2026-08-04)
+--   SINTRAN/XMSG/SRC/Xmsg.Protocol.Tests/FaBodyOffsetTests.cs
+--       - parses a REAL captured datagram at 28, and deliberately checks that 32
+--         does NOT parse, which is what makes 28 a measurement and not a preference
+--   DOC/protocols/fa-qform.json  message_prefix  (message type at body byte 0)
+--
+-- The decode further down this file still reads a 32-bit "XMCSM" at absolute 26
+-- and an "XMLEN" at absolute 30. Under the carved 14-byte sub-header those are:
+--
+--   absolute 26-27   XMCSM, ONE word, and it always equals the header Flags 2
+--   absolute 28-29   body word 0 - the APPLICATION first word
+--   absolute 30-31   body word 1 - also the application
+--
+-- which is why the old "XMCSM low byte" happens to carry the XROUT service code
+-- (it is really body word 0 low byte) and why "XMLEN" reads as a length on an
+-- XROUT letter but as a CONVERSATION NUMBER on a file-server message. The old
+-- fields are LEFT ALONE here on purpose - existing capture filters use them and
+-- the TAD, XSGSY and letter decoders they feed are correct for those families.
+-- What is added is a second, correctly placed view of the same bytes.
+
+-- QFORM, the tag encoding the file server writes its fields in.
+-- DOC/protocols/fa-qform.json, block "qform". Every rule below is MEASURED there.
+--
+--   bit 7 CLEAR        the stream ends here
+--   class              (tag AND 0x70) >> 4
+--   length             tag AND 0x0F, for classes 1..7
+--   subtype            tag AND 0x17, for class 0 (constructed, length ALWAYS escaped)
+--   length escape      a length nibble of 0 means the real length is the NEXT byte
+--   escape marker      an escaped length byte of 0x80 is a MARKER, not a length;
+--                      the length is the byte after it
+--
+-- Two traps the registry records, both honoured here:
+--   - a FLAT walk descends into a constructed value and reads its bytes as
+--     top-level tags, so class 0 recurses instead
+--   - SINTRAN pads a body to an even length, and the pad byte can look like the
+--     start of a field, so a single trailing byte is called padding and not parsed
+local QFORM_MAX_DEPTH = 8
+
+local function qform_class_label(cls)
+    return REG.qform_class_vs[cls] or string.format("class %d", cls)
+end
+
+-- Decode one run of QFORM items. Returns the offset just past the run.
+local function dissect_qform(tvb, pinfo, tree, off, len, depth)
+    local stop = off + len
+    depth = depth or 0
+
+    while off < stop do
+        -- The even-length pad. One byte left over is padding, never a field.
+        if stop - off == 1 then
+            local pad = tree:add(pf.qform_pad, tvb(off, 1))
+            pad:append_text("  [SINTRAN pads a body to an even length]")
+            return stop
+        end
+
+        local tag = tvb(off, 1):uint()
+        if (tag & 0x80) == 0 then
+            tree:add(pf.qform_end, tvb(off, 1)):append_text(
+                "  [bit 7 clear - the QFORM stream ends here]")
+            return off + 1
+        end
+
+        local cls = (tag & 0x70) >> 4
+        local hdr = 1
+        local vlen
+        if cls == 0 then
+            -- Constructed: the length is ALWAYS escaped, never in the nibble.
+            vlen = tvb(off + 1, 1):uint()
+            hdr = 2
+            if vlen == 0x80 then
+                vlen = tvb(off + 2, 1):uint()
+                hdr = 3
+            end
+        else
+            vlen = tag & 0x0F
+            if vlen == 0 then
+                vlen = tvb(off + 1, 1):uint()
+                hdr = 2
+                if vlen == 0x80 then
+                    vlen = tvb(off + 2, 1):uint()
+                    hdr = 3
+                end
+            end
+        end
+
+        if off + hdr + vlen > stop then
+            local bad = tree:add(pf.qform_tag, tvb(off, 1))
+            bad:add_expert_info(PI_MALFORMED, PI_WARN, string.format(
+                "QFORM item of class %d claims %d bytes but only %d are left in the body. " ..
+                "Stopping rather than reading past the end.", cls, vlen, stop - off - hdr))
+            return stop
+        end
+
+        local item = tree:add(pf.qform_item, tvb(off, hdr + vlen))
+        item:set_text(string.format("QFORM  %s  %d byte%s",
+            qform_class_label(cls), vlen, vlen == 1 and "" or "s"))
+        item:add(pf.qform_tag, tvb(off, 1))
+        local ci = item:add(pf.qform_class, tvb(off, 1), cls)
+        ci:set_generated()
+        local li = item:add(pf.qform_len, tvb(off, hdr), vlen)
+        li:set_generated()
+
+        if cls == 0 then
+            item:append_text(string.format("  [constructed, subtype 0x%02X]", tag & 0x17))
+            if depth < QFORM_MAX_DEPTH then
+                dissect_qform(tvb, pinfo, item, off + hdr, vlen, depth + 1)
+            else
+                item:append_text("  [nested too deep - not walked further]")
+            end
+        elseif vlen > 0 then
+            item:add(pf.qform_value, tvb(off + hdr, vlen))
+            if (cls == 1 or cls == 2 or cls == 7) and vlen <= 4 then
+                local n = tvb(off + hdr, vlen):uint()
+                item:append_text(string.format("  = %d (0x%X)", n, n))
+                if cls == 2 then
+                    -- CAREFUL. The registry says a TypedInteger carries the SINTRAN
+                    -- error number IN A REJECTION - it does not say what the class
+                    -- means anywhere else, and this capture is full of TypedIntegers
+                    -- holding 0, 1, 2, 64, 2000 and 2048 on messages that are not
+                    -- rejections. Looking every one of them up in the status table
+                    -- was tried and printed "= Ok" beside a block number, which is
+                    -- exactly the confident-and-wrong output this file must not
+                    -- produce. So the note says what is known and stops there.
+                    item:append_text("  [class 2. The registry records this class carrying " ..
+                        "the SINTRAN error number in a REJECTION; on any other message its " ..
+                        "meaning is NOT recorded]")
+                elseif cls == 7 and n == 0x00FF then
+                    item:append_text("  [selector 0x00FF - the end marker]")
+                end
+            elseif cls == 3 then
+                item:add(pf.qform_text, tvb(off + hdr, vlen))
+            end
+        end
+
+        off = off + hdr + vlen
+    end
+    return off
+end
+
+-- The file-server (FA) message body.
+-- DOC/protocols/fa-qform.json, message_prefix: eight bytes before the QFORM.
+--
+--   0-1  message type    REG.fa_message_type
+--   2-3  conversation number
+--   4-7  session header  a counter byte, a zero, then a 16-bit token
+--   8+   the QFORM body
+--
+-- The operation is NOT in the registry, and that is a gap worth naming: the C#
+-- codec reads it, so the knowledge exists, it is just not written down where the
+-- generators can see it. FaExchangeCodec.TryReadOperation says the QFORM opens
+-- with TWO class-1 two-byte integers, tag 0x92 - the first is the operation and
+-- the second is the exchange number, counting from one. That is what is annotated
+-- below, and it is labelled as coming from the code rather than the registry.
+local function dissect_fa_body(tvb, pinfo, tree, off, len)
+    local mtype = tvb(off, 2):uint()
+    local ft = tree:add(pf.fa_body, tvb(off, len))
+    ft:set_text(string.format("File server (FA) message  [%s]",
+        REG.fa_message_type_vs[mtype] or string.format("type 0x%04X UNKNOWN", mtype)))
+
+    ft:add(pf.fa_msgtype, tvb(off, 2))
+    ft:add(pf.fa_conversation, tvb(off + 2, 2))
+
+    if len >= 8 then
+        local sh = ft:add(pf.fa_session, tvb(off + 4, 4))
+        sh:append_text(string.format("  [counter 0x%02X, then a zero, then token 0x%04X]",
+            tvb(off + 4, 1):uint(), tvb(off + 6, 2):uint()))
+    end
+
+    -- Only a request or a reply carries a QFORM. A short acknowledgement carries
+    -- nothing after the envelope and file content is raw bytes, not tagged.
+    if len > 8 then
+        local qlen = len - 8
+        local qt = ft:add(pf.fa_qform, tvb(off + 8, qlen))
+        qt:set_text(string.format("QFORM body  (%d bytes)", qlen))
+
+        -- The operation annotation, from the C# codec (see the note above).
+        if qlen >= 6
+            and tvb(off + 8, 1):uint() == 0x92
+            and tvb(off + 11, 1):uint() == 0x92 then
+            local op = tvb(off + 9, 2):uint()
+            local seq = tvb(off + 12, 2):uint()
+            local oi = qt:add(pf.fa_operation, tvb(off + 9, 2), op)
+            oi:set_generated()
+            oi:append_text(string.format("  [exchange %d.  Read the way FaExchangeCodec." ..
+                "TryReadOperation reads it - two class-1 integers, tag 0x92. NOT in the " ..
+                "protocol registry]", seq))
+        end
+
+        dissect_qform(tvb, pinfo, qt, off + 8, qlen, 0)
+    end
+
+    local nm = REG.fa_message_type[mtype]
+    return "FA " .. ((nm and nm.name) or string.format("0x%04X", mtype))
+end
+
+-- The chat message body.
+-- DOC/protocols/chat-wire.json, message_prefix. This is the one protocol on this
+-- wire that Norsk Data never shipped, so nothing about it is a rediscovery:
+--
+--   0    kind             REG.chat_kind
+--   1    nickname length  ASCII bytes that follow; zero is legal
+--   2+   the nickname, then a TWO-byte big-endian text length, then the text
+--
+-- HOW A CHAT MESSAGE IS RECOGNISED, AND WHY THAT IS A GUESS. There is no tag on
+-- the wire that says "this is chat" - it is ordinary XMSG user data sent to a port
+-- the server registered by name. A dissector has no way to know which port that
+-- is, so the only handle is the SHAPE: a known kind byte, and a walk of the two
+-- length fields that lands EXACTLY on the end of the body, give or take the one
+-- pad byte SINTRAN adds to make the length even. That is a strong test but it is
+-- still a test on shape, so the tree says so and this decode runs LAST, only when
+-- nothing better has claimed the body.
+local function chat_body_fits(tvb, off, len)
+    if len < 4 then return false end
+    local kind = tvb(off, 1):uint()
+    if REG.chat_kind[kind] == nil or kind == 0 then return false end
+    local namelen = tvb(off + 1, 1):uint()
+    if 2 + namelen + 2 > len then return false end
+    local textlen = tvb(off + 2 + namelen, 2):uint()
+    local total = 2 + namelen + 2 + textlen
+    -- An exact fit, or one pad byte short of the even length SINTRAN writes.
+    return total == len or total == len - 1
+end
+
+local function dissect_chat_body(tvb, pinfo, tree, off, len)
+    local kind = tvb(off, 1):uint()
+    local namelen = tvb(off + 1, 1):uint()
+    local textlen = tvb(off + 2 + namelen, 2):uint()
+
+    local ct = tree:add(pf.chat_body, tvb(off, len))
+    ct:set_text(string.format("CHAT message  [%s]",
+        REG.chat_kind_vs[kind] or string.format("kind %d UNKNOWN", kind)))
+    ct:append_text("  [recognised by SHAPE, not by any tag on the wire]")
+
+    ct:add(pf.chat_kind, tvb(off, 1))
+    ct:add(pf.chat_namelen, tvb(off + 1, 1))
+    if namelen > 0 then
+        ct:add(pf.chat_name, tvb(off + 2, namelen))
+    end
+    ct:add(pf.chat_textlen, tvb(off + 2 + namelen, 2))
+    if textlen > 0 then
+        ct:add(pf.chat_text, tvb(off + 4 + namelen, textlen))
+    end
+
+    local nm = REG.chat_kind[kind]
+    return "CHAT " .. ((nm and nm.name) or tostring(kind))
+end
+
+-- The body dispatcher.
+-- Runs on every data message, beside the older trailer decode rather than instead
+-- of it. It says what it recognises and stays quiet about what it does not - an
+-- unrecognised body is shown as bytes with its first word called out, because the
+-- first word is what every one of these families dispatches on.
+local function dissect_xmsg_body(tvb, pinfo, tree, off, len, is_xrout)
+    if len < 2 or off + len > tvb:len() then return nil end
+
+    local word0 = tvb(off, 2):uint()
+
+    if REG.fa_message_type[word0] ~= nil and len >= 8 then
+        return dissect_fa_body(tvb, pinfo, tree, off, len)
+    end
+
+    -- An XROUT request or reply: body word 0 low byte is the service code on a
+    -- request (bit 6 set) or the XR* status on a reply (bit 6 clear). The letter
+    -- and XSGSY trailers are already decoded by the older path below, so this only
+    -- names what it is.
+    --
+    -- GATED ON THE PORT, and it has to be. The first version of this test read the
+    -- low byte on EVERY message, and a status of 0x00 is XRSOK - so every TAD
+    -- terminal-data frame in conn-to-d102-from-100.pcapng came out labelled
+    -- "XROUT reply [XRSOK]". Wrong, and confidently so. Port 0 is the XROUT
+    -- well-known address (see port_label), so a message is only read as XROUT when
+    -- one end of it IS XROUT.
+    local low = word0 & 0xFF
+    local svc = REG.xrout_service_vs[low]
+    if is_xrout and svc ~= nil and (low & 0x40) ~= 0 then
+        local xt = tree:add(pf.xrout_body, tvb(off, len))
+        xt:set_text(string.format("XROUT request  [service 0x%02X = %s]", low, svc))
+        local si = xt:add(pf.xrout_service, tvb(off + 1, 1), low)
+        si:set_generated()
+        xt:append_text(string.format("  [body word 0 high byte 0x%02X]", word0 >> 8))
+        local nm = REG.xrout_service[low]
+        return "XROUT " .. ((nm and nm.name) or "")
+    end
+    if is_xrout and (low & 0x40) == 0 and REG.xrout_error[low] ~= nil then
+        local xt = tree:add(pf.xrout_body, tvb(off, len))
+        xt:set_text(string.format("XROUT reply  [status 0x%02X = %s]",
+            low, REG.xrout_error_vs[low]))
+        local ei = xt:add(pf.xrout_status, tvb(off + 1, 1), low)
+        ei:set_generated()
+        local nm = REG.xrout_error[low]
+        return "XROUT " .. ((nm and nm.name) or "")
+    end
+
+    if chat_body_fits(tvb, off, len) then
+        return dissect_chat_body(tvb, pinfo, tree, off, len)
+    end
+
+    local raw = tree:add(pf.xmsg_body, tvb(off, len))
+    raw:set_text(string.format("Message body  (%d bytes, first word 0x%04X - not recognised)",
+        len, word0))
+    return nil
+end
+
 -- ── XMSG data-frame dissector (all subtype-0x0E frames, every channel) ───────
 -- VERIFIED across all captures: every data (subtype 0x0E) frame carries the SAME
 -- XMSG sub-header (counter, 0x21 0x00 marker, frame-flags, role, XMDSY/XMDPT/
@@ -1108,6 +1989,22 @@ local function dissect_dc(tvb, pinfo, tree, off, proto_label, ctx)
         end
     end
 
+    -- ── The message body, at its measured offset ─────────────────────────────
+    -- Absolute 28 = off + 15, because dissect_dc is called with off = absolute 13.
+    -- See the long note beside dissect_xmsg_body for why 28 and not 32. This runs
+    -- BESIDE the older trailer decode below, not instead of it: the trailer path
+    -- is correct for TAD, XSGSY and letters and is what existing filters use,
+    -- while this one is what reads a file-server or a chat message.
+    local body_off = off + 15
+    local body_len = tvb:len() - body_off
+    local body_name = nil
+    if body_len >= 2 then
+        -- Port 0 is XROUT. A message with XROUT at either end is the only kind
+        -- whose body word 0 may be read as a service code or a return status.
+        local is_xrout = (dpt == 0 or spt == 0)
+        body_name = dissect_xmsg_body(tvb, pinfo, tree, body_off, body_len, is_xrout)
+    end
+
     -- ── Trailer, dispatched on XMCSM (spec §9) ───────────────────────────────
     local trailer_off = off + 19
     if tlen > 0 and trailer_off + tlen <= tvb:len() then
@@ -1124,6 +2021,14 @@ local function dissect_dc(tvb, pinfo, tree, off, proto_label, ctx)
             or cmd_word == 0x00080000 or cmd_word == 0x00060000 then
             -- Known TAD-session classes: trailer is a TAD message chain
             dissect_tad(tvb, pinfo, tree, trailer_off)
+        elseif body_name ~= nil then
+            -- The body dispatcher recognised this message, so the TAD fallback is
+            -- switched off for it. ADDED 2026-08-24 after watching the fallback
+            -- turn a file-server QFORM into invented TAD opcodes 0x80 and 0x90 -
+            -- output that reads like data and is not.
+            local raw = tree:add(pf.dc_trailer, tvb(trailer_off, tlen))
+            raw:append_text(string.format(
+                "  [inside the %s body decoded above - no TAD fallback]", body_name))
         else
             -- Unknown command — show raw trailer, then try TAD chain.
             -- Label both branches so it's obvious which decode path was taken.
@@ -1133,7 +2038,18 @@ local function dissect_dc(tvb, pinfo, tree, off, proto_label, ctx)
         end
     end
 
-    pinfo.cols.info:append(string.format(" %s[%s ctr=0x%02X]", proto_label, cmd_name, ctr1))
+    if body_name then
+        pinfo.cols.info:append(string.format(" %s[%s]", proto_label, body_name))
+    else
+        pinfo.cols.info:append(string.format(" %s[%s ctr=0x%02X]", proto_label, cmd_name, ctr1))
+    end
+
+    -- Handed back so the caller can put it in the Info column. It has to travel up
+    -- the return chain rather than being appended here and left: the ND link
+    -- decoders finish by REPLACING the Info column with their own summary, so
+    -- anything appended lower down is wiped. That is why the file-server name never
+    -- reached the Info column on a hub or segment capture.
+    return body_name
 end
 
 -- ── SINTRAN info dissector ────────────────────────────────────────────────────
@@ -1146,6 +2062,11 @@ local function dissect_sintran_info(tvb, pinfo, frame_tree)
         frame_tree:add(lapb_proto, tvb(0), string.format("[Info too short for SINTRAN: %d bytes]", len))
         return nil
     end
+
+    -- What the body decoder made of this message, if anything. Declared here so it
+    -- is a LOCAL: assigning it further down without this line would quietly make a
+    -- global that survives into the next frame.
+    local body_name = nil
 
     local mark2 = tvb(1, 1):uint()
     if tvb(0, 1):uint() ~= 0x21 or (mark2 ~= 0x13 and mark2 ~= 0x12) then
@@ -1325,7 +2246,7 @@ local function dissect_sintran_info(tvb, pinfo, frame_tree)
         -- three are corrected here: one envelope, one parser.)
         local ctx = { flags1 = flags1, flags2 = flags2,
                       proto_id = proto_id, relay = is_relay }
-        dissect_dc(tvb, pinfo, frame_tree, SINTRAN_HDR, proto_nm, ctx)
+        body_name = dissect_dc(tvb, pinfo, frame_tree, SINTRAN_HDR, proto_nm, ctx)
 
     else
         -- Unknown subtype: show remaining bytes raw.
@@ -1335,6 +2256,9 @@ local function dissect_sintran_info(tvb, pinfo, frame_tree)
         end
     end
 
+    if body_name then
+        return string.format("%d→%d %s  %s", src, dest, proto_nm, body_name)
+    end
     return string.format("%d→%d %s", src, dest, proto_nm)
 end
 
@@ -1534,13 +2458,28 @@ local ndlink_proto = Proto("ndlink", "COSMOS ND link over the XMSG Ethernet hub"
 -- Frame kinds with a CONFIRMED wire byte. Four more NPDU types exist whose wire
 -- byte has never been captured, so they are deliberately absent rather than
 -- guessed - an unrecognised value is shown raw, never rejected.
-local vs_nd_kind = {
-    [0x0F] = "CR  connection request (no payload; sender link id 0)",
-    [0x20] = "DT  data (carries the SINTRAN datagram)",
-    [0x3F] = "AK  acknowledge (carries the NEXT EXPECTED sequence)",
-    [0x60] = "DR  disconnect request (low nibble UNVERIFIED)",
-    [0x6F] = "DR  disconnect request by the network service",
+--
+-- CHANGED 2026-08-24: the values and the names now come from the registry table
+-- REG.nd_link_frame_kind, generated out of DOC/protocols/sintran-wire.json by
+-- generate_lua.py. This list used to be typed here by hand and had already fallen
+-- one value behind - the registry's ConnectionConfirm 0x1F was missing, so every
+-- connection confirm in a capture read as "never captured". The two-letter tags
+-- below are the only part still written here, because they are a display
+-- convenience for the Info column and not a protocol fact.
+local vs_nd_kind_tag = {
+    [0x0F] = "CR",   -- connection request (no payload; sender link id 0)
+    [0x1F] = "CC",   -- connection confirm
+    [0x20] = "DT",   -- data (carries the SINTRAN datagram)
+    [0x3F] = "AK",   -- acknowledge (carries the NEXT EXPECTED sequence)
+    [0x60] = "DR",   -- disconnect request (low nibble UNVERIFIED)
+    [0x6F] = "DR",   -- disconnect request by the network service
 }
+
+local vs_nd_kind = {}
+for value, label in pairs(REG.nd_link_frame_kind_vs) do
+    local tag = vs_nd_kind_tag[value]
+    vs_nd_kind[value] = tag and (tag .. "  " .. label) or label
+end
 
 -- The NPDU type index in the kind byte's high nibble. VERIFIED 2026-08-03 by
 -- carving the ENCOS monitor encos-mon-ii-b01.prog: its trace decoder dispatches
@@ -1777,36 +2716,29 @@ local function nd_advance_state(dirkey, revkey, kind, seq, framenum, finger)
     return result
 end
 
--- Dissect ONE length-prefixed Ethernet frame out of the hub stream.
--- Returns a short summary string for the Info column.
-local function dissect_nd_hub_frame(tvb, pinfo, tree, off, flen, result)
-    local ft = tree:add(ndlink_proto, tvb(off - 2, flen + 2), "ND hub frame")
-
-    ft:add(nf.hublen, tvb(off - 2, 2))
-    if flen < ND_PAYLOAD_OFFSET then
-        ft:append_text(string.format("  [too short for an ND link frame: %d bytes]", flen))
+-- Dissect the 11-byte ND link header and whatever it carries.
+--
+-- SPLIT OUT 2026-08-24. This used to be the tail of dissect_nd_hub_frame, which
+-- could only be reached through the hub's own TCP framing. A pcap taken straight
+-- off the Ethernet segment has no hub length prefix and Wireshark strips the MACs
+-- and the LLC header for us, so the same eleven bytes arrive by a completely
+-- different route. Splitting the function is what lets ONE decode serve both
+-- transports rather than a second copy drifting away from this one.
+--
+--   tvb    the buffer the header sits in
+--   h      byte offset of the header's first byte (the 0x0B length byte)
+--   avail  how many bytes are left in THIS frame from h onwards, so the payload
+--          can never be read past the end of the frame it belongs to
+--   parent the tree item to hang the header under
+--
+-- Returns a short summary string for the Info column, or nil.
+local function dissect_nd_link_pdu(tvb, pinfo, parent, h, avail, result)
+    local ft = parent
+    if avail < ND_LINK_LENGTH then
+        ft:append_text(string.format("  [too short for an ND link header: %d bytes]", avail))
         return nil
     end
 
-    ft:add(nf.dstmac,  tvb(off,      6))
-    local mac_item = ft:add(nf.srcmac, tvb(off + 6,  6))
-    ft:add(nf.len8023, tvb(off + 12, 2))
-
-    -- The MAC carries the sender's system number in bytes 3-4 in REVERSED byte
-    -- order (ND-60.197.01 section 2.4), i.e. little-endian - the opposite order to
-    -- the same number in the SINTRAN header two layers up.
-    local sysno = tvb(off + 9, 1):uint() + tvb(off + 10, 1):uint() * 0x100
-    local sys_item = ft:add(nf.sysno, tvb(off + 9, 2), sysno)
-    sys_item:set_generated()
-    mac_item:append_text(string.format("  [system %d]", sysno))
-
-    if tvb(off + ND_LLC_OFFSET, 3):bytes():tohex() ~= "A8A803" then
-        ft:append_text("  [not an ND/COSMOS LLC frame - no A8 A8 03]")
-        return nil
-    end
-    ft:add(nf.llc, tvb(off + ND_LLC_OFFSET, 3))
-
-    local h = off + ND_LINK_OFFSET
     local hdrlen   = tvb(h,     1):uint()
     local kind     = tvb(h + 2, 1):uint()
     local seq      = tvb(h + 4, 1):uint()
@@ -1814,7 +2746,12 @@ local function dissect_nd_hub_frame(tvb, pinfo, tree, off, flen, result)
     local dstlink  = tvb(h + 7, 2):uint()
     local trailing = tvb(h + 9, 2):uint()
 
-    local kind_nm = vs_nd_kind[kind] or string.format("kind 0x%02X (never captured)", kind)
+    -- An unrecognised kind is reported as UNKNOWN and nothing is invented for it.
+    -- segment.pcap of 2026-08-24 holds a 0x70 that no registry entry covers; the
+    -- only thing said about it is its high nibble, which the NPDU table below
+    -- reads with its own caveat.
+    local kind_nm = vs_nd_kind[kind]
+                    or string.format("?? kind 0x%02X UNKNOWN - not in the protocol registry", kind)
     local lt = ft:add(ndlink_proto, tvb(h, ND_LINK_LENGTH),
                   string.format("ND link header  [%s  seq %d]", kind_nm, seq))
 
@@ -1912,14 +2849,49 @@ local function dissect_nd_hub_frame(tvb, pinfo, tree, off, flen, result)
     -- reading padding.
     local summary = string.format("%s seq=%d", kind_nm:match("^(%S+)") or "?", seq)
     if kind == 0x20 and plen > 0 then
-        local avail = math.min(plen, flen - ND_PAYLOAD_OFFSET)
-        if avail > 0 then
-            local payload = tvb(off + ND_PAYLOAD_OFFSET, avail):tvb("SINTRAN")
+        local take = math.min(plen, avail - ND_LINK_LENGTH)
+        if take > 0 then
+            local payload = tvb(h + ND_LINK_LENGTH, take):tvb("SINTRAN")
             local snt = dissect_sintran_info(payload, pinfo, ft)
             if snt then summary = summary .. "  " .. snt end
         end
     end
     return summary
+end
+
+-- Dissect ONE length-prefixed Ethernet frame out of the hub's TCP stream.
+-- The hub framing and the 802.3 header are peeled here; the ND link header and
+-- everything above it is the shared decode above.
+-- Returns a short summary string for the Info column.
+local function dissect_nd_hub_frame(tvb, pinfo, tree, off, flen, result)
+    local ft = tree:add(ndlink_proto, tvb(off - 2, flen + 2), "ND hub frame")
+
+    ft:add(nf.hublen, tvb(off - 2, 2))
+    if flen < ND_PAYLOAD_OFFSET then
+        ft:append_text(string.format("  [too short for an ND link frame: %d bytes]", flen))
+        return nil
+    end
+
+    ft:add(nf.dstmac,  tvb(off,      6))
+    local mac_item = ft:add(nf.srcmac, tvb(off + 6,  6))
+    ft:add(nf.len8023, tvb(off + 12, 2))
+
+    -- The MAC carries the sender's system number in bytes 3-4 in REVERSED byte
+    -- order (ND-60.197.01 section 2.4), i.e. little-endian - the opposite order to
+    -- the same number in the SINTRAN header two layers up.
+    local sysno = tvb(off + 9, 1):uint() + tvb(off + 10, 1):uint() * 0x100
+    local sys_item = ft:add(nf.sysno, tvb(off + 9, 2), sysno)
+    sys_item:set_generated()
+    mac_item:append_text(string.format("  [system %d]", sysno))
+
+    if tvb(off + ND_LLC_OFFSET, 3):bytes():tohex() ~= "A8A803" then
+        ft:append_text("  [not an ND/COSMOS LLC frame - no A8 A8 03]")
+        return nil
+    end
+    ft:add(nf.llc, tvb(off + ND_LLC_OFFSET, 3))
+
+    return dissect_nd_link_pdu(tvb, pinfo, ft,
+               off + ND_LINK_OFFSET, flen - ND_LINK_OFFSET, result)
 end
 
 function ndlink_proto.dissector(buffer, pinfo, tree)
@@ -2012,6 +2984,119 @@ function ndlink_proto.dissector(buffer, pinfo, tree)
 
     if #summaries > 0 then
         pinfo.cols.info:set(table.concat(summaries, " | "))
+    end
+    return length
+end
+
+-- =============================================================================
+-- ND LINK ON A RAW ETHERNET CAPTURE (classic pcap, link type 1)  [added 2026-08-24]
+-- =============================================================================
+--
+-- WHY A SECOND ENTRY POINT. The block above reads the COSMOS hub's TCP stream:
+-- every Ethernet frame arrives length-prefixed inside a TCP connection to port
+-- 5010, so the decoder has to peel the hub framing, the two MACs and the LLC
+-- header itself. A capture taken with "xmsghub --capture" is a completely
+-- different thing: it is a plain pcap of the segment, link type 1, and Wireshark
+-- decodes the 802.3 header and the LLC header on its own before handing us a
+-- payload. Feeding such a file to the TCP decoder gets NOTHING - there is no TCP.
+--
+-- MEASURED on DOC/captures/XMSG-DEGRADE-2026-08-24/segment.pcap:
+--
+--     6 bytes  destination MAC
+--     6 bytes  source MAC      08:00:26 | system number, low byte first | user
+--     2 bytes  802.3 LENGTH (not an ethertype - it is below 0x0600)
+--     3 bytes  LLC  A8 A8 03   DSAP 0xA8, SSAP 0xA8, control 0x03 (unnumbered
+--                              information). Wireshark's own LLC dissector reads
+--                              these three and dispatches on the DSAP.
+--     n bytes  the ND link header and its payload - EXACTLY the bytes the hub
+--              path sees at its offset 17
+--
+-- So the binding is one line at the bottom of this file: llc.dsap 0xA8 -> here.
+-- Wireshark hands us a buffer that already starts at the 0x0B header-length byte
+-- AND is already trimmed to the 802.3 length, so there is no Ethernet padding to
+-- step over - checked on segment.pcap, where a control frame arrives as exactly
+-- 11 bytes out of a 60-byte frame and a data frame as 11 + the payload length.
+--
+-- DSAP 0xA8 is not a registered IEEE SAP that Wireshark knows, so nothing else
+-- claims it and the binding cannot steal another protocol's frames.
+
+local ndeth_proto = Proto("ndlink_eth", "COSMOS ND link on 802.3 (raw segment capture)")
+
+-- No fields of its own: every field is already registered on ndlink_proto and a
+-- registered field can be added to any tree. Declaring them twice would be a
+-- second set of filter names for the same bytes.
+ndeth_proto.fields = {}
+
+-- Both entry points share ndlink_state / ndlink_frame_result, so both need the
+-- per-dissection reset. Wireshark calls init on every protocol before a
+-- dissection sequence starts, so clearing the same two tables twice is harmless.
+function ndeth_proto.init()
+    ndlink_state = {}
+    ndlink_frame_result = {}
+end
+
+-- "08:00:26:64:00:00" -> 100. The system number is MAC bytes 3 and 4 with the low
+-- byte FIRST (ND-60.197.01 section 2.4), the opposite order to the same number in
+-- the SINTRAN header two layers up. Returns nil when the string is not a MAC.
+local function nd_sysno_from_mac(mac)
+    local b3, b4 = mac:match("^%x%x:%x%x:%x%x:(%x%x):(%x%x):%x%x$")
+    if b3 == nil then return nil end
+    return tonumber(b3, 16) + tonumber(b4, 16) * 0x100
+end
+
+function ndeth_proto.dissector(buffer, pinfo, tree)
+    local length = buffer:len()
+    if length < ND_LINK_LENGTH then return 0 end
+
+    pinfo.cols.protocol = "ND-LINK"
+
+    local root = tree:add(ndeth_proto, buffer(),
+                     "COSMOS ND link (raw 802.3 segment capture)")
+
+    local src = tostring(pinfo.dl_src)
+    local dst = tostring(pinfo.dl_dst)
+
+    local sysno = nd_sysno_from_mac(src)
+    if sysno ~= nil then
+        local sys_item = root:add(nf.sysno, buffer(0, 1), sysno)
+        sys_item:set_generated()
+        sys_item:append_text("  [read out of the source MAC, low byte first]")
+    end
+
+    -- The same two-pass guard the hub path uses: Wireshark dissects every frame at
+    -- least twice, and counting a frame twice would invent the very backlog this
+    -- decode exists to find. See the long note beside ndlink_state.
+    --
+    -- The stream key is the constant "eth" because a segment capture has no TCP
+    -- connection to tell copies apart - and it needs none: the hub writes each
+    -- frame to the file once, so there are no fan-out copies to skip. (Checked on
+    -- segment.pcap: no frame appears twice.)
+    local results = ndlink_frame_result[pinfo.number]
+    local result
+    if results == nil then
+        results = {}
+        ndlink_frame_result[pinfo.number] = results
+
+        local kind = buffer(2, 1):uint()
+        local seq  = buffer(4, 1):uint()
+        local dirkey = src .. ">" .. dst
+        local revkey = dst .. ">" .. src
+        if nd_owns_direction(dirkey, "eth") then
+            local plen = (kind == 0x20) and buffer(9, 2):uint() or 0
+            local finger = nd_fingerprint(buffer, ND_LINK_LENGTH,
+                               math.min(plen, length - ND_LINK_LENGTH))
+            result = nd_advance_state(dirkey, revkey, kind, seq, pinfo.number, finger)
+        else
+            result = { hub_copy = true }
+        end
+        results[1] = result
+    else
+        result = results[1]
+    end
+
+    local summary = dissect_nd_link_pdu(buffer, pinfo, root, 0, length, result)
+    if summary then
+        pinfo.cols.info:set(summary)
     end
     return length
 end
@@ -2158,6 +3243,15 @@ local tcp_table = DissectorTable.get("tcp.port")
 -- into LAPB - but the decode is misaligned and the output is noise that reads like
 -- data (node numbers come out as 53306 -> 1 instead of 100/102/103).
 tcp_table:add(ND_HUB_PORT, ndlink_proto)
+
+-- A raw capture of the Ethernet segment (classic pcap, link type 1) has no TCP at
+-- all. Wireshark reads the 802.3 header and the LLC header itself and then looks
+-- the DSAP up in this table, so one entry is the whole binding. VERIFIED against
+-- DOC/captures/XMSG-DEGRADE-2026-08-24/segment.pcap: the buffer handed over starts
+-- at the ND link header's 0x0B length byte and is already trimmed to the 802.3
+-- length. DSAP 0xA8 is not a SAP Wireshark has any other use for.
+local llc_table = DissectorTable.get("llc.dsap")
+llc_table:add(0xA8, ndeth_proto)
 
 tcp_table:add(10362, lapb_proto)
 tcp_table:add(10364, lapb_proto)

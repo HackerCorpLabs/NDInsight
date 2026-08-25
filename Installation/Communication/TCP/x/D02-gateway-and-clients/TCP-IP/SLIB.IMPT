@@ -1,0 +1,123 @@
+%***************************************************************************%
+%                                                                           %
+%                   S O C K E T   L I B R A R Y                             %
+%             I M P O R T   D E C L A R A T I O N S                         %
+%                                                                           %
+%         Should be included in every application program that uses the     %
+%         the sockect library.                                              %
+%                                                                           %
+%***************************************************************************%
+%                                                                           %
+% Author:        Richard Seim (RiSe)        Mars 86                         %
+%  27-Nov-87 RiSe    Added events parameters to Slsleep.
+%  26-Feb-88 RiSe    Added szarg parameter to Slioctl.
+%   6-Apr-88 RiSe    Added SlsetOwnEvent.
+%  12-Apr-88 PLo     Added SLsendTo and SLrecvFrom
+%  30-Sep-88 RiSe    Added SLsendV, remove Slvenusready
+%===========================================================================%
+%
+
+IMPORT (ROUTINE VOID,INTEGER(INTEGER ARRAY POINTER, SLmaxima,SLrvvp,&
+                INTEGER,INTEGER POINTER):&
+        SLinit),&
+       (ROUTINE VOID,INTEGER (SLrvvp, INTEGER, INTEGER POINTER):&
+        SLfork),&
+       (ROUTINE VOID,VOID:&
+        SLexit),&
+       (ROUTINE VOID,VOID (INTEGER4,INTEGER4,INTEGER4 WRITE) : &
+        SLsleep),&
+       (ROUTINE VOID,VOID (INTEGER4) : &
+        SLsleepShort),&
+       (ROUTINE VOID,VOID (INTEGER4) : &
+        SLsetOwnEvent),&
+       (ROUTINE VOID,INTEGER (INTEGER, INTEGER, INTEGER, SLsockid WRITE) : &
+        SLsocket),&
+       (ROUTINE VOID,INTEGER (SLsockid, SLsockaddr) : &
+        SLbind),&
+       (ROUTINE VOID,INTEGER (SLsockid,SLsockaddr WRITE) : &
+        SLgetsockname),&
+       (ROUTINE VOID,INTEGER (SLsockid,SLsockaddr WRITE) : &
+        SLgetpeername),&
+       (ROUTINE VOID,INTEGER (SLsockid, INTEGER) : &
+        SLlisten),&
+       (ROUTINE VOID,INTEGER (SLsockid,SLsockid WRITE,SLsockaddr) : &
+        SLaccept),&
+       (ROUTINE VOID,INTEGER (SLsockid, SLsockaddr) : &
+        SLconnect),&
+       (ROUTINE VOID,INTEGER (SLsockid, BYTE POINTER, INTEGER, INTEGER, INTEGER WRITE) : &
+        SLsend),&
+       (ROUTINE VOID,INTEGER (SLsockid, Sliov POINTER, INTEGER, INTEGER WRITE) : &
+        SLsendV),&
+       (ROUTINE VOID,INTEGER (SLsockid, BYTE POINTER, INTEGER, INTEGER, SLin_sockaddr POINTER, INTEGER WRITE) : &
+        SLsendTo),&
+       (ROUTINE VOID,INTEGER (SLsockid, BYTE POINTER, INTEGER, INTEGER, INTEGER WRITE) : &
+        SLrecv),&
+       (ROUTINE VOID,INTEGER (SLsockid, BYTE POINTER, INTEGER, INTEGER, SLin_sockaddr POINTER, INTEGER WRITE) : &
+        SLrecvFrom),&
+       (ROUTINE VOID,INTEGER (SLsockid, INTEGER WRITE) : &
+        SLsense),&
+       (ROUTINE VOID,INTEGER (SLsockid, INTEGER) : &
+        SLshutdown),&
+       (ROUTINE VOID,INTEGER (SLsockid) : &
+        SLclose),&
+       (ROUTINE VOID,INTEGER (SLsockid,INTEGER,INTEGER WRITE,BYTE POINTER,INTEGER) : &
+        SLgetOption),&
+       (ROUTINE VOID,INTEGER (SLsockid,INTEGER,INTEGER,BYTE POINTER,INTEGER) : &
+         SLsetOption),&
+       (ROUTINE VOID,INTEGER (SLsockid,INTEGER,SLiocArg POINTER,INTEGER) : &
+         SLioctl),&
+       (ROUTINE VOID,INTEGER4 (INTEGER4) : &
+        SLhtonl),&
+       (ROUTINE VOID,INTEGER2 (INTEGER2) : &
+        SLhtons),&
+       (ROUTINE VOID,INTEGER4 (INTEGER4) : &
+        SLntohl),&
+       (ROUTINE VOID,INTEGER2 (INTEGER2) : &
+        SLntohs),&
+       (ROUTINE VOID,INTEGER (BYTES, SLinaddr WRITE) : &
+       SLinNetAddr ALIAS 'SLINNETADD'),&
+       (ROUTINE VOID,SLhostent POINTER : &
+       SLgetHent),&
+       (ROUTINE VOID,VOID (BOOLEAN) : &
+       SLsetHent),&
+       (ROUTINE VOID,VOID : &
+       SLendHent),&
+       (ROUTINE VOID,SLhostent POINTER (BYTES) : &
+       SLgHbyName),&
+       (ROUTINE VOID,SLhostent POINTER (BYTES) : &
+       getHbyName),&
+       (ROUTINE VOID,SLhostent POINTER (SLinaddr) : &
+       SLgHbyAddr),&
+       (ROUTINE VOID,SLhostent POINTER (SLinaddr) : &
+       getHbyAddr),&
+       (ROUTINE VOID,SLnetent POINTER : &
+       SLgetNent),&
+       (ROUTINE VOID,VOID (BOOLEAN) : &
+       SLsetNent),&
+       (ROUTINE VOID,VOID : &
+       SLendNent),&
+       (ROUTINE VOID,SLnetent POINTER (BYTES) : &
+       SLgNbyName),&
+       (ROUTINE VOID,SLnetent POINTER (SLinaddr) : &
+       SLgNbyAddr),&
+       (ROUTINE VOID,SLprotoent POINTER : &
+       SLgPent),&
+       (ROUTINE VOID,VOID (BOOLEAN) : &
+       SLsetPent),&
+       (ROUTINE VOID,VOID : &
+       SLendPent),&
+       (ROUTINE VOID,SLprotoent POINTER (BYTES) : &
+       SLgPbyName),&
+       (ROUTINE VOID,SLprotoent POINTER (INTEGER) : &
+       SLgPbNumber),&
+       (ROUTINE VOID,SLservent POINTER : &
+       SLgetSent),&
+       (ROUTINE VOID,VOID (BOOLEAN) : &
+       SLsetSent),&
+       (ROUTINE VOID,VOID : &
+       SLendSent),&
+       (ROUTINE VOID,SLservent POINTER (BYTES, BYTES POINTER) : &
+       SLgSbyName),&
+       (ROUTINE VOID,SLservent POINTER (INTEGER, BYTES POINTER) : &
+       SLgSbyPort)
+$EOF

@@ -1,0 +1,26 @@
+@CC %-------------------------------------------------------%
+@CC % Patch to install FTPRT as a SINTRAN system server     %
+@CC %-------------------------------------------------------%
+
+@DMAC
+)RESSM
+)CLEAR
+)CLOAD S3PATCH
+176000/SSTAR
+)SYSDF
+)9ASSM SYMBOL-1-LIST
+?
+
+)CLOAD S3CP
+30002/SGF3=^
+PSSD=SSTAR-1
+% ---------    UPDATE SYSTEM SERVER TABLE INDEX 10B -----
+PSSD/^+20/ SGF3;100002
+% ---------    ADD SERVER NAME ON COMMAND SEGM.   -------
+SGF3/'FTPRT'
+%--------------------------------------------------------
+)KILL PSSD
+)KILL SGF3; SGF3=*; SGF3:
+)CLOAD S3CP
+30002/SGF3
+)9EXIT
