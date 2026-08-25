@@ -126,6 +126,7 @@ A line typed on one machine reaches the others as `kTrkSaid` (51) on a direct tr
 | `START-TRUNK <n>` / `STOP-TRUNK <n>` / `RESTART-TRUNK <n>` | trunk control |
 | `INITIALIZE` | reset server state |
 | `STOP` / `RESTART` | stop or restart the server |
+| `SET-NAME <name>` | what this machine calls itself - section 5a. Empty clears it |
 | `HELP` | list the commands |
 
 `STATUS` reads, for example:
@@ -145,6 +146,56 @@ SEATS 0/16  default 200  disk 0KB  empty 13 bounce 1 relay 0 dupe 0 refuse 0
 
 **`START-TRUNK` on a trunk that is already UP knocks it down for about a minute.** Only use it on
 one that is down.
+
+---
+
+## 5a. MACHINE NAMES
+
+A machine is a number to the kernel and can be a NAME to a person. `SET-NAME` in `@CHAT-MON`
+sets what this machine calls itself.
+
+```
+C-M: SET-NAME FJELL
+this machine is now FJELL
+
+[TESTER/LOBBY] /map
+CHAT: map this is FJELL - D102 up  D103 up
+```
+
+**Proved on D100 2026-08-25**, server segment 2606.
+
+| Rule | Why |
+|---|---|
+| an EMPTY name CLEARS it | the machine goes back to `D<number>` everywhere, which is exactly how it behaved before names existed - so there is a way back from a typo without a restart |
+| **the NUMBER still decides which machine a message came from** | it comes from the sender's magic, which the kernel supplies and no sender can choose. A name is only a LABEL on that number, so a machine may call itself anything and still cannot claim to BE another machine |
+| a machine with no name shows as `D<number>` | and that is what an un-upgraded peer looks like |
+| `LIST-TRUNKS` shows the NUMBER first, then the name | the operator types `START-TRUNK 102`, so the number has to be what they read first |
+| it is NOT written to disk | put `SET-NAME` in the machine's boot mode file beside `START-TRUNK`, which already drives CHAT-MON |
+
+### How a name reaches the other machines
+
+On the **trunk Hello**, after the direction byte that was always there.
+
+**THIS IS BACKWARD COMPATIBLE AND IT WAS MEASURED, not argued.** The old Hello handler reads the
+first byte of the text and nothing else, so a server that has not been upgraded takes the
+direction byte and ignores the name. Measured on 2026-08-25: D100 was upgraded while D102 and D103
+kept the older build, and `LIST-TRUNKS` on D100 answered `102 up 103 up` throughout.
+
+Same property `kTrkRelay` was given, and it is what lets three running machines be upgraded one at
+a time.
+
+### The client is TOLD which machine it is on
+
+The **welcome's text** carries it. That field was always empty and the client ignored it, so
+filling it in is compatible in both directions.
+
+**A CLIENT CANNOT WORK THIS OUT FOR ITSELF** - it has no system number, and nothing in the join
+tells it. `/map` says so, but in a sentence written for a person to read, and parsing prose for a
+fact is how a client ends up confidently wrong. The server asked the kernel, so the server says so.
+
+The line client shows it as `you are TESTER on FJELL`. The full-screen client puts `TESTER@FJELL`
+in its top-right corner - or `TESTER` alone when the server never said, which is what an older
+server does.
 
 ---
 
