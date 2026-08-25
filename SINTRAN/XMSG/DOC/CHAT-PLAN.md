@@ -62,15 +62,45 @@ same room, each seeing the other's lines exactly once.
 **Risk:** the client is 3400 lines and works. Every step above is reversible and the line renderer
 is never removed.
 
-### PHASE 2 - finish the main window
+### PHASE 2 - finish the main window - **DONE, and proved on D100 2026-08-25**
 
-6. **`@trunk` marker** - the member list already says which system each member is on, so the room
-   spans machines if any member's system is not ours.
-7. **Line wrapping.** 57 columns of text and a long line is cut today. Wrap onto a continuation
-   row with a blank speaker field.
-8. **Grow the cache.** 100 lines was cautious; the linker reports about 37000 words free.
-9. **Speaker column.** 13 columns against a 16-character nickname; today it truncates. Decide
-   between a narrower text field, a shortened system name, or dropping `@sys` for local speakers.
+6. **`@trunk` marker** - DONE. A member table holds each speaker's system and `roomTrunked` scans
+   it against ours; one member elsewhere is enough. Built as a scan rather than a flag so the rule
+   is the one the real client will run.
+7. **Line wrapping** - DONE. A long line becomes several cache lines, the first carrying the time
+   and speaker and every continuation carrying neither.
+8. **Grow the cache** - DONE, 300 lines. The linker's own `FREE:` line is the number to ask.
+9. **Speaker column** - DONE. Local speakers show the bare nickname; remote ones show `NICK@SYS`,
+   and when that overruns **the nickname is cut, never the system**. Inside one room you know a
+   person from the first letters of their name; `D10` does not tell you which machine.
+
+Measured on the machine:
+
+```
+ #sintran-dev@trunk       14 here  /help for commands         25 08 14:05
+ 14:05  KARI@D102    spooler queue is stuck on LP2 again
+ 14:05  SIGRID@D103  the ND-500 process table is at 48 of 151, the configured
+                     maximum and not a ceiling
+ 14:05  BJORN        hold on, batch job on processor 3 until 09:20
+```
+
+BJORN is on D100, so he carries no qualifier. That is the rule working, not a missing field.
+
+**Two faults found by RUNNING it, which reading the source had not shown:**
+
+- the input line came up holding `> ??g??` every run. The keyboard was taken AFTER the screen was
+  drawn, so SINTRAN had already echoed the waiting bytes onto it. Draining could never have fixed
+  that - draining empties the buffer, not the screen. Take the keyboard first, draw second.
+- a fast burst repainted the input line past its own right edge, over the frame border. Ask
+  `MON66` whether more is waiting and repaint once at the end.
+
+**And one thing that looks like a fault and is not.** A line pasted in one burst loses its RETURN
+above 64 bytes: 63 characters plus RETURN is said, 72 plus RETURN is not. That is SINTRAN's
+terminal input buffer, and the driver drops what will not fit before the program is offered a
+single byte. It only happens because RetroTerm delivers a whole test line over TCP at once; a
+person typing never approaches it. **The tell is the typed line sitting in the input field with
+nothing said, which reads exactly like a broken RETURN key.** It is not - KEYPROB answers 13 for
+RETURN every time. The RETURN never arrived.
 
 ### PHASE 3 - private messages, which need PROTOCOL work first
 

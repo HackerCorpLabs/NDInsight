@@ -534,5 +534,141 @@ namespace NDInsight.Sintran.Xmsg.Chat.Tests
             Assert.Equal("0105524F4E4E590000", Convert.ToHexString(buffer, 0, written));
             Assert.Equal(9, written);
         }
+
+        /// <summary>
+        /// A direct message from a client: the target rides in the TEXT, before a slash.
+        /// </summary>
+        /// <remarks>
+        /// <para><b>Why the target is not in the name field</b></para>
+        /// The name field carries whoever the message is ABOUT from the receiver's point of view.
+        /// On the way in that is nobody the server needs, and on the way out it is the sender - so
+        /// packing the target into the text, exactly as TrunkSaid packs the room, keeps one layout
+        /// for the whole family instead of a special case per direction.
+        /// <para><b>The separator between machine and person is 0x21</b></para>
+        /// <c>!</c>, not <c>@</c>. <c>@</c> is the short command prefix, so <c>@RONNY@D100</c>
+        /// would need a parser that counts at-signs; <c>machine!alias</c> reads left to right as
+        /// route-then-person. This test pins the byte so the PLANC side cannot drift.
+        /// </remarks>
+        [Fact]
+        public void ADirectMessageHasExactlyTheseBytes()
+        {
+            ChatMessage dm = new ChatMessage(
+                ChatMessageKind.Direct, "ANNA", "D102!RONNY/are you free");
+
+            byte[] buffer = new byte[64];
+            int written = dm.Encode(buffer);
+
+            //  11            kind = Direct (17 decimal)
+            //  04            sender length
+            //  41 4E 4E 41   "ANNA"
+            //  00 17         text length = 23, HIGH byte first
+            //  44 31 30 32   "D102"
+            //  21            '!' - the machine separator, NOT 0x40
+            //  52 4F ...     "RONNY/are you free"
+            Assert.Equal(
+                "11 04 414E4E41 0017 4431303221524F4E4E592F61726520796F752066726565"
+                    .Replace(" ", string.Empty),
+                Convert.ToHexString(buffer, 0, written));
+        }
+
+        /// <summary>
+        /// Those exact bytes decode back with the target still joined to the message.
+        /// </summary>
+        [Fact]
+        public void ThoseExactBytesDecodeBackToADirectMessage()
+        {
+            byte[] wire = Convert.FromHexString(
+                "1104414E4E4100174431303221524F4E4E592F61726520796F752066726565");
+
+            ChatMessage decoded;
+            bool ok = ChatMessage.TryDecode(wire, out decoded);
+
+            Assert.True(ok);
+            Assert.Equal(ChatMessageKind.Direct, decoded.Kind);
+            Assert.Equal("ANNA", decoded.Nickname);
+            Assert.Equal("D102!RONNY/are you free", decoded.Text);
+        }
+
+        /// <summary>
+        /// A direct message arriving at its target: the sender is QUALIFIED in the name field.
+        /// </summary>
+        /// <remarks>
+        /// What is displayed must also be what can be typed back, so the sender arrives as
+        /// <c>D102!KARI</c> and not as a bare <c>KARI</c> that would be ambiguous the moment two
+        /// machines each hold one. The text is the message alone - no target, because the target
+        /// is whoever is reading it.
+        /// </remarks>
+        [Fact]
+        public void ADirectedMessageCarriesTheSenderQualified()
+        {
+            ChatMessage dm = new ChatMessage(
+                ChatMessageKind.Directed, "D102!KARI", "are you free");
+
+            byte[] buffer = new byte[64];
+            int written = dm.Encode(buffer);
+
+            //  12            kind = Directed (18 decimal)
+            //  09            sender length, INCLUDING the machine and the '!'
+            //  44 31 30 32 21 4B 41 52 49   "D102!KARI"
+            //  00 0C         text length = 12
+            Assert.Equal(
+                "12 09 44313032214B415249 000C 61726520796F752066726565"
+                    .Replace(" ", string.Empty),
+                Convert.ToHexString(buffer, 0, written));
+        }
+
+        /// <summary>
+        /// The delivery receipt names WHO IT WENT TO and carries no text at all.
+        /// </summary>
+        /// <remarks>
+        /// Sent on every delivery, not only on ambiguous ones. Refusing an ambiguous alias protects
+        /// the sender when the collision is visible; this protects them when it is not - a machine
+        /// that just went down, a second RONNY who logged in a moment ago. A wrong delivery becomes
+        /// visible at once instead of days later, and it costs one line.
+        /// <para><b>The empty text still writes BOTH length bytes</b></para>
+        /// Pinned here because a PLANC encoder that writes the length only when there is text
+        /// produces a message one byte short, and the receiver then reads the next field from the
+        /// wrong offset - which looks like a corrupt name rather than a missing length.
+        /// </remarks>
+        [Fact]
+        public void ADirectSentReceiptNamesTheTargetAndHasNoText()
+        {
+            ChatMessage receipt = new ChatMessage(
+                ChatMessageKind.DirectSent, "D102!KARI", string.Empty);
+
+            byte[] buffer = new byte[64];
+            int written = receipt.Encode(buffer);
+
+            //  13 kind, 09 name length, "D102!KARI", then 00 00 - and nothing after.
+            Assert.Equal("130944313032214B4152490000",
+                Convert.ToHexString(buffer, 0, written));
+            Assert.Equal(13, written);
+        }
+
+        /// <summary>
+        /// A refusal names the target that was tried and gives the reason as text.
+        /// </summary>
+        /// <remarks>
+        /// For an ambiguous alias the reason carries the CANDIDATES, which is what makes the
+        /// refusal usable rather than merely annoying - the sender can retype one of them straight
+        /// off the screen. Two machines can each hold a RONNY long before they ever trunk to each
+        /// other, so no global uniqueness rule could have been applied, and guessing would be a
+        /// privacy failure rather than an inconvenience.
+        /// </remarks>
+        [Fact]
+        public void ADirectBadCarriesTheCandidateList()
+        {
+            ChatMessage bad = new ChatMessage(
+                ChatMessageKind.DirectBad, "RONNY", "which RONNY? D100!RONNY, D102!RONNY");
+
+            byte[] buffer = new byte[128];
+            int written = bad.Encode(buffer);
+
+            //  14 kind, 05 name length, "RONNY", 00 23 text length = 35, then the reason.
+            Assert.Equal(
+                "14 05 524F4E4E59 0023 776869636820524F4E4E593F204431303021524F4E4E592C204431303221524F4E4E59"
+                    .Replace(" ", string.Empty),
+                Convert.ToHexString(buffer, 0, written));
+        }
     }
 }
