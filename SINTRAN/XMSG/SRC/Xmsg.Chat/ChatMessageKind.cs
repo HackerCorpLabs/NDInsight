@@ -286,6 +286,31 @@ namespace NDInsight.Sintran.Xmsg.Chat
         AdminInitialize = 38,
 
         /// <summary>
+        /// CHAT-MON to server: what this machine calls itself.
+        /// </summary>
+        /// <remarks>
+        /// <para><b>An empty name clears it</b></para>
+        /// A machine with no name falls back to <c>D</c> plus its system number everywhere, which
+        /// is exactly how every machine behaved before names existed - so there is a way back from
+        /// a name typed wrongly that does not need a restart.
+        /// <para><b>A name is only a label on a number</b></para>
+        /// Which machine a message came from is still decided by the sender's magic, which the
+        /// kernel supplies and no sender can choose. A machine may call itself anything and still
+        /// cannot claim to BE another machine - that is the property the trunk protocol was built
+        /// around and it is not weakened by naming.
+        /// <para><b>How it reaches the other machines</b></para>
+        /// On the trunk Hello, appended after the direction byte that was always there. The old
+        /// Hello handler reads that first byte and nothing else, so a server that has not been
+        /// upgraded ignores the name rather than breaking - the same property
+        /// <see cref="ChatMessageKind.TrunkRelay"/> was given, and what lets three running
+        /// machines be upgraded one at a time.
+        /// <para><b>Not written to disk</b></para>
+        /// It belongs in the machine's boot mode file beside START-TRUNK, which already drives
+        /// CHAT-MON.
+        /// </remarks>
+        AdminSetName = 39,
+
+        /// <summary>
         /// Client to server: send this text to ONE person, who need not be in your room or in any
         /// room.
         /// </summary>

@@ -741,6 +741,21 @@ $INCLUDE screen
     % correct all along) and why that ended the need for them.
     BOOLEAN : joined := FALSE
 
+    % WHICH MACHINE THIS CLIENT IS ON, as the server said in the welcome.
+    %
+    % A CLIENT CANNOT WORK THIS OUT FOR ITSELF. It has no system number of its
+    % own and nothing in the join tells it - the server knows, because it asked
+    % the kernel, and now says so in the welcome's text where there was never
+    % anything before.
+    %
+    % Empty until the welcome arrives, and empty is a fine answer: the screen
+    % shows the nickname alone rather than a machine name that would be a
+    % guess. It is 'D100' on a machine with no name and 'FJELL' on one that
+    % has been given one, and this client does not care which - it prints what
+    % it was told.
+    BYTES   : myMachine(0:15)
+    INTEGER : lenMyMach := 0
+
     % Has the user CHOSEN a name with /nick this session?
     %
     % This exists to tell two refusals apart, because they arrive on the SAME
@@ -1848,6 +1863,19 @@ $INCLUDE screen
         IF kind = kWelcome THEN
             senderMagic =: serverMagic
             TRUE =: joined
+
+            % THE WELCOME'S TEXT IS THE MACHINE THIS CLIENT IS ON. It was
+            % always empty before, so a server that has not been upgraded
+            % simply leaves this empty and the screen shows the name alone.
+            IF textLength > 0 THEN
+                textLength =: lenMyMach
+                IF lenMyMach > 16 THEN
+                    16 =: lenMyMach
+                ENDIF
+                FOR i IN 1:lenMyMach DO
+                    inBuf(textAt + i - 1) =: myMachine(i - 1)
+                ENDFOR
+            ENDIF
 
             % SAY WHO YOU ARE, ONCE, AND ONLY NOW THAT IT IS TRUE. The server
             % has accepted the name, so this is a fact rather than a hope - see
@@ -3847,6 +3875,7 @@ $INCLUDE screen
     % =====================================================================
     ROUTINE VOID, VOID : drawAll
         INTEGER : at
+        INTEGER : col
 
         % ONE BOX ROUND THE WHOLE SCREEN, then a rule across it for each
         % separator.
@@ -3868,18 +3897,31 @@ $INCLUDE screen
         % The title is PAINTED OVER the top frame's own edge, which is what
         % the mockup shows. frame's fifth argument is ATTRIBUTES, not a title.
         bytdis(1, 4, 0, ' NDCHAT 2.1 ', '')
-        % THE NICKNAME ALONE, and the machine is NOT invented.
+        % NAME@MACHINE - and the machine is the one the SERVER named in the
+        % welcome, never one this client made up.
         %
-        % CHATUI drew ARNE@D100 from two literals. The nickname here is
-        % real, but NOTHING TELLS THIS CLIENT WHICH MACHINE IT IS ON - the
-        % server knows, and /map says so in a sentence meant for a person.
-        % Rather than print a machine name that is a guess, this prints the
-        % name and stops. It gains the qualifier when there is somewhere
-        % true to get it from.
+        % CHATUI drew ARNE@D100 from two literals. This draws ARNE@FJELL, or
+        % ARNE@D100 on a machine that has not been given a name, or ARNE alone
+        % if the server never said - which is what an older server does, and
+        % showing the name alone is the honest answer to not being told.
         blankLine
         0 =: at
         at + putField(at, widWho, myName(0:lenMyName - 1)) =: at
-        bytdis(1, 64, at, lineBuf(0:at - 1), '')
+        IF lenMyMach > 0 THEN
+            atByte(0) =: lineBuf(at)
+            at + 1 =: at
+            at + putField(at, 16, myMachine(0:lenMyMach - 1)) =: at
+        ENDIF
+        % RIGHT-ALIGNED so it always ENDS at column 77, just inside the frame.
+        % A fixed start column was fine when this was the literal ARNE@D100 and
+        % nine characters wide. A machine may now be called anything up to
+        % sixteen, so a fixed start would run the corner straight through the
+        % right-hand border on the first long name somebody chose.
+        78 - at =: col
+        IF col < 20 THEN
+            20 =: col
+        ENDIF
+        bytdis(1, col, at, lineBuf(0:at - 1), '')
 
         drawStatus
         paintChat

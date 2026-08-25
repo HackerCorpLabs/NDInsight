@@ -73,6 +73,9 @@ $INCLUDE XMP-B02:IMPT
     % kAdmRepl like the rest, so it too costs no wire change.
     INTEGER : kAdmInit   := 38
 
+    % SET-NAME <name> - what this machine calls itself.
+    INTEGER : kAdmName   := 39
+
     % The server's command port, by name. XROUT turns this into an
     % address; nothing here knows or wants the number.
     BYTES : admName := 'CHAT-ADMIN'
@@ -119,6 +122,7 @@ $INCLUDE XMP-B02:IMPT
     BYTES : vRestTrunk  := 'RESTART-TRUNK'
     BYTES : vListTrunks := 'LIST-TRUNKS'
     BYTES : vInit       := 'INITIALIZE'
+    BYTES : vSetName    := 'SET-NAME'
     INTEGER : i
 
     % ONE NUMBER PER COMMAND. The matcher below finds WHICH command was typed
@@ -140,6 +144,7 @@ $INCLUDE XMP-B02:IMPT
     INTEGER : cRestTrunk   := 9
     INTEGER : cListTrunks  := 10
     INTEGER : cInit        := 11
+    INTEGER : cSetName     := 12
 
     % The RT program that IS the chat server. This is the PROGRAM unit's name
     % from CHATSV.PLNC - "PROGRAM : chatServer" - not the file name, and it is
@@ -504,6 +509,7 @@ $INCLUDE XMP-B02:IMPT
         OUTPUT(1, 'AL43', '  RESTART-TRUNK <sys>   stop then start it$')
         OUTPUT(1, 'AL41', '  LIST-TRUNKS           peers and states$')
         OUTPUT(1, 'AL49', '  INITIALIZE <room> <n> how much that room keeps$')
+        OUTPUT(1, 'AL', '  SET-NAME <name>      what this machine is called$')
         OUTPUT(1, 'AL1',  '$')
         OUTPUT(1, 'AL57', 'Commands may be shortened: L-T or LI-TRU is LIST-TRUNKS.$')
         OUTPUT(1, 'AL37', 'Upper or lower case, either is fine.$')
@@ -685,6 +691,7 @@ $INCLUDE XMP-B02:IMPT
         tryCmd(vRestTrunk,  13, cRestTrunk)
         tryCmd(vListTrunks, 11, cListTrunks)
         tryCmd(vInit,       10, cInit)
+        tryCmd(vSetName,     8, cSetName)
     ENDROUTINE
 
     % -----------------------------------------------------------------------
@@ -703,6 +710,7 @@ $INCLUDE XMP-B02:IMPT
         showIfMatch(vRestTrunk,  13)
         showIfMatch(vListTrunks, 11)
         showIfMatch(vInit,       10)
+        showIfMatch(vSetName,     8)
     ENDROUTINE
 
     % -----------------------------------------------------------------------
@@ -916,6 +924,30 @@ $INCLUDE XMP-B02:IMPT
         % never two that can disagree about it.
         IF cmdId = cInit THEN
             sndArgMsg(kAdmInit)
+            showAnswer
+            RETURN
+        ENDIF
+
+        % SET-NAME <name> - what this machine calls itself.
+        %
+        % TYPICALLY THE MACHINE'S OWN NAME, and that is the point of it: a room
+        % that spans machines shows ANNA@D102 today, which is a number a person
+        % has to translate. With a name set it shows ANNA@FJELL.
+        %
+        % SET-NAME with nothing after it CLEARS the name, and the machine goes
+        % back to being called D<number> everywhere - which is what it was
+        % before names existed, so there is a way back from a typo that does
+        % not need a restart.
+        %
+        % NOT PARSED HERE. sndArgMsg sends everything after the verb and the
+        % SERVER decides what a valid name is, for the same reason START-TRUNK
+        % does not parse its system number at this end: one place decides, so
+        % there are never two that can disagree.
+        %
+        % IT IS NOT WRITTEN TO DISK. Put it in this machine's boot mode file
+        % beside START-TRUNK and it is set on every cold start.
+        IF cmdId = cSetName THEN
+            sndArgMsg(kAdmName)
             showAnswer
             RETURN
         ENDIF

@@ -1110,6 +1110,28 @@ def check(path):
                            'mis-parses the rest of the routine. Rename the '
                            'parameter.' % (path, r['start'], r['name'], nm5))
 
+    # ---- putWord's HAND-COUNTED LENGTH ----------------------------------------
+    #
+    # putWord(text, textLen, at) is this project's own helper and it takes the
+    # length beside the literal - exactly the trap that 'ALnn' already has, and
+    # for the same reason: nothing checks it, a wrong number builds clean, and
+    # the only symptom is a sentence cut short or trailing rubbish on somebody
+    # else's screen.
+    #
+    # A count that is too SMALL truncates. Too LARGE reads past the end of the
+    # literal, and PLANC checks no array bounds, so it prints whatever happens
+    # to sit after it in memory.
+    for n, line, _ in code_lines():
+        for m in re.finditer(r"putWord\s*\(\s*'((?:[^']|'')*)'\s*,\s*(\d+)", line):
+            literal = m.group(1).replace("''", "'")
+            said = int(m.group(2))
+            if len(literal) != said:
+                out.append('%s:%d  putWord says %d but the literal is %d character(s) - '
+                           '%s. Too small cuts the sentence short; too large reads past '
+                           'the end of the literal and prints whatever is stored after it'
+                           % (path, n, said, len(literal),
+                              'too small' if said < len(literal) else 'too large'))
+
     # ---- EVERY IMPORT BELONGS ABOVE THE FIRST ROUTINE -------------------------
     #
     # MEASURED on D100 2026-08-25, merging a screen renderer into the chat

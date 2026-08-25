@@ -259,6 +259,12 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     % CONSTANT, default around 50 messages per room, CONFIGURABLE PER ROOM ...
     % not a hard-coded 50 buried in the source".
     INTEGER : kAdmInit    := 38
+
+    % SET-NAME <name> from CHAT-MON. What this machine calls itself.
+    %
+    % An ADMIN kind because it configures the server. Answered with kAdmRepl
+    % like every other admin verb, so CHAT-MON needs no new decoding.
+    INTEGER : kAdmName    := 39
     INTEGER : kAdmTrunks  := 37
 
     % SERVER TO SERVER, on the trunk port. 48 and up, left clear of the admin
@@ -799,6 +805,22 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     % number - see the long note on sendToName for the three compile cycles that
     % established it. Declared with explicit BOUNDS because it is filled at
     % runtime, which is also why it is passed as a subarray.
+    % WHAT THIS MACHINE CALLS ITSELF, set by SET-NAME from CHAT-MON.
+    %
+    % EMPTY MEANS NO NAME, and then everything falls back to D<number> - which
+    % is exactly what this server did before names existed. That fallback is
+    % the whole reason this can go onto three running machines one at a time.
+    %
+    % It is NOT written to disk. The boot mode file already drives CHAT-MON and
+    % already starts the trunks, so SET-NAME belongs beside those - one place
+    % per machine, visible in the same file as the rest of its configuration,
+    % and no new file handling in a server that has none.
+    BYTES    : sysName(0:15)
+    INTEGER  : lenSysName := 0
+
+    % peerName is NOT that. It is the XROUT ADDRESS a letter is sent to -
+    % 'D102' - and it must stay a D and a number whatever anybody is called,
+    % or the trunks stop working. Named apart on purpose.
     BYTES    : peerName(0:15)
     BYTES    : dByte := 'D'
 
@@ -814,6 +836,13 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     % full.
     INTEGER        : maxPeers := 8
     INTEGER ARRAY  : peerSystem(1:8)      % XMSG system number, 0 = free row
+
+    % WHAT EACH PEER CALLS ITSELF, learned from the name it puts in its Hello.
+    % Empty until one arrives, and then D<number> is used for that peer exactly
+    % as before - so a machine running the older build is simply a machine
+    % without a name, not a machine that breaks anything.
+    BYTES ARRAY    : pName(1:8, 1:16)
+    INTEGER ARRAY  : pNameLen(1:8)
     INTEGER ARRAY  : peerState(1:8)       % see the three constants below
     INTEGER ARRAY  : peerHeard(1:8)       % loop ticks since we last heard from it
 
@@ -1433,6 +1462,65 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     % formal parameter around, which this compiler is fussy about in exactly the
     % area that already cost three cycles here.
     % -----------------------------------------------------------------------
+    % =======================================================================
+    % WHAT TO CALL A MACHINE
+    %
+    % The name if we know one, and D<number> if we do not. Four places used to
+    % write the D and the digits by hand and they are now all this routine, so
+    % a machine cannot be called one thing in /who and another in the chat.
+    %
+    % THE NUMBER IS STILL WHAT DECIDES WHICH MACHINE IT IS. A name is only a
+    % LABEL looked up from that number, and the number comes from the kernel's
+    % own magic, never from anything a sender claims. So a machine can choose
+    % what it is called and still cannot claim to BE another machine - which is
+    % the property the trunk protocol was built around and must not lose.
+    %
+    % THE PEER SCAN IS WRITTEN OUT HERE rather than calling findPeer, and that
+    % is not laziness: findPeer is declared 1800 lines further down, and PLANC
+    % wants a routine declared before it is called. Two of the four callers sit
+    % above it.
+    % =======================================================================
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER) : putSysLabel(sysNum, at)
+        INTEGER : p, i, j, row
+
+        at =: p
+
+        IF sysNum = mySystem THEN
+            IF lenSysName > 0 THEN
+                FOR i IN 1:lenSysName DO
+                    sysName(i - 1) =: outBuf(p)
+                    p + 1 =: p
+                ENDFOR
+                p RETURN
+            ENDIF
+        ELSE
+            0 =: row
+            FOR i IN 1:maxPeers DO
+                IF peerSystem(i) = sysNum THEN
+                    IF row = 0 THEN
+                        i =: row
+                    ENDIF
+                ENDIF
+            ENDFOR
+            IF row > 0 THEN
+                IF pNameLen(row) > 0 THEN
+                    FOR j IN 1:pNameLen(row) DO
+                        pName(row, j) =: outBuf(p)
+                        p + 1 =: p
+                    ENDFOR
+                    p RETURN
+                ENDIF
+            ENDIF
+        ENDIF
+
+        % Nobody has said what it is called. The number is what the kernel
+        % vouches for, so that is what gets printed.
+        dByte(0) =: outBuf(p)
+        p + 1 =: p
+        putNumber(sysNum, p) =: p
+        p RETURN
+    ENDROUTINE
+
     ROUTINE VOID, INTEGER (INTEGER, INTEGER) : putPeerDigits(value, at)
         INTEGER : left, digit, p
         BOOLEAN : started
@@ -1694,8 +1782,76 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     % there and went away. Collapsing them would hide the difference exactly
     % when an operator needs it.
     % -----------------------------------------------------------------------
+    % The answer to SET-NAME, in words. buildAdmText cannot do this one - it
+    % takes a literal and a length, and this has a variable in the middle.
+    % THE WELCOME NOW SAYS WHICH MACHINE THE CLIENT IS ON.
+    %
+    % It used to carry the joiner's name and an EMPTY text, and the client
+    % ignored the text entirely - so filling it in is backward compatible: an
+    % older client reads the name, reads a length, and does nothing with what
+    % follows.
+    %
+    % WHY IT HAS TO COME FROM HERE. A client has NO WAY of knowing which
+    % machine it is on. /map says so, but in a sentence written for a person to
+    % read, and parsing prose to find out a fact is how a client ends up wrong
+    % in a way nobody can explain. The server knows for certain - it asked the
+    % kernel - so it says so at the one moment the client is guaranteed to be
+    % listening.
+    %
+    % This is what lets a full-screen client put ANNA@FJELL in its corner
+    % instead of leaving it blank or, worse, guessing.
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER) : buildWelcome(nameAt, nameLength)
+        INTEGER : i, at, textAt, textLen
+
+        kWelcome =: outBuf(0)
+        nameLength =: outBuf(1)
+        2 =: at
+        FOR i IN 1:nameLength DO
+            inBuf(nameAt + i - 1) =: outBuf(at)
+            at + 1 =: at
+        ENDFOR
+
+        0 =: outBuf(at)
+        0 =: outBuf(at + 1)
+        at + 2 =: textAt
+        textAt =: at
+
+        putSysLabel(mySystem, at) =: at
+
+        at - textAt =: textLen
+        textLen =: outBuf(textAt - 1)
+        at RETURN
+    ENDROUTINE
+
+    ROUTINE VOID, INTEGER : buildNameReply
+        INTEGER : i, at, textAt, textLen
+
+        kAdmRepl =: outBuf(0)
+        0 =: outBuf(1)
+        2 =: at
+        0 =: outBuf(at)
+        0 =: outBuf(at + 1)
+        at + 2 =: textAt
+        textAt =: at
+
+        IF lenSysName > 0 THEN
+            putWord('this machine is now ', 20, at) =: at
+            FOR i IN 1:lenSysName DO
+                sysName(i - 1) =: outBuf(at)
+                at + 1 =: at
+            ENDFOR
+        ELSE
+            putWord('this machine has no name - it answers to ', 41, at) =: at
+            putSysLabel(mySystem, at) =: at
+        ENDIF
+
+        at - textAt =: textLen
+        textLen =: outBuf(3)
+        at RETURN
+    ENDROUTINE
+
     ROUTINE VOID, INTEGER : buildTrunks
-        INTEGER : i, at, textAt, textLen, st
+        INTEGER : i, j, at, textAt, textLen, st
 
         kAdmRepl =: outBuf(0)
         0 =: outBuf(1)
@@ -1714,6 +1870,14 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
                 putNumber(peerSystem(i), at) =: at
                 spaceByte(0) =: outBuf(at)
                 at + 1 =: at
+                IF pNameLen(i) > 0 THEN
+                    FOR j IN 1:pNameLen(i) DO
+                        pName(i, j) =: outBuf(at)
+                        at + 1 =: at
+                    ENDFOR
+                    spaceByte(0) =: outBuf(at)
+                    at + 1 =: at
+                ENDIF
                 peerState(i) =: st
                 IF st = peerUp THEN
                     putWord('up', 2, at) =: at
@@ -1774,8 +1938,8 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         at + 2 =: textAt
         textAt =: at
 
-        putWord('this is D', 9, at) =: at
-        putNumber(mySystem, at) =: at
+        putWord('this is ', 8, at) =: at
+        putSysLabel(mySystem, at) =: at
         putWord(' - ', 3, at) =: at
 
         % REMEMBER WHERE THE HEADER ENDED, do not compute it.
@@ -1796,7 +1960,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
                     spaceByte(0) =: outBuf(at)
                     at + 1 =: at
                 ENDIF
-                putNumber(peerSystem(i), at) =: at
+                putSysLabel(peerSystem(i), at) =: at
                 spaceByte(0) =: outBuf(at)
                 at + 1 =: at
                 peerState(i) =: st
@@ -2499,9 +2663,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
                         ENDFOR
                         atByte(0) =: outBuf(at)
                         at + 1 =: at
-                        dByte(0) =: outBuf(at)
-                        at + 1 =: at
-                        putNumber(rmtSystem(i), at) =: at
+                        putSysLabel(rmtSystem(i), at) =: at
                         at - textAt =: textLen
                     ENDIF
                 ENDIF
@@ -2781,9 +2943,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
                                         ENDFOR
                                         atByte(0) =: outBuf(at)
                                         at + 1 =: at
-                                        dByte(0) =: outBuf(at)
-                                        at + 1 =: at
-                                        putNumber(rmtSystem(j), at) =: at
+                                        putSysLabel(rmtSystem(j), at) =: at
                                         at - textAt =: textLen
                                     ENDIF
                                 ENDIF
@@ -3369,17 +3529,33 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     % normal case this routine exists to handle - the status is recorded by the
     % caller as "still not up", not reported as a fault.
     % -----------------------------------------------------------------------
+    % A HELLO NOW CARRIES WHAT THIS MACHINE IS CALLED, after the direction
+    % byte that was always there.
+    %
+    % BACKWARD COMPATIBLE, and that is not a hope - it is measured from the
+    % receiving code. The old handler reads inBuf(textAt) and NOTHING ELSE, so
+    % a server that has not been upgraded takes the direction byte and ignores
+    % every byte after it. That is the same property kTrkRelay was given, and
+    % it is what lets three running machines be upgraded one at a time.
+    %
+    % A machine with no name sends the one byte exactly as before.
     ROUTINE VOID, INTEGER (INTEGER, INTEGER) : sendHello(system, direction)
-        INTEGER : at, st
+        INTEGER : at, st, i
 
         kTrkHello =: outBuf(0)
         0 =: outBuf(1)                        % no name: a MACHINE is speaking
         2 =: at
         0 =: outBuf(at)                       % text length, high byte
-        1 =: outBuf(at + 1)                   % one byte of text
+        1 + lenSysName =: outBuf(at + 1)      % direction byte, then our name
         at + 2 =: at
         direction =: outBuf(at)               % trkAsk or trkAnswer
         at + 1 =: at
+        IF lenSysName > 0 THEN
+            FOR i IN 1:lenSysName DO
+                sysName(i - 1) =: outBuf(at)
+                at + 1 =: at
+            ENDFOR
+        ENDIF
 
         sendToName(system, at) =: st
         st RETURN
@@ -3442,9 +3618,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
                     ENDFOR
                     atByte(0) =: outBuf(at)
                     at + 1 =: at
-                    dByte(0) =: outBuf(at)
-                    at + 1 =: at
-                    putNumber(system, at) =: at
+                    putSysLabel(system, at) =: at
                     at - 2 =: outBuf(1)       % the name length, now known
 
                     0 =: outBuf(at)
@@ -3844,13 +4018,10 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         ENDFOR
     ENDROUTINE
 
-    % Put "Dnnn!" into outBuf at "at". Answers the new cursor.
+    % Put "FJELL!" - or "Dnnn!" when nothing is named. Answers the new cursor.
     ROUTINE VOID, INTEGER (INTEGER, INTEGER) : putMachine(sysNum, at)
         INTEGER : p
-        at =: p
-        dByte(0) =: outBuf(p)
-        p + 1 =: p
-        putNumber(sysNum, p) =: p
+        putSysLabel(sysNum, at) =: p
         bangByte(0) =: outBuf(p)
         p + 1 =: p
         p RETURN
@@ -4512,6 +4683,10 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         % rather than a plausible one.
         INTEGER : relayOrig
         INTEGER : relayHops
+        % SET-NAME and the name on a Hello. Named apart from nameLength, which
+        % is the MESSAGE's name field and is a different thing entirely.
+        INTEGER : nameRow
+        INTEGER : nameLen2
         % The number the ORIGIN gave this line, on a kind 53. Zero on
         % anything else, and zero is never a real line number - the
         % stamper starts at 1 - so a handler that reads it by mistake
@@ -4821,6 +4996,37 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
             RETURN
         ENDIF
 
+        % SET-NAME <name> - what this machine calls itself.
+        %
+        % AN EMPTY NAME CLEARS IT, and that is deliberate rather than an
+        % oversight: a machine with no name falls back to D<number> everywhere,
+        % which is exactly how it behaved before names existed. So there is a
+        % way back from a name typed wrongly that does not need a restart.
+        %
+        % The peers are told at the next hello - the trunk sends one on its own
+        % schedule and nothing has to be poked. An operator in a hurry can use
+        % RESTART-TRUNK to make it happen now.
+        IF kind = kAdmName THEN
+            IF NOT fromAdmin THEN
+                RETURN
+            ENDIF
+
+            textLength =: nameLen2
+            IF nameLen2 > maxNameLen THEN
+                maxNameLen =: nameLen2
+            ENDIF
+            IF nameLen2 > 0 THEN
+                FOR i IN 1:nameLen2 DO
+                    inBuf(textAt + i - 1) =: sysName(i - 1)
+                ENDFOR
+            ENDIF
+            nameLen2 =: lenSysName
+
+            buildNameReply =: length
+            sendTo(senderMagic, length)
+            RETURN
+        ENDIF
+
         % ---- A HELLO FROM ANOTHER SERVER, on the trunk port -----------------
         %
         % ANYTHING ARRIVING FROM A PEER MARKS IT UP, including an unsolicited
@@ -4855,6 +5061,33 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
             ENDIF
 
             markPeerUp(senderSystem)
+
+            % WHAT THAT MACHINE CALLS ITSELF, if it said. Anything after the
+            % direction byte is its name.
+            %
+            % Taken on EVERY hello and not only the first, for the same reason
+            % the member list is: a peer saying hello again has very likely
+            % restarted, and a name it was given before the restart may not be
+            % the one it has now.
+            %
+            % A NAME IS ONLY A LABEL ON A NUMBER. senderSystem comes from the
+            % kernel's magic and is not something the sender can choose, so a
+            % machine may call itself whatever it likes and still cannot claim
+            % to BE another machine.
+            IF textLength > 1 THEN
+                findPeer(senderSystem) =: nameRow
+                IF nameRow > 0 THEN
+                    textLength - 1 =: nameLen2
+                    IF nameLen2 > maxNameLen THEN
+                        maxNameLen =: nameLen2
+                    ENDIF
+                    FOR i IN 1:nameLen2 DO
+                        inBuf(textAt + i) =: pName(nameRow, i)
+                    ENDFOR
+                    nameLen2 =: pNameLen(nameRow)
+                ENDIF
+            ENDIF
+
             IF textLength > 0 THEN
                 IF inBuf(textAt) = trkAsk THEN
                     sendHello(senderSystem, trkAnswer) =: taken
@@ -5082,7 +5315,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
             copyRoomIn(slot, textAt, textLength)
 
             % The welcome goes only to the joiner; the room hears Joined.
-            buildMessage(kWelcome, nameAt, nameLength, 0, 0) =: length
+            buildWelcome(nameAt, nameLength) =: length
             sendTo(senderMagic, length)
 
             % ---- WHAT THEY MISSED, BEFORE THE ROOM HEARS THEY ARRIVED -----
