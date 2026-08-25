@@ -98,7 +98,7 @@ namespace NDInsight.Sintran.Xmsg.Chat.Tests
             // for dedup. Three catches for one assertion; do not be tempted to delete it as
             // busywork just because updating it is a chore on every new kind - that chore IS the
             // check.
-            Assert.Equal((byte)ChatMessageKind.TrunkRelayId, ChatMessageKinds.Highest);
+            Assert.Equal((byte)ChatMessageKind.TrunkDirect, ChatMessageKinds.Highest);
             Assert.True(ChatMessageKinds.Highest >= ChatMessageKinds.LowestAdmin);
         }
 

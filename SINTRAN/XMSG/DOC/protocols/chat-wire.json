@@ -283,6 +283,34 @@
         "evidence": "2026-08-23: said two lines, /quit, rejoined, and the room answered '| TESTER: REAL-TEST-LINE-ONE' and '| TESTER: REAL-TEST-LINE-TWO' in order."
       },
       {
+        "name": "Direct",
+        "value": "17",
+        "meaning": "Client to server: send this text to ONE person, who need not be in the sender's room or in any room. The name field carries the target as typed - a bare alias (RONNY) or one qualified by machine (D102!RONNY). The separator is '!' and NOT '@' deliberately: '@' is the short command prefix, so @RONNY@D100 would need a parser that counts at-signs, whereas machine!alias reads left to right as route-then-person and has precedent in UUCP addressing of the same era. A bare alias matching more than one person in the federation is REFUSED with DirectBad and the candidate list, never guessed at - two machines can each hold a RONNY long before they trunk to each other, so no global uniqueness rule could ever have been applied, and a direct message delivered silently to the wrong person is a privacy failure rather than an inconvenience.",
+        "status": "DESIGNED",
+        "evidence": "ChatMessageKind.Direct = 17. DESIGN ONLY - no encoder, no server handler, no golden. The design is DOC/CHAT-DIRECT-MESSAGES-AND-CLIENT-CONFIG.md."
+      },
+      {
+        "name": "Directed",
+        "value": "18",
+        "meaning": "Server to client: a direct message addressed to this user personally. The name field carries the sender QUALIFIED (D102!KARI) so that what is displayed is also what can be typed back. A client marks these so they cannot be mistaken for room traffic.",
+        "status": "DESIGNED",
+        "evidence": "ChatMessageKind.Directed = 18. DESIGN ONLY - no encoder, no server handler, no golden."
+      },
+      {
+        "name": "DirectSent",
+        "value": "19",
+        "meaning": "Server to client: the direct message was delivered, and this is the QUALIFIED name it went to. Sent on every delivery, not only ambiguous ones. Refusing an ambiguous alias protects the sender when the collision is visible; this protects them when it is not - a machine that just went Down, a second RONNY who logged in a moment ago, a trunk that came back with a different user list. A wrong delivery becomes visible immediately instead of days later, for one line.",
+        "status": "DESIGNED",
+        "evidence": "ChatMessageKind.DirectSent = 19. DESIGN ONLY - no encoder, no server handler, no golden."
+      },
+      {
+        "name": "DirectBad",
+        "value": "20",
+        "meaning": "Server to client: the direct message was NOT delivered, and why. The name field carries the target that was tried; the text carries the reason, and for an ambiguous alias the candidate list ('which RONNY? D100!RONNY, D102!RONNY'). Carrying the candidates is what makes the refusal usable rather than merely annoying. 'not logged in' is a refusal too: there is deliberately NO store and forward, because a message that waits for somebody is a mailbox - a different product with different rules, and SINTRAN already has mail for that.",
+        "status": "DESIGNED",
+        "evidence": "ChatMessageKind.DirectBad = 20. DESIGN ONLY - no encoder, no server handler, no golden."
+      },
+      {
         "name": "AdminInitialize",
         "value": "38",
         "meaning": "CHAT-MON to server: set how many messages a room remembers, or the machine default. INITIALIZE 20 sets the DEFAULT that new rooms pick up; INITIALIZE LOBBY 20 sets one room. The server splits the text at the first space, so one place decides what a valid argument is. REFUSED once a room already has history: the ring is block = id MOD size, so changing size moves where every existing id lands and the replay would return other messages in the wrong order while looking healthy.",
@@ -302,6 +330,13 @@
         "meaning": "Server to server: a relayed line that ALSO carries the line number the ORIGIN stamped on it, so the same line arriving by two different paths is delivered once. Layout is TrunkRelay's with two more bytes: origin system big-endian, hops remaining, line id big-endian, then the usual speaker length, speaker, two-byte text length and ROOM/text. The id MUST be stamped by the machine the line was typed on and passed on unchanged - a relay that renumbered it would make one line look like two to any node reachable by more than one path, which is the exact fault this kind prevents. A SEPARATE kind rather than a longer TrunkRelay header because these machines are upgraded one at a time: a server that had not been upgraded would read the two extra bytes as a name length and a name and hand its users garbage, whereas a kind it does not know it simply ignores.",
         "status": "DESIGNED",
         "evidence": "ChatMessageKind.TrunkRelayId = 53, with the golden pair ATrunkRelayIdMessageHasExactlyTheseBytes / ThoseExactBytesDecodeBackToARelayedMessageWithAnId in ChatMessageGoldenBytesTests pinning both directions, ATruncatedRelayIdHeaderIsRefused pinning the short-header case, and TrunkRelayIsUnchangedByTheArrivalOfTrunkRelayId proving kind 52's bytes did not move. The dedup window itself is ChatLineMemory with ChatLineMemoryTests, including OneLineArrivingByTwoPathsIsDeliveredOnce. NOT YET SEEN ON A WIRE: the PLANC server does not emit or accept kind 53 yet, and no mesh exists to produce a duplicate - D100/D102/D103 are a CHAIN, so today there is only ever one path between any two machines."
+      },
+      {
+        "name": "TrunkDirect",
+        "value": "54",
+        "meaning": "Server to server: a direct message being carried across a trunk. It reuses TrunkRelayId's FIVE-BYTE HEADER - origin system big-endian, hops remaining, line id big-endian - because a direct message two machines away must be relayed and de-duplicated in exactly the same way a room line is, and a second mechanism would mean two places to get hop counting wrong. It also reuses TrunkSaid's text trick: TrunkSaid packs ROOM/message, this packs TARGET/message, which leaves the name field free to carry the SENDER - the thing the receiver has to display. The receiving server looks the target alias up in its own table and delivers, or relays onward if the addressed machine is not a direct neighbour.",
+        "status": "DESIGNED",
+        "evidence": "ChatMessageKind.TrunkDirect = 54, with the golden pair ATrunkDirectMessageHasExactlyTheseBytes / ThoseExactBytesDecodeBackToATrunkDirectMessage pinning both directions, and AQualifiedTargetKeepsItsMachineSeparator pinning that the machine separator on the wire is 0x21 ('!') and not 0x40 ('@'). ENCODER AND DECODER BUILT AND TESTED; the PLANC server neither sends nor accepts it yet, and no direct message has ever crossed a trunk."
       }
     ],
     "admin_note": "Kinds 32 and up are ADMIN, and they arrive on the server's command port rather than CHAT-LOBBY. They share this one enum, and therefore one decoder bound, on purpose: the bound has been left behind TWICE and an unknown kind is dropped in SILENCE, so a second enum would be a second place to forget. A server must still refuse an admin kind that arrives on the lobby port - sharing the vocabulary is not sharing the authority.",

@@ -286,6 +286,66 @@ namespace NDInsight.Sintran.Xmsg.Chat
         AdminInitialize = 38,
 
         /// <summary>
+        /// Client to server: send this text to ONE person, who need not be in your room or in any
+        /// room.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The name field carries the target as the user typed it - either a bare alias
+        /// (<c>RONNY</c>) or one qualified by machine (<c>D102!RONNY</c>). The separator is
+        /// <c>!</c> and not <c>@</c> deliberately: <c>@</c> is already the short command prefix, so
+        /// <c>@RONNY@D100</c> would need a parser that counts at-signs. <c>machine!alias</c> reads
+        /// left to right as route-then-person and has precedent in UUCP addressing of the same era.
+        /// </para>
+        /// <para>
+        /// A bare alias that matches more than one person in the federation is REFUSED with
+        /// <see cref="DirectBad"/> and the candidate list, never guessed at. Two machines can each
+        /// hold a RONNY long before they ever trunk to each other, and there is no moment at which
+        /// a global uniqueness rule could have been applied. A direct message delivered silently to
+        /// the wrong person is a privacy failure, not an inconvenience.
+        /// </para>
+        /// </remarks>
+        Direct = 17,
+
+        /// <summary>
+        /// Server to client: a direct message to show, addressed to you personally.
+        /// </summary>
+        /// <remarks>
+        /// The name field carries the sender QUALIFIED - <c>D102!KARI</c> - so what is displayed is
+        /// also what can be typed back. A client marks these so they cannot be mistaken for room
+        /// traffic.
+        /// </remarks>
+        Directed = 18,
+
+        /// <summary>
+        /// Server to client: your direct message was delivered, and here is the qualified name it
+        /// went to.
+        /// </summary>
+        /// <remarks>
+        /// <para><b>Sent on EVERY delivery, not only ambiguous ones</b></para>
+        /// <para>
+        /// Refusing an ambiguous name protects the sender when the collision is visible. This
+        /// protects them when it is not - a machine that just went Down, a second RONNY who logged
+        /// in a moment ago, a trunk that came back with a different user list. Being told the
+        /// qualified name that actually received it makes a wrong delivery visible immediately
+        /// rather than days later, and it costs one line.
+        /// </para>
+        /// </remarks>
+        DirectSent = 19,
+
+        /// <summary>
+        /// Server to client: the direct message was not delivered, and why.
+        /// </summary>
+        /// <remarks>
+        /// The name field carries the target that was tried; the text carries the reason, and for
+        /// an ambiguous alias the candidate list - <c>which RONNY? D100!RONNY, D102!RONNY</c>.
+        /// Carrying the candidates is what makes the refusal usable rather than merely annoying.
+        /// <c>not logged in</c> is a refusal too: there is deliberately NO store and forward,
+        /// because a message that waits for somebody is a mailbox, and SINTRAN already has mail.
+        /// </remarks>
+        DirectBad = 20,
+
+        /// <summary>
         /// Server to server: a greeting that brings a trunk up, and its answer.
         /// </summary>
         /// <remarks>
@@ -418,6 +478,44 @@ namespace NDInsight.Sintran.Xmsg.Chat
         /// </para>
         /// </remarks>
         TrunkRelayId = 53,
+
+        /// <summary>
+        /// Server to server: a DIRECT message being carried across a trunk to somebody on another
+        /// machine.
+        /// </summary>
+        /// <remarks>
+        /// <para><b>It reuses TrunkRelayId's header and its text trick, on purpose</b></para>
+        /// <para>
+        /// A direct message to somebody two machines away has to be relayed and de-duplicated in
+        /// exactly the same way a room line does. Inventing a second mechanism would mean two
+        /// places to get hop counting wrong, so this carries the same five-byte header:
+        /// origin system, hops remaining, line id.
+        /// </para>
+        /// <para>
+        /// <see cref="TrunkSaid"/> already packs two things into the text as
+        /// <c>ROOM/message</c>. This does the same with the TARGET in place of the room, so the
+        /// name field is free to carry the SENDER - which is what the receiver has to show.
+        /// </para>
+        /// <para><b>Layout</b></para>
+        /// <code>
+        /// 36            kind = 54
+        /// 00 66         origin system, big-endian (102)
+        /// 03            hops remaining
+        /// 04 D2         line id stamped by the ORIGIN
+        /// 04            sender length
+        /// 4B 41 52 49   "KARI" - the SENDER, unqualified
+        /// 00 0F         text length, big-endian
+        /// 52 4F ...     "RONNY/are you free" - TARGET, a slash, then the message
+        /// </code>
+        /// <para><b>The target is an alias, and it may be ambiguous</b></para>
+        /// <para>
+        /// The receiving server looks the alias up in its own table. Two machines may each hold a
+        /// RONNY, so a bare alias that matches more than one person is REFUSED rather than guessed
+        /// at - see CHAT-DIRECT-MESSAGES-AND-CLIENT-CONFIG.md. A qualified target arrives here as
+        /// <c>machine!alias</c>.
+        /// </para>
+        /// </remarks>
+        TrunkDirect = 54,
     }
 
     /// <summary>
@@ -441,13 +539,13 @@ namespace NDInsight.Sintran.Xmsg.Chat
         /// The largest value <see cref="ChatMessageKind"/> defines.
         /// </summary>
         /// <remarks>
-        /// It is <see cref="ChatMessageKind.TrunkRelayId"/> and no longer
+        /// It is <see cref="ChatMessageKind.TrunkDirect"/> and no longer
         /// <c>AdminStop</c>. Ten kinds were added to the PLANC server between 2026-08-20 and
         /// 2026-08-23 - the trunk set, the admin trunk verbs, AllWho, History and
         /// AdminInitialize - and this constant was left behind again, which is the third time.
         /// Everything above the old bound decoded as malformed and was dropped in silence.
         /// </remarks>
-        public const byte Highest = (byte)ChatMessageKind.TrunkRelayId;
+        public const byte Highest = (byte)ChatMessageKind.TrunkDirect;
 
         /// <summary>
         /// The lowest value that is an ADMIN kind rather than a room kind.

@@ -285,6 +285,94 @@ namespace NDInsight.Sintran.Xmsg.Chat.Tests
         }
 
         /// <summary>
+        /// A direct message crossing a trunk has exactly these bytes.
+        /// </summary>
+        /// <remarks>
+        /// <para><b>Same header as TrunkRelayId, and that is the point</b></para>
+        /// A direct message two machines away is relayed and de-duplicated exactly as a room line
+        /// is, so it carries the same origin, hops and line id rather than a second mechanism.
+        /// <para><b>Target in place of the room</b></para>
+        /// TrunkSaid packs <c>ROOM/message</c> into the text. This packs <c>TARGET/message</c>, so
+        /// the name field stays free for the SENDER, which is what the receiver has to display.
+        /// </remarks>
+        [Fact]
+        public void ATrunkDirectMessageHasExactlyTheseBytes()
+        {
+            ChatMessage dm = new ChatMessage(
+                ChatMessageKind.TrunkDirect, "KARI", "RONNY/are you free", 102, 3, 1234);
+
+            byte[] buffer = new byte[64];
+            int written = dm.Encode(buffer);
+
+            //  36            kind = TrunkDirect (54 decimal)
+            //  00 66         origin system = 102, HIGH byte first
+            //  03            hops remaining
+            //  04 D2         line id = 1234, HIGH byte first
+            //  04            sender length, UNQUALIFIED
+            //  4B 41 52 49   "KARI"
+            //  00 12         text length = 18, HIGH byte first
+            //  52 4F ...     "RONNY/are you free"
+            Assert.Equal(
+                "3600660304D2 044B415249 0012 524F4E4E592F61726520796F752066726565"
+                    .Replace(" ", string.Empty),
+                Convert.ToHexString(buffer, 0, written));
+        }
+
+        /// <summary>
+        /// Those exact bytes decode back, sender and target and all.
+        /// </summary>
+        [Fact]
+        public void ThoseExactBytesDecodeBackToATrunkDirectMessage()
+        {
+            byte[] wire = Convert.FromHexString(
+                "3600660304D2" + "044B415249" + "0012" + "524F4E4E592F61726520796F752066726565");
+
+            ChatMessage decoded;
+            bool ok = ChatMessage.TryDecode(wire, out decoded);
+
+            Assert.True(ok);
+            Assert.Equal(ChatMessageKind.TrunkDirect, decoded.Kind);
+            Assert.Equal((ushort)102, decoded.OriginSystem);
+            Assert.Equal((byte)3, decoded.HopsRemaining);
+            Assert.Equal((ushort)1234, decoded.LineId);
+            Assert.Equal("KARI", decoded.Nickname);
+            Assert.Equal("RONNY/are you free", decoded.Text);
+        }
+
+        /// <summary>
+        /// A qualified target survives the round trip with its machine separator intact.
+        /// </summary>
+        /// <remarks>
+        /// The separator is <c>!</c> and not <c>@</c>, because <c>@</c> is the short command prefix
+        /// and <c>@RONNY@D100</c> would need a parser that counts at-signs. This pins that the byte
+        /// on the wire is 0x21 and not 0x40, so the two ends cannot drift.
+        /// </remarks>
+        [Fact]
+        public void AQualifiedTargetKeepsItsMachineSeparator()
+        {
+            ChatMessage dm = new ChatMessage(
+                ChatMessageKind.TrunkDirect, "KARI", "D100!RONNY/hei", 102, 3, 7);
+
+            byte[] buffer = new byte[64];
+            int written = dm.Encode(buffer);
+            string hex = Convert.ToHexString(buffer, 0, written);
+
+            // 21 is '!', the machine separator. 40 would be '@' and is the WRONG one.
+            Assert.Contains("21", hex);
+            Assert.Equal("D100!RONNY/hei", DecodeText(buffer, written));
+        }
+
+        /// <summary>
+        /// Decodes a message and hands back just its text, for the test above.
+        /// </summary>
+        private static string DecodeText(byte[] wire, int length)
+        {
+            ChatMessage decoded;
+            Assert.True(ChatMessage.TryDecode(wire.AsSpan(0, length), out decoded));
+            return decoded.Text;
+        }
+
+        /// <summary>
         /// A relay header cut short is refused, not read as a nickname length.
         /// </summary>
         /// <remarks>

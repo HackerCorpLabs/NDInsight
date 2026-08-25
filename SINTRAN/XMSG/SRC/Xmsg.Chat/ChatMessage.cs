@@ -140,7 +140,40 @@ namespace NDInsight.Sintran.Xmsg.Chat
         /// </exception>
         public ChatMessage(
             string nickname, string text, ushort originSystem, byte hopsRemaining, ushort lineId)
-            : this(ChatMessageKind.TrunkRelayId, nickname, text)
+            : this(ChatMessageKind.TrunkRelayId, nickname, text, originSystem, hopsRemaining, lineId)
+        {
+        }
+
+        /// <summary>
+        /// Creates a relayed message of a given kind that carries the origin's line number.
+        /// </summary>
+        /// <param name="kind">
+        /// <see cref="ChatMessageKind.TrunkRelayId"/> for a room line, or
+        /// <see cref="ChatMessageKind.TrunkDirect"/> for a direct message.
+        /// </param>
+        /// <param name="nickname">
+        /// The speaker or sender, as their own machine knows them - unqualified.
+        /// </param>
+        /// <param name="text">
+        /// For a room line, the room, a slash, then the message. For a direct message, the TARGET,
+        /// a slash, then the message - the same shape with the target in place of the room.
+        /// </param>
+        /// <param name="originSystem">
+        /// The system the sender is on. Not the machine that forwarded this.
+        /// </param>
+        /// <param name="hopsRemaining">
+        /// How many more relays this may take. Decremented at each one, dropped at zero.
+        /// </param>
+        /// <param name="lineId">
+        /// The number the ORIGIN stamped. A relay passes it on unchanged.
+        /// </param>
+        /// <exception cref="ArgumentException">
+        /// Thrown when either string is longer than its length field can describe.
+        /// </exception>
+        public ChatMessage(
+            ChatMessageKind kind, string nickname, string text,
+            ushort originSystem, byte hopsRemaining, ushort lineId)
+            : this(kind, nickname, text)
         {
             OriginSystem = originSystem;
             HopsRemaining = hopsRemaining;
@@ -215,7 +248,8 @@ namespace NDInsight.Sintran.Xmsg.Chat
             get
             {
                 return Kind == ChatMessageKind.TrunkRelay
-                    || Kind == ChatMessageKind.TrunkRelayId;
+                    || Kind == ChatMessageKind.TrunkRelayId
+                    || Kind == ChatMessageKind.TrunkDirect;
             }
         }
 
@@ -224,7 +258,11 @@ namespace NDInsight.Sintran.Xmsg.Chat
         /// </summary>
         private bool HasLineId
         {
-            get { return Kind == ChatMessageKind.TrunkRelayId; }
+            get
+            {
+                return Kind == ChatMessageKind.TrunkRelayId
+                    || Kind == ChatMessageKind.TrunkDirect;
+            }
         }
 
         /// <summary>
@@ -362,7 +400,8 @@ namespace NDInsight.Sintran.Xmsg.Chat
             byte hopsRemaining = 0;
 
             ushort lineId = 0;
-            bool carriesId = kind == (byte)ChatMessageKind.TrunkRelayId;
+            bool carriesId = kind == (byte)ChatMessageKind.TrunkRelayId
+                || kind == (byte)ChatMessageKind.TrunkDirect;
 
             if (kind == (byte)ChatMessageKind.TrunkRelay || carriesId)
             {
@@ -412,7 +451,8 @@ namespace NDInsight.Sintran.Xmsg.Chat
 
             if (carriesId)
             {
-                message = new ChatMessage(nickname, text, originSystem, hopsRemaining, lineId);
+                message = new ChatMessage(
+                    (ChatMessageKind)kind, nickname, text, originSystem, hopsRemaining, lineId);
             }
             else if (kind == (byte)ChatMessageKind.TrunkRelay)
             {
