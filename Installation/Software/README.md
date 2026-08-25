@@ -422,7 +422,7 @@ Documented products link from the **Doc** column below.
 | [ND-10130 Xmessage for SINTRAN-III/VS](ND-10130/README.md) | IN-PROGRESS — real J-version floppy decoded, full load/start `:MODE`/`:BATC` scripts |
 | [ND-10373 IS XMSG (Inter System)](ND-10373/README.md) | IN-PROGRESS — real J-version floppy decoded, XFTRA file-transfer extra confirmed |
 | [PLANC-SCREEN-H — PLANC Screen Handling Library](ND-PLANC-SCREEN-H/README.md) | IN-PROGRESS — real floppy decoded, real PLANC interface + `.PICT` screen format; no ND article number |
-| [ND-210913 SINTRAN III Monitor Call Package](ND-210913/README.md) | VERIFIED install procedure (this is the real `mon-call-lib` product) — sourced from NDWiki, primary PD-sheet PDF still pending |
+| [ND-210913 SINTRAN III Monitor Call Package](ND-210913/README.md) | VERIFIED install procedure (this is the real `mon-call-lib` product) — primary PD-sheet now in hand and OCR'd, plus the Source Description (250104A) with the compile recipe |
 | [ND-10459 VTM terminal tables (DEC VT100)](ND-10459/README.md) | IN-PROGRESS — real floppy confirmed, no PD/PI sheet |
 | [ND-10465 VTM terminal tables (DEC VT52)](ND-10465/README.md) | IN-PROGRESS — real floppy confirmed, no PD/PI sheet |
 | [ND-10188 FOCUS Level 1 Screen Handling System](ND-10188/README.md) | IN-PROGRESS — real 4-disk floppy set decoded, real PI sheet, built in PLANC, ships its own VTM bridge |
