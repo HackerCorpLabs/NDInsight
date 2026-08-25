@@ -107,6 +107,17 @@ rather than `CSI A/B/C/D`. Since VTM sends `ESC =` (keypad application mode) dur
 which of the two forms a given terminal actually sends is a live question and not one this page
 can answer yet.
 
+**Both sequences really are emitted by the terminal.** RetroTerm maps `VK_F1`..`VK_F4` to
+`ESC O P`..`ESC O S` unconditionally, in both its VT100 and VT220 mappers - so what reached VTM
+was well formed, and **the asymmetry is in VTM's decoder, not in what was sent**. `DECKPAM` does
+not enter into it either: the application-keypad mapping covers only `ESC O p`..`ESC O y` and
+`ESC O j/k/l/m/n/o`, so `ESC =` changed nothing about the uppercase forms.
+
+**The naming caveat worth carrying:** on real DEC hardware `ESC O P`..`S` are the KEYPAD's
+PF1..PF4, not the top-row function keys. Modern emulators map the F1..F4 keys onto them by
+convention, so "F1" on a PC keyboard and "PF1" on a VT100 keypad are the same four bytes. If VTM
+tells them apart it does so by context, not by the sequence.
+
 **Measured, and inconsistent:** `ESC O P` gave 29, but `ESC O Q` returned TWO codes in the same
 run. One clean per-key run is needed before any of it is written down. Left here as a warning,
 not as data.
@@ -132,14 +143,14 @@ varying `n` rather than by finding a name for each key.
 | 39 | 214 | |
 | 40 | 9 | |
 | 41 | 203 | |
-| 42 | **174** | **EATS THE NEXT BYTE - see below** |
-| 43 | 159 | |
-| 44 | 161 | |
-| 45 | 162 | |
-| 46 | **191** | HJELP (help), also reachable as grid key G53 |
-| 47 | 165 | |
-| 48 | 163 | grid key G54 - legend not yet identified |
-| 49 | 164 | |
+| 42 | **174** | **FUNK** (G51, function-shift) - **A PREFIX, see below** |
+| 43 | 159 | SHIFT-FUNK |
+| 44 | 161 | SKRIV (G52, "write"/print) |
+| 45 | 162 | SHIFT-SKRIV |
+| 46 | **191** | HJELP (G53, help) |
+| 47 | 165 | SHIFT-HJELP |
+| 48 | 163 | SLUTT (G54, "end") |
+| 49 | 164 | SHIFT-SLUTT |
 | 50 | **132** | F1 |
 | 51 | 193 | SHIFT-F1 |
 | 52 | 140 | F2 |
@@ -176,7 +187,7 @@ The F-key numbers are not evenly spaced - 50, 52, 55, 58, 60, 62, 64, 66 - and t
 produce are not ordered at all (132, 140, 149, 171, 217, 204, 220, 221). It is a lookup, not a
 formula. Do not try to compute one.
 
-### `ESC[42_` SWALLOWS THE FOLLOWING BYTE
+### `ESC[42_` SWALLOWS THE FOLLOWING BYTE - AND THAT IS CORRECT
 
 MEASURED twice, on purpose. Sent alone with one marker after it, the marker disappeared entirely.
 Sent with THREE markers, only TWO came back:
@@ -185,11 +196,40 @@ Sent with THREE markers, only TWO came back:
 ESC[42_ . . .   ->   174, 46, 46
 ```
 
-So it consumes exactly one extra byte. This is what silently corrupted a twenty-key sweep, and it
-is why the marker technique and the count check exist. Whatever key that is, a program reading it
-will lose the keystroke after it.
+**It is the FUNK key** - grid G51, legend `FUNK`, short for *funksjon*. On a Tandberg keyboard
+that is a **function-shift**: you hold FUNK and press another key, and the pair selects a
+function. It is a PREFIX and produces nothing on its own.
+
+So VTM is doing exactly the right thing - it swallows the next byte because it is waiting for the
+key FUNK modifies. **This is not a defect in VTM and not a defect in the terminal.** It is,
+however, a real hazard for a program that reads keys one at a time: press FUNK by accident and
+the NEXT keystroke vanishes.
+
+Identified from RetroTerm's own key registry, 2026-08-25. It is also what silently corrupted a
+twenty-key sweep here, which is why the method now uses a marker after every key and checks the
+count.
 
 ---
+
+## 3b. THE EMULATOR AND THE HOST AGREE - checked end to end
+
+**The same key sent two different ways gives the same code.** MEASURED 2026-08-25: each key sent
+once through RetroTerm's own `sendkey` (which looks the sequence up in its key registry) and once
+as raw bytes with `sendraw`:
+
+| key | via `sendkey` | via `sendraw` | agree? |
+|---|---|---|---|
+| HJELP | 191 | `ESC[46_` -> 191 | yes |
+| ANGRE | 216 | `ESC[30_` -> 216 | yes |
+| F3 | 149 | `ESC[55_` -> 149 | yes |
+
+That is worth doing because the two paths prove different things. `sendraw` only tests **VTM's
+decoder** - it says nothing about whether the emulator would ever produce those bytes. `sendkey`
+tests **the emulator's key registry as well**, end to end from a keyboard legend to a code inside
+a PLANC program on the ND.
+
+They agree, which is the first end-to-end check of that registry against a real host. If the two
+ever disagree for a key, the fault is on the emulator side and worth reporting there.
 
 ## 4. THE CODES ARE NOT THE SAME ACROSS TERMINALS - do not assume they are
 
