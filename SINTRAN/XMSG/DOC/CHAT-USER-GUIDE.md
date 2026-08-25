@@ -1,12 +1,19 @@
-# The XMSG chat system - how to use it
+# The XMSG chat system - the C# library
+
+> **THIS IS NOT THE SINTRAN CHAT PRODUCT.** This page describes the **C# chat library** and its
+> terminal door - a Windows-side implementation with its own commands (`chat join` at a `#`
+> prompt) and its own API (`ronny.Poll()`).
+>
+> **The product that runs on the ND-100s is a different program**: the PLANC server `CHATSER` and
+> the PLANC client `CHAT`, whose commands are `/join`, `/who`, `/nick` and so on. For that, read
+> **[CHAT-APP-SPECIFICATION.md](CHAT-APP-SPECIFICATION.md)**.
+>
+> Confusing the two is easy and this page caused it. The `tell` command mentioned below exists
+> HERE and has no equivalent on the SINTRAN server.
 
 A chat room that lives on an XMSG node. Two kinds of people can be in the same room at the same
 time: somebody at a **SINTRAN terminal** who has connected to our node, and a **program** that
 talks to the room port to port.
-
-Everything below is built and unit-tested. What has **not** been done yet is the live two-user run
-against a real machine - see [Status](#status) at the end, and believe that section over any
-enthusiasm elsewhere in this file.
 
 ---
 
@@ -140,9 +147,16 @@ nickname, a rename that collides, who hears about somebody leaving.
 the terminal commands. 37 tests in `Xmsg.Chat` plus the terminal-door tests in
 `TwoNodeTerminalTests`.
 
-**Not yet done - the live two-user run.** Nobody has yet sat at a real SINTRAN terminal, joined
-the room and talked to a second user. Until that happens this is a working implementation, not a
-proven one.
+**CORRECTED 2026-08-25 - this section was stale and said the opposite of the truth.** It read
+"Nobody has yet sat at a real SINTRAN terminal, joined the room and talked to a second user."
+
+That was overtaken long ago, by the PLANC implementation rather than this one. Two users have
+talked on two different ND-100s; the rooms now span **three** machines over trunks, with a machine
+in the middle relaying between two that have no trunk between them, and the whole thing starts
+from a cold boot with nothing typed. See
+[CHAT-APP-SPECIFICATION.md](CHAT-APP-SPECIFICATION.md).
+
+**What remains true here** is that the C# library's own terminal door has not had that live run.
 
 **A known limit of the test harness, not of the server:** it cannot drive two commands on one
 session - the second renders nothing. The output window is held by the previous reply's final
@@ -153,3 +167,7 @@ still open.
 **Not built:** persistent rooms (a room exists while the server object does), history (a joiner
 sees nothing said before they arrived), and private messages between two members - though the
 terminal `tell` command already does person-to-person messaging outside the room.
+
+**`tell` IS THIS LIBRARY'S, NOT THE SINTRAN SERVER'S.** `CHATSV.PLNC` has no person-to-person
+message kind at all - its kinds are 1-16 for room traffic, 32-38 for admin and 48-53 for trunks.
+Anyone reading this page and expecting `tell` to work on an ND-100 will not find it.
