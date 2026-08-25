@@ -475,6 +475,37 @@ MSW* named codes proven on the ND-100 side (from the coordinator carve):
   > Note `idx 24`'s stub `1000103002` calls the worker and then, on `K` set,
   > `call $1000101241` - the routine that writes `W1` into the fn cell. So a
   > `0o2067` from `idx 24` reaches the fn cell by the documented path.
+  >
+  > **WHAT `+0o136` AND `+0o142` ARE (carved 2026-08-25, ahead of the
+  > measurement, so the surviving branch is ready).** Both are **linked-list
+  > heads**, not state flags - `laddr` (take the field's ADDRESS) is what gives
+  > them away, and the access idioms confirm it:
+  >
+  > `+0o142` is a plain singly-linked list head, pushed with the textbook
+  > sequence at `1000033413`:
+  > ```
+  > 1000033413  h3 := r2.(142)   ; old head
+  > 1000033416  h3 =: r4.(0)     ; new node's link := old head
+  > 1000033422  w1 := b.34       ; the new node
+  > 1000033424  h1 =: r2.(142)   ; head := new node
+  > ```
+  > `+0o136` is a list anchor **paired with `+0o32` as its tail pointer**. The
+  > register routine `1000026217` leaves a fresh descriptor in the empty state by
+  > pointing the tail AT the head (`1000026353 h4 laddr r.136` /
+  > `1000026357 w4 =: r.32`), and the teardown at `1000050157` clears `+0o136`
+  > and `+0o32` together. So `+0o136 == 0` is the **empty** state of that list.
+  >
+  > **Therefore `idx 24`'s reject (`+0o136 == 0` AND `+0o142 != 0`) is a
+  > consistency check between the descriptor's TWO lists: list 1 empty while
+  > list 2 still holds entries.** For a handler whose job is "create/define a
+  > segment descriptor", that reads as a refusal to redefine a segment that still
+  > has something queued on it - leftover state from a previous incarnation,
+  > rather than anything wrong with the id.
+  >
+  > `[V]` the data structure (list heads, the push idiom, the anchor/tail pair
+  > and its empty state). `[D]` what the two lists CONTAIN, and therefore the
+  > "still in use" wording - that is read off the structure and the handler's
+  > name, and has not been carved.
 - **INFERRED name**: page-fault notification / accounting (look up the faulting
   segment, validate its state, bump a counter) - a bookkeeping handler that
   itself does no paging.
