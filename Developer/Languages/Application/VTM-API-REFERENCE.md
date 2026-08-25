@@ -147,6 +147,101 @@ COBOL source names its variables `VTBREAK` and `VTECHO`, which is what identifie
 **VENDOR-CALL** `IVTINBT(INP,2,GETCTRL,3)` (STAR-TREK) - 4 arguments.
 `VTREAD` has no caller found; 220 bytes on ND-500, the largest of the read family.
 
+**MEASURED 2026-08-25 on D100 with `SINTRAN/XMSG/SINTRAN-CHAT/KEYPROB.PLNC`.** This is the call
+that reads a key AND DECODES IT, and it is how a screen program should read the keyboard - a
+program must never look at escape bytes itself.
+
+```planc
+IMPORT ( ROUTINE VOID, INTEGER (INTEGER, INTEGER, INTEGER WRITE, INTEGER) : VTINBT )
+...
+    1 =: dev
+    2 =: mode
+    3 =: arg4
+    0 =: ch
+    VTINBT(dev, mode, ch, arg4) =: st     % ch comes back holding the key
+```
+
+**ARGUMENT 3 IS THE KEY, AND IT IS THE ONLY OUT PARAMETER.** Arguments 1, 2 and 4 go in
+unchanged - 1 is the terminal, and the 2 and the 3 are STAR-TREK's, still not understood. Status
+came back 0 on every one of about forty calls.
+
+**TYPE IT AS THREE IN, ONE OUT - GETTING THAT WRONG HIDES THE DECODING.** Declared with all four
+`WRITE`, PAGE UP came back as FOUR calls returning 27, 91, 53, 126 and it looked exactly as
+though VTM decoded nothing. A PLANC `WRITE` parameter is passed by ADDRESS, so the by-value
+arguments were handed pointers. Typed properly the same key is ONE call returning 201.
+
+**AND PASS VARIABLES, NOT LITERALS.** `VTINBT(1, 2, ch, 3)` compiled and ran and decoded
+NOTHING - PAGE UP did not register at all. The identical call with the values in variables works
+every time. Not explained; just do it.
+
+**IT DOES NOT BLOCK IF YOU ASK FIRST.** `MON66` says how many bytes are waiting; call `VTINBT`
+only when there is at least one. A function key is several bytes and `VTINBT` consumes all of
+them in one call, so "at least one" is enough - the caller never has to know how many.
+
+#### The key codes, measured
+
+**DEC VT100 (terminal type 6):**
+
+| Key | code | confidence |
+|---|---|---|
+| PAGE UP | **201** | seen 3 times across 2 runs |
+| PAGE DOWN | **197** | seen twice |
+| cursor UP | 28 | seen twice |
+| cursor DOWN | 11 | once |
+
+**Tandberg TDV 2200/9 ND-NOTIS (terminal type 53):**
+
+| Key | sequence the terminal sent | code | confidence |
+|---|---|---|---|
+| HJELP | `ESC[46_` | 191 | ONCE |
+| ANGRE | `ESC[30_` | 216 | ONCE |
+| F1 | `ESC[50_` | 132 | ONCE |
+| F2 | `ESC[52_` | 140 | ONCE |
+| F3 | `ESC[55_` | 149 | ONCE |
+| F4 | `ESC[58_` | 171 | ONCE |
+| F5 | `ESC[60_` | 217 | ONCE |
+
+**THE TDV NUMBERS ARE ONE OBSERVATION EACH AND SHOULD NOT BE TRUSTED YET.** They do not form any
+progression - F1..F5 step 8, 9, 22, 46 - which is either real or a sign that something else
+varies. Repeat them before writing them into a program. The VT100 PAGE UP figure is solid: the
+same key gave 201 twice in one run and once in another.
+
+#### VTM DECODES ONLY THE TERMINAL IT IS CONFIGURED FOR
+
+The decisive experiment, 2026-08-25: the VT100 PAGE UP sequence `ESC [ 5 ~` was sent to a line
+set to terminal type 53. It came back as **four raw bytes, 27 91 53 126** - undecoded. The same
+sequence on a line set to type 6 comes back as the single code 201.
+
+So VTM recognises the key sequences of the terminal it has been told it is talking to, and
+anything else falls through byte by byte. That is the terminal-independence contract working
+exactly as intended, and it has two consequences for a program:
+
+ - **NEVER treat a stray 27 as a key.** It may be the first byte of a sequence VTM did not
+   recognise, and the rest is about to arrive as separate calls.
+ - **A BARE ESC IS NOT A DEPENDABLE QUIT KEY.** On a VT100 line, pressing ESC alone did not
+   produce 27 at all - CHATUI bound its exit to it and became impossible to leave, and the
+   terminal had to be freed with `STOP-TERMINAL` from another session. **Use a typed command
+   like `/exit`**: it needs no key code and works on every terminal.
+
+#### WHERE THE MAPPING LIVES - NOT FOUND, and here is where it is NOT
+
+Searched 2026-08-25 so nobody repeats it: the sequence `ESC [ 5 ~` appears in **none** of
+`DDBTABLES-C11:VTM`, `DDBTABLES-D11:VTM`, `DDBTABLES-E11:VTM`, `DDBTABLES-G06:VTM`, `VTMR:BRF`
+or `VTMARR:BRF`. No stored sequence in any of those tables even ends in `~`.
+
+What the DDBTABLES DO contain is **length-prefixed OUTPUT sequences**: a count byte followed by
+that many bytes starting with `1B`. At offset 5878 of G06, `05` is followed by exactly
+`1B 5B 38 30 6C` - `ESC [ 8 0 l`. They also carry the VT100 line-drawing map (`j` to a corner
+character), which is what `frame` uses. Whatever decodes INPUT is somewhere else.
+
+#### The startup noise, explained
+
+A program that takes the keyboard right after `blankscreen` reads about eight bytes of rubbish -
+`63 63 128 103 0 29 63 63` - and they land in whatever the program thinks is its input. They are
+**VTM's terminal-type negotiation**: on a line whose type was already set with
+`SET-TERMINAL-TYPE`, the same program sees NONE of them. Drain the input before taking the
+keyboard, or set the terminal type in advance.
+
 ## 6. Clearing - and the viewport
 
 ### `VTCSCR` - clear screen (region)

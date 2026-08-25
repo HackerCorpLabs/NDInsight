@@ -1,0 +1,53 @@
+@cc ===========================================================================
+@cc CHATUI:MODE - build the NDCHAT full-screen main window on D100.
+@cc
+@cc   @MODE CHATUI:MODE,,
+@cc
+@cc Needs these under SYSTEM, all of which TESTUI already put there:
+@cc
+@cc   CHATUI:PLNC   the source
+@cc   SCREEN:SYMB   the PLANC-SCREEN-H interface, $INCLUDEd by the source
+@cc   INTRF1B:BRF   the PLANC-SCREEN-H 1-bank runtime
+@cc   VTMR:BRF      VTM routines - VTMR supplies eight of the nine VT* entries
+@cc   VTMDATA:BRF
+@cc   VTMARR:BRF    says "Redefinition ... VTI4DDB" and that is harmless
+@cc
+@cc VTMCPOS and VTMCPAR are NOT loaded - VTMR already defines both, and loading
+@cc them answers "Redefinition. First applies VTCPOS".
+@cc
+@cc READ WHAT LIST-ENTRIES-UNDEFINED PRINTS. An undefined entry does NOT fail
+@cc the build: BRF-LINKER still writes a runnable CHATUI:PROG which then
+@cc misbehaves in ways that look like a bug in the program.
+@cc
+@cc AND READ THE LISTING, not the screen. The "0 DIAGNOSTICS" that stays visible
+@cc belongs to the SECOND pass and sits happily under a COMPILE that had three
+@cc errors.
+@cc ===========================================================================
+@DELETE-FILE CHATUI:PROG
+@DELETE-FILE CHATUI:LIST
+@DELETE-FILE CHATUI:BRF
+@PLANC-100-F00
+COMPILE CHATUI:PLNC,"CHATUI:LIST","CHATUI"
+EXIT
+@BRF-LINKER-C01
+PROGRAM-FILE "CHATUI"
+LOAD CHATUI
+LIBRARY-MODE ON
+LOAD INTRF1B
+LOAD VTMR
+LOAD VTMDATA
+LOAD VTMARR
+LOAD MON-CALL-1B-A00
+LOAD PLANC-1BANK-F00
+LIST-ENTRIES-UNDEFINED
+EXIT
+@cc ===========================================================================
+@cc Built CHATUI:PROG. Run it with @CHATUI
+@cc
+@cc   ESC        leave
+@cc   PAGE UP    page back through the scrollback
+@cc   PAGE DOWN  page forward, and to the bottom returns to LIVE
+@cc   RETURN     send what is typed - and always returns to LIVE
+@cc
+@cc A line arrives by itself every five seconds so there is something to page.
+@cc ===========================================================================

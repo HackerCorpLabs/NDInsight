@@ -1,0 +1,197 @@
+% ===========================================================================
+% KEYPROB - what does VTINBT actually give back for a function key?
+%
+% WHY THIS EXISTS. CHATUI first read PAGE UP by decoding ESC [ 5 ~ from the raw
+% byte stream. That works on a VT100 and is WRONG: it defeats the entire point
+% of VTM, which is that a program should not know what bytes a terminal sends.
+% A Tandberg TDV sends something else completely, and hand-decoding would have
+% to grow a table per terminal - which is VTM's job and VTM already has one.
+%
+% VTM's own call is VTINBT. The only evidence we have for it is a single vendor
+% call in the STAR-TREK sources:
+%
+%       IVTINBT(INP, 2, GETCTRL, 3)
+%
+% Four arguments, the THIRD written back, and the vendor's own variable name for
+% it is GETCTRL - "get control". That is almost certainly "which function key",
+% and it is the whole reason to prefer this over reading bytes.
+%
+% WHAT IS NOT KNOWN, and this program is how we find out:
+%   - what arguments 1, 2 and 4 mean;
+%   - whether the character comes back as the RETURN value or in an argument;
+%   - what GETCTRL holds for an ordinary key versus PAGE UP;
+%   - whether VTINBT BLOCKS. It must not be allowed to, so MON66 is asked
+%     first and VTINBT is only called when a byte is certainly waiting.
+%
+% HOW TO READ THE OUTPUT. Every value is printed AFTER the program has left
+% screen mode, because a viewport in force may leave nowhere to put them - the
+% same reason TESTUI prints its probe results on the way out.
+%
+% Press keys, then Q to stop.
+% ===========================================================================
+MODULE keyprob
+
+$INCLUDE screen
+
+    IMPORT ( ROUTINE VOID, VOID (INTEGER) : MON72 )
+    IMPORT ( ROUTINE VOID, VOID (INTEGER) : MON71 )
+    IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, BOOLEAN ARRAY PACKED) : MON3 )
+    IMPORT ( ROUTINE VOID, INTEGER (INTEGER) : MON16 )
+    IMPORT ( ROUTINE VOID, INTEGER (INTEGER) : MON66 )
+    IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER) : MN104 )
+
+    % VTINBT, declared with EVERY argument WRITE so that whichever one VTM
+    % chooses to write can be seen. Passing a WRITE where the routine only
+    % reads costs nothing; the other way round loses the value silently, which
+    % is exactly the mistake this program exists to avoid making.
+    % ROUND TWO. The first probe declared all four WRITE so that whichever
+    % one VTM wrote could be seen, and arg 3 duly came back holding the
+    % character - 65 for A, 81 for Q. But a PLANC WRITE parameter is passed
+    % by ADDRESS, so any argument VTM means to read BY VALUE was handed a
+    % pointer instead of the number. That is why a1, a2 and a4 came back as
+    % 1, 1 and 23 whatever was passed in - they are not results, they are
+    % the call being made wrongly.
+    %
+    % So this is the STAR-TREK shape typed properly: three values in, one
+    % result out. IVTINBT(INP, 2, GETCTRL, 3).
+    IMPORT ( ROUTINE VOID, INTEGER (INTEGER, INTEGER, &
+                                    INTEGER WRITE, INTEGER) : VTINBT )
+    IMPORT ( ROUTINE VOID, INTEGER : VTWBUF )
+
+    INTEGER ARRAY : stack(0:600)
+
+    CONSTANT bitCpos=2048
+    CONSTANT bitVdu=16384
+
+    % Room for 30 observations. Each is one call to VTINBT: the status it
+    % returned and all four arguments as they stood AFTERWARDS.
+    CONSTANT maxObs=30
+    INTEGER ARRAY : obsSt(0:29)
+    INTEGER ARRAY : obsA1(0:29)
+    INTEGER ARRAY : obsA2(0:29)
+    INTEGER ARRAY : obsA3(0:29)
+    INTEGER ARRAY : obsA4(0:29)
+    INTEGER : nObs := 0
+
+    % THE TWO CONSTANTS NOBODY HAS DECODED. STAR-TREK passes 2 and 3 and no
+    % document anywhere says what either means. They are here as variables so
+    % one run can try a different pair without a rebuild being a guess.
+    INTEGER : probeMode := 2
+    INTEGER : probeArg4 := 3
+
+    BOOLEAN ARRAY PACKED : echoTab(0:127)
+    INTEGER4 : termType
+
+    PROGRAM : keyProbe
+        BOOLEAN : screenOk
+        INTEGER : waiting
+        INTEGER : st
+        INTEGER : a1
+        INTEGER : a2
+        INTEGER : a3
+        INTEGER : a4
+        INTEGER : i
+        INTEGER : last
+        LABEL : done
+
+        INISTACK stack
+
+        % VTM's first call. CTYTP is only valid after it.
+        blankscreen
+        MON16(1) =: termType
+
+        TRUE =: screenOk
+        IF (termType AND bitVdu) = 0 THEN
+            FALSE =: screenOk
+        ENDIF
+        IF (termType AND bitCpos) = 0 THEN
+            FALSE =: screenOk
+        ENDIF
+
+        IF NOT screenOk THEN
+            OUTPUT(1, 'AL', 'KEYPROB needs a screen terminal.$')
+            GO done
+        ENDIF
+
+        bytdis(1, 1, 0, 'KEYPROB - press keys, PAGE UP, PAGE DOWN. Q to stop.', '')
+        bytdis(2, 1, 0, 'Nothing is echoed. Results print on the way out.', '')
+        VTWBUF =: st
+
+        % Take the keyboard, exactly as CHATUI does: no echo, and no ESC abort
+        % so that ESC - or whatever a function key really sends - reaches VTM
+        % instead of killing the program.
+        MON3(1, -1, echoTab)
+        MON71(1)
+
+        DO
+            MON66(1) =: waiting
+            IF waiting <= 0 THEN
+                MN104(5, 1)
+            ELSE
+                % THE STAR-TREK SHAPE, verbatim: IVTINBT(INP, 2, GETCTRL, 3).
+                % The two constants are theirs and are not understood; they are
+                % passed as they were written rather than guessed at.
+                % arg 1 is the TERMINAL, and 1 is our own - the same device
+                % number every MON call here uses. STAR-TREK's INP is its own
+                % terminal variable, not a mode.
+                1 =: a1
+                probeMode =: a2
+                0 =: a3
+                probeArg4 =: a4
+                VTINBT(a1, a2, a3, a4) =: st
+
+                IF nObs < maxObs THEN
+                    st =: obsSt(nObs)
+                    a1 =: obsA1(nObs)
+                    a2 =: obsA2(nObs)
+                    a3 =: obsA3(nObs)
+                    a4 =: obsA4(nObs)
+                    nObs + 1 =: nObs
+                ENDIF
+
+                % Q stops it, whichever slot the character turns up in.
+                IF a1 = 81 OR a1 = 113 THEN
+                    GO done
+                ENDIF
+                IF a3 = 81 OR a3 = 113 THEN
+                    GO done
+                ENDIF
+                IF st = 81 OR st = 113 THEN
+                    GO done
+                ENDIF
+                IF nObs >= maxObs THEN
+                    GO done
+                ENDIF
+            ENDIF
+        ENDDO
+
+done:
+        % Put the terminal back BEFORE printing, both halves, and blank the
+        % screen - resetscreen restores terminal STATE, not content.
+        blankscreen
+        MON3(1, 0, echoTab)
+        MON72(1)
+        resetscreen
+
+        OUTPUT(1, 'AL', 'VTINBT observations - status and all four arguments AFTER the call:$')
+        IF nObs > 0 THEN
+            nObs - 1 =: last
+            FOR i IN 0:last DO
+                OUTPUT(1, 'AL', 'n=')
+                OUTPUT(1, 'I', i)
+                OUTPUT(1, 'AL', ' st=')
+                OUTPUT(1, 'I', obsSt(i))
+                OUTPUT(1, 'AL', ' a1=')
+                OUTPUT(1, 'I', obsA1(i))
+                OUTPUT(1, 'AL', ' a2=')
+                OUTPUT(1, 'I', obsA2(i))
+                OUTPUT(1, 'AL', ' a3=')
+                OUTPUT(1, 'I', obsA3(i))
+                OUTPUT(1, 'AL', ' a4=')
+                OUTPUT(1, 'I', obsA4(i))
+                OUTPUT(1, 'AL', '$')
+            ENDFOR
+        ENDIF
+        OUTPUT(1, 'AL', '- EXIT from KEYPROB -$')
+    ENDROUTINE
+ENDMODULE

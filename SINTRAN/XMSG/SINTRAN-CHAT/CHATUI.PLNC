@@ -1,0 +1,830 @@
+% ===========================================================================
+% CHATUI - the NDCHAT full-screen main window.
+%
+% WHAT THIS IS: the LAYOUT, built and proved on its own before any of it goes
+% near the working chat client. It draws the three sections, keeps a scrollback
+% cache, pages through it, and takes typed input on the bottom line. The
+% messages are FAKE - generated on a timer and by SPACE - because the point of
+% this program is the screen, not the protocol.
+%
+% WHY SEPARATE FROM CHAT.PLNC: the client is 3400 lines and works. Adding a
+% screen renderer to it directly means every geometry mistake is debugged
+% inside a program that also has to stay usable. This proves the geometry, then
+% the routines move across.
+%
+% THE LAYOUT, 80 x 24 exactly, from Ronny's mockup of 2026-08-25:
+%
+%   row  1   frame edge, with the title painted into it
+%   row  2   status: room, member count, hint, date and time
+%   row  3   frame edge shared by the top and middle sections
+%   rows 4-20  the chat - 17 visible lines out of a cache of 100
+%   row 21   frame edge shared by the middle and bottom sections
+%   row 22   input line
+%   row 23   window bar
+%   row 24   frame edge
+%
+% THREE FRAMES STACKED SO THEIR EDGES TOUCH, rather than one frame with rules
+% painted inside it. frame() draws a box and nothing else, so a shared edge is
+% how a cross-piece gets drawn at all - and it means each section is already
+% its own rectangle.
+%
+% Every technique here is proved in TESTUI.PLNC. See
+% Developer/Languages/Application/PLANC-INTERACTIVE-SCREEN-PATTERNS.md.
+% ===========================================================================
+MODULE chatui
+
+$INCLUDE screen
+
+    % ---- MONITOR CALLS ---------------------------------------------------
+    % MON72 EESCF - give the escape key back to SINTRAN.
+    IMPORT ( ROUTINE VOID, VOID (INTEGER) : MON72 )
+    % MON71 DESCF - take the escape key AWAY from SINTRAN, so ESC arrives here
+    % as an ordinary byte instead of aborting the program.
+    IMPORT ( ROUTINE VOID, VOID (INTEGER) : MON71 )
+    % MON3 ECHOM - the echo. Strategy below zero means NO echo.
+    IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, BOOLEAN ARRAY PACKED) : MON3 )
+    % MON16 MGTIY - the packed CTYTP word. ONLY valid after VTM's first call.
+    IMPORT ( ROUTINE VOID, INTEGER (INTEGER) : MON16 )
+    % MON1 INBIT - one byte. BLOCKS, so it is only ever called when MON66 has
+    % already said there is one waiting.
+    IMPORT ( ROUTINE VOID, BYTE (INTEGER) : MON1 )
+    % MON66 ISIZE - how many bytes are WAITING. This is what makes a poll
+    % possible, and with it a timer.
+    IMPORT ( ROUTINE VOID, INTEGER (INTEGER) : MON66 )
+    % MON11 TIME - basic time units, a fiftieth of a second each.
+    IMPORT ( ROUTINE VOID, INTEGER4 : MON11 )
+    % MN104 HOLD - sleep. The O drops at three digits.
+    IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER) : MN104 )
+    % MN113 CLOCK - seven elements. Element 6 is the FULL year, 1998 not 98.
+    IMPORT ( ROUTINE VOID, VOID (INTEGER ARRAY WRITE) : MN113 )
+
+    % ---- VTM -------------------------------------------------------------
+    % VTPCUR is (LINE, POSITION) - row first. MEASURED; two vendor programs
+    % name the arguments the other way round and the machine disagrees.
+    IMPORT ( ROUTINE VOID, INTEGER (INTEGER, INTEGER) : VTPCUR )
+    % VTDSCR is the VIEWPORT. It moves VTM's origin, it CLIPS, and it does NOT
+    % nest - a second call replaces the first and reads its rectangle against
+    % the physical screen.
+    IMPORT ( ROUTINE VOID, INTEGER (INTEGER, INTEGER, INTEGER, INTEGER) : VTDSCR )
+    % VTCREC clears a rectangle, viewport-relative.
+    IMPORT ( ROUTINE VOID, INTEGER (INTEGER, INTEGER, INTEGER, INTEGER) : VTCREC )
+    % VTWBUF FLUSHES. No arguments. Without it, anything drawn without a
+    % keystroke behind it sits in VTM's buffer and the program looks dead.
+    IMPORT ( ROUTINE VOID, INTEGER : VTWBUF )
+    % VTINBT - READ ONE KEY, DECODED BY VTM.
+    %
+    % THIS IS WHY THE PROGRAM DOES NOT LOOK AT BYTES. A function key is an
+    % escape sequence and every terminal sends a different one; decoding it
+    % here would mean a table per terminal, which is precisely VTM's job and
+    % VTM already has one. Hand-decoding also silently breaks the moment
+    % somebody runs this on a Tandberg.
+    %
+    % Shape from the STAR-TREK sources: IVTINBT(INP, 2, GETCTRL, 3). Three
+    % values IN, one result OUT - and getting that typing right is the whole
+    % trick. MEASURED 2026-08-25: declared with every argument WRITE, PAGE UP
+    % came back as FOUR raw bytes 27 91 53 126 and it looked as though VTM
+    % decoded nothing. A PLANC WRITE parameter is passed by ADDRESS, so the
+    % by-value arguments were being handed pointers. Typed properly, the same
+    % key comes back as ONE call with the code 201.
+    IMPORT ( ROUTINE VOID, INTEGER (INTEGER, INTEGER, &
+                                    INTEGER WRITE, INTEGER) : VTINBT )
+
+    INTEGER ARRAY : stack(0:1200)
+
+    % ---- CTYTP BITS ------------------------------------------------------
+    % Ask what a terminal can DO, never what number it is.
+    CONSTANT bitEsc=1024
+    CONSTANT bitCpos=2048
+    CONSTANT bitVdu=16384
+
+    % ---- THE GEOMETRY, ALL OF IT, IN ONE PLACE ---------------------------
+    %
+    % The three sections. Heights count rows INCLUSIVE, and the shared edges
+    % are deliberate: topHigh ends on row 3 and midRow starts on row 3.
+    CONSTANT topRow=1
+    CONSTANT topHigh=3           % rows 1-3
+    CONSTANT midRow=3
+    CONSTANT midHigh=19          % rows 3-21
+    CONSTANT botRow=21
+    CONSTANT botHigh=4           % rows 21-24
+    CONSTANT scrWide=80
+
+    % Visible chat rows, in frame B's LOCAL coordinates. Frame B starts on
+    % physical row 3, so its local row 2 is physical row 4.
+    CONSTANT firstMsgRow=2       % local - physical row 4
+    CONSTANT msgRows=17          % rows 4..20
+
+    % A stored line is 77 characters covering physical columns 3..79. Frame B
+    % starts at column 1, so local column = physical column and the line is
+    % painted at column 3.
+    %
+    %   buffer 0..4    time      cols 3-7
+    %   buffer 5..6    gap       cols 8-9
+    %   buffer 7..19   speaker   cols 10-22
+    %   buffer 20..76  text      cols 23-79
+    CONSTANT lineWide=77
+    CONSTANT textCol=3           % where a stored line is painted
+    CONSTANT offTime=0
+    CONSTANT offWho=7
+    CONSTANT widWho=13
+    CONSTANT offText=20
+    CONSTANT widText=57
+
+    % ---- THE SCROLLBACK CACHE --------------------------------------------
+    %
+    % A RING far larger than the window. Scrolling is one index change and no
+    % text is copied; paging is a change to viewFrom and a repaint of the
+    % middle section only - about 1300 characters, not the 2000 a whole screen
+    % would cost.
+    %
+    % 100 lines x 77 = 7700 bytes. The number is one constant; what is
+    % affordable in the real client is whatever BRF-LINKER's FREE line allows.
+    CONSTANT cacheLines=100
+    BYTES : cache(0:7699)
+    INTEGER : cacheCount := 0    % lines held, 0..cacheLines
+    INTEGER : cacheFirst := 0    % slot holding the OLDEST line
+
+    % HOW FAR BACK WE ARE LOOKING, counted in lines from the newest.
+    % ZERO MEANS LIVE. Keeping it as a distance rather than an absolute slot
+    % is what lets a new arrival leave it alone without any adjustment.
+    INTEGER : viewFrom := 0
+
+    % One line under construction.
+    BYTES : lineBuf(0:76)
+    INTEGER ARRAY : cal(0:6)
+
+    % ---- THE INPUT LINE --------------------------------------------------
+    % 76 columns, physical 4..79 on row 22.
+    CONSTANT inpMax=76
+    CONSTANT inpRow=2            % LOCAL row inside frame C - physical 22
+    CONSTANT inpCol=4
+    BYTES : inpBuf(0:75)
+    INTEGER : inpLen := 0
+
+    % ---- THE FAKE MESSAGE FEED -------------------------------------------
+    INTEGER4 : lastAdd := 0
+    INTEGER4 : nowTime := 0
+    INTEGER4 : addEvery := 250   % five seconds
+    INTEGER : addCount := 0
+
+    % ---- SINGLE CHARACTERS -----------------------------------------------
+    % A STRING is not a BYTE in PLANC. 'x' =: buf(i) does not compile, and the
+    % error names the ARRAY, which sends you to the declaration where nothing
+    % is wrong.
+    BYTES : digits := '0123456789'
+    BYTES : spaceByte := ' '
+    BYTES : colonByte := ':'
+    BYTES : starByte := '*'
+    BYTES : atByte := '@'
+
+    % MON3's echo table. Ignored for every strategy except 7; it exists
+    % because the call takes three arguments.
+    BOOLEAN ARRAY PACKED : echoTab(0:127)
+
+    INTEGER4 : termType
+    INTEGER4 : termKind
+
+    % ---- WHO WE ARE, and the room --------------------------------------
+    BYTES : myNick := 'ARNE'
+    BYTES : mySys := 'D100'
+    BYTES : roomName := '#sintran-dev'
+    % INTEGER4, NOT INTEGER. intdis and intacc take a DOUBLE WORD - that is
+    % what SCREEN:SYMB declares - and handing them a 16-bit INTEGER compiles
+    % perfectly and then writes two words into one.
+    INTEGER4 : hereCount := 14
+
+    % PSEUDO-KEYS. Returned by pollKey for things that arrive as escape
+    % sequences, so the main loop never has to know about them.
+    % VTM'S OWN KEY CODES, MEASURED ON D100 2026-08-25 with KEYPROB.PLNC.
+    % These are what VTINBT hands back after it has decoded whatever the
+    % terminal actually sent, so they are the same on a TDV as on a VT100.
+    %
+    % Note the cursor keys are SMALL numbers, not high ones - so a rule like
+    % "anything over 127 is a function key" would be wrong. They are ND
+    % control codes, and a printable character is its ordinary ASCII value
+    % with the parity bit already stripped by VTM.
+    CONSTANT keyPgUp=201
+    CONSTANT keyPgDn=197
+    CONSTANT keyUp=28
+    CONSTANT keyDown=11
+
+    % =====================================================================
+    % WINDOWS - VTM's own viewport. Absolute coordinates ALWAYS: VTDSCR does
+    % not nest, and a second call reads its rectangle against the physical
+    % screen rather than against the current one.
+    % =====================================================================
+    ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER, INTEGER) : winEnter(row, col, high, wide)
+        INTEGER : st
+        VTDSCR(row, col, row + high - 1, col + wide - 1) =: st
+    ENDROUTINE
+
+    % Back out to the whole screen. -1 is "to the end", the same convention
+    % IVTCSCR(1,1,-1,-1) uses. VTINIT is not the only way back.
+    ROUTINE VOID, VOID : winLeave
+        INTEGER : st
+        VTDSCR(1, 1, -1, -1) =: st
+    ENDROUTINE
+
+    ROUTINE VOID, VOID : flush
+        INTEGER : st
+        VTWBUF =: st
+    ENDROUTINE
+
+    % =====================================================================
+    % SMALL HELPERS
+    % =====================================================================
+
+    % Two digits into a buffer at a given offset.
+    %
+    % CLAMPED INSIDE, not at the call sites. MN113's year element is the FULL
+    % year - 1998, not 98 - and digits(1998/10) is digits(199), a read 190
+    % bytes past the end of a ten-byte literal. PLANC checks no array bound,
+    % so it fetches whatever follows and prints a blank where a digit belongs.
+    % One clamp here covers every caller.
+    ROUTINE VOID, VOID (INTEGER, INTEGER) : put2(at, value)
+        INTEGER : v
+        value =: v
+        IF v < 0 THEN
+            0 =: v
+        ENDIF
+        v MOD 100 =: v
+        digits(v / 10) =: lineBuf(at)
+        digits(v MOD 10) =: lineBuf(at + 1)
+    ENDROUTINE
+
+    % Blank the whole line buffer. Every stored line is PADDED to full width
+    % so a short line painted over a long one cannot leave the old tail
+    % behind - that removes the need for a separate erase before each paint.
+    ROUTINE VOID, VOID : blankLine
+        INTEGER : i
+        FOR i IN 0:lineWide - 1 DO
+            spaceByte(0) =: lineBuf(i)
+        ENDFOR
+    ENDROUTINE
+
+    % Copy text into the line buffer at an offset, up to a field width, and
+    % answer how many characters were taken. MAXINDEX asks the array its own
+    % declared bound, so no length is ever typed beside a literal - a
+    % hand-counted length builds clean and shows only as a line in the wrong
+    % place.
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER, BYTES) : putField(at, wide, text)
+        INTEGER : i
+        INTEGER : n
+        MAXINDEX(text, 1) + 1 =: n
+        IF n > wide THEN
+            wide =: n
+        ENDIF
+        IF n > 0 THEN
+            FOR i IN 0:n - 1 DO
+                text(i) =: lineBuf(at + i)
+            ENDFOR
+        ENDIF
+        n RETURN
+    ENDROUTINE
+
+    % =====================================================================
+    % THE CACHE
+    % =====================================================================
+
+    % Put whatever is in lineBuf into the cache as the newest line.
+    %
+    % THE VIEW IS NOT MOVED. If the user has paged back, a new arrival must
+    % not yank the screen to the bottom - that is the single most annoying
+    % thing a chat client can do. viewFrom is left exactly as it was, and it
+    % is a DISTANCE from the newest, so it needs no adjustment either.
+    ROUTINE VOID, VOID : cacheAdd
+        INTEGER : slot
+        INTEGER : i
+        INTEGER : base
+
+        IF cacheCount >= cacheLines THEN
+            % Full: the oldest slot is reused and becomes the newest.
+            cacheFirst =: slot
+            cacheFirst + 1 =: cacheFirst
+            IF cacheFirst >= cacheLines THEN
+                0 =: cacheFirst
+            ENDIF
+        ELSE
+            cacheCount =: slot
+            cacheCount + 1 =: cacheCount
+        ENDIF
+
+        slot * lineWide =: base
+        FOR i IN 0:lineWide - 1 DO
+            lineBuf(i) =: cache(base + i)
+        ENDFOR
+
+        % If the user is paged back, one more line has appeared BELOW them, so
+        % the distance to the newest grows by one - otherwise the view would
+        % drift forward a line every time somebody spoke.
+        IF viewFrom > 0 THEN
+            viewFrom + 1 =: viewFrom
+            % ...but never past the oldest line we still hold.
+            IF viewFrom > cacheCount - msgRows THEN
+                cacheCount - msgRows =: viewFrom
+            ENDIF
+            IF viewFrom < 0 THEN
+                0 =: viewFrom
+            ENDIF
+        ENDIF
+    ENDROUTINE
+
+    % Which cache slot holds the line at a given position, counted from the
+    % OLDEST held line. The ring is unwound in ONE place, here.
+    ROUTINE VOID, INTEGER (INTEGER) : slotAt(index)
+        INTEGER : s
+        cacheFirst + index =: s
+        IF s >= cacheLines THEN
+            s - cacheLines =: s
+        ENDIF
+        s RETURN
+    ENDROUTINE
+
+    % =====================================================================
+    % PAINTING THE MIDDLE SECTION
+    % =====================================================================
+
+    % Repaint the chat. This is what a page costs and it is the most
+    % expensive routine here: 17 lines of 77 characters, about 1300, roughly
+    % a second and a half on a real 9600-baud line.
+    ROUTINE VOID, VOID : paintChat
+        INTEGER : i
+        INTEGER : first
+        INTEGER : shown
+        INTEGER : idx
+        INTEGER : base
+        INTEGER : st
+
+        winEnter(midRow, 1, midHigh, scrWide)
+        VTCREC(firstMsgRow, textCol, firstMsgRow + msgRows - 1, textCol + lineWide - 1) =: st
+
+        % Which held line goes on the top row. viewFrom counts BACK from the
+        % newest, so at viewFrom = 0 the last msgRows lines are shown.
+        cacheCount - msgRows - viewFrom =: first
+        IF first < 0 THEN
+            0 =: first
+        ENDIF
+
+        cacheCount - first =: shown
+        IF shown > msgRows THEN
+            msgRows =: shown
+        ENDIF
+
+        IF shown > 0 THEN
+            FOR i IN 0:shown - 1 DO
+                slotAt(first + i) =: idx
+                idx * lineWide =: base
+                % THE WIDTH IS PASSED, NOT LEFT AS 0. Width 0 means "the
+                % string's own length" and is right for a LITERAL; given a
+                % SUBARRAY of a big buffer it ran off the right-hand side and
+                % wiped borders a 77-character write could not reach.
+                bytdis(firstMsgRow + i, textCol, lineWide, &
+                       cache(base : base + lineWide - 1), '')
+            ENDFOR
+        ENDIF
+        winLeave
+    ENDROUTINE
+
+    % =====================================================================
+    % THE TOP SECTION
+    % =====================================================================
+
+    ROUTINE VOID, VOID : drawStatus
+        INTEGER : st
+        INTEGER : at
+
+        MN113(cal)
+
+        winEnter(topRow, 1, topHigh, scrWide)
+        VTCREC(2, 2, 2, scrWide - 1) =: st
+
+        bytdis(2, 3, 0, roomName, '')
+        bytdis(2, 24, 0, 'here', '')
+        intdis(2, 19, 4, hereCount, '')
+        bytdis(2, 32, 0, '/help for commands', '')
+
+        % The clock, into lineBuf because put2 works there.
+        blankLine
+        put2(0, cal(4))                    % day
+        spaceByte(0) =: lineBuf(2)
+        put2(3, cal(5))                    % month
+        spaceByte(0) =: lineBuf(5)
+        put2(6, cal(3))                    % hour
+        colonByte(0) =: lineBuf(8)
+        put2(9, cal(2))                    % minute
+        bytdis(2, 64, 11, lineBuf(0:10), '')
+
+        % PAGED BACK? Say so, because the arrival rule above means the screen
+        % deliberately does not follow new lines while the user is reading.
+        % Without this the client looks stuck.
+        IF viewFrom > 0 THEN
+            % Past the hint, which ends at column 49. MEASURED: at column 46
+            % this printed straight through it - 'Use /help to lSCROLLBACKds'.
+            bytdis(2, 52, 0, 'SCROLLBACK', '')
+        ENDIF
+        winLeave
+    ENDROUTINE
+
+    % =====================================================================
+    % THE BOTTOM SECTION
+    % =====================================================================
+
+    % Repaint the input line and leave the cursor at the end of it.
+    %
+    % THE CURSOR BELONGS HERE. In TESTUI it is parked somewhere harmless
+    % because stray echoes landed inside windows; here there IS a right place
+    % for it, so every repaint of anything must finish by calling this.
+    ROUTINE VOID, VOID : drawInput
+        INTEGER : st
+
+        winEnter(botRow, 1, botHigh, scrWide)
+        VTCREC(inpRow, 2, inpRow, scrWide - 1) =: st
+        bytdis(inpRow, 2, 0, '>', '')
+        IF inpLen > 0 THEN
+            bytdis(inpRow, inpCol, inpLen, inpBuf(0:inpLen - 1), '')
+        ENDIF
+        VTPCUR(inpRow, inpCol + inpLen) =: st
+        winLeave
+    ENDROUTINE
+
+    % The window bar. DRAWN BUT INERT - multi-window is not built, and this
+    % is here so the layout is proved with it in place rather than having to
+    % find room for it later.
+    ROUTINE VOID, VOID : drawBar
+        winEnter(botRow, 1, botHigh, scrWide)
+        bytdis(3, 4, 0, '1 #sintran-dev   2 #ops 2   3 #nd-500   4 =KARI 1*   5 =TERJE', '')
+        winLeave
+    ENDROUTINE
+
+    % =====================================================================
+    % THE WHOLE SCREEN - drawn ONCE
+    % =====================================================================
+    ROUTINE VOID, VOID : drawAll
+        INTEGER : at
+
+        % Three frames whose edges TOUCH. frame() draws a box and nothing
+        % else, so a shared edge is the only way a cross-piece gets drawn.
+        winEnter(topRow, 1, topHigh, scrWide)
+        frame(1, 1, topHigh, scrWide, 'SPACE-FILL')
+        winLeave
+
+        winEnter(midRow, 1, midHigh, scrWide)
+        frame(1, 1, midHigh, scrWide, 'SPACE-FILL')
+        winLeave
+
+        winEnter(botRow, 1, botHigh, scrWide)
+        frame(1, 1, botHigh, scrWide, 'SPACE-FILL')
+        winLeave
+
+        % The title is PAINTED OVER the top frame's own edge, which is what
+        % the mockup shows. frame's fifth argument is ATTRIBUTES, not a title.
+        bytdis(1, 4, 0, ' NDCHAT 2.1 ', '')
+        blankLine
+        0 =: at
+        at + putField(at, widWho, myNick) =: at
+        atByte(0) =: lineBuf(at)
+        at + 1 =: at
+        at + putField(at, 8, mySys) =: at
+        bytdis(1, 64, at, lineBuf(0:at - 1), '')
+
+        drawStatus
+        paintChat
+        drawBar
+        drawInput
+    ENDROUTINE
+
+    % =====================================================================
+    % THE FAKE FEED - one made-up line
+    % =====================================================================
+    ROUTINE VOID, VOID : addFake
+        INTEGER : at
+        INTEGER : pick
+
+        MN113(cal)
+        blankLine
+
+        put2(offTime, cal(3))
+        colonByte(0) =: lineBuf(offTime + 2)
+        put2(offTime + 3, cal(2))
+
+        addCount + 1 =: addCount
+        IF addCount > 1000 THEN
+            0 =: addCount
+        ENDIF
+        addCount MOD 4 =: pick
+
+        offWho =: at
+        IF pick = 3 THEN
+            % An EVENT line. Same shape, a star where the speaker goes - a
+            % different KIND of line, not a different renderer.
+            starByte(0) =: lineBuf(offWho)
+            at + putField(offText, widText, 'TERJE@FJELL has joined  (trunk NORD-FJELL, 1 hop)') =: at
+        ELSE
+            IF pick = 0 THEN
+                putField(offWho, widWho, 'KARI@D102') =: at
+                putField(offText, widText, 'spooler queue is stuck on LP2 again') =: at
+            ELSIF pick = 1 THEN
+                putField(offWho, widWho, 'TERJE@D103') =: at
+                putField(offText, widText, 'i can restart the spooling program') =: at
+            ELSE
+                putField(offWho, widWho, 'SIGRID@D103') =: at
+                putField(offText, widText, 'ND-500 process table is at 48 of 151') =: at
+            ENDIF
+        ENDIF
+
+        cacheAdd
+    ENDROUTINE
+
+    % =====================================================================
+    % PAGING
+    % =====================================================================
+
+    ROUTINE VOID, VOID : pageUp
+        INTEGER : most
+        cacheCount - msgRows =: most
+        IF most < 0 THEN
+            0 =: most
+        ENDIF
+        viewFrom + msgRows =: viewFrom
+        IF viewFrom > most THEN
+            most =: viewFrom
+        ENDIF
+        paintChat
+        drawStatus
+        drawInput
+        flush
+    ENDROUTINE
+
+    ROUTINE VOID, VOID : pageDown
+        viewFrom - msgRows =: viewFrom
+        IF viewFrom < 0 THEN
+            0 =: viewFrom
+        ENDIF
+        paintChat
+        drawStatus
+        drawInput
+        flush
+    ENDROUTINE
+
+    % =====================================================================
+    % THE KEYBOARD
+    % =====================================================================
+
+    % Does what has been typed start with this command word?
+    %
+    % CASE-FOLDED, because a user types /exit and /EXIT without thinking about
+    % it, and SINTRAN itself does not care either.
+    %
+    % Compares against inpLen, so "/exits" does NOT match "/exit" - the length
+    % has to be right as well as the letters. That matters the moment there is
+    % a /e and a /exit to tell apart.
+    ROUTINE VOID, BOOLEAN (BYTES) : typedIs(word)
+        INTEGER : n
+        INTEGER : i
+        INTEGER : a
+        INTEGER : b
+
+        MAXINDEX(word, 1) + 1 =: n
+        IF n >< inpLen THEN
+            FALSE RETURN
+        ENDIF
+        IF n = 0 THEN
+            FALSE RETURN
+        ENDIF
+
+        FOR i IN 0:n - 1 DO
+            inpBuf(i) =: a
+            word(i) =: b
+            % Fold a lower-case letter up. 97 is 'a' and 122 is 'z'; 32 is the
+            % gap to the capital.
+            IF a >= 97 AND a <= 122 THEN
+                a - 32 =: a
+            ENDIF
+            IF b >= 97 AND b <= 122 THEN
+                b - 32 =: b
+            ENDIF
+            IF a >< b THEN
+                FALSE RETURN
+            ENDIF
+        ENDFOR
+        TRUE RETURN
+    ENDROUTINE
+
+    % Take one key WITHOUT waiting, and let VTM say what it was.
+    %
+    % TWO CALLS, AND EACH DOES THE HALF THE OTHER CANNOT.
+    %
+    %   MON66  answers HOW MANY BYTES ARE WAITING. That is what keeps the
+    %          timer alive - without it the read blocks and nothing else in
+    %          the program can happen.
+    %   VTINBT reads the key and DECODES it. A function key is an escape
+    %          sequence, every terminal sends a different one, and VTM is the
+    %          layer that knows which. This program never sees a byte of it.
+    %
+    % A function key is several bytes on the wire and VTINBT consumes all of
+    % them in one call, so MON66 answering "at least one" is enough - it does
+    % not have to know how many the key will turn out to be.
+    ROUTINE VOID, INTEGER : pollKey
+        INTEGER : waiting
+        INTEGER : ch
+        INTEGER : st
+        INTEGER : dev
+        INTEGER : mode
+        INTEGER : arg4
+
+        MON66(1) =: waiting
+        IF waiting <= 0 THEN
+            0 RETURN
+        ENDIF
+
+        % arg 1 is our own terminal. The 2 and the 3 are STAR-TREK's and are
+        % NOT understood - no ND document describes this call at all - so they
+        % are passed exactly as the vendor wrote them rather than guessed at.
+        % PASSED AS VARIABLES, NOT LITERALS - and that is not fussiness.
+        % MEASURED 2026-08-25: with literals in the call PAGE UP did nothing
+        % at all, while the identical call with variables in KEYPROB.PLNC
+        % returned 201 every time. The call is made the way it was proved.
+        1 =: dev
+        2 =: mode
+        3 =: arg4
+        0 =: ch
+        VTINBT(dev, mode, ch, arg4) =: st
+        ch RETURN
+    ENDROUTINE
+
+    % =====================================================================
+    % MAIN
+    % =====================================================================
+    PROGRAM : mainUi
+        % A PLANC LOCAL MAY NOT CARRY AN INITIAL VALUE - only a MODULE-level
+        % declaration may. Declared bare, assigned after INISTACK.
+        BOOLEAN : screenOk
+        INTEGER : key
+        INTEGER : drained
+        INTEGER : i
+        LABEL : exit
+
+        INISTACK stack
+
+        % VTM'S FIRST CALL, AND CTYTP IS ONLY VALID AFTER IT. Before this the
+        % word may be zero, or a bare model number with every attribute bit
+        % clear - and a VDU/CPOS test would then read a perfectly good screen
+        % terminal as paper and refuse to draw.
+        blankscreen
+        MON16(1) =: termType
+        termType AND 255 =: termKind
+
+        % CAN THIS TERMINAL DO A SCREEN AT ALL? Ask the BITS, never the type
+        % number: naming type 2 and type 11 is a list that goes stale, while
+        % VDU and CPOS say the same thing for every printing terminal there
+        % has ever been.
+        TRUE =: screenOk
+        IF (termType AND bitVdu) = 0 THEN
+            FALSE =: screenOk
+        ENDIF
+        IF (termType AND bitCpos) = 0 THEN
+            FALSE =: screenOk
+        ENDIF
+
+        IF screenOk THEN
+
+        % Some history, so paging has something to page through.
+        FOR i IN 1:24 DO
+            addFake
+        ENDFOR
+
+        drawAll
+        flush
+
+        % TAKE THE KEYBOARD. No echo, because a raw key loop has no say in
+        % where the cursor is and SINTRAN would drop each character wherever
+        % the last drawing finished - inside the windows. And no ESC abort,
+        % which is what makes turning the echo off SAFE: an abort would skip
+        % the exit path and hand back a terminal with no echo at all.
+        % DRAIN WHAT IS ALREADY WAITING, BEFORE TAKING THE KEYBOARD.
+        %
+        % MEASURED: the input line came up holding '??g??'. Eight bytes are
+        % sitting in the terminal buffer when the program starts - the tail of
+        % whatever was typed to get here, and on a line whose terminal type was
+        % unset, the answer to VTM's own 'What is your terminal type?' prompt.
+        % Whatever they are they are not the user talking to THIS program, and
+        % reading them as keystrokes puts rubbish in the input field.
+        DO
+            MON66(1) =: drained
+            WHILE drained > 0
+            MON1(1) =: drained
+        ENDDO
+
+        MON3(1, -1, echoTab)
+        MON71(1)
+
+        MON11 =: lastAdd
+
+        DO
+            pollKey =: key
+
+            IF key = 0 THEN
+                MON11 =: nowTime
+                IF nowTime - lastAdd >= addEvery THEN
+                    nowTime =: lastAdd
+                    addFake
+                    % Only repaint if the user is LIVE. Paged back, the line
+                    % goes in the cache and the screen is left alone.
+                    IF viewFrom = 0 THEN
+                        paintChat
+                    ENDIF
+                    drawStatus
+                    drawInput
+                    % FLUSH. Nothing typed drove this, so without it the line
+                    % goes into VTM's buffer and stays there - and the symptom
+                    % is not a stale screen, it is "the chat stopped working".
+                    flush
+                ENDIF
+                MN104(5, 1)
+
+            ELSIF key = keyPgUp THEN
+                pageUp
+
+            ELSIF key = keyPgDn THEN
+                pageDown
+
+            ELSIF key = 27 THEN
+                GO exit
+
+            ELSIF key = 13 THEN
+                % RETURN. In the real client this is where the line goes to
+                % the command parser; here it is echoed back as our own.
+                IF inpLen > 0 THEN
+                    % COMMANDS FIRST, and /exit is the one that matters:
+                    % it is how the program is left.
+                    %
+                    % A TYPED COMMAND, NOT A KEY, IS THE RIGHT WAY OUT.
+                    % The first build bound ESC to quit and that broke the
+                    % moment VTM started decoding input - a bare ESC no
+                    % longer arrives as byte 27, so the program could not
+                    % be left at all and its terminal had to be stopped
+                    % from another session. A command needs no key code,
+                    % works on every terminal VTM supports, and is what
+                    % the line-mode client already does with /quit.
+                    IF typedIs('/exit') OR typedIs('/quit') THEN
+                        GO exit
+                    ENDIF
+                    MN113(cal)
+                    blankLine
+                    put2(offTime, cal(3))
+                    colonByte(0) =: lineBuf(offTime + 2)
+                    put2(offTime + 3, cal(2))
+                    putField(offWho, widWho, myNick) =: i
+                    putField(offText, widText, inpBuf(0:inpLen - 1)) =: i
+                    cacheAdd
+                    0 =: inpLen
+                    % SENDING RETURNS TO LIVE - the user is about to want to
+                    % see their own message.
+                    0 =: viewFrom
+                    paintChat
+                    drawStatus
+                    drawInput
+                    flush
+                ENDIF
+
+            ELSIF key = 8 OR key = 127 THEN
+                IF inpLen > 0 THEN
+                    inpLen - 1 =: inpLen
+                    drawInput
+                    flush
+                ENDIF
+
+            ELSIF key >= 32 AND key < 127 THEN
+                IF inpLen < inpMax THEN
+                    % An INTEGER stored into a BYTES element. Legal - a BYTE is
+                    % INTEGER RANGE (0:255) - and the working client does exactly
+                    % this with its own typed buffer.
+                    key =: inpBuf(inpLen)
+                    inpLen + 1 =: inpLen
+                    drawInput
+                    flush
+                ENDIF
+            ENDIF
+        ENDDO
+        ENDIF
+
+exit:
+        % HAND THE TERMINAL BACK CLEAN, and that takes both calls plus the
+        % blank. resetscreen restores terminal STATE, not content - leaving
+        % blankscreen out drops the user at the SINTRAN prompt on top of the
+        % program's own drawing.
+        IF screenOk THEN
+            blankscreen
+            MON3(1, 0, echoTab)
+            MON72(1)
+            resetscreen
+        ELSE
+            MON72(1)
+            OUTPUT(1, 'AL', 'CHATUI needs a screen terminal.$')
+            OUTPUT(1, 'AL', 'CTYTP says this line is hardcopy, or has no cursor$')
+            OUTPUT(1, 'AL', 'positioning - so nothing has been drawn.$')
+        ENDIF
+
+        OUTPUT(1, 'AL', '- EXIT from CHATUI -$')
+    ENDROUTINE
+ENDMODULE
