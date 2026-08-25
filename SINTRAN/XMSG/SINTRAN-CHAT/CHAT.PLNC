@@ -2642,7 +2642,18 @@ $INCLUDE screen
         textAt + 2 =: textAt
 
         % ---- somebody spoke -------------------------------------------
+        % A ZERO-LENGTH FIELD WOULD MAKE A REVERSED SUBARRAY - inBuf(2:1) -
+        % and PLANC checks no bounds, so it would be handed whatever that
+        % happens to mean. Both are built as a notice instead, which is also
+        % the more useful thing to show.
         IF kind = kSaid THEN
+            IF nameLength < 1 OR textLength < 1 THEN
+                uiClear
+                uiFrom(2, nameLength)
+                uiFrom(textAt, textLength)
+                uiNotice
+                TRUE RETURN
+            ENDIF
             addSaid(inBuf(2:2 + nameLength - 1), inBuf(textAt:textAt + textLength - 1))
             TRUE RETURN
         ENDIF
@@ -2652,6 +2663,13 @@ $INCLUDE screen
         % with a bar. On a screen the lines above the newest ARE the past, so
         % the mark says nothing the position does not.
         IF kind = kHist THEN
+            IF nameLength < 1 OR textLength < 1 THEN
+                uiClear
+                uiFrom(2, nameLength)
+                uiFrom(textAt, textLength)
+                uiNotice
+                TRUE RETURN
+            ENDIF
             addSaid(inBuf(2:2 + nameLength - 1), inBuf(textAt:textAt + textLength - 1))
             TRUE RETURN
         ENDIF
@@ -2881,6 +2899,18 @@ $INCLUDE screen
                 FOR i IN 1:lenMyMach DO
                     inBuf(textAt + i - 1) =: myMachine(i - 1)
                 ENDFOR
+
+                % REDRAW THE WHOLE FRAME, because the corner is painted by
+                % drawAll and drawAll ran before this arrived - the join is
+                % sent first and the welcome answers it. Without this the
+                % corner says TESTER for the rest of the session on a machine
+                % that has a perfectly good name.
+                %
+                % Once per session, so the cost does not matter.
+                IF screenOn THEN
+                    drawAll
+                    flush
+                ENDIF
             ENDIF
 
             % SAY WHO YOU ARE, ONCE, AND ONLY NOW THAT IT IS TRUE. The server
@@ -3616,7 +3646,18 @@ $INCLUDE screen
         %
         % Put it back under the IF the day a silent listener sees a line arrive
         % on its own. That is the test; nothing else counts.
-        OUTPUT(1, 'AL38', '$new lines show when you press return$')
+        %
+        % THAT DAY IS HERE FOR THE SCREEN RENDERER, and only for it. Its
+        % keyboard asks MON66 how many bytes are waiting instead of trusting
+        % no-wait, so the loop goes round without a keystroke and a line DOES
+        % arrive on its own. The warning would be false, and it was printing
+        % over the window bar as well - it is written for a renderer that owns
+        % the whole page and scrolls it.
+        %
+        % The LINE renderer still means every word of it.
+        IF NOT screenOn THEN
+            OUTPUT(1, 'AL38', '$new lines show when you press return$')
+        ENDIF
 
         % THE MEASUREMENT THAT ANSWERED IT, AND IT IS NOT GOOD NEWS.
         %
@@ -4621,7 +4662,35 @@ $INCLUDE screen
                 %
                 % myLdn falls back to 1, so a machine where ExecutionInfo does
                 % not answer reads exactly as before.
-                MON1(myLdn) =: rawCh
+                %
+                % SCREEN MODE ASKS MON66 FIRST AND ONLY THEN READS, and that is
+                % not a tidier way of doing the same thing - it is the fix for a
+                % client that joined and then went deaf.
+                %
+                % MEASURED on D100 2026-08-26. With the echo turned off, MON1
+                % BLOCKS whatever TerminalNoWait was told. The main loop sat in
+                % the read, drainPort never ran, and the server's messages came
+                % back undeliverable: SEATS said 1/16 - the client was properly
+                % seated - while bounce climbed on every line sent to it. The
+                % screen only ever changed when a key was pressed, because a
+                % keystroke was the only thing that let the loop go round.
+                %
+                % Nothing on screen says "deaf". The seat count and the bounce
+                % counter do, which is why they were the thing to look at.
+                %
+                % MON66 is ISIZE: how many bytes are WAITING. Ask that and MON1
+                % is only ever called when there is certainly one to take, so it
+                % cannot block. This is the same poll TESTUI and CHATUI use, and
+                % the reason the no-wait route was abandoned there too.
+                0 =: rawCh
+                IF screenOn THEN
+                    MON66(1) =: drained
+                    IF drained > 0 THEN
+                        MON1(myLdn) =: rawCh
+                    ENDIF
+                ELSE
+                    MON1(myLdn) =: rawCh
+                ENDIF
                 % PARITY. Terminal input carries an even-parity bit in bit 7,
                 % so carriage return arrives as 141, NOT 13. Compare without
                 % masking and the client never sees the user press return and
