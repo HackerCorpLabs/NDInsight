@@ -2579,6 +2579,33 @@ $INCLUDE screen
     BYTES   : uiBuf(0:255)
     INTEGER : uiLen := 0
 
+    % THE SPEAKER GOES IN A BUFFER OF ITS OWN, and that is not tidiness.
+    %
+    % MEASURED on D100 2026-08-26. addSaid was called as
+    %
+    %     addSaid(inBuf(2 : 2 + nameLength - 1), inBuf(textAt : textAt + textLength - 1))
+    %
+    % - TWO SUBARRAYS OF THE SAME ARRAY - and the rows came out smeared across
+    % the screen, each one carrying part of its neighbour:
+    %
+    %     18:21  SYSTE@VIDDA
+    %            SYSTE@VIDDASYSTEM@VIDDA!does this land without a keypress
+    %                       SYSTEM@VIDDAsecond
+    %
+    % A NOTICE built the same line correctly the whole time, and that is what
+    % identified it: uiNotice passes addSaid(starByte, uiBuf(...)) - two
+    % DIFFERENT arrays - and rendered
+    %
+    %     18:21  *            here: TESTER SYSTEM@SKOGEN SYSTEM@VIDDA
+    %
+    % perfectly on the same screen, in the same paint, through the same
+    % addSaid and the same pushRow. One variable differed.
+    %
+    % So the speaker is copied out first and the two arguments are never
+    % subarrays of one array again.
+    BYTES   : whoBuf(0:31)
+    INTEGER : whoLen := 0
+
     ROUTINE VOID, VOID : uiClear
         0 =: uiLen
     ENDROUTINE
@@ -2618,6 +2645,39 @@ $INCLUDE screen
         addSaid(starByte, uiBuf(0:uiLen - 1))
     ENDROUTINE
 
+    % Copy the speaker out of the arriving message into its own buffer.
+    ROUTINE VOID, VOID (INTEGER, INTEGER) : uiWho(at, n)
+        INTEGER : i
+        0 =: whoLen
+        IF n < 1 THEN
+            RETURN
+        ENDIF
+        FOR i IN 1:n DO
+            IF whoLen < 30 THEN
+                inBuf(at + i - 1) =: whoBuf(whoLen)
+                whoLen + 1 =: whoLen
+            ENDIF
+        ENDFOR
+    ENDROUTINE
+
+    % A line somebody said: speaker in one buffer, text in another.
+    ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER, INTEGER) : &
+            uiSaid(nameAt, nameLen, txtAt, txtLen)
+        uiWho(nameAt, nameLen)
+        uiClear
+        uiFrom(txtAt, txtLen)
+        IF whoLen < 1 THEN
+            uiNotice
+            RETURN
+        ENDIF
+        IF uiLen < 1 THEN
+            addSaid(whoBuf(0:whoLen - 1), spaceByte)
+            RETURN
+        ENDIF
+        addSaid(whoBuf(0:whoLen - 1), uiBuf(0:uiLen - 1))
+    ENDROUTINE
+
+
     ROUTINE VOID, BOOLEAN : uiArrived
         INTEGER : kind
         INTEGER : nameLength
@@ -2647,14 +2707,7 @@ $INCLUDE screen
         % happens to mean. Both are built as a notice instead, which is also
         % the more useful thing to show.
         IF kind = kSaid THEN
-            IF nameLength < 1 OR textLength < 1 THEN
-                uiClear
-                uiFrom(2, nameLength)
-                uiFrom(textAt, textLength)
-                uiNotice
-                TRUE RETURN
-            ENDIF
-            addSaid(inBuf(2:2 + nameLength - 1), inBuf(textAt:textAt + textLength - 1))
+            uiSaid(2, nameLength, textAt, textLength)
             TRUE RETURN
         ENDIF
 
@@ -2663,14 +2716,7 @@ $INCLUDE screen
         % with a bar. On a screen the lines above the newest ARE the past, so
         % the mark says nothing the position does not.
         IF kind = kHist THEN
-            IF nameLength < 1 OR textLength < 1 THEN
-                uiClear
-                uiFrom(2, nameLength)
-                uiFrom(textAt, textLength)
-                uiNotice
-                TRUE RETURN
-            ENDIF
-            addSaid(inBuf(2:2 + nameLength - 1), inBuf(textAt:textAt + textLength - 1))
+            uiSaid(2, nameLength, textAt, textLength)
             TRUE RETURN
         ENDIF
 
