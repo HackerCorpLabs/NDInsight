@@ -1292,6 +1292,26 @@ def check(path):
         else:
             first_ten[key] = (name, n)
 
+    # ---- MIXED LINE ENDINGS, which the compiler does NOT report ---------------
+    #
+    # MEASURED 2026-08-25 and it cost a build cycle plus three wrong theories.
+    # A source with SOME lines ending CRLF and some ending bare LF compiles with
+    # 0 DIAGNOSTICS and produces a program that behaves wrongly - in this case a
+    # whole block of routines built and linked, and the array they fill stayed
+    # empty. Normalising the file to CRLF, changing nothing else, fixed it.
+    #
+    # The skill already says sources must be CRLF, and a file that is ENTIRELY
+    # bare LF answers LINE IS TOO LONG on every line - loud and obvious. MIXED is
+    # the dangerous one, because it is silent, and it is exactly what a scripted
+    # edit produces when it writes a bare newline into a CRLF file.
+    raw = io.open(path, 'rb').read()
+    eol_crlf = raw.count(bytes([13, 10]))
+    eol_bare = raw.count(bytes([10])) - eol_crlf
+    if eol_crlf and eol_bare:
+        out.append('%s  MIXED LINE ENDINGS - %d CRLF and %d bare LF. The compiler does '
+                   'NOT report this: it answers 0 DIAGNOSTICS and builds a program that '
+                   'misbehaves. Normalise the whole file to CRLF' % (path, eol_crlf, eol_bare))
+
     return out
 
 

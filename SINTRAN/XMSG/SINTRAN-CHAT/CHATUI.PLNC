@@ -137,10 +137,15 @@ $INCLUDE screen
     % middle section only - about 1300 characters, not the 2000 a whole screen
     % would cost.
     %
-    % 100 lines x 77 = 7700 bytes. The number is one constant; what is
-    % affordable in the real client is whatever BRF-LINKER's FREE line allows.
-    CONSTANT cacheLines=100
-    BYTES : cache(0:7699)
+    % 300 lines x 77 = 23100 bytes, about 11550 words.
+    %
+    % IT WAS 100, WHICH WAS OVER-CAUTIOUS. The linker reported
+    % FREE: P 066220-177777 after the whole program and all its libraries -
+    % roughly 37000 words spare - so the cache can be three times the size and
+    % still leave room. Ask the linker rather than guessing: the FREE line is
+    % printed on every build and is the only number that matters.
+    CONSTANT cacheLines=300
+    BYTES : cache(0:23099)
     INTEGER : cacheCount := 0    % lines held, 0..cacheLines
     INTEGER : cacheFirst := 0    % slot holding the OLDEST line
 
@@ -341,6 +346,77 @@ $INCLUDE screen
     ENDROUTINE
 
     % =====================================================================
+    % ADDING A LINE, WITH WRAPPING
+    %
+    % 57 columns of text is narrow and a real sentence overruns it. A line that
+    % is simply CUT loses what somebody said, silently, which is the worst of
+    % the three options.
+    %
+    % So a long line becomes SEVERAL cache lines: the first carries the time and
+    % the speaker, and every continuation carries neither. That is what makes a
+    % wrapped line readable as one utterance rather than as two people talking -
+    % the eye follows the empty speaker column down.
+    %
+    % Each continuation is a cache line in its OWN right, so paging and the ring
+    % need no special case at all. The cost is that a very long message uses
+    % several of the 300 slots, which is correct: they ARE several screen lines.
+    % =====================================================================
+
+    % Put one row into the cache: a time and speaker only on the first.
+    ROUTINE VOID, VOID (INTEGER, BYTES, BYTES, INTEGER, INTEGER) : &
+            pushRow(withHead, who, text, from, count)
+        INTEGER : i
+        INTEGER : n
+
+        blankLine
+        IF withHead = 1 THEN
+            put2(offTime, cal(3))
+            colonByte(0) =: lineBuf(offTime + 2)
+            put2(offTime + 3, cal(2))
+            putField(offWho, widWho, who) =: n
+        ENDIF
+
+        % The slice of the message this row carries. Copied byte by byte rather
+        % than with a subarray, because the bounds are computed and a subarray
+        % whose bounds fall outside the original breaks the compiler's own
+        % index checking - appendix G item 22.
+        IF count > 0 THEN
+            FOR i IN 0:count - 1 DO
+                text(from + i) =: lineBuf(offText + i)
+            ENDFOR
+        ENDIF
+        cacheAdd
+    ENDROUTINE
+
+    % Add what somebody said, wrapped across as many rows as it needs.
+    ROUTINE VOID, VOID (BYTES, BYTES) : addSaid(who, text)
+        INTEGER : total
+        INTEGER : at
+        INTEGER : take
+        INTEGER : head
+
+        MN113(cal)
+        MAXINDEX(text, 1) + 1 =: total
+        0 =: at
+        1 =: head
+
+        % A DO loop with the test inside it, because PLANC has no while-header.
+        % The first pass runs even for an empty message, so a blank line still
+        % appears with its time - which is what a user expects if somebody
+        % presses RETURN on nothing.
+        DO
+            total - at =: take
+            IF take > widText THEN
+                widText =: take
+            ENDIF
+            pushRow(head, who, text, at, take)
+            0 =: head
+            at + take =: at
+            WHILE at < total
+        ENDDO
+    ENDROUTINE
+
+    % =====================================================================
     % PAINTING THE MIDDLE SECTION
     % =====================================================================
 
@@ -500,42 +576,29 @@ $INCLUDE screen
     % THE FAKE FEED - one made-up line
     % =====================================================================
     ROUTINE VOID, VOID : addFake
-        INTEGER : at
         INTEGER : pick
-
-        MN113(cal)
-        blankLine
-
-        put2(offTime, cal(3))
-        colonByte(0) =: lineBuf(offTime + 2)
-        put2(offTime + 3, cal(2))
 
         addCount + 1 =: addCount
         IF addCount > 1000 THEN
             0 =: addCount
         ENDIF
-        addCount MOD 4 =: pick
+        addCount MOD 5 =: pick
 
-        offWho =: at
-        IF pick = 3 THEN
-            % An EVENT line. Same shape, a star where the speaker goes - a
-            % different KIND of line, not a different renderer.
-            starByte(0) =: lineBuf(offWho)
-            at + putField(offText, widText, 'TERJE@FJELL has joined  (trunk NORD-FJELL, 1 hop)') =: at
+        IF pick = 0 THEN
+            addSaid('KARI@D102', 'spooler queue is stuck on LP2 again')
+        ELSIF pick = 1 THEN
+            addSaid('TERJE@D103', 'i can restart the spooling program')
+        ELSIF pick = 2 THEN
+            % LONG ON PURPOSE - 156 characters against a 57-column field, so it
+            % takes three rows and proves the wrap on every run rather than
+            % waiting for somebody to type a long sentence.
+            addSaid('SIGRID@D103', &
+                'the ND-500 process table is at 48 of 151 which is the configured maximum rather than the ceiling, so a request for 96 has been filed with operations')
+        ELSIF pick = 3 THEN
+            addSaid('*', 'TERJE@FJELL has joined  (trunk NORD-FJELL, 1 hop)')
         ELSE
-            IF pick = 0 THEN
-                putField(offWho, widWho, 'KARI@D102') =: at
-                putField(offText, widText, 'spooler queue is stuck on LP2 again') =: at
-            ELSIF pick = 1 THEN
-                putField(offWho, widWho, 'TERJE@D103') =: at
-                putField(offText, widText, 'i can restart the spooling program') =: at
-            ELSE
-                putField(offWho, widWho, 'SIGRID@D103') =: at
-                putField(offText, widText, 'ND-500 process table is at 48 of 151') =: at
-            ENDIF
+            addSaid('BJORN@D100', 'hold on, batch job on processor 3 until 09:20')
         ENDIF
-
-        cacheAdd
     ENDROUTINE
 
     % =====================================================================
@@ -772,14 +835,9 @@ $INCLUDE screen
                     IF typedIs('/exit') OR typedIs('/quit') THEN
                         GO exit
                     ENDIF
-                    MN113(cal)
-                    blankLine
-                    put2(offTime, cal(3))
-                    colonByte(0) =: lineBuf(offTime + 2)
-                    put2(offTime + 3, cal(2))
-                    putField(offWho, widWho, myNick) =: i
-                    putField(offText, widText, inpBuf(0:inpLen - 1)) =: i
-                    cacheAdd
+                    % Through addSaid, so a long typed line wraps exactly
+                    % as an arriving one does.
+                    addSaid(myNick, inpBuf(0:inpLen - 1))
                     0 =: inpLen
                     % SENDING RETURNS TO LIVE - the user is about to want to
                     % see their own message.
