@@ -3195,6 +3195,808 @@ $INCLUDE XMP-B02:IMPT
         ENDFOR
     ENDROUTINE
 
+    % ===================================================================
+    % THE SCREEN RENDERER
+    %
+    % Brought over from CHATUI.PLNC, which proved this layout on D100 on
+    % 2026-08-25 before any of it went near the working client.
+    %
+    % WHAT WAS LEFT BEHIND, and it is the important half of this merge:
+    % CHATUI invented a room name, a member count, a speaker list and a
+    % five-second fake message feed, because it had no server behind it.
+    % Every one of those is gone. The renderer now has to be given real
+    % values or show nothing, which is the only way the example text in
+    % the original mockup stops being example text.
+    %
+    % Also left behind: its own stack, its own spaceByte, and its own
+    % input buffer - this client already has typed/typedLen, and reusing
+    % them is what lets the whole command parser stay untouched.
+    % ===================================================================
+
+
+$INCLUDE screen
+
+    % ---- MONITOR CALLS ---------------------------------------------------
+    % MON72 EESCF - give the escape key back to SINTRAN.
+    IMPORT ( ROUTINE VOID, VOID (INTEGER) : MON72 )
+    % MON71 DESCF - take the escape key AWAY from SINTRAN, so ESC arrives here
+    % as an ordinary byte instead of aborting the program.
+    IMPORT ( ROUTINE VOID, VOID (INTEGER) : MON71 )
+    % MON3 ECHOM - the echo. Strategy below zero means NO echo.
+    IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, BOOLEAN ARRAY PACKED) : MON3 )
+    % MON16 MGTIY - the packed CTYTP word. ONLY valid after VTM's first call.
+    IMPORT ( ROUTINE VOID, INTEGER (INTEGER) : MON16 )
+    % MON1 INBIT - one byte. BLOCKS, so it is only ever called when MON66 has
+    % already said there is one waiting.
+    IMPORT ( ROUTINE VOID, BYTE (INTEGER) : MON1 )
+    % MON66 ISIZE - how many bytes are WAITING. This is what makes a poll
+    % possible, and with it a timer.
+    IMPORT ( ROUTINE VOID, INTEGER (INTEGER) : MON66 )
+    % MON11 TIME - basic time units, a fiftieth of a second each.
+    IMPORT ( ROUTINE VOID, INTEGER4 : MON11 )
+    % MN104 HOLD - sleep. The O drops at three digits.
+    IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER) : MN104 )
+    % MN113 CLOCK - seven elements. Element 6 is the FULL year, 1998 not 98.
+    IMPORT ( ROUTINE VOID, VOID (INTEGER ARRAY WRITE) : MN113 )
+
+    % ---- VTM -------------------------------------------------------------
+    % VTPCUR is (LINE, POSITION) - row first. MEASURED; two vendor programs
+    % name the arguments the other way round and the machine disagrees.
+    IMPORT ( ROUTINE VOID, INTEGER (INTEGER, INTEGER) : VTPCUR )
+    % VTDSCR is the VIEWPORT. It moves VTM's origin, it CLIPS, and it does NOT
+    % nest - a second call replaces the first and reads its rectangle against
+    % the physical screen.
+    IMPORT ( ROUTINE VOID, INTEGER (INTEGER, INTEGER, INTEGER, INTEGER) : VTDSCR )
+    % VTCREC clears a rectangle, viewport-relative.
+    IMPORT ( ROUTINE VOID, INTEGER (INTEGER, INTEGER, INTEGER, INTEGER) : VTCREC )
+    % VTWBUF FLUSHES. No arguments. Without it, anything drawn without a
+    % keystroke behind it sits in VTM's buffer and the program looks dead.
+    IMPORT ( ROUTINE VOID, INTEGER : VTWBUF )
+    % VTINBT - READ ONE KEY, DECODED BY VTM.
+    %
+    % THIS IS WHY THE PROGRAM DOES NOT LOOK AT BYTES. A function key is an
+    % escape sequence and every terminal sends a different one; decoding it
+    % here would mean a table per terminal, which is precisely VTM's job and
+    % VTM already has one. Hand-decoding also silently breaks the moment
+    % somebody runs this on a Tandberg.
+    %
+    % Shape from the STAR-TREK sources: IVTINBT(INP, 2, GETCTRL, 3). Three
+    % values IN, one result OUT - and getting that typing right is the whole
+    % trick. MEASURED 2026-08-25: declared with every argument WRITE, PAGE UP
+    % came back as FOUR raw bytes 27 91 53 126 and it looked as though VTM
+    % decoded nothing. A PLANC WRITE parameter is passed by ADDRESS, so the
+    % by-value arguments were being handed pointers. Typed properly, the same
+    % key comes back as ONE call with the code 201.
+    IMPORT ( ROUTINE VOID, INTEGER (INTEGER, INTEGER, &
+                                    INTEGER WRITE, INTEGER) : VTINBT )
+
+
+    % ---- CTYTP BITS ------------------------------------------------------
+    % Ask what a terminal can DO, never what number it is.
+    CONSTANT bitEsc=1024
+    CONSTANT bitCpos=2048
+    CONSTANT bitVdu=16384
+
+    % ---- THE GEOMETRY, ALL OF IT, IN ONE PLACE ---------------------------
+    %
+    % The three sections. Heights count rows INCLUSIVE, and the shared edges
+    % are deliberate: topHigh ends on row 3 and midRow starts on row 3.
+    CONSTANT topRow=1
+    CONSTANT topHigh=3           % rows 1-3
+    CONSTANT midRow=3
+    CONSTANT midHigh=19          % rows 3-21
+    CONSTANT botRow=21
+    CONSTANT botHigh=4           % rows 21-24
+    CONSTANT scrWide=80
+
+    % Visible chat rows, in frame B's LOCAL coordinates. Frame B starts on
+    % physical row 3, so its local row 2 is physical row 4.
+    CONSTANT firstMsgRow=2       % local - physical row 4
+    CONSTANT msgRows=17          % rows 4..20
+
+    % A stored line is 77 characters covering physical columns 3..79. Frame B
+    % starts at column 1, so local column = physical column and the line is
+    % painted at column 3.
+    %
+    %   buffer 0..4    time      cols 3-7
+    %   buffer 5..6    gap       cols 8-9
+    %   buffer 7..19   speaker   cols 10-22
+    %   buffer 20..76  text      cols 23-79
+    CONSTANT lineWide=77
+    CONSTANT textCol=3           % where a stored line is painted
+    CONSTANT offTime=0
+    CONSTANT offWho=7
+    CONSTANT widWho=13
+    CONSTANT offText=20
+    CONSTANT widText=57
+
+    % ---- THE SCROLLBACK CACHE --------------------------------------------
+    %
+    % A RING far larger than the window. Scrolling is one index change and no
+    % text is copied; paging is a change to viewFrom and a repaint of the
+    % middle section only - about 1300 characters, not the 2000 a whole screen
+    % would cost.
+    %
+    % 300 lines x 77 = 23100 bytes, about 11550 words.
+    %
+    % IT WAS 100, WHICH WAS OVER-CAUTIOUS. The linker reported
+    % FREE: P 066220-177777 after the whole program and all its libraries -
+    % roughly 37000 words spare - so the cache can be three times the size and
+    % still leave room. Ask the linker rather than guessing: the FREE line is
+    % printed on every build and is the only number that matters.
+    CONSTANT cacheLines=300
+    BYTES : cache(0:23099)
+    INTEGER : cacheCount := 0    % lines held, 0..cacheLines
+    INTEGER : cacheFirst := 0    % slot holding the OLDEST line
+
+    % HOW FAR BACK WE ARE LOOKING, counted in lines from the newest.
+    % ZERO MEANS LIVE. Keeping it as a distance rather than an absolute slot
+    % is what lets a new arrival leave it alone without any adjustment.
+    INTEGER : viewFrom := 0
+
+    % One line under construction.
+    BYTES : lineBuf(0:76)
+    INTEGER ARRAY : cal(0:6)
+
+    % ---- THE INPUT LINE --------------------------------------------------
+    % 76 columns, physical 4..79 on row 22.
+    CONSTANT inpMax=76
+    CONSTANT inpRow=2            % LOCAL row inside frame C - physical 22
+    CONSTANT inpCol=4
+
+    % DOES THIS ROOM REACH PAST THIS MACHINE?
+    %
+    % Set when a speaker arrives whose name carries an @ - which is the server
+    % saying "this one is on another machine". Derived from real traffic, not
+    % from a table this client would have to keep in step with the server's.
+    %
+    % It does not go back to FALSE on its own. A room that HAS been trunked is
+    % still a trunked room when the other side goes quiet, and flickering the
+    % marker off every idle minute would be worse than leaving it on.
+    BOOLEAN : sawRemote := FALSE
+
+    % ---- SINGLE CHARACTERS -----------------------------------------------
+    % A STRING is not a BYTE in PLANC. 'x' =: buf(i) does not compile, and the
+    % error names the ARRAY, which sends you to the declaration where nothing
+    % is wrong.
+    BYTES : digits := '0123456789'
+    BYTES : spaceByte := ' '
+    BYTES : colonByte := ':'
+    BYTES : starByte := '*'
+    BYTES : atByte := '@'
+
+    % MON3's echo table. Ignored for every strategy except 7; it exists
+    % because the call takes three arguments.
+    BOOLEAN ARRAY PACKED : echoTab(0:127)
+
+    INTEGER4 : termType
+    INTEGER4 : termKind
+
+    % ---- WHO WE ARE, and the room --------------------------------------
+    % PSEUDO-KEYS. Returned by pollKey for things that arrive as escape
+    % sequences, so the main loop never has to know about them.
+    % VTM'S OWN KEY CODES, MEASURED ON D100 2026-08-25 with KEYPROB.PLNC.
+    % These are what VTINBT hands back after it has decoded whatever the
+    % terminal actually sent, so they are the same on a TDV as on a VT100.
+    %
+    % Note the cursor keys are SMALL numbers, not high ones - so a rule like
+    % "anything over 127 is a function key" would be wrong. They are ND
+    % control codes, and a printable character is its ordinary ASCII value
+    % with the parity bit already stripped by VTM.
+    CONSTANT keyPgUp=201
+    CONSTANT keyPgDn=197
+    CONSTANT keyUp=28
+    CONSTANT keyDown=11
+
+    % =====================================================================
+    % WINDOWS - VTM's own viewport. Absolute coordinates ALWAYS: VTDSCR does
+    % not nest, and a second call reads its rectangle against the physical
+    % screen rather than against the current one.
+    % =====================================================================
+
+    % TRUE only on a terminal that can address its cursor. Decided ONCE
+    % at start-up from the CTYTP bits and never asked again - a renderer
+    % that could change under the program would need every drawing site
+    % to cope with both, which is how a screen ends up half-painted.
+    %
+    % FALSE for now. This increment brings the code across and proves it
+    % compiles, links and fits; nothing calls it yet and the client
+    % behaves exactly as it did before.
+    % HOW MANY ARE IN THE ROOM. Zero until a /who answer has been counted -
+    % CHATUI had this as the literal 14, which is exactly the kind of invented
+    % number this merge removes. INTEGER4 because intdis takes a double word.
+    INTEGER4 : hereCount := 0
+
+    BOOLEAN : screenOn := FALSE
+
+    ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER, INTEGER) : winEnter(row, col, high, wide)
+        INTEGER : st
+        VTDSCR(row, col, row + high - 1, col + wide - 1) =: st
+    ENDROUTINE
+
+    % Back out to the whole screen. -1 is "to the end", the same convention
+    % IVTCSCR(1,1,-1,-1) uses. VTINIT is not the only way back.
+    ROUTINE VOID, VOID : winLeave
+        INTEGER : st
+        VTDSCR(1, 1, -1, -1) =: st
+    ENDROUTINE
+
+    ROUTINE VOID, VOID : flush
+        INTEGER : st
+        VTWBUF =: st
+    ENDROUTINE
+
+    % =====================================================================
+    % SMALL HELPERS
+    % =====================================================================
+
+    % Two digits into a buffer at a given offset.
+    %
+    % CLAMPED INSIDE, not at the call sites. MN113's year element is the FULL
+    % year - 1998, not 98 - and digits(1998/10) is digits(199), a read 190
+    % bytes past the end of a ten-byte literal. PLANC checks no array bound,
+    % so it fetches whatever follows and prints a blank where a digit belongs.
+    % One clamp here covers every caller.
+    ROUTINE VOID, VOID (INTEGER, INTEGER) : put2(at, value)
+        INTEGER : v
+        value =: v
+        IF v < 0 THEN
+            0 =: v
+        ENDIF
+        v MOD 100 =: v
+        digits(v / 10) =: lineBuf(at)
+        digits(v MOD 10) =: lineBuf(at + 1)
+    ENDROUTINE
+
+    % Blank the whole line buffer. Every stored line is PADDED to full width
+    % so a short line painted over a long one cannot leave the old tail
+    % behind - that removes the need for a separate erase before each paint.
+    ROUTINE VOID, VOID : blankLine
+        INTEGER : i
+        FOR i IN 0:lineWide - 1 DO
+            spaceByte(0) =: lineBuf(i)
+        ENDFOR
+    ENDROUTINE
+
+    % Copy text into the line buffer at an offset, up to a field width, and
+    % answer how many characters were taken. MAXINDEX asks the array its own
+    % declared bound, so no length is ever typed beside a literal - a
+    % hand-counted length builds clean and shows only as a line in the wrong
+    % place.
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER, BYTES) : putField(at, wide, text)
+        INTEGER : i
+        INTEGER : n
+        MAXINDEX(text, 1) + 1 =: n
+        IF n > wide THEN
+            wide =: n
+        ENDIF
+        IF n > 0 THEN
+            FOR i IN 0:n - 1 DO
+                text(i) =: lineBuf(at + i)
+            ENDFOR
+        ENDIF
+        n RETURN
+    ENDROUTINE
+
+    % =====================================================================
+    % THE SPEAKER COLUMN - 13 characters against a name that may be longer
+    %
+    % THE NAME ARRIVES ALREADY DECIDED. The server qualifies a speaker on
+    % another machine as ANNA@D102 and leaves a local one bare, so this client
+    % never has to work out which is which - and never has to know which
+    % machine it is on, which it has no way of finding out.
+    %
+    % An earlier version of this DID decide for itself, from a nickname and a
+    % system name it had been handed as two literals. That is exactly the kind
+    % of invented state this merge exists to remove.
+    %
+    % What is left is the fitting rule, and it still matters: 13 columns
+    % against a name that may be 16 plus @D102.
+    %
+    %   fits            copied as it is
+    %   too long, no @  cut at 13
+    %   too long, @     THE NAME IS CUT, NEVER THE MACHINE
+    %
+    % Cutting the machine would be the wrong choice: inside one room you know
+    % a person from the first letters of their name, but D10 does not tell you
+    % whether the line came from D100, D102 or D103 - and on a trunked room
+    % that is the one thing this column is there for.
+    % =====================================================================
+    ROUTINE VOID, VOID (BYTES) : putWho(who)
+        INTEGER : total
+        INTEGER : i
+        INTEGER : bang
+        INTEGER : tail
+        INTEGER : room
+
+        MAXINDEX(who, 1) + 1 =: total
+
+        IF total <= widWho THEN
+            FOR i IN 0:total - 1 DO
+                who(i) =: lineBuf(offWho + i)
+            ENDFOR
+            RETURN
+        ENDIF
+
+        % Where the machine starts, if there is one.
+        0 - 1 =: bang
+        FOR i IN 0:total - 1 DO
+            IF bang < 0 THEN
+                IF who(i) = atByte(0) THEN
+                    i =: bang
+                ENDIF
+            ENDIF
+        ENDFOR
+
+        IF bang < 0 THEN
+            % No machine in it. Cut the name.
+            FOR i IN 0:widWho - 1 DO
+                who(i) =: lineBuf(offWho + i)
+            ENDFOR
+            RETURN
+        ENDIF
+
+        % "@D102" and everything after it is kept whole; the name gets what is
+        % left. If the machine alone fills the field there is no name shown -
+        % which machine still beats a single initial.
+        total - bang =: tail
+        widWho - tail =: room
+        IF room < 0 THEN
+            0 =: room
+        ENDIF
+
+        IF room > 0 THEN
+            FOR i IN 0:room - 1 DO
+                who(i) =: lineBuf(offWho + i)
+            ENDFOR
+        ENDIF
+        FOR i IN 0:tail - 1 DO
+            IF room + i < widWho THEN
+                who(bang + i) =: lineBuf(offWho + room + i)
+            ENDIF
+        ENDFOR
+    ENDROUTINE
+
+    ROUTINE VOID, VOID : cacheAdd
+        INTEGER : slot
+        INTEGER : i
+        INTEGER : base
+
+        IF cacheCount >= cacheLines THEN
+            % Full: the oldest slot is reused and becomes the newest.
+            cacheFirst =: slot
+            cacheFirst + 1 =: cacheFirst
+            IF cacheFirst >= cacheLines THEN
+                0 =: cacheFirst
+            ENDIF
+        ELSE
+            cacheCount =: slot
+            cacheCount + 1 =: cacheCount
+        ENDIF
+
+        slot * lineWide =: base
+        FOR i IN 0:lineWide - 1 DO
+            lineBuf(i) =: cache(base + i)
+        ENDFOR
+
+        % If the user is paged back, one more line has appeared BELOW them, so
+        % the distance to the newest grows by one - otherwise the view would
+        % drift forward a line every time somebody spoke.
+        IF viewFrom > 0 THEN
+            viewFrom + 1 =: viewFrom
+            % ...but never past the oldest line we still hold.
+            IF viewFrom > cacheCount - msgRows THEN
+                cacheCount - msgRows =: viewFrom
+            ENDIF
+            IF viewFrom < 0 THEN
+                0 =: viewFrom
+            ENDIF
+        ENDIF
+    ENDROUTINE
+
+    % Which cache slot holds the line at a given position, counted from the
+    % OLDEST held line. The ring is unwound in ONE place, here.
+    ROUTINE VOID, INTEGER (INTEGER) : slotAt(index)
+        INTEGER : s
+        cacheFirst + index =: s
+        IF s >= cacheLines THEN
+            s - cacheLines =: s
+        ENDIF
+        s RETURN
+    ENDROUTINE
+
+    % =====================================================================
+    % THE ROOM'S MEMBERS, and the one question they answer
+    % =====================================================================
+
+    % =====================================================================
+    % ADDING A LINE, WITH WRAPPING
+    %
+    % 57 columns of text is narrow and a real sentence overruns it. A line that
+    % is simply CUT loses what somebody said, silently, which is the worst of
+    % the three options.
+    %
+    % So a long line becomes SEVERAL cache lines: the first carries the time and
+    % the speaker, and every continuation carries neither. That is what makes a
+    % wrapped line readable as one utterance rather than as two people talking -
+    % the eye follows the empty speaker column down.
+    %
+    % Each continuation is a cache line in its OWN right, so paging and the ring
+    % need no special case at all. The cost is that a very long message uses
+    % several of the 300 slots, which is correct: they ARE several screen lines.
+    % =====================================================================
+
+    % Put one row into the cache: a time and speaker only on the first.
+    ROUTINE VOID, VOID (INTEGER, BYTES, BYTES, INTEGER, INTEGER) : &
+            pushRow(withHead, who, text, from, count)
+        INTEGER : i
+
+        blankLine
+        IF withHead = 1 THEN
+            put2(offTime, cal(3))
+            colonByte(0) =: lineBuf(offTime + 2)
+            put2(offTime + 3, cal(2))
+            putWho(who)
+        ENDIF
+
+        % The slice of the message this row carries. Copied byte by byte rather
+        % than with a subarray, because the bounds are computed and a subarray
+        % whose bounds fall outside the original breaks the compiler's own
+        % index checking - appendix G item 22.
+        IF count > 0 THEN
+            FOR i IN 0:count - 1 DO
+                text(from + i) =: lineBuf(offText + i)
+            ENDFOR
+        ENDIF
+        cacheAdd
+    ENDROUTINE
+
+    % Add what somebody said, wrapped across as many rows as it needs.
+    ROUTINE VOID, VOID (BYTES, BYTES) : addSaid(who, text)
+        INTEGER : total
+        INTEGER : at
+        INTEGER : take
+        INTEGER : head
+
+        MN113(cal)
+
+        % AN @ IN THE NAME IS THE SERVER SAYING "another machine", and that is
+        % all the @trunk marker needs.
+        FOR at IN 0:MAXINDEX(who, 1) DO
+            IF who(at) = atByte(0) THEN
+                TRUE =: sawRemote
+            ENDIF
+        ENDFOR
+
+        MAXINDEX(text, 1) + 1 =: total
+        0 =: at
+        1 =: head
+
+        % A DO loop with the test inside it, because PLANC has no while-header.
+        % The first pass runs even for an empty message, so a blank line still
+        % appears with its time - which is what a user expects if somebody
+        % presses RETURN on nothing.
+        DO
+            total - at =: take
+            IF take > widText THEN
+                widText =: take
+            ENDIF
+            pushRow(head, who, text, at, take)
+            0 =: head
+            at + take =: at
+            WHILE at < total
+        ENDDO
+    ENDROUTINE
+
+    % =====================================================================
+    % PAINTING THE MIDDLE SECTION
+    % =====================================================================
+
+    % Repaint the chat. This is what a page costs and it is the most
+    % expensive routine here: 17 lines of 77 characters, about 1300, roughly
+    % a second and a half on a real 9600-baud line.
+    ROUTINE VOID, VOID : paintChat
+        INTEGER : i
+        INTEGER : first
+        INTEGER : shown
+        INTEGER : idx
+        INTEGER : base
+        INTEGER : st
+
+        winEnter(midRow, 1, midHigh, scrWide)
+        VTCREC(firstMsgRow, textCol, firstMsgRow + msgRows - 1, textCol + lineWide - 1) =: st
+
+        % Which held line goes on the top row. viewFrom counts BACK from the
+        % newest, so at viewFrom = 0 the last msgRows lines are shown.
+        cacheCount - msgRows - viewFrom =: first
+        IF first < 0 THEN
+            0 =: first
+        ENDIF
+
+        cacheCount - first =: shown
+        IF shown > msgRows THEN
+            msgRows =: shown
+        ENDIF
+
+        IF shown > 0 THEN
+            FOR i IN 0:shown - 1 DO
+                slotAt(first + i) =: idx
+                idx * lineWide =: base
+                % THE WIDTH IS PASSED, NOT LEFT AS 0. Width 0 means "the
+                % string's own length" and is right for a LITERAL; given a
+                % SUBARRAY of a big buffer it ran off the right-hand side and
+                % wiped borders a 77-character write could not reach.
+                bytdis(firstMsgRow + i, textCol, lineWide, &
+                       cache(base : base + lineWide - 1), '')
+            ENDFOR
+        ENDIF
+        winLeave
+    ENDROUTINE
+
+    % =====================================================================
+    % THE TOP SECTION
+    % =====================================================================
+
+    ROUTINE VOID, VOID : drawStatus
+        INTEGER : st
+        INTEGER : at
+
+        MN113(cal)
+
+        winEnter(topRow, 1, topHigh, scrWide)
+        VTCREC(2, 2, 2, scrWide - 1) =: st
+
+        % ROW 2, laid out for the WORST CASE rather than for this room's name.
+        % A room name may be sixteen characters and '@trunk' is six more, so
+        % the name field can reach column 24 - which is why the count no longer
+        % sits at 19. A layout measured against one example name is a layout
+        % that breaks on the next one.
+        %
+        %   col  3..24   room name, and '@trunk' if it reaches another machine
+        %   col 26..29   how many are here
+        %   col 31..34   'here'
+        %   col 37..58   the hint, OR the scrollback warning - never both
+        %   col 64..74   the clock
+        bytdis(2, 3, 0, roomName(0:lenRoomName - 1), '')
+        % THE MARKER IS APPENDED TO THE NAME with no gap, as the design shows,
+        % so it reads as part of the room's identity and not as another field.
+        IF sawRemote THEN
+            bytdis(2, 3 + lenRoomName, 0, '@trunk', '')
+        ENDIF
+        intdis(2, 26, 4, hereCount, '')
+        bytdis(2, 31, 0, 'here', '')
+
+        % The clock, into lineBuf because put2 works there.
+        blankLine
+        put2(0, cal(4))                    % day
+        spaceByte(0) =: lineBuf(2)
+        put2(3, cal(5))                    % month
+        spaceByte(0) =: lineBuf(5)
+        put2(6, cal(3))                    % hour
+        colonByte(0) =: lineBuf(8)
+        put2(9, cal(2))                    % minute
+        bytdis(2, 64, 11, lineBuf(0:10), '')
+
+        % PAGED BACK? Say so, because the arrival rule above means the screen
+        % deliberately does not follow new lines while the user is reading.
+        % Without this the client looks stuck.
+        % THE HINT AND THE WARNING SHARE ONE SLOT, and that is deliberate.
+        %
+        % They used to sit side by side and the warning printed straight
+        % THROUGH the hint - 'Use /help to lSCROLLBACKds' - which was patched
+        % by moving it along until it fitted. Two things that are never both
+        % worth reading should not both be drawn: the hint matters when nothing
+        % is happening, and the moment the user has paged back, where they are
+        % matters more than where the help is.
+        IF viewFrom > 0 THEN
+            bytdis(2, 37, 0, 'SCROLLBACK - PAGE DOWN ', '')
+        ELSE
+            bytdis(2, 37, 0, '/help for commands     ', '')
+        ENDIF
+        winLeave
+    ENDROUTINE
+
+    % =====================================================================
+    % THE BOTTOM SECTION
+    % =====================================================================
+
+    % Repaint the input line and leave the cursor at the end of it.
+    %
+    % THE CURSOR BELONGS HERE. In TESTUI it is parked somewhere harmless
+    % because stray echoes landed inside windows; here there IS a right place
+    % for it, so every repaint of anything must finish by calling this.
+    ROUTINE VOID, VOID : drawInput
+        INTEGER : st
+
+        winEnter(botRow, 1, botHigh, scrWide)
+        VTCREC(inpRow, 2, inpRow, scrWide - 1) =: st
+        bytdis(inpRow, 2, 0, '>', '')
+        IF typedLen > 0 THEN
+            bytdis(inpRow, inpCol, typedLen, typed(0:typedLen - 1), '')
+        ENDIF
+        VTPCUR(inpRow, inpCol + typedLen) =: st
+        winLeave
+    ENDROUTINE
+
+    % The window bar. DRAWN BUT INERT - multi-window is not built, and this
+    % is here so the layout is proved with it in place rather than having to
+    % find room for it later.
+    ROUTINE VOID, VOID : drawBar
+        winEnter(botRow, 1, botHigh, scrWide)
+        % EMPTY ON PURPOSE. This was one literal lifted out of the mockup -
+        % five room names and two people who do not exist. Multi-window is
+        % not built, so there is nothing true to draw here, and drawing
+        % something false would make the screen look finished when it is
+        % not. The row is kept so the layout is proved with it in place.
+        bytdis(3, 4, 0, ' ', '')
+        winLeave
+    ENDROUTINE
+
+    % =====================================================================
+    % THE WHOLE SCREEN - drawn ONCE
+    % =====================================================================
+    ROUTINE VOID, VOID : drawAll
+        INTEGER : at
+
+        % ONE BOX ROUND THE WHOLE SCREEN, then a rule across it for each
+        % separator.
+        %
+        % THREE STACKED FRAMES WAS THE FIRST ATTEMPT AND IT LOOKED WRONG.
+        % frame() draws a box, so where two of them touch you get the TOP
+        % CORNERS of the lower box - a fresh box top sitting inside the
+        % outer one - where the design wants a cross-piece. PLANC-SCREEN-H
+        % has no T-junction verb, so the corners cannot be had that way.
+        %
+        % fullbar is the library's own horizontal rule and is what the
+        % separators are for.
+        winEnter(1, 1, 24, scrWide)
+        frame(1, 1, 24, scrWide, 'SPACE-FILL')
+        fullbar(midRow, 2, 1, scrWide - 2)
+        fullbar(botRow, 2, 1, scrWide - 2)
+        winLeave
+
+        % The title is PAINTED OVER the top frame's own edge, which is what
+        % the mockup shows. frame's fifth argument is ATTRIBUTES, not a title.
+        bytdis(1, 4, 0, ' NDCHAT 2.1 ', '')
+        % THE NICKNAME ALONE, and the machine is NOT invented.
+        %
+        % CHATUI drew ARNE@D100 from two literals. The nickname here is
+        % real, but NOTHING TELLS THIS CLIENT WHICH MACHINE IT IS ON - the
+        % server knows, and /map says so in a sentence meant for a person.
+        % Rather than print a machine name that is a guess, this prints the
+        % name and stops. It gains the qualifier when there is somewhere
+        % true to get it from.
+        blankLine
+        0 =: at
+        at + putField(at, widWho, myName(0:lenMyName - 1)) =: at
+        bytdis(1, 64, at, lineBuf(0:at - 1), '')
+
+        drawStatus
+        paintChat
+        drawBar
+        drawInput
+    ENDROUTINE
+
+    % =====================================================================
+    % THE FAKE FEED - one made-up line
+    % =====================================================================
+    ROUTINE VOID, VOID : pageUp
+        INTEGER : most
+        cacheCount - msgRows =: most
+        IF most < 0 THEN
+            0 =: most
+        ENDIF
+        viewFrom + msgRows =: viewFrom
+        IF viewFrom > most THEN
+            most =: viewFrom
+        ENDIF
+        paintChat
+        drawStatus
+        drawInput
+        flush
+    ENDROUTINE
+
+    ROUTINE VOID, VOID : pageDown
+        viewFrom - msgRows =: viewFrom
+        IF viewFrom < 0 THEN
+            0 =: viewFrom
+        ENDIF
+        paintChat
+        drawStatus
+        drawInput
+        flush
+    ENDROUTINE
+
+    % =====================================================================
+    % THE KEYBOARD
+    % =====================================================================
+
+    % Does what has been typed start with this command word?
+    %
+    % CASE-FOLDED, because a user types /exit and /EXIT without thinking about
+    % it, and SINTRAN itself does not care either.
+    %
+    % Compares against typedLen, so "/exits" does NOT match "/exit" - the length
+    % has to be right as well as the letters. That matters the moment there is
+    % a /e and a /exit to tell apart.
+    ROUTINE VOID, BOOLEAN (BYTES) : typedIs(word)
+        INTEGER : n
+        INTEGER : i
+        INTEGER : a
+        INTEGER : b
+
+        MAXINDEX(word, 1) + 1 =: n
+        IF n >< typedLen THEN
+            FALSE RETURN
+        ENDIF
+        IF n = 0 THEN
+            FALSE RETURN
+        ENDIF
+
+        FOR i IN 0:n - 1 DO
+            typed(i) =: a
+            word(i) =: b
+            % Fold a lower-case letter up. 97 is 'a' and 122 is 'z'; 32 is the
+            % gap to the capital.
+            IF a >= 97 AND a <= 122 THEN
+                a - 32 =: a
+            ENDIF
+            IF b >= 97 AND b <= 122 THEN
+                b - 32 =: b
+            ENDIF
+            IF a >< b THEN
+                FALSE RETURN
+            ENDIF
+        ENDFOR
+        TRUE RETURN
+    ENDROUTINE
+
+    % Take one key WITHOUT waiting, and let VTM say what it was.
+    %
+    % TWO CALLS, AND EACH DOES THE HALF THE OTHER CANNOT.
+    %
+    %   MON66  answers HOW MANY BYTES ARE WAITING. That is what keeps the
+    %          timer alive - without it the read blocks and nothing else in
+    %          the program can happen.
+    %   VTINBT reads the key and DECODES it. A function key is an escape
+    %          sequence, every terminal sends a different one, and VTM is the
+    %          layer that knows which. This program never sees a byte of it.
+    %
+    % A function key is several bytes on the wire and VTINBT consumes all of
+    % them in one call, so MON66 answering "at least one" is enough - it does
+    % not have to know how many the key will turn out to be.
+    ROUTINE VOID, INTEGER : pollKey
+        INTEGER : waiting
+        INTEGER : ch
+        INTEGER : st
+        INTEGER : dev
+        INTEGER : mode
+        INTEGER : arg4
+
+        MON66(1) =: waiting
+        IF waiting <= 0 THEN
+            0 RETURN
+        ENDIF
+
+        % arg 1 is our own terminal. The 2 and the 3 are STAR-TREK's and are
+        % NOT understood - no ND document describes this call at all - so they
+        % are passed exactly as the vendor wrote them rather than guessed at.
+        % PASSED AS VARIABLES, NOT LITERALS - and that is not fussiness.
+        % MEASURED 2026-08-25: with literals in the call PAGE UP did nothing
+        % at all, while the identical call with variables in KEYPROB.PLNC
+        % returned 201 every time. The call is made the way it was proved.
+        1 =: dev
+        2 =: mode
+        3 =: arg4
+        0 =: ch
+        VTINBT(dev, mode, ch, arg4) =: st
+        ch RETURN
+    ENDROUTINE
+
+    % =====================================================================
+    % MAIN
+    % =====================================================================
+
     PROGRAM : chatClient
         XMMSGIDENTIFIER : msgIdent
         INTEGER : length

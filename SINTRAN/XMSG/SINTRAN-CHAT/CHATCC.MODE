@@ -106,6 +106,14 @@ PROGRAM-FILE "CHAT"
 LOAD CHAT
 LIBRARY-MODE ON
 LOAD XMP-100-1-B02
+@cc --- the SCREEN half, added when the renderer was merged in --------------
+@cc INTRF1B is PLANC-SCREEN-H, VTMR supplies eight of the nine VT* entries.
+@cc VTMARR says "Redefinition ... VTI4DDB" and that is harmless. VTMCPOS and
+@cc VTMCPAR are NOT loaded - VTMR already defines both.
+LOAD INTRF1B
+LOAD VTMR
+LOAD VTMDATA
+LOAD VTMARR
 LOAD MON-CALL-1B-A00
 LOAD PLANC-1BANK-F00
 LIST-ENTRIES-UNDEFINED
