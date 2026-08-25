@@ -65,12 +65,12 @@ $INCLUDE screen
 
     % Room for 30 observations. Each is one call to VTINBT: the status it
     % returned and all four arguments as they stood AFTERWARDS.
-    CONSTANT maxObs=30
-    INTEGER ARRAY : obsSt(0:29)
-    INTEGER ARRAY : obsA1(0:29)
-    INTEGER ARRAY : obsA2(0:29)
-    INTEGER ARRAY : obsA3(0:29)
-    INTEGER ARRAY : obsA4(0:29)
+    CONSTANT maxObs=120
+    INTEGER ARRAY : obsSt(0:119)
+    INTEGER ARRAY : obsA1(0:119)
+    INTEGER ARRAY : obsA2(0:119)
+    INTEGER ARRAY : obsA3(0:119)
+    INTEGER ARRAY : obsA4(0:119)
     INTEGER : nObs := 0
 
     % THE TWO CONSTANTS NOBODY HAS DECODED. STAR-TREK passes 2 and 3 and no
@@ -173,24 +173,20 @@ done:
         MON72(1)
         resetscreen
 
-        OUTPUT(1, 'AL', 'VTINBT observations - status and all four arguments AFTER the call:$')
+        OUTPUT(1, 'AL', 'KEY CODES in the order pressed:$')
         IF nObs > 0 THEN
             nObs - 1 =: last
             FOR i IN 0:last DO
-                OUTPUT(1, 'AL', 'n=')
                 OUTPUT(1, 'I', i)
-                OUTPUT(1, 'AL', ' st=')
-                OUTPUT(1, 'I', obsSt(i))
-                OUTPUT(1, 'AL', ' a1=')
-                OUTPUT(1, 'I', obsA1(i))
-                OUTPUT(1, 'AL', ' a2=')
-                OUTPUT(1, 'I', obsA2(i))
-                OUTPUT(1, 'AL', ' a3=')
+                OUTPUT(1, 'AL', '=')
                 OUTPUT(1, 'I', obsA3(i))
-                OUTPUT(1, 'AL', ' a4=')
-                OUTPUT(1, 'I', obsA4(i))
-                OUTPUT(1, 'AL', '$')
+                OUTPUT(1, 'AL', ' ')
+                % Ten to a line, or a long sweep runs off the screen.
+                IF (i + 1) MOD 10 = 0 THEN
+                    OUTPUT(1, 'AL', '$')
+                ENDIF
             ENDFOR
+            OUTPUT(1, 'AL', '$')
         ENDIF
         OUTPUT(1, 'AL', '- EXIT from KEYPROB -$')
     ENDROUTINE
