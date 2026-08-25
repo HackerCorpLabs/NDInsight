@@ -166,6 +166,31 @@ $INCLUDE screen
     BYTES : inpBuf(0:75)
     INTEGER : inpLen := 0
 
+    % ---- WHO IS IN THE ROOM ----------------------------------------------
+    %
+    % ONLY THE SYSTEM NAME IS KEPT, because the only question this table has
+    % to answer is the @trunk one: does the room reach past this machine?
+    %
+    % IT IS A TABLE AND NOT A FLAG ON PURPOSE. Hard-coding "this room is
+    % trunked" would draw the same marker and prove nothing; scanning a member
+    % list against our own system name is the rule the real client will run,
+    % so the logic that ports is the logic that was tested.
+    %
+    % Sixteen seats, eight bytes of system name each, laid out flat because
+    % PLANC's two-dimensional BYTES is awkward to slice.
+    CONSTANT maxMembers=16
+    CONSTANT sysWide=8
+    BYTES : memSys(0:127)
+    INTEGER : memCount := 0
+
+    % A SYSTEM NAME PADDED TO sysWide. Every stored slot is eight bytes, but a
+    % name arrives at its own declared length - 'D100' is four - so comparing a
+    % slot against the name direct would read four bytes PAST THE END of it.
+    % PLANC checks no array bounds, so that is not an error, it is whatever
+    % happened to be stored next, and it would make two identical systems
+    % compare unequal at random.
+    BYTES : sysPad(0:7)
+
     % ---- THE FAKE MESSAGE FEED -------------------------------------------
     INTEGER4 : lastAdd := 0
     INTEGER4 : nowTime := 0
@@ -287,6 +312,74 @@ $INCLUDE screen
         n RETURN
     ENDROUTINE
 
+    % Are two names the same? PLANC has no string compare, and a BYTES
+    % parameter arrives with its OWN declared length, so the lengths are
+    % compared first and only then the characters.
+    ROUTINE VOID, INTEGER (BYTES, BYTES) : sameBytes(a, b)
+        INTEGER : i
+        INTEGER : n
+        MAXINDEX(a, 1) =: n
+        IF n >< MAXINDEX(b, 1) THEN
+            0 RETURN
+        ENDIF
+        IF n >= 0 THEN
+            FOR i IN 0:n DO
+                IF a(i) >< b(i) THEN
+                    0 RETURN
+                ENDIF
+            ENDFOR
+        ENDIF
+        1 RETURN
+    ENDROUTINE
+
+    % =====================================================================
+    % THE SPEAKER COLUMN - 13 characters against a 16-character nickname
+    %
+    % A nickname may be sixteen characters and the field is thirteen, so
+    % something has to give even before the @SYSTEM qualifier is added. The
+    % three ways out were: narrow the text field, shorten the system name, or
+    % drop the qualifier for local speakers. THIS TAKES THE THIRD, and adds a
+    % rule for what to cut when it still does not fit.
+    %
+    %   local speaker    the bare nickname, thirteen characters of it
+    %   remote speaker   NICK@SYS, and if that overruns, THE NICKNAME IS CUT,
+    %                    NEVER THE SYSTEM
+    %
+    % CUTTING THE SYSTEM WOULD BE THE WRONG CHOICE and it is worth saying why:
+    % inside one room you recognise a person from the first few letters of
+    % their name, but D10 does not tell you whether the line came from D100,
+    % D102 or D103 - and on a trunked room that is the one thing the column is
+    % there to tell you.
+    %
+    % Narrowing the text field was rejected because 57 columns is already
+    % narrow enough that ordinary sentences wrap.
+    % =====================================================================
+    ROUTINE VOID, VOID (BYTES, BYTES) : putWho(nick, sys)
+        INTEGER : lenSys
+        INTEGER : room
+        INTEGER : took
+        INTEGER : i
+
+        IF sameBytes(sys, mySys) = 1 THEN
+            % Local. No qualifier, so the whole field is the nickname.
+            putField(offWho, widWho, nick) =: took
+            RETURN
+        ENDIF
+
+        MAXINDEX(sys, 1) + 1 =: lenSys
+        % One column for the @, the rest of the field for the nickname.
+        widWho - 1 - lenSys =: room
+        IF room < 1 THEN
+            % A system name so long there is no room for a name at all. Show
+            % the system: which machine beats a single initial.
+            1 =: room
+        ENDIF
+
+        putField(offWho, room, nick) =: took
+        atByte(0) =: lineBuf(offWho + took)
+        putField(offWho + took + 1, widWho - took - 1, sys) =: i
+    ENDROUTINE
+
     % =====================================================================
     % THE CACHE
     % =====================================================================
@@ -346,6 +439,76 @@ $INCLUDE screen
     ENDROUTINE
 
     % =====================================================================
+    % THE ROOM'S MEMBERS, and the one question they answer
+    % =====================================================================
+
+    % Copy a system name into sysPad, blank-filled to the full slot width.
+    ROUTINE VOID, VOID (BYTES) : padSys(sys)
+        INTEGER : i
+        INTEGER : n
+        MAXINDEX(sys, 1) + 1 =: n
+        IF n > sysWide THEN
+            sysWide =: n
+        ENDIF
+        FOR i IN 0:sysWide - 1 DO
+            spaceByte(0) =: sysPad(i)
+        ENDFOR
+        IF n > 0 THEN
+            FOR i IN 0:n - 1 DO
+                sys(i) =: sysPad(i)
+            ENDFOR
+        ENDIF
+    ENDROUTINE
+
+    % Remember that somebody on this system is in the room. Called for every
+    % speaker seen, so the table fills itself from traffic - the real client
+    % will fill it from kWho and kJoined instead, and nothing else changes.
+    ROUTINE VOID, VOID (BYTES) : noteMember(sys)
+        INTEGER : i
+        INTEGER : base
+        INTEGER : j
+
+        padSys(sys)
+
+        % Already known?
+        IF memCount > 0 THEN
+            FOR i IN 0:memCount - 1 DO
+                i * sysWide =: base
+                IF sameBytes(memSys(base : base + sysWide - 1), sysPad) = 1 THEN
+                    RETURN
+                ENDIF
+            ENDFOR
+        ENDIF
+
+        IF memCount >= maxMembers THEN
+            RETURN
+        ENDIF
+
+        memCount * sysWide =: base
+        FOR j IN 0:sysWide - 1 DO
+            sysPad(j) =: memSys(base + j)
+        ENDFOR
+        memCount + 1 =: memCount
+    ENDROUTINE
+
+    % Does this room reach past our own machine? THE MARKER IS THIS SCAN and
+    % nothing else - one member on a system that is not ours is enough.
+    ROUTINE VOID, INTEGER : roomTrunked
+        INTEGER : i
+        INTEGER : base
+        padSys(mySys)
+        IF memCount > 0 THEN
+            FOR i IN 0:memCount - 1 DO
+                i * sysWide =: base
+                IF sameBytes(memSys(base : base + sysWide - 1), sysPad) = 0 THEN
+                    1 RETURN
+                ENDIF
+            ENDFOR
+        ENDIF
+        0 RETURN
+    ENDROUTINE
+
+    % =====================================================================
     % ADDING A LINE, WITH WRAPPING
     %
     % 57 columns of text is narrow and a real sentence overruns it. A line that
@@ -363,17 +526,16 @@ $INCLUDE screen
     % =====================================================================
 
     % Put one row into the cache: a time and speaker only on the first.
-    ROUTINE VOID, VOID (INTEGER, BYTES, BYTES, INTEGER, INTEGER) : &
-            pushRow(withHead, who, text, from, count)
+    ROUTINE VOID, VOID (INTEGER, BYTES, BYTES, BYTES, INTEGER, INTEGER) : &
+            pushRow(withHead, nick, sys, text, from, count)
         INTEGER : i
-        INTEGER : n
 
         blankLine
         IF withHead = 1 THEN
             put2(offTime, cal(3))
             colonByte(0) =: lineBuf(offTime + 2)
             put2(offTime + 3, cal(2))
-            putField(offWho, widWho, who) =: n
+            putWho(nick, sys)
         ENDIF
 
         % The slice of the message this row carries. Copied byte by byte rather
@@ -389,13 +551,15 @@ $INCLUDE screen
     ENDROUTINE
 
     % Add what somebody said, wrapped across as many rows as it needs.
-    ROUTINE VOID, VOID (BYTES, BYTES) : addSaid(who, text)
+    ROUTINE VOID, VOID (BYTES, BYTES, BYTES) : addSaid(nick, sys, text)
         INTEGER : total
         INTEGER : at
         INTEGER : take
         INTEGER : head
 
         MN113(cal)
+        % Every speaker seen is a member, and that is what decides @trunk.
+        noteMember(sys)
         MAXINDEX(text, 1) + 1 =: total
         0 =: at
         1 =: head
@@ -409,7 +573,7 @@ $INCLUDE screen
             IF take > widText THEN
                 widText =: take
             ENDIF
-            pushRow(head, who, text, at, take)
+            pushRow(head, nick, sys, text, at, take)
             0 =: head
             at + take =: at
             WHILE at < total
@@ -474,10 +638,25 @@ $INCLUDE screen
         winEnter(topRow, 1, topHigh, scrWide)
         VTCREC(2, 2, 2, scrWide - 1) =: st
 
+        % ROW 2, laid out for the WORST CASE rather than for this room's name.
+        % A room name may be sixteen characters and '@trunk' is six more, so
+        % the name field can reach column 24 - which is why the count no longer
+        % sits at 19. A layout measured against one example name is a layout
+        % that breaks on the next one.
+        %
+        %   col  3..24   room name, and '@trunk' if it reaches another machine
+        %   col 26..29   how many are here
+        %   col 31..34   'here'
+        %   col 37..58   the hint, OR the scrollback warning - never both
+        %   col 64..74   the clock
         bytdis(2, 3, 0, roomName, '')
-        bytdis(2, 24, 0, 'here', '')
-        intdis(2, 19, 4, hereCount, '')
-        bytdis(2, 32, 0, '/help for commands', '')
+        % THE MARKER IS APPENDED TO THE NAME with no gap, as the design shows,
+        % so it reads as part of the room's identity and not as another field.
+        IF roomTrunked = 1 THEN
+            bytdis(2, 3 + MAXINDEX(roomName, 1) + 1, 0, '@trunk', '')
+        ENDIF
+        intdis(2, 26, 4, hereCount, '')
+        bytdis(2, 31, 0, 'here', '')
 
         % The clock, into lineBuf because put2 works there.
         blankLine
@@ -493,10 +672,18 @@ $INCLUDE screen
         % PAGED BACK? Say so, because the arrival rule above means the screen
         % deliberately does not follow new lines while the user is reading.
         % Without this the client looks stuck.
+        % THE HINT AND THE WARNING SHARE ONE SLOT, and that is deliberate.
+        %
+        % They used to sit side by side and the warning printed straight
+        % THROUGH the hint - 'Use /help to lSCROLLBACKds' - which was patched
+        % by moving it along until it fitted. Two things that are never both
+        % worth reading should not both be drawn: the hint matters when nothing
+        % is happening, and the moment the user has paged back, where they are
+        % matters more than where the help is.
         IF viewFrom > 0 THEN
-            % Past the hint, which ends at column 49. MEASURED: at column 46
-            % this printed straight through it - 'Use /help to lSCROLLBACKds'.
-            bytdis(2, 52, 0, 'SCROLLBACK', '')
+            bytdis(2, 37, 0, 'SCROLLBACK - PAGE DOWN ', '')
+        ELSE
+            bytdis(2, 37, 0, '/help for commands     ', '')
         ENDIF
         winLeave
     ENDROUTINE
@@ -585,19 +772,29 @@ $INCLUDE screen
         addCount MOD 5 =: pick
 
         IF pick = 0 THEN
-            addSaid('KARI@D102', 'spooler queue is stuck on LP2 again')
+            addSaid('KARI', 'D102', 'spooler queue is stuck on LP2 again')
         ELSIF pick = 1 THEN
-            addSaid('TERJE@D103', 'i can restart the spooling program')
+            addSaid('TERJE', 'D103', 'i can restart the spooling program')
         ELSIF pick = 2 THEN
-            % LONG ON PURPOSE - 156 characters against a 57-column field, so it
-            % takes three rows and proves the wrap on every run rather than
-            % waiting for somebody to type a long sentence.
-            addSaid('SIGRID@D103', &
-                'the ND-500 process table is at 48 of 151 which is the configured maximum rather than the ceiling, so a request for 96 has been filed with operations')
+            % LONG ON PURPOSE, so the wrap is exercised on every run rather
+            % than only when somebody types a long sentence. 81 characters
+            % against a 57-column field is two rows.
+            %
+            % IT USED TO BE 156 AND THAT WOULD NOT COMPILE. The source line
+            % came to 167 characters and PLANC answered LINE IS TOO LONG -
+            % then, because the literal had been cut off mid-string, its
+            % opening quote was never closed and the NEXT message's words
+            % were parsed as code: fourteen more errors naming BATCH and
+            % PROCESSOR, none of which was wrong with the line it blamed.
+            % See the source-line limit note beside planc-lint's check.
+            addSaid('SIGRID', 'D103', &
+                'the ND-500 process table is at 48 of 151, the configured maximum and not a ceiling')
         ELSIF pick = 3 THEN
-            addSaid('*', 'TERJE@FJELL has joined  (trunk NORD-FJELL, 1 hop)')
+            % A SYSTEM NOTE. Its speaker is a bare star and it is OURS, so the
+            % column shows '*' and not '*@D100'.
+            addSaid('*', 'D100', 'TERJE@FJELL has joined (trunk NORD-FJELL, 1 hop)')
         ELSE
-            addSaid('BJORN@D100', 'hold on, batch job on processor 3 until 09:20')
+            addSaid('BJORN', 'D100', 'hold on, batch job on processor 3 until 09:20')
         ENDIF
     ENDROUTINE
 
@@ -727,6 +924,9 @@ $INCLUDE screen
         BOOLEAN : screenOk
         INTEGER : key
         INTEGER : drained
+        % How many bytes are still waiting. Asked after each typed
+        % character so a whole pasted burst is taken before repainting.
+        INTEGER : waiting
         INTEGER : i
         LABEL : exit
 
@@ -754,6 +954,38 @@ $INCLUDE screen
 
         IF screenOk THEN
 
+        % TAKE THE KEYBOARD FIRST, BEFORE A SINGLE THING IS DRAWN.
+        %
+        % No echo, because a raw key loop has no say in where the cursor is and
+        % SINTRAN would drop each character wherever the last drawing finished
+        % - inside the windows. And no ESC abort, which is what makes turning
+        % the echo off SAFE: an abort would skip the exit path and hand back a
+        % terminal with no echo at all.
+        %
+        % THE ORDER MATTERS AND IT USED TO BE WRONG. This block sat AFTER
+        % drawAll, so the screen was painted, the cursor was parked on the
+        % input line, and only then was the echo turned off - by which time
+        % SINTRAN had already echoed the waiting bytes onto the input line.
+        % Every run came up showing '> ??g??'. Draining them was not enough,
+        % because draining removes them from the BUFFER and not from the
+        % SCREEN they had already been echoed to.
+        MON3(1, -1, echoTab)
+        MON71(1)
+
+        % DRAIN WHAT IS ALREADY WAITING.
+        %
+        % MEASURED: eight bytes are sitting in the terminal buffer when the
+        % program starts - the tail of whatever was typed to get here, and on
+        % a line whose terminal type was unset, the answer to VTM's own
+        % 'What is your terminal type?' prompt. Whatever they are they are not
+        % the user talking to THIS program, and reading them as keystrokes
+        % puts rubbish in the input field.
+        DO
+            MON66(1) =: drained
+            WHILE drained > 0
+            MON1(1) =: drained
+        ENDDO
+
         % Some history, so paging has something to page through.
         FOR i IN 1:24 DO
             addFake
@@ -761,28 +993,6 @@ $INCLUDE screen
 
         drawAll
         flush
-
-        % TAKE THE KEYBOARD. No echo, because a raw key loop has no say in
-        % where the cursor is and SINTRAN would drop each character wherever
-        % the last drawing finished - inside the windows. And no ESC abort,
-        % which is what makes turning the echo off SAFE: an abort would skip
-        % the exit path and hand back a terminal with no echo at all.
-        % DRAIN WHAT IS ALREADY WAITING, BEFORE TAKING THE KEYBOARD.
-        %
-        % MEASURED: the input line came up holding '??g??'. Eight bytes are
-        % sitting in the terminal buffer when the program starts - the tail of
-        % whatever was typed to get here, and on a line whose terminal type was
-        % unset, the answer to VTM's own 'What is your terminal type?' prompt.
-        % Whatever they are they are not the user talking to THIS program, and
-        % reading them as keystrokes puts rubbish in the input field.
-        DO
-            MON66(1) =: drained
-            WHILE drained > 0
-            MON1(1) =: drained
-        ENDDO
-
-        MON3(1, -1, echoTab)
-        MON71(1)
 
         MON11 =: lastAdd
 
@@ -837,7 +1047,7 @@ $INCLUDE screen
                     ENDIF
                     % Through addSaid, so a long typed line wraps exactly
                     % as an arriving one does.
-                    addSaid(myNick, inpBuf(0:inpLen - 1))
+                    addSaid(myNick, mySys, inpBuf(0:inpLen - 1))
                     0 =: inpLen
                     % SENDING RETURNS TO LIVE - the user is about to want to
                     % see their own message.
@@ -862,6 +1072,43 @@ $INCLUDE screen
                     % this with its own typed buffer.
                     key =: inpBuf(inpLen)
                     inpLen + 1 =: inpLen
+                ENDIF
+
+                % REDRAW ONLY WHEN THE BURST IS OVER.
+                %
+                % One repaint for a whole pasted line instead of one per
+                % character. What it visibly fixed: while a burst was arriving
+                % the input line was repainted past its own right-hand edge and
+                % wrote over the frame border.
+                %
+                % IT DOES NOT FIX THE LOST RETURN, AND THE FIRST VERSION OF
+                % THIS COMMENT CLAIMED IT DID. Keeping the correction visible
+                % because the wrong explanation was very plausible.
+                %
+                % MEASURED on D100 2026-08-25, sending one burst and looking
+                % at whether the line was said:
+                %
+                %     61 characters + RETURN  =  62 bytes   said
+                %     63 characters + RETURN  =  64 bytes   said
+                %     72 characters + RETURN  =  73 bytes   RETURN LOST
+                %    105 characters + RETURN  = 106 bytes   RETURN LOST
+                %
+                % So the ceiling is SINTRAN'S OWN TERMINAL INPUT BUFFER, which
+                % takes 64 bytes, and the driver drops what will not fit before
+                % this program is given the chance to read a single one of
+                % them. Nothing a program can do makes that buffer bigger.
+                %
+                % IT IS ALSO NOT A DEFECT ANY USER WILL MEET. The bursts come
+                % from RetroTerm sending a whole test line over TCP, where all
+                % 106 bytes land in one go. A person typing delivers a few
+                % characters a second and the loop drains far faster than that.
+                %
+                % THE TELL, IF IT HAPPENS AGAIN: the typed line stays sitting
+                % in the input field and nothing is said - which reads exactly
+                % like a broken RETURN key. It is not. KEYPROB answers 13 for
+                % RETURN every single time; the RETURN never arrived at all.
+                MON66(1) =: waiting
+                IF waiting <= 0 THEN
                     drawInput
                     flush
                 ENDIF

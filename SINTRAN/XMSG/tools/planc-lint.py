@@ -765,7 +765,14 @@ def check(path):
         INCASE RANGE ENDINCASE SELECT ENDSELECT GOTO EXITWHEN GLOBAL LOCAL
         GENERATE FREE NEW DISPOSE GENERALIZED PACKED GO_TO
         MAXINDEX MININDEX BIT_SIZE BLOCKSIZE FILESIZE
+        INISTACK
         """.split())
+
+    # INISTACK IS A STATEMENT, NOT A VARIABLE, and it went unnoticed for one
+    # reason only: it appears exactly once per program, in the PROGRAM body,
+    # and the PROGRAM body was the one region this check never looked at.
+    # The moment PROGRAM became a scope, all six sources reported it. Every
+    # one of those was the linter being wrong, not the source.
 
     # MAXINDEX and MININDEX are STANDARD ROUTINES the compiler provides - they
     # need no IMPORT and no declaration, so the undeclared-name check must not
@@ -811,7 +818,23 @@ def check(path):
         return None
     # "ROUTINE VOID, INTEGER (INTEGER, INTEGER) : name(a, b)" - possibly with the
     # ": name(...)" part on the next line after a trailing "&".
-    routine_re = re.compile(r'^\s*ROUTINE\b(.*)$', re.IGNORECASE)
+    # A PROGRAM IS A SCOPE, EXACTLY LIKE A ROUTINE, and leaving it out cost a
+    # build cycle on 2026-08-25.
+    #
+    # This used to match ROUTINE only. A PROGRAM's own locals therefore fell
+    # through to module_names, which does two bad things at once: the main
+    # program's body - the biggest single block in a screen program - was never
+    # scope-checked at all, and its locals were treated as visible to EVERY
+    # routine in the file, hiding undeclared names everywhere else too.
+    #
+    # What it let through: CHATUI's main loop used "waiting", which is declared
+    # in pollKey and nowhere else. PLANC accepts an undeclared name silently, so
+    # the only symptom would have been a variable that never held what it was
+    # given. The lint said "clean".
+    #
+    # A PROGRAM closes with ENDROUTINE, the same keyword, so nothing below
+    # needs changing.
+    routine_re = re.compile(r'^\s*(?:ROUTINE|PROGRAM)\b(.*)$', re.IGNORECASE)
 
     def names_in(decl_tail):
         """The identifiers a declaration introduces.
@@ -1292,6 +1315,47 @@ def check(path):
         else:
             first_ten[key] = (name, n)
 
+    # ---- A SOURCE LINE THAT IS TOO LONG, and the FOURTEEN errors it invents --
+    #
+    # MEASURED on D100 2026-08-25. A 167-character source line answered
+    #
+    #     808   (783)/ADDFAKE  *** ERROR   - LINE IS TOO LONG
+    #
+    # and then FOURTEEN MORE errors that had nothing to do with it. The line
+    # held a string literal, so cutting it off left the opening quote unclosed,
+    # and the compiler read the NEXT message's words as code:
+    #
+    #     *** ERROR - EXPECTS "OVERFLOW" ILLEGAL SYNTAX "BATCH"
+    #     *** ERROR - ILLEGAL SYNTAX "PROCESSOR"
+    #
+    # BATCH and PROCESSOR are words inside a perfectly good sentence twenty
+    # lines further down. Every one of those fourteen blames an innocent line,
+    # and the ONE that matters is the first.
+    #
+    # WHERE THE LIMIT ACTUALLY IS, HONESTLY: NOT MEASURED. The manual's entry
+    # for LINE IS TOO LONG reads "No further explanation." What IS measured is
+    # that TESTUI.PLNC, whose longest line is 108 characters, compiles on D100
+    # with 0 diagnostics, and that a 167-character line does not. So the check
+    # warns above 108 - the widest width this project has PROOF of - rather
+    # than at a round number nobody has tested.
+    #
+    # The threshold started at 102 and was raised the moment TESTUI was run
+    # through this check and answered back. That is the right way round: the
+    # number is whatever the machine has actually accepted, and it moves when
+    # something wider is proved, never because a line is inconvenient.
+    #
+    # If you need a longer line, break it with the & continuation.
+    MAX_PROVED_LINE = 108
+    for num, raw_line in enumerate(io.open(path, encoding="latin-1"), 1):
+        stripped = raw_line.rstrip(chr(13) + chr(10))
+        if len(stripped) > MAX_PROVED_LINE:
+            out.append('%s:%d  SOURCE LINE IS %d CHARACTERS. The widest line this project '
+                       'has ever compiled is %d; PLANC answers LINE IS TOO LONG above some '
+                       'limit it does not document. Worse, if the line holds a string the '
+                       'unclosed quote makes the compiler read the following text as code '
+                       'and blame lines that are perfectly correct. Break it with &'
+                       % (path, num, len(stripped), MAX_PROVED_LINE))
+
     # ---- MIXED LINE ENDINGS, which the compiler does NOT report ---------------
     #
     # MEASURED 2026-08-25 and it cost a build cycle plus three wrong theories.
@@ -1315,7 +1379,61 @@ def check(path):
     return out
 
 
+def self_test():
+    """Refuse to run if this file's own patterns have been damaged.
+
+    A DEAD REGEX HAS SILENTLY DISABLED THIS LINTER TWICE, and both times the
+    tool went on printing "clean" - which is worse than crashing, because a
+    clean answer is what you act on.
+
+    Both were the same mistake. In a NON-raw Python string, backslash-b is a
+    BACKSPACE CHARACTER, not a word boundary. So a pattern written into this
+    file by a script that used an ordinary string ends up containing a literal
+    byte 8, and then
+
+        ^\s*(?:ROUTINE|PROGRAM)<backspace>(.*)$
+
+    matches no line ever written. Nothing looks wrong: grep shows the pattern
+    apparently intact, because a terminal draws a backspace as nothing at all.
+
+    The first time it took out five checks at once. The second time it took out
+    the routine-scope check, and every source in the project answered "clean"
+    while one of them used a variable that was declared in another routine.
+
+    So: prove the patterns still match text they are certain to match, and say
+    so loudly if they do not. This runs before any file is read.
+    """
+    problems = []
+
+    if chr(8) in io.open(__file__, encoding="utf-8", errors="replace").read():
+        problems.append("this file contains a literal BACKSPACE character - "
+                        "almost certainly a backslash-b that was written into a "
+                        "non-raw string. Every regex holding one is dead.")
+
+    probes = [
+        (re.compile(r'^\s*(?:ROUTINE|PROGRAM)\b(.*)$', re.IGNORECASE),
+         'ROUTINE VOID, VOID : helper', 'routine/program header'),
+        (re.compile(r'^\s*(?:ROUTINE|PROGRAM)\b(.*)$', re.IGNORECASE),
+         'PROGRAM : mainUi', 'program header'),
+        (re.compile(r'^\s*ENDROUTINE', re.IGNORECASE),
+         'ENDROUTINE', 'routine end'),
+    ]
+    for pattern, sample, what in probes:
+        if not pattern.match(sample):
+            problems.append('the %s pattern does not match %r' % (what, sample))
+
+    if problems:
+        print('planc-lint IS BROKEN AND WOULD REPORT "clean" WRONGLY:',
+              file=sys.stderr)
+        for p in problems:
+            print('  - ' + p, file=sys.stderr)
+        return False
+    return True
+
+
 def main(argv):
+    if not self_test():
+        return 3
     if len(argv) < 2:
         print(__doc__)
         return 2
