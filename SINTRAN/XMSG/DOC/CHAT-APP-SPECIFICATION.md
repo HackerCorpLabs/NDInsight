@@ -226,7 +226,11 @@ SYSTEM@VIDDA: hello from         SYSTEM: hello from the other machine
 **Each machine's own speaker stays bare** - `SYSTEM:` on D102, not `SYSTEM@VIDDA:`. The `@name`
 means "somewhere else", which is the only reason it is worth printing.
 
-**THE CLIENT ON D102 IS THE OLD BUILD.** Only the server and CHAT-MON were carried across, and the
+**ALL THREE MACHINES NOW RUN THE SAME CLIENT AND SERVER** - `CHAT:PROG` copied from D100, which is
+a fully linked image so the VTM and SCREEN libraries travel inside it. D102 shows `SYSTEM@VIDDA`,
+D103 shows `SYSTEM@SKOGEN`, both with history replayed and wrapped.
+
+**When the earlier measurement below was taken, D102 ran the OLD build.** Only the server and CHAT-MON were carried across, and the
 chat is flagged correctly anyway - because the SERVER decides what a speaker is called and the
 client prints what it is given. That is the whole reason the qualification was never left to the
 client.
