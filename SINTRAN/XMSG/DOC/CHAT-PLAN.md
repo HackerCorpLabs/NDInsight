@@ -41,7 +41,38 @@ twice**. This is the first thing to fix and it is a deletion, not an addition.
 
 ## 2. The plan, in dependency order
 
-### PHASE 1 - make the client render, keeping line mode
+### PHASE 1 - make the client render, keeping line mode - **DONE 2026-08-26**
+
+```
+┌── NDCHAT 2.1 ──────────────────────────────────TESTER@FJELL──┐
+│ LOBBY@trunk               0 here  /help for commands  25 08 19:03
+│--------------------------------------------------------------
+│ 19:03  *            you are TESTER on FJELL
+│ 19:03  SYSTEM@VIDDA final check from VIDDA
+│--------------------------------------------------------------
+│>
+```
+
+Every value on that screen is real. The renderer is chosen once from the CTYTP bits and the LINE
+renderer is untouched underneath - it is still the reference for what should be shown and still
+the fallback for a printing terminal.
+
+**STILL HARD-CODED: the member count**, which reads 0 because nothing counts a `/who` answer yet.
+That is the one part of step 5 not done.
+
+**What it cost, in the order the machine taught it:**
+
+| Symptom | Cause |
+|---|---|
+| joined, then never heard anything | **MON1 BLOCKS once the echo is off**, whatever TerminalNoWait was told. `SEATS 1/16` with `bounce` climbing said it; the screen could not. Poll `MON66` first. |
+| lines smeared across rows | **two subarrays of ONE array** passed to one routine. A notice rendered correctly beside it - same code, one variable different. |
+| `> ??g??` in the input line | bytes arrive DURING the drawing, so a drain before the paint cannot catch them. Drain again immediately before the first read. |
+| the welcome landed on the input row | `OUTPUT` writes where the cursor is, and `drawInput` parks it there. On a screen it goes in the room. |
+
+**The `??g??` was never cosmetic.** With it in the buffer the first command typed became
+`??g??/quit`, matched nothing, and was **said to the room**.
+
+### PHASE 1 as originally written
 
 **The goal: the existing client, unchanged in behaviour, drawing on a screen.** No new features.
 That is what makes it safe - the line renderer stays as the reference for what the screen should
