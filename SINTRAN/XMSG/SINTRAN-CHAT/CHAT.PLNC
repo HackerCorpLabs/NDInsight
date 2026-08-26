@@ -4653,6 +4653,31 @@ $INCLUDE screen
         findMyLdn
         terminalNoWait
 
+        % ONE LAST DRAIN, AND THIS ONE IS THE ONE THAT WORKS.
+        %
+        % There is already a drain up beside the MON3 that turns the echo off,
+        % and it is not enough: the input line still came up holding '??g??'.
+        % Those bytes arrive DURING the drawing, not before it - VTM asks the
+        % line what terminal it is and the answer lands in the buffer while the
+        % frame is being painted, so a drain that ran earlier could not have
+        % caught them.
+        %
+        % Draining here, with the screen already up and immediately before the
+        % first read, is the last moment anything can arrive unasked. typedLen
+        % is cleared after it because a byte that slipped past the first drain
+        % is already sitting in the buffer, and clearing without draining would
+        % just let it back in on the next pass.
+        IF screenOn THEN
+            DO
+                MON66(1) =: drained
+                WHILE drained > 0
+                MON1(1) =: drained
+            ENDDO
+            0 =: typedLen
+            drawInput
+            flush
+        ENDIF
+
         DO
             % ---- take everything the port is holding, without waiting -------
             drainPort
