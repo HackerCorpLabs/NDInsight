@@ -2282,6 +2282,21 @@ $INCLUDE screen
             ENDFOR
         ENDIF
         winLeave
+
+        % SHOW IT. VTM holds its output in a buffer and a terminal READ is what
+        % normally empties it, which is why every screen program that redraws
+        % and then waits for a key appears to work without ever asking.
+        %
+        % This client does NOT wait for a key - it polls - so a repaint driven
+        % by an arriving message has no read behind it and would sit in the
+        % buffer. MEASURED on D100 2026-08-26: a line said in a freshly joined
+        % room stayed invisible until any keystroke, which reads exactly like a
+        % lost message and is nothing of the kind.
+        %
+        % The callers flush too. Flushing an empty buffer costs nothing, and a
+        % painter that leaves its work invisible is the trap this file has now
+        % paid for twice.
+        VTWBUF =: st
     ENDROUTINE
 
     % =====================================================================
@@ -3358,6 +3373,23 @@ $INCLUDE screen
                     % for one window. A buffer per window is what fixes it, and
                     % that is the next phase rather than something to fake now.
                     cacheClear
+
+                    % AND PAINT THE EMPTY ROOM AT ONCE.
+                    %
+                    % MEASURED on D100 2026-08-26: without this, the FIRST
+                    % line said in the new room was drawn into VTM's buffer
+                    % and stayed there - invisible - until the next terminal
+                    % READ flushed it. One keystroke, any keystroke, made it
+                    % appear. So it looked like the say had been lost, or the
+                    % client had gone deaf after a join, when in fact the
+                    % renderer had already done its work and nobody had asked
+                    % VTM to show it.
+                    %
+                    % A room change is rare, so a whole repaint here costs
+                    % nothing and leaves the screen in a state that agrees
+                    % with the buffer before the first new line arrives.
+                    drawAll
+                    flush
                 ENDIF
             ELSE
                 OUTPUT(1, 'AL8', 'you are ')
