@@ -3409,8 +3409,14 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     % a real risk and it is why they are on adjacent lines.
     BYTES : reasonNeedNick := 'a nickname is required'
     INTEGER : lenNeedNick := 22
-    BYTES : reasonNickTaken    := 'that nickname is taken'
-    INTEGER : lenNickTaken := 22
+    % THE NICK REFUSAL NAMES THE NICK, so it is built rather than stored -
+    % see refuseNick below. What used to sit here was
+    %
+    %     'that nickname is taken'
+    %
+    % and "that" is the reader being asked to remember what they typed. They
+    % may have typed it on a machine across the room ten minutes ago.
+    BYTES : quoteMark := ''''
     BYTES : reasonAlreadyIn    := 'already joined'
     INTEGER : lenAlreadyIn := 14
     BYTES : reasonRoomFull     := 'the room is full'
@@ -4666,6 +4672,55 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     % refuses for the same reason and in the same order, because the two doors
     % lead into one room.
     % -----------------------------------------------------------------------
+    % REFUSE A NICKNAME, AND SAY WHICH ONE.
+    %
+    %     refused: nickname 'RONNY' is taken
+    %
+    % rather than "that nickname is taken". The name is already in the reject's
+    % NAME field, so a client could assemble this itself - but then the client
+    % has to know which refusal it is looking at in order to phrase it, and
+    % every client has to agree. The server knows, so the server says it, which
+    % is the same rule the rest of this file follows: one place decides the
+    % words.
+    %
+    % The quote marks are not decoration. A nickname can be anything the user
+    % typed, including something with a space in it, and without them
+    % "nickname my name is taken" reads as a sentence rather than a name.
+    ROUTINE VOID, VOID (INTEGER, INTEGER) : refuseNick(nameAt, nameLength)
+        INTEGER : i, at
+
+        nRefused + 1 =: nRefused
+
+        kReject =: outBuf(0)
+        nameLength =: outBuf(1)
+        2 =: at
+        FOR i IN 1:nameLength DO
+            inBuf(nameAt + i - 1) =: outBuf(at)
+            at + 1 =: at
+        ENDFOR
+
+        0 =: outBuf(at)
+        0 =: outBuf(at + 1)
+        at + 2 =: at
+
+        putWord('nickname ', 9, at) =: at
+        quoteMark(0) =: outBuf(at)
+        at + 1 =: at
+        FOR i IN 1:nameLength DO
+            inBuf(nameAt + i - 1) =: outBuf(at)
+            at + 1 =: at
+        ENDFOR
+        quoteMark(0) =: outBuf(at)
+        at + 1 =: at
+        putWord(' is taken', 9, at) =: at
+
+        % The text length, now that it is known. The two length bytes sit
+        % immediately before the text.
+        at - (2 + nameLength + 2) =: outBuf(2 + nameLength + 1)
+
+        sendTo(senderMagic, at)
+    ENDROUTINE
+
     ROUTINE VOID, VOID : handleMessage
         INTEGER : kind, nameLength, nameAt, textLength, textAt
         INTEGER : slot, taken, length
@@ -5286,7 +5341,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
             ENDIF
             findByName(nameAt, nameLength) =: taken
             IF taken >< 0 THEN
-                refuse(nameAt, nameLength, reasonNickTaken, lenNickTaken)
+                refuseNick(nameAt, nameLength)
                 RETURN
             ENDIF
             IF slot >< 0 THEN
@@ -5452,7 +5507,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
             ENDIF
             findByName(nameAt, nameLength) =: taken
             IF taken >< 0 THEN
-                refuse(nameAt, nameLength, reasonNickTaken, lenNickTaken)
+                refuseNick(nameAt, nameLength)
                 RETURN
             ENDIF
 

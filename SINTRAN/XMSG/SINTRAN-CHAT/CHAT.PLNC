@@ -2653,6 +2653,238 @@ $INCLUDE screen
         ENDFOR
     ENDROUTINE
 
+    % =====================================================================
+    % THE PANEL - an answer that is FOR YOU, not for the room
+    %
+    % /help, /who, /list, /map and an asked-for /topic are all replies to the
+    % person who typed them. They are not things anybody said, so putting them
+    % in the room mixes one person's questions into everybody's conversation
+    % and pushes real lines off the top.
+    %
+    % They go in a window instead: built as a TABLE OF LINES, measured, and
+    % centred over the room. Any key closes it.
+    %
+    % THE TABLE IS WHAT MAKES THE SIZING SAFE. The window measures the text,
+    % so adding a command or lengthening a line moves the frame instead of
+    % overflowing it. A window sized by a number typed next to the text goes
+    % wrong the first time somebody edits the text - the same trap as a
+    % hand-counted 'ALnn' width, which this file has already paid for.
+    % =====================================================================
+    CONSTANT panelMax=22
+    CONSTANT panelWide=70
+    BYTES : panelBuf(0:1539)
+    INTEGER ARRAY : panelLen(0:21)
+    INTEGER : panelRows := 0
+
+    % TRUE while the window is up. Two things read it: the key loop, which
+    % closes the panel instead of typing into the input line, and the repaint,
+    % which must NOT redraw the room over the top of it.
+    BOOLEAN : panelUp := FALSE
+
+    % DID THIS CLIENT ASK? Both of these answers arrive as a kind that is also
+    % used for something else - kWho for the count taken automatically on the
+    % way in, kTopic for a change the whole room is told about - so the kind
+    % alone cannot say whether the reply is FOR YOU. Typing the command is
+    % what makes it yours.
+    BOOLEAN : askedWho := FALSE
+    BOOLEAN : askedTopic := FALSE
+
+    ROUTINE VOID, VOID : panelClear
+        0 =: panelRows
+    ENDROUTINE
+
+    % One line from a literal.
+    ROUTINE VOID, VOID (BYTES) : panelAdd(t)
+        INTEGER : i
+        INTEGER : n
+        INTEGER : base
+
+        IF panelRows >= panelMax THEN
+            RETURN
+        ENDIF
+        MAXINDEX(t, 1) + 1 =: n
+        IF n > panelWide THEN
+            panelWide =: n
+        ENDIF
+        panelRows * panelWide =: base
+        IF n > 0 THEN
+            FOR i IN 1:n DO
+                t(i - 1) =: panelBuf(base + i - 1)
+            ENDFOR
+        ENDIF
+        n =: panelLen(panelRows)
+        panelRows + 1 =: panelRows
+    ENDROUTINE
+
+    % A run of text out of the arriving message, WRAPPED onto as many lines as
+    % it needs.
+    %
+    % IT BREAKS ON A SPACE WHERE IT CAN. A /who answer is a list of names and
+    % cutting one in half mid-name is exactly the thing a reader has to undo
+    % in their head. Where there is no space to break on - one enormous word -
+    % it cuts, because the alternative is a line that runs off the frame.
+    ROUTINE VOID, VOID (INTEGER, INTEGER) : panelAddFrom(at, n)
+        INTEGER : i
+        INTEGER : from
+        INTEGER : take
+        INTEGER : look
+        INTEGER : cut
+        INTEGER : base
+
+        IF n < 1 THEN
+            RETURN
+        ENDIF
+
+        0 =: from
+        DO
+            WHILE from < n
+            IF panelRows >= panelMax THEN
+                RETURN
+            ENDIF
+
+            n - from =: take
+            IF take > 60 THEN
+                60 =: take
+
+                % Walk back to the last space in what we were going to take.
+                0 =: cut
+                FOR i IN 1:take - 1 DO
+                    IF inBuf(at + from + i) = spaceByte(0) THEN
+                        i =: cut
+                    ENDIF
+                ENDFOR
+                IF cut > 0 THEN
+                    cut =: take
+                ENDIF
+            ENDIF
+
+            panelRows * panelWide =: base
+            0 =: look
+            FOR i IN 1:take DO
+                IF look < panelWide THEN
+                    inBuf(at + from + i - 1) =: panelBuf(base + look)
+                    look + 1 =: look
+                ENDIF
+            ENDFOR
+            look =: panelLen(panelRows)
+            panelRows + 1 =: panelRows
+
+            from + take =: from
+
+            % Skip the space we broke on, so the next line does not start with
+            % it and look indented by one.
+            IF from < n THEN
+                IF inBuf(at + from) = spaceByte(0) THEN
+                    from + 1 =: from
+                ENDIF
+            ENDIF
+        ENDDO
+    ENDROUTINE
+
+    % The command list. NOT the room name - the status line already carries
+    % that, and it was the one part of the old help that was not constant.
+    ROUTINE VOID, VOID : buildHelp
+        panelClear
+        panelAdd('CHAT commands')
+        panelAdd(' ')
+        panelAdd('  /join <room>          join another room')
+        panelAdd('  /nick <name>          change your nickname')
+        panelAdd('  /who                  who is in this room')
+        panelAdd('  /list                 rooms, and how many in each')
+        panelAdd('  /map                  the machines and their trunks')
+        panelAdd('  /topic                show the room topic')
+        panelAdd('  /topic <text>         set it')
+        panelAdd('  /tell <name> <text>   a message to one person')
+        panelAdd('  /leave                leave the room')
+        panelAdd('  /exit                 Exit chat program')
+        panelAdd(' ')
+        panelAdd('  anything else is said to the room')
+    ENDROUTINE
+
+    % =====================================================================
+    % DRAW IT - measured from the table, centred over the room
+    % =====================================================================
+    ROUTINE VOID, VOID : drawPanel
+        INTEGER : i
+        INTEGER : w
+        INTEGER : h
+        INTEGER : row
+        INTEGER : col
+        INTEGER : base
+
+        panelAdd(' ')
+        panelAdd('  -- any key closes this --')
+
+        % THE WIDEST LINE DECIDES THE WIDTH. Nothing is counted by hand, and
+        % the closing hint above is measured with everything else - it is a
+        % line like any other, so it cannot be the one that overflows.
+        0 =: w
+        IF panelRows > 0 THEN
+            FOR i IN 0:panelRows - 1 DO
+                IF panelLen(i) > w THEN
+                    panelLen(i) =: w
+                ENDIF
+            ENDFOR
+        ENDIF
+
+        % Two columns of frame and one space of padding either side.
+        w + 4 =: w
+        panelRows + 2 =: h
+
+        % CLAMPED TO THE SCREEN. Text taller than the terminal would otherwise
+        % draw a frame off the bottom and take the layout with it. Clamping
+        % loses the tail, which is visible and fixable; drawing past the edge
+        % is neither.
+        IF w > scrWide THEN
+            scrWide =: w
+        ENDIF
+        IF h > 24 THEN
+            24 =: h
+        ENDIF
+
+        % CENTRED. Integer division floors, so an odd remainder puts the
+        % window one column left of centre rather than off the edge.
+        (scrWide - w) / 2 + 1 =: col
+        (24 - h) / 2 + 1 =: row
+        IF col < 1 THEN
+            1 =: col
+        ENDIF
+        IF row < 1 THEN
+            1 =: row
+        ENDIF
+
+        % A VIEWPORT CLIPS, so everything below is in the panel's own
+        % coordinates and nothing it draws can reach the room behind it.
+        winEnter(row, col, h, w)
+        frame(1, 1, h, w, 'SPACE-FILL')
+        IF panelRows > 0 THEN
+            FOR i IN 0:panelRows - 1 DO
+                i * panelWide =: base
+                IF panelLen(i) > 0 THEN
+                    IF 2 + i < h THEN
+                        bytdis(2 + i, 3, panelLen(i), &
+                               panelBuf(base : base + panelLen(i) - 1), '')
+                    ENDIF
+                ENDIF
+            ENDFOR
+        ENDIF
+        winLeave
+        TRUE =: panelUp
+    ENDROUTINE
+
+    % An answer that arrived as a message: a heading, then the text wrapped.
+    ROUTINE VOID, VOID (BYTES, INTEGER, INTEGER) : panelAnswer(head, at, n)
+        panelClear
+        panelAdd(head)
+        panelAdd(' ')
+        IF n < 1 THEN
+            panelAdd('  (nothing)')
+        ELSE
+            panelAddFrom(at, n)
+        ENDIF
+        drawPanel
+    ENDROUTINE
+
     ROUTINE VOID, VOID : uiNotice
         IF uiLen < 1 THEN
             RETURN
@@ -2844,6 +3076,26 @@ $INCLUDE screen
         % The TOPIC answer names the ROOM in the name field where a nickname
         % normally sits, so the name is not printed as a speaker here.
         IF kind = kTopic THEN
+            % ONE KIND, TWO MEANINGS, and only this client knows which it is
+            % looking at. An ASKED-FOR topic is an answer to a question nobody
+            % else heard; a topic somebody SET is news for the whole room. The
+            % wire cannot tell them apart - the server sends the same kind - so
+            % the flag set when /topic was typed with no argument is what
+            % decides, and it is cleared whichever way this goes.
+            IF askedTopic THEN
+                FALSE =: askedTopic
+                IF textLength > 0 THEN
+                    panelAnswer('the topic', textAt, textLength)
+                ELSE
+                    panelClear
+                    panelAdd('the topic')
+                    panelAdd(' ')
+                    panelAdd('  none set')
+                    drawPanel
+                ENDIF
+                TRUE RETURN
+            ENDIF
+
             uiClear
             uiWord('topic: ')
             IF textLength > 0 THEN
@@ -2866,34 +3118,32 @@ $INCLUDE screen
             % time somebody asks - so a count that has drifted repairs itself
             % rather than needing to be got right for ever.
             countNames(textAt, textLength) =: hereCount
-            uiClear
-            uiWord('here: ')
-            uiFrom(textAt, textLength)
-            uiNotice
+
+            % THE ONE THIS CLIENT ASKED FOR GOES IN A PANEL; the one it asked
+            % for ITSELF on the way in does not. Without that test the screen
+            % would open a window over the room the moment you joined, which
+            % nobody asked for and which would have to be dismissed before the
+            % first line could be read.
+            IF askedWho THEN
+                FALSE =: askedWho
+                panelAnswer('who is here', textAt, textLength)
+            ENDIF
             TRUE RETURN
         ENDIF
 
         IF kind = kAllWho THEN
-            uiClear
-            uiWord('everywhere: ')
-            uiFrom(textAt, textLength)
-            uiNotice
+            FALSE =: askedWho
+            panelAnswer('everybody, every room', textAt, textLength)
             TRUE RETURN
         ENDIF
 
         IF kind = kRooms THEN
-            uiClear
-            uiWord('rooms: ')
-            uiFrom(textAt, textLength)
-            uiNotice
+            panelAnswer('rooms', textAt, textLength)
             TRUE RETURN
         ENDIF
 
         IF kind = kMap THEN
-            uiClear
-            uiWord('map: ')
-            uiFrom(textAt, textLength)
-            uiNotice
+            panelAnswer('the machines', textAt, textLength)
             TRUE RETURN
         ENDIF
 
@@ -4107,6 +4357,17 @@ $INCLUDE screen
         INTEGER : cut
 
         IF cmdIs('HELP', 4) = 1 THEN
+            % ON A SCREEN THE HELP IS A WINDOW, and it is built from the same
+            % table the line renderer prints below - so the two can never say
+            % different things, and the window is measured from the text
+            % rather than sized by a number somebody has to remember to update.
+            IF screenOn THEN
+                buildHelp
+                drawPanel
+                flush
+                RETURN
+            ENDIF
+
             OUTPUT(1, 'AL15', 'CHAT commands:$')
             OUTPUT(1, 'AL11', 'you are in ')
             showRoom
@@ -4120,7 +4381,7 @@ $INCLUDE screen
             OUTPUT(1, 'AL24', '  /topic <text>  set it$')
             OUTPUT(1, 'AL', '  /tell <name> <text>  a message to one person$')
             OUTPUT(1, 'AL32', '  /leave         leave the room$')
-            OUTPUT(1, 'AL32', '  /quit          leave and stop$')
+            OUTPUT(1, 'AL', '  /exit          Exit chat program$')
             OUTPUT(1, 'AL36', '  anything else is said to the room$')
             RETURN
         ENDIF
@@ -4150,7 +4411,10 @@ $INCLUDE screen
         % server was answering correctly and the letter never left. The address
         % of the server and whether we hold a seat are two different facts; see
         % the note in the LEAVE branch.
+        % ASKED BY HAND, so the answer is for this person and belongs in a
+        % window rather than in everybody's room.
         IF cmdIs('WHO', 3) = 1 THEN
+            TRUE =: askedWho
             buildOwn(kWho, 0) =: length
             sendToServer(length)
             RETURN
@@ -4202,7 +4466,11 @@ $INCLUDE screen
             7 =: at
             typedLen - at =: argLen
             IF argLen < 1 THEN
-                % ASKING, not setting. An empty text is the question.
+                % ASKING, not setting. An empty text is the question - and
+                % remembering that we asked is the only way to tell OUR answer
+                % from a topic somebody else changed, because both arrive as
+                % the same kind.
+                TRUE =: askedTopic
                 buildOwn(kTopic, 0) =: length
                 sendToServer(length)
                 RETURN
@@ -4435,7 +4703,16 @@ $INCLUDE screen
             RETURN
         ENDIF
 
-        IF cmdIs('QUIT', 4) = 1 THEN
+        % /exit IS THE NAME, /quit STILL WORKS.
+        %
+        % The help lists only /exit, so there is one answer to "how do I get
+        % out" - but /quit has been in this client since it was written and in
+        % the screen prototype beside it, and silently removing a word people
+        % have in their fingers is a poor trade for tidiness. It costs one
+        % test.
+        %
+        % Neither is a prefix of any other command, so /e and /q both work.
+        IF cmdIs('EXIT', 4) = 1 OR cmdIs('QUIT', 4) = 1 THEN
             IF joined THEN
                 buildOwn(kLeave, 0) =: length
                 sendToServer(length)
@@ -4869,6 +5146,22 @@ $INCLUDE screen
                 rawCh =: ch
                 ch AND parityMask =: ch
 
+                % ANY KEY CLOSES THE PANEL, AND DOES NOTHING ELSE.
+                %
+                % Consumed here, before every other test, so the key that
+                % dismisses the window cannot also be typed into the input
+                % line or read as a command. Anything that arrived while the
+                % panel was up is in the cache already and appears the moment
+                % the room is painted back.
+                IF panelUp THEN
+                    IF ch >< 0 THEN
+                        FALSE =: panelUp
+                        drawAll
+                        flush
+                        0 =: ch
+                    ENDIF
+                ENDIF
+
                 IF ch = carriageRet THEN
                     TRUE =: lineReady
 
@@ -4980,12 +5273,17 @@ $INCLUDE screen
             % keyboard.
             IF lineReady OR lastDrainCount > 0 THEN
                 IF screenOn THEN
-                    IF lastDrainCount > 0 THEN
-                        paintChat
+                    % NOT WHILE A PANEL IS UP. Repainting the room would draw
+                    % straight over the window the user is reading, and the
+                    % lines are safe in the cache until they close it.
+                    IF NOT panelUp THEN
+                        IF lastDrainCount > 0 THEN
+                            paintChat
+                        ENDIF
+                        drawStatus
+                        drawInput
+                        flush
                     ENDIF
-                    drawStatus
-                    drawInput
-                    flush
                 ELSE
                     showPrompt
                 ENDIF
