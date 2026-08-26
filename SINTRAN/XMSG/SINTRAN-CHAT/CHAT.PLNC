@@ -1843,13 +1843,30 @@ $INCLUDE screen
     %
     %   buffer 0..4    time      cols 3-7
     %   buffer 5..6    gap       cols 8-9
-    %   buffer 7..19   speaker   cols 10-22
+    %   buffer 7..18   speaker   cols 10-21
+    %   buffer 19      gap       col  22     <- ALWAYS BLANK, see below
     %   buffer 20..76  text      cols 23-79
     CONSTANT lineWide=77
     CONSTANT textCol=3           % where a stored line is painted
     CONSTANT offTime=0
     CONSTANT offWho=7
-    CONSTANT widWho=13
+
+    % TWELVE, NOT THIRTEEN, AND THE LAST COLUMN IS THE REASON.
+    %
+    % The speaker field used to be thirteen and the text began in the very next
+    % column, so a name that filled the field ran straight into the message:
+    %
+    %     05:11  VIDDAUS@VIDDAhello from vidda across the trunk
+    %
+    % MEASURED on D100 2026-08-26. It needs a QUALIFIED name to show up - a
+    % local speaker is short and leaves a gap by luck - so it appears exactly
+    % when two machines are talking, which is when the name matters most.
+    %
+    % Narrowing the field by one keeps buffer position 19 blank for every line,
+    % because blankLine fills the whole buffer with spaces and nothing ever
+    % writes there. A gap that exists because nothing can write into it does
+    % not depend on anyone remembering to add a space.
+    CONSTANT widWho=12
     CONSTANT offText=20
     CONSTANT widText=57
 

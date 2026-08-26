@@ -722,6 +722,22 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     % topology is not what somebody thinks it is.
     INTEGER  : nRelayed
 
+    % LINES A LOCAL SPEAKER SENT ONWARD TO A PEER, and how many of those sends
+    % were REFUSED.
+    %
+    % These did not exist, and their absence cost a whole evening. nRelayed
+    % counts only lines arriving from a trunk and passed on - so when a locally
+    % typed line failed to cross, `relay` sat still and looked like proof that
+    % nothing was forwarded. It was proof of nothing at all: the two paths are
+    % different routines and only one of them had a counter.
+    %
+    % nFwdBad is the more valuable of the pair. forwardSaid stored sendToName's
+    % status into a variable and never looked at it, so a refused letter was
+    % perfectly silent - the one failure shape that cannot be seen from either
+    % end.
+    INTEGER  : nForwarded
+    INTEGER  : nFwdBad
+
     % How many repeats we recognised and threw away. On a CHAIN this stays at
     % ZERO for ever - there is only one path between any two machines, so no
     % line can arrive twice. It only starts moving once somebody wires a
@@ -1687,6 +1703,14 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         putNumber(nBounced, at) =: at
         putWord(' relay ', 7, at) =: at
         putNumber(nRelayed, at) =: at
+
+        % FWD is what a LOCAL speaker sent onward; BAD is how many of those the
+        % send refused. relay above is a different path entirely - see the note
+        % on nForwarded.
+        putWord(' fwd ', 5, at) =: at
+        putNumber(nForwarded, at) =: at
+        putWord(' fwdbad ', 8, at) =: at
+        putNumber(nFwdBad, at) =: at
         putWord(' dupe ', 6, at) =: at
         putNumber(nDupes, at) =: at
         putWord(' refuse ', 8, at) =: at
@@ -3724,7 +3748,18 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
                     ENDFOR
 
                     at - textStart =: outBuf(textStart - 1)
+
+                    % THE STATUS IS READ, not just stored. It was assigned to
+                    % st and never tested, which made a refused forward the
+                    % quietest failure in the program: the speaker sees their
+                    % own echo, the room here is correct, and the line simply
+                    % never reaches the other machine.
                     sendToName(peerSystem(i), at) =: st
+                    IF st = XMOK THEN
+                        nForwarded + 1 =: nForwarded
+                    ELSE
+                        nFwdBad + 1 =: nFwdBad
+                    ENDIF
                 ENDIF
             ENDIF
         ENDFOR
@@ -5821,6 +5856,8 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
             % bury the machine.
             0 =: nEmptyLet
             0 =: nRelayed
+            0 =: nForwarded
+            0 =: nFwdBad
             0 =: nDupes
             0 =: myLineId
             1 =: seenAt
