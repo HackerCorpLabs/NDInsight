@@ -57,8 +57,17 @@ Every value on that screen is real. The renderer is chosen once from the CTYTP b
 renderer is untouched underneath - it is still the reference for what should be shown and still
 the fallback for a printing terminal.
 
-**STILL HARD-CODED: the member count**, which reads 0 because nothing counts a `/who` answer yet.
-That is the one part of step 5 not done.
+**The member count is real too**, and it demonstrated its own repair rule:
+
+```
+LOBBY@trunk    2 here      here: TESTER SYSTEM@SKOGEN
+LOBBY@trunk    3 here      here: TESTER SYSTEM@VIDDA SYSTEM@SKOGEN
+```
+
+It sat at 2 while VIDDA was in the room, because no join notice ever reached this client - VIDDA's
+seat predated our `/who`. The next `/who` corrected it. **That is why the count is taken from the
+ANSWER rather than kept by the client**: a wrong count fixes itself instead of having to be right
+for ever.
 
 **What it cost, in the order the machine taught it:**
 
