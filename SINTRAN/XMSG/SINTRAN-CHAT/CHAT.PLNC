@@ -2365,14 +2365,36 @@ $INCLUDE screen
     % The window bar. DRAWN BUT INERT - multi-window is not built, and this
     % is here so the layout is proved with it in place rather than having to
     % find room for it later.
+    % THE WINDOW BAR - one window, and it says which.
+    %
+    % It held a literal lifted straight out of the mockup: five room names and
+    % two people who did not exist. That was worse than empty, because a
+    % screen full of invented state looks finished when it is not.
+    %
+    % SO IT SHOWS WHAT IS TRUE, WHICH IS ONE WINDOW. There is exactly one
+    % conversation - the room this client is in - and the bar names it. When
+    % there are more, this is where they go; until then it is not pretending.
+    %
+    % The number is there because a switching key will need one, and a bar
+    % that gains numbers later would move under the reader.
     ROUTINE VOID, VOID : drawBar
+        INTEGER : at
+
         winEnter(botRow, 1, botHigh, scrWide)
-        % EMPTY ON PURPOSE. This was one literal lifted out of the mockup -
-        % five room names and two people who do not exist. Multi-window is
-        % not built, so there is nothing true to draw here, and drawing
-        % something false would make the screen look finished when it is
-        % not. The row is kept so the layout is proved with it in place.
-        bytdis(3, 4, 0, ' ', '')
+        VTCREC(3, 2, 3, scrWide - 1) =: at
+
+        blankLine
+        0 =: at
+        at + putField(at, 3, '1 ') =: at
+        IF joined THEN
+            at + putField(at, 20, roomName(0:lenRoomName - 1)) =: at
+        ELSE
+            % NOT IN A ROOM IS A REAL STATE and it says so, rather than
+            % leaving a bare number with nothing after it.
+            at + putField(at, 20, 'no room yet') =: at
+        ENDIF
+
+        bytdis(3, 4, at, lineBuf(0:at - 1), '')
         winLeave
     ENDROUTINE
 
