@@ -1,0 +1,51 @@
+@cc ===========================================================================
+@cc Build CHATLIB and its test program, SEPARATELY, and link them.
+@cc
+@cc THE POINT OF THIS FILE IS HOW LITTLE IT DOES. Two small sources compile in
+@cc seconds, where the full client takes about twenty minutes - so a change to
+@cc the wire format can be checked before anything large is built at all.
+@cc
+@cc Run it with   @MODE CHATTS:MODE,,
+@cc then          @CHATTS
+@cc ===========================================================================
+
+@cc --- clear the old build; NO SUCH FILE NAME on a first run is expected -----
+@DELETE-FILE CHATTS:PROG
+@DELETE-FILE CHATLIB:BRF
+@DELETE-FILE CHATTST:BRF
+@DELETE-FILE CHATLIB:LIST
+@DELETE-FILE CHATTST:LIST
+
+@cc --- the library, on its own ----------------------------------------------
+@cc Quoting: no quotes means the file must already exist, "quotes" means create.
+@PLANC-100-F00
+COMPILE CHATLIB:PLNC,"CHATLIB:LIST","CHATLIB"
+EXIT
+
+@cc --- the test program, on its own -----------------------------------------
+@PLANC-100-F00
+COMPILE CHATTST:PLNC,"CHATTST:LIST","CHATTST"
+EXIT
+
+@cc --- link: the PROGRAM first, then what satisfies it -----------------------
+@cc LIST-ENTRIES-UNDEFINED is the check that every name crossed the BRF
+@cc boundary. A name longer than SEVEN characters, or one that collides with
+@cc another in its first seven, shows up there and NOWHERE else.
+@BRF-LINKER-C01
+PROGRAM-FILE "CHATTS"
+LOAD CHATTST
+LOAD CHATLIB
+LIBRARY-MODE ON
+LOAD PLANC-1BANK-F00
+LIST-ENTRIES-UNDEFINED
+EXIT
+
+@cc ===========================================================================
+@cc Built CHATTS:PROG. Run it with @CHATTS
+@cc
+@cc Every line starts PASS or FAIL and the last line is a count. One FAIL means
+@cc the codec is wrong - do not build the real product until it is clean.
+@cc
+@cc CHECK BOTH LISTINGS for "*** ERROR" before believing any of it:
+@cc   tools\nd-build.ps1 -GateOnly -Listing <pulled CHATLIB:LIST>
+@cc ===========================================================================

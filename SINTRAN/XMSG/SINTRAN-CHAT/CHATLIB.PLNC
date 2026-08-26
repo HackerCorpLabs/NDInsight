@@ -1,0 +1,166 @@
+% =========================================================================
+% CHATLIB - the chat wire format, in ONE place, separately compiled.
+%
+% WHY THIS EXISTS, and it is not tidiness.
+%
+% 1. THE PROTOCOL WAS DECLARED TWICE. The client names 24 message kinds and
+%    the server 35, with TWENTY in both. They agree today only because
+%    somebody keeps checking; nothing makes them agree. A kind that drifts
+%    does not fail loudly - an unhandled kind is SILENT, which is the worst
+%    failure this product has. Declared here and IMPORTed by both, a mismatch
+%    becomes a LINK error, and LIST-ENTRIES-UNDEFINED already runs in every
+%    link we do.
+%
+% 2. IT MAKES SMALL TEST PROGRAMS POSSIBLE, which is the bigger prize. The
+%    whole client is 6400 lines and takes about TWENTY MINUTES to compile, so
+%    every one-line change has been tested by building the entire product and
+%    driving two live machines. A program that links this library and checks
+%    the codec builds in EIGHT SECONDS - measured with SPLITTEST - and needs
+%    no XMSG, no server and nobody typing. See CHATTEST.PLNC.
+%
+% THE WIRE SHAPE, taken from the client's buildOwn and the server's
+% buildFromSlot, which independently built the same thing:
+%
+%   byte 0            kind
+%   byte 1            name length
+%   bytes 2..         the name
+%   next two bytes    text length, HIGH byte then LOW
+%   then              the text
+%
+% The length is two bytes and the high one has always been zero in practice,
+% because a message never approaches 256 characters. It is written and read as
+% two bytes anyway - the format says two, and a reader that assumed one would
+% be wrong the first time somebody sent a long line.
+%
+% NAMES ARE UNIQUE IN SEVEN CHARACTERS ACROSS A BRF BOUNDARY, so everything
+% exported here is six or seven long and distinct within that. cmEnc, cmKind,
+% cmNmLen, cmTxAt, cmTxLen.
+% =========================================================================
+MODULE chatlib
+
+    EXPORT cmEnc
+    EXPORT cmKind
+    EXPORT cmNmLen
+    EXPORT cmTxAt
+    EXPORT cmTxLen
+
+    % ---- THE MESSAGE KINDS ----------------------------------------------
+    %
+    % One list, so the two programs cannot drift. The numbers are the WIRE and
+    % may never be renumbered - a machine running an older build is on the
+    % other end of the trunk and will read whatever it is sent.
+    %
+    % Kept as the same numbers the client and server already used, so this
+    % library changes nothing about what goes on the wire.
+    EXPORT kSay
+    EXPORT kSaid
+    EXPORT kDirSnd
+    EXPORT kDirGot
+    EXPORT kTrkRel
+
+    INTEGER : kSay     := 4      % a client speaking
+    INTEGER : kSaid    := 5      % the room being told
+    INTEGER : kDirSnd  := 17     % a private message going out
+    INTEGER : kDirGot  := 18     % a private message arriving
+    INTEGER : kTrkRel  := 53     % a room line crossing a trunk
+
+    % ---- ENCODE ---------------------------------------------------------
+    %
+    % Answers the total length written into buf.
+    %
+    % THE THREE ARRAYS MUST BE THREE DIFFERENT ARRAYS. Passing two subarrays
+    % of ONE array to a single routine corrupts both, compiles clean and has
+    % cost this project a day - so buf, name and text are separate by
+    % contract. A caller that wants to encode out of one buffer must copy
+    % first.
+    %
+    % CLAMPED against the caller's own buffer size, because PLANC checks no
+    % array bound and a length that arrived from a wire is not to be trusted.
+    ROUTINE VOID, INTEGER (BYTES, INTEGER, BYTES, INTEGER, BYTES, INTEGER, &
+            INTEGER) : cmEnc(buf, kind, name, nameLen, text, textLen, bufMax)
+        INTEGER : i
+        INTEGER : at
+        INTEGER : nl
+        INTEGER : tl
+
+        nameLen =: nl
+        IF nl < 0 THEN
+            0 =: nl
+        ENDIF
+        IF nl > 255 THEN
+            255 =: nl
+        ENDIF
+
+        textLen =: tl
+        IF tl < 0 THEN
+            0 =: tl
+        ENDIF
+
+        % Everything must fit: 2 for kind and name length, the name, 2 for the
+        % text length, then the text.
+        IF 4 + nl + tl > bufMax THEN
+            bufMax - 4 - nl =: tl
+            IF tl < 0 THEN
+                0 =: tl
+            ENDIF
+        ENDIF
+
+        kind =: buf(0)
+        nl =: buf(1)
+        2 =: at
+
+        % SUBSCRIPT FROM ZERO. A PLANC string literal starts at index 0, and
+        % writing name(i) inside a 1:n loop skips the first character and reads
+        % one byte past the end. That is exactly how a nickname went out as
+        % ONNY instead of RONNY, with nothing reporting it.
+        IF nl > 0 THEN
+            FOR i IN 1:nl DO
+                name(i - 1) =: buf(at)
+                at + 1 =: at
+            ENDFOR
+        ENDIF
+
+        tl / 256 =: buf(at)
+        tl MOD 256 =: buf(at + 1)
+        at + 2 =: at
+
+        IF tl > 0 THEN
+            FOR i IN 1:tl DO
+                text(i - 1) =: buf(at)
+                at + 1 =: at
+            ENDFOR
+        ENDIF
+
+        at RETURN
+    ENDROUTINE
+
+    % ---- DECODE ---------------------------------------------------------
+    %
+    % Four small readers rather than one routine handing back a record: PLANC
+    % has no multiple return, and a record would have to be declared in both
+    % programs - which is the duplication this library exists to remove.
+
+    ROUTINE VOID, INTEGER (BYTES) : cmKind(buf)
+        buf(0) RETURN
+    ENDROUTINE
+
+    ROUTINE VOID, INTEGER (BYTES) : cmNmLen(buf)
+        buf(1) RETURN
+    ENDROUTINE
+
+    % Where the text starts. The name length decides it, so a corrupt length
+    % moves the text - which is why every caller clamps before using this.
+    ROUTINE VOID, INTEGER (BYTES) : cmTxAt(buf)
+        buf(1) + 4 RETURN
+    ENDROUTINE
+
+    % HIGH BYTE TIMES 256 PLUS LOW. Reading only the low byte would work for
+    % every message this product has ever sent and would be wrong for the
+    % first one that did not.
+    ROUTINE VOID, INTEGER (BYTES) : cmTxLen(buf)
+        INTEGER : at
+        buf(1) + 2 =: at
+        buf(at) * 256 + buf(at + 1) RETURN
+    ENDROUTINE
+
+ENDMODULE

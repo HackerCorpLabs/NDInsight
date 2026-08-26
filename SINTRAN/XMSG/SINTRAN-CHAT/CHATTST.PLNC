@@ -1,0 +1,142 @@
+% =========================================================================
+% CHATTEST - checks CHATLIB's codec, and prints PASS or FAIL for each case.
+%
+% THIS IS WHAT THE LIBRARY IS FOR. The client is 6400 lines and takes about
+% twenty minutes to compile, so until now every change to the wire format was
+% tested by building the whole product and driving two live machines. This
+% program links CHATLIB, builds in seconds, needs no XMSG, no server and
+% nobody typing - and it fails LOUDLY, on screen, with the numbers.
+%
+% HOW TO READ IT: every line starts PASS or FAIL, and the last line is a
+% count. A single FAIL means the codec is wrong; do not go near a build of the
+% real product until this is clean.
+%
+% ADDING A CASE is one call to `check`. Keep them small and keep the expected
+% value a LITERAL - a test that computes its expectation the same way the code
+% does will agree with a bug.
+% =========================================================================
+MODULE chattest
+
+    IMPORT (ROUTINE VOID, INTEGER (BYTES, INTEGER, BYTES, INTEGER, BYTES, &
+            INTEGER, INTEGER) : cmEnc)
+    IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmKind)
+    IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmNmLen)
+    IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmTxAt)
+    IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmTxLen)
+    IMPORT (INTEGER : kSay)
+    IMPORT (INTEGER : kTrkRel)
+
+    INTEGER ARRAY : stack(0:1000)
+
+    % The buffer under test, and the two inputs. THREE SEPARATE ARRAYS - see
+    % the note on cmEnc about passing two subarrays of one array.
+    BYTES : buf(0:255)
+    BYTES : nm(0:15)
+    BYTES : tx(0:63)
+
+    INTEGER : passed
+    INTEGER : failed
+
+    % One check. Prints the name, then PASS, or FAIL with both numbers - a
+    % failure that does not say what it got is a failure you have to reproduce
+    % by hand.
+    ROUTINE VOID, VOID (BYTES, INTEGER, INTEGER) : check(what, got, want)
+        IF got = want THEN
+            passed + 1 =: passed
+            OUTPUT(1, 'AL', 'PASS ')
+            OUTPUT(1, 'AL', what)
+            OUTPUT(1, 'AL', '$')
+            RETURN
+        ENDIF
+
+        failed + 1 =: failed
+        OUTPUT(1, 'AL', 'FAIL ')
+        OUTPUT(1, 'AL', what)
+        OUTPUT(1, 'AL', '  got ')
+        OUTPUT(1, 'I', got)
+        OUTPUT(1, 'AL', '  want ')
+        OUTPUT(1, 'I', want)
+        OUTPUT(1, 'AL', '$')
+    ENDROUTINE
+
+    PROGRAM : ctmain
+        INTEGER : i
+        INTEGER : len
+        INTEGER : at
+
+        INISTACK stack
+
+        0 =: passed
+        0 =: failed
+
+        OUTPUT(1, 'AL', 'CHATLIB codec checks$')
+
+        % ---- a plain room line ------------------------------------------
+        'RONNY' =: nm
+        'hello' =: tx
+        cmEnc(buf, kSay, nm, 5, tx, 5, 256) =: len
+
+        % 2 header + 5 name + 2 length + 5 text
+        check('length of a 5+5 message', len, 14)
+        check('kind survives           ', cmKind(buf), kSay)
+        check('name length survives    ', cmNmLen(buf), 5)
+        check('text length survives    ', cmTxLen(buf), 5)
+        check('text starts after name  ', cmTxAt(buf), 9)
+
+        % THE BYTES THEMSELVES, not just the accessors. An encoder and a
+        % decoder that are wrong the same way agree with each other.
+        check('byte 0 is the kind      ', buf(0), kSay)
+        check('byte 1 is the name len  ', buf(1), 5)
+        check('name first byte is R    ', buf(2), 82)
+        check('name last byte is Y     ', buf(6), 89)
+        check('length high byte is 0   ', buf(7), 0)
+        check('length low byte is 5    ', buf(8), 5)
+        check('text first byte is h    ', buf(9), 104)
+
+        % ---- an empty text ----------------------------------------------
+        'BOB' =: nm
+        cmEnc(buf, kSay, nm, 3, tx, 0, 256) =: len
+        check('empty text length       ', len, 7)
+        check('empty text reads 0      ', cmTxLen(buf), 0)
+        check('empty text name intact  ', cmNmLen(buf), 3)
+
+        % ---- an empty name ----------------------------------------------
+        'hi' =: tx
+        cmEnc(buf, kTrkRel, nm, 0, tx, 2, 256) =: len
+        check('no name, length         ', len, 6)
+        check('no name, kind           ', cmKind(buf), kTrkRel)
+        check('no name, text length    ', cmTxLen(buf), 2)
+        check('no name, text at 4      ', cmTxAt(buf), 4)
+
+        % ---- THE CLAMP. A text longer than the buffer must be CUT, not
+        %      written past the end. PLANC checks no bound, so without the
+        %      clamp this would quietly corrupt whatever follows buf.
+        'RONNY' =: nm
+        cmEnc(buf, kSay, nm, 5, tx, 300, 20) =: len
+        check('clamped to buffer       ', len, 20)
+        check('clamped text length     ', cmTxLen(buf), 11)
+
+        % ---- a two-byte length is really two bytes -----------------------
+        % 300 does not fit in one byte. If cmTxLen only read the low byte it
+        % would answer 44 here, which is the whole point of the case.
+        cmEnc(buf, kSay, nm, 5, tx, 300, 512) =: len
+        check('long text length        ', cmTxLen(buf), 300)
+        check('long text high byte     ', buf(7), 1)
+        check('long text low byte      ', buf(8), 44)
+
+        % ---- the count ---------------------------------------------------
+        OUTPUT(1, 'AL', '$')
+        OUTPUT(1, 'AL', 'passed ')
+        OUTPUT(1, 'I', passed)
+        OUTPUT(1, 'AL', '   failed ')
+        OUTPUT(1, 'I', failed)
+        OUTPUT(1, 'AL', '$')
+
+        IF failed > 0 THEN
+            OUTPUT(1, 'AL', '*** THE CODEC IS WRONG - do not build the product$')
+        ELSE
+            OUTPUT(1, 'AL', 'codec is good$')
+        ENDIF
+    ENDROUTINE
+
+ENDMODULE
