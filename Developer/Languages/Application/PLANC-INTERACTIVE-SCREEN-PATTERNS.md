@@ -183,6 +183,54 @@ because a window covered two of them.
 Then walk the line once and paint each visible **run** as it ends. **A test per character costs
 nothing on the CPU; what it saves is the wire**, which is the slow half.
 
+### Rule 1b: NEVER repaint the whole screen for a partial change
+
+**This is the rule that gets broken, and it gets broken by writing `drawAll`.** It is one call,
+it always looks right, and it rubs out twenty-four rows to alter three of them.
+
+Before writing a repaint, name the regions the change actually touched, and paint those:
+
+| What changed | What to repaint | NOT |
+|---|---|---|
+| a line arrived | the pane rows that differ | the pane, the frame, the title |
+| the window switched | pane + status line + bar | the whole screen |
+| a window was closed | the bar | the whole screen |
+| the room name changed | the status line + the bar | the pane |
+
+**The frame, the title and the typed line almost never change.** A repaint that includes them is
+telling you the author did not ask the question.
+
+MEASURED 2026-08-26 in the chat client: window switching and window closing were both written as
+`drawAll`, and the arriving-message path cleared all seventeen pane rows with `VTCREC` before
+drawing seventeen back - for one new line. All three were written with this page already open in
+the repo.
+
+### Rule 1c: a row that already shows the right thing is not painted at all
+
+Padding every stored line to full width (Rule in section 5) means a write needs no erase - so the
+only question left is **which rows differ**. Keep a shadow of what is on each row and skip the rest:
+
+```planc
+    INTEGER ARRAY : rowShown(0:16)   % the LINE NUMBER on each row, -1 = blank
+    INTEGER : shadowWin := 0         % which buffer the shadow describes
+```
+
+Compare against a **line number that never repeats**, not a ring slot - a ring reuses slots, so a
+slot number would compare equal for two different lines and the pane would keep stale text. Count
+every line ever added and name each row by that.
+
+**Throw the shadow away when the buffer changes** (a different window, a different room). Line
+numbers are counted per buffer, so row 3 of one and row 3 of another compare equal and would be
+left alone wrongly.
+
+What it costs, per arriving line, on a seventeen-row pane:
+
+| Case | Rows written |
+|---|---|
+| pane still filling | **1** |
+| nothing moved | **0** |
+| pane full, shifting up | 17 - unavoidable, there is no scroll verb |
+
 ### Rule 2: every CLOSE repaints the stack BOTTOM UP
 
 Not "put back the window I overlapped" - that works with two windows and **breaks with three**.

@@ -251,6 +251,43 @@ def check(path):
                 out.append('%s:%d  uses %s but it is declared at line %d - PLANC is '
                            'single pass' % (path, n, name, at))
 
+    # ---- a MODULE-LEVEL VARIABLE is single pass too -----------------------------
+    #
+    # MEASURED 2026-08-26 and it cost a whole build cycle on D100. buildTellTo
+    # sat beside the routine it resembled, near the top of the file, and used
+    # two arrays declared with the window state 900 lines further down. PLANC
+    # answered
+    #
+    #     1629 (944)/BUILDTELLT *** ERROR - NOT PREVIOUSLY DECLARED "WINLABLEN"
+    #     1629 (944)/BUILDTELLT *** ERROR - EXPECTS ":" ILLEGAL SYNTAX "("
+    #
+    # and the second line is the trap: it blames a BRACKET, so the eye goes to
+    # the argument list rather than to where the array is declared.
+    #
+    # The rule above catches this for ROUTINES and did not for VARIABLES, which
+    # is the whole reason it got through. Only declarations at MODULE level are
+    # considered - a local is scoped to its routine and cannot be used above it
+    # anyway.
+    modvar = {}
+    for i, line in enumerate(lines):
+        # Module level means one indent step. A local sits deeper than that.
+        m = re.match(r'    (?:BYTES|INTEGER|BOOLEAN|REAL)'
+                     r'(?:\s+ARRAY)?\s*:\s*(\w+)', line)
+        if m:
+            modvar.setdefault(m.group(1).upper(), i + 1)
+
+    for n, line, stripped in code_lines():
+        if re.match(r'\s*(?:ROUTINE|PROGRAM)\b', line):
+            continue
+        if re.match(r'    (?:BYTES|INTEGER|BOOLEAN|REAL)', line):
+            continue
+        scan = mask_strings(stripped)
+        for name, at in modvar.items():
+            if n < at and re.search(r'\b' + re.escape(name) + r'\b', scan, re.I):
+                out.append('%s:%d  uses %s but it is declared at line %d - PLANC is '
+                           'single pass for VARIABLES too, and the error blames a '
+                           'bracket' % (path, n, name, at))
+
     # ---- a guard that sets a flag NOBODY READS is a silencer, not a guard -------
     #
     # MEASURED 2026-08-21. The chat client's idleSleep did exactly this:
