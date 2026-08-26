@@ -2693,6 +2693,38 @@ $INCLUDE screen
     ENDROUTINE
 
 
+    % HOW MANY NAMES ARE IN A /who ANSWER.
+    %
+    % The server sends them space separated - "TESTER SYSTEM@SKOGEN
+    % SYSTEM@VIDDA" - so counting the names is counting the runs of non-space.
+    % Nothing is parsed beyond that: the client does not care what a name looks
+    % like, only how many there are.
+    %
+    % IT COUNTS PEOPLE ON OTHER MACHINES TOO, which is what "here" should mean
+    % in a room that spans machines - the same answer /who itself gives.
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER) : countNames(at, n)
+        INTEGER : i
+        INTEGER : seen
+        INTEGER : inWord
+
+        0 =: seen
+        0 =: inWord
+        IF n < 1 THEN
+            0 RETURN
+        ENDIF
+        FOR i IN 0:n - 1 DO
+            IF inBuf(at + i) = spaceByte(0) THEN
+                0 =: inWord
+            ELSE
+                IF inWord = 0 THEN
+                    seen + 1 =: seen
+                ENDIF
+                1 =: inWord
+            ENDIF
+        ENDFOR
+        seen RETURN
+    ENDROUTINE
+
     ROUTINE VOID, BOOLEAN : uiArrived
         INTEGER : kind
         INTEGER : nameLength
@@ -2770,6 +2802,10 @@ $INCLUDE screen
 
         % ---- who came and went -----------------------------------------
         IF kind = kJoined THEN
+            % ONE MORE, WITHOUT ASKING. Asking the server on every arrival
+            % would put a letter on the wire for every join in the room, and
+            % the next /who corrects any drift anyway.
+            hereCount + 1 =: hereCount
             uiClear
             uiFrom(2, nameLength)
             uiWord(' has joined')
@@ -2778,6 +2814,12 @@ $INCLUDE screen
         ENDIF
 
         IF kind = kLeft THEN
+            % ONE FEWER, AND NEVER BELOW ZERO. A leave can arrive for somebody
+            % this client never saw join - it joined after them - and counting
+            % down past zero would show a negative in the status line.
+            IF hereCount > 0 THEN
+                hereCount - 1 =: hereCount
+            ENDIF
             uiClear
             uiFrom(2, nameLength)
             uiWord(' has left')
@@ -2819,6 +2861,11 @@ $INCLUDE screen
         % and are not parsed by anything here. They wrap across rows exactly
         % as a long sentence does.
         IF kind = kWho THEN
+            % THE COUNT IS TAKEN FROM THE ANSWER, not kept by this client.
+            % Whatever the server says is right, and it is right again every
+            % time somebody asks - so a count that has drifted repairs itself
+            % rather than needing to be got right for ever.
+            countNames(textAt, textLength) =: hereCount
             uiClear
             uiWord('here: ')
             uiFrom(textAt, textLength)
@@ -2872,6 +2919,8 @@ $INCLUDE screen
 
     ROUTINE VOID, VOID : showArrived
         INTEGER : kind, nameLength, textLength, textAt, i
+        % Only the screen path uses this - the /who it asks for on the way in.
+        INTEGER : length
         % Only used by the kRenamed branch: is this rename about US?
         BOOLEAN : sameAsOurs
         INTEGER : newLen
@@ -2972,6 +3021,17 @@ $INCLUDE screen
                     drawAll
                     flush
                 ENDIF
+            ENDIF
+
+            % ASK WHO IS HERE, ONCE, so the status line starts out TRUE.
+            %
+            % The welcome is the first moment there is a seat to ask from. Only
+            % on a screen: the line renderer has no status line to fill, and an
+            % unasked-for /who answer printed at a user who did not type one
+            % would be noise.
+            IF screenOn THEN
+                buildOwn(kWho, 0) =: length
+                sendToServer(length)
             ENDIF
 
             % SAY WHO YOU ARE, ONCE, AND ONLY NOW THAT IT IS TRUE. The server
