@@ -9,7 +9,55 @@ ND-500 monitor-call family (`410B-427B`) dispatched through the S3SM5 numeric ve
 servicing point is **NOT LOCATED / UNVERIFIED**. All addresses/values are **octal** unless a
 `0x` prefix or `(dec)` marks them hex/decimal.
 
-> ## CLOSED BY LIVE MEASUREMENT, 2026-08-24 — it is NOT serviced anywhere
+> ## ❌ REOPENED 2026-08-26 — THE "CLOSED" VERDICT BELOW IS REFUTED. READ THIS FIRST.
+>
+> **422B GSWSP IS SERVICED ON AN L PACK.** Measured on the Gate5R lane (classic 3022, real
+> SINTRAN III VSX/500 L, real 5MPM mailbox), `CAT-CAT5-B06` with no command input, two calls:
+>
+> ```
+> #103  ret=0x0801E587  SizeInBytes=0x00020801  LogSegmentNo=0  ->  RetLogSegmentNo=0  K=0
+> #775  ret=0x0801DF2A  SizeInBytes=0x00020801  LogSegmentNo=0  ->  RetLogSegmentNo=2  K=0
+> ```
+>
+> **Neither answers `K=1` / `0x20B`, and the second is a successful selection.** So *"nothing
+> services this call in SINTRAN III VSX/500 L"* is wrong. The empty `S3SM5` slot `0x0284` is
+> real — it is just **not the whole route**, and the struck-out *"serviced elsewhere (ND-100
+> back-end, UNCONFIRMED)"* hop below should come back.
+>
+> **The consequence is refuted too:** *"CPU-STAT cannot complete on an L-version pack"* — CPU-STAT
+> runs to a **full report** on this lane, and `LED-FORTRAN-A01`, `LINKER-B01` and the `PLANC`
+> compiler all run as well.
+>
+> **THE ANSWER CAME FROM REAL SINTRAN, verified rather than assumed.** The round trip is the proof
+> and a C#-emulated MON produces none of it — no monitor-call stop, no context switch, no restart
+> record, no mask-driven write-back:
+>
+> ```
+> #103  MON 422B argc=3 ret=0x0801E587 | UCODE-ROLE=Forwarded   <- printed by the bridge
+> #104  CONTEXT SAVE X5CPU=1 P=0x0801E587 (monitor-call stop)
+> #105  CONTEXT SWITCH X5CPU=1 -> 0
+> #115  RESTART write-back: @0x08022CFC:=0x00000000
+> #116  RESTART K=0 FUNCV=0x00000000
+> ```
+>
+> ⚠️ **Do NOT rely on `SINTRAN_EMULATION` being compiled out to prove a MON reached SINTRAN.** The
+> symbol **is** defined (`Emulated.HW.csproj:16`), so the C# MON layer is compiled in. What
+> actually guards it is a **runtime precedence** — `CpuND500.IndirectSegments.cs:188` calls the
+> mailbox sink FIRST and only falls through to the `#if SINTRAN_EMULATION` block if the sink
+> **declines**. Comments in the harness claiming the bridge "disables it outright" describe an
+> intent, not a check. Prove it from the round-trip records above.
+>
+> **STILL OPEN:** call 1 answers `K=0`, `FUNCV=0`, write-back carrying `0`. That matches neither
+> the documented `K=1`/1013B for an unserviced call nor our own C# handler. `RetLogSegmentNo=0` is
+> not a selection a scratch grant can make (`LogSegmentNo=0` on input means *"you pick"*, so the
+> input sentinel and the failure value are the same number). Whether SINTRAN genuinely reports
+> success-selecting-nothing, or the answer is mistranslated somewhere, is **unresolved** — the next
+> step is logging the RAW `KFLIP`/`FUNCV`/`NUMPA` halfwords off the wire rather than the derived
+> values.
+>
+> The refuted verdict is kept below, unedited, so it is not re-derived.
+
+> ## ~~CLOSED BY LIVE MEASUREMENT, 2026-08-24 — it is NOT serviced anywhere~~ (REFUTED, see above)
 >
 > The "serviced elsewhere (ND-100 back-end, UNCONFIRMED)" hop below can be **struck out**. On a
 > live run of this exact image, a real ND-500 domain issued MON 422B and SINTRAN answered it with
