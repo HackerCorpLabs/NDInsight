@@ -1,0 +1,65 @@
+% =========================================================================
+% SPLITA - the DATA module.
+%
+% THE QUESTION THIS PROGRAM EXISTS TO ANSWER: can two separately compiled
+% PLANC modules share MUTABLE MODULE-LEVEL DATA across a BRF boundary, so that
+% CHAT.PLNC can be split up and only the edited part recompiled?
+%
+% The manual says yes - section 8.3, "Access from one module to the data and
+% routines of another is controlled by the two PLANC statements: EXPORT and
+% IMPORT", with an example that exports an INTEGER. But the manual also says a
+% name is unique in only SEVEN characters across a BRF export, and it says
+% nothing about ARRAYS or BYTES crossing the boundary, which is most of what
+% the chat client's shared state actually is.
+%
+% So this proves three things, and each is a separate way the split could fail:
+%
+%   1. a scalar INTEGER written in one module and read in the other;
+%   2. a BYTES ARRAY written in one module and read in the other - the case
+%      the manual's example does NOT cover;
+%   3. a ROUTINE in this module called from the other.
+%
+% If the counter comes back 43 and the text comes back HELLO, all three work
+% and the split is safe to do mechanically.
+% =========================================================================
+MODULE splita
+
+    % EXPORTED - these are the names the other module may reach.
+    %
+    % SEVEN CHARACTERS is the limit across a BRF boundary. shrCnt and shrTxt
+    % are six, deliberately: the real split has twelve names that collide at
+    % seven and they will have to be renamed, so this test does not pretend
+    % the limit is not there.
+    EXPORT shrCnt
+    EXPORT shrTxt
+    EXPORT shrBmp
+
+    % A scalar, written by BOTH modules.
+    INTEGER : shrCnt := 0
+
+    % A byte array, filled here and read there. This is the case that matters
+    % most - the chat client's shared state is nearly all arrays.
+    BYTES : shrTxt(0:15)
+
+    % Put something in the array, from THIS module.
+    ROUTINE VOID, VOID : shrBmp
+        % DECLARED BARE, ASSIGNED AFTER. A PLANC local may not carry an initial
+        % value: the compile fails, the LINK SUCCEEDS anyway, and the program then
+        % runs with the name never set. planc-lint caught it before it cost a build,
+        % which is exactly what that rule is for.
+        BYTES : word(0:4)
+        INTEGER : i
+
+        'HELLO' =: word
+
+        % 'HELLO' is five characters and a PLANC string literal subscripts
+        % from ZERO, so 0:4 is the whole of it.
+        FOR i IN 0:4 DO
+            word(i) =: shrTxt(i)
+        ENDFOR
+
+        % And prove a scalar written HERE is seen THERE.
+        shrCnt + 1 =: shrCnt
+    ENDROUTINE
+
+ENDMODULE

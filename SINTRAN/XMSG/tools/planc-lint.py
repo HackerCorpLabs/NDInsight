@@ -239,6 +239,17 @@ def check(path):
     for n, line, stripped in code_lines():
         if re.match(r'\s*(?:ROUTINE|PROGRAM)\b', line):
             continue
+        # AN EXPORT OR IMPORT LIST IS NOT A USE. It names what crosses a module
+        # boundary, and the manual's own example in 8.3 puts EXPORT ABOVE the
+        # declaration it names:
+        #     EXPORT x
+        #     IMPORT REAL : y
+        #     INTEGER : x
+        # Treating those as forward references made this checker reject a
+        # correctly written module, and would have blocked splitting a source
+        # into separately compiled parts altogether.
+        if re.match(r'\s*(?:EXPORT|IMPORT)\b', line):
+            continue
         # BLANK THE QUOTED TEXT FIRST. A routine called UPPER made this rule
         # report the word "Upper" inside the help screen's own sentence as a
         # forward call - a false alarm that sends you rearranging perfectly
@@ -278,6 +289,17 @@ def check(path):
 
     for n, line, stripped in code_lines():
         if re.match(r'\s*(?:ROUTINE|PROGRAM)\b', line):
+            continue
+        # AN EXPORT OR IMPORT LIST IS NOT A USE. It names what crosses a module
+        # boundary, and the manual's own example in 8.3 puts EXPORT ABOVE the
+        # declaration it names:
+        #     EXPORT x
+        #     IMPORT REAL : y
+        #     INTEGER : x
+        # Treating those as forward references made this checker reject a
+        # correctly written module, and would have blocked splitting a source
+        # into separately compiled parts altogether.
+        if re.match(r'\s*(?:EXPORT|IMPORT)\b', line):
             continue
         if re.match(r'    (?:BYTES|INTEGER|BOOLEAN|REAL)', line):
             continue

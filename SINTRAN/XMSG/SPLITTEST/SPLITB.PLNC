@@ -1,0 +1,60 @@
+% =========================================================================
+% SPLITB - the PROGRAM module, compiled SEPARATELY from SPLITA.
+%
+% It reaches SPLITA's data and its routine through IMPORT. Nothing here is
+% declared twice: the storage lives in SPLITA and this module only names it.
+%
+% WHAT A FAILURE LOOKS LIKE, so the result is not read wrongly:
+%
+%   "NOT PREVIOUSLY DECLARED"     the IMPORT form is wrong;
+%   an undefined entry at LINK    the name did not survive the BRF boundary
+%                                 (check the seven-character limit);
+%   counter reads 0, text blank   two SEPARATE copies of the data were
+%                                 allocated - each module got its own, which
+%                                 would mean the split cannot share state at
+%                                 all and CHAT.PLNC must pass it in parameters;
+%   counter 43, text HELLO        all three work.
+%
+% 43 is deliberate: 42 written here plus 1 added inside SPLITA's routine, so a
+% single number proves BOTH directions - this module wrote it, that module
+% incremented it, and this module read the result back.
+% =========================================================================
+MODULE splitb
+
+    % The data lives in SPLITA. These say so; they do not allocate anything.
+    IMPORT (INTEGER : shrCnt)
+    IMPORT (BYTES : shrTxt)
+    IMPORT (ROUTINE VOID, VOID : shrBmp)
+
+    INTEGER ARRAY : stack(0:600)
+
+    PROGRAM : splmain
+        INTEGER : i
+        BYTES : oneCh(0:0)
+
+        INISTACK stack
+
+        % 1. WRITE A SCALAR HERE.
+        42 =: shrCnt
+
+        % 2. CALL A ROUTINE OVER THERE. It fills the array and adds one to the
+        %    counter, so both directions are exercised by one call.
+        shrBmp
+
+        % 3. READ BOTH BACK HERE.
+        OUTPUT(1, 'AL', 'counter ')
+        OUTPUT(1, 'I6', shrCnt)
+        OUTPUT(1, 'AL', '  text ')
+
+        % Printed a byte at a time through a one-element BYTES, because 'ALn'
+        % formats a STRING and handing it a raw byte prints the byte's NUMBER.
+        FOR i IN 0:4 DO
+            shrTxt(i) =: oneCh(0)
+            OUTPUT(1, 'AL1', oneCh)
+        ENDFOR
+
+        OUTPUT(1, 'AL', '$')
+        OUTPUT(1, 'AL', 'expected: counter 43, text HELLO$')
+    ENDROUTINE
+
+ENDMODULE

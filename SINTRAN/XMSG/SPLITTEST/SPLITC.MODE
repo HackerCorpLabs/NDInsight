@@ -1,0 +1,52 @@
+@cc ===========================================================================
+@cc SPLITC - compile TWO modules SEPARATELY and link them into one program.
+@cc
+@cc This is the whole point of the exercise: each COMPILE produces its own BRF,
+@cc and the linker joins them. If this works, CHAT.PLNC can be split so that
+@cc editing one part recompiles one part - twenty minutes becomes a few.
+@cc
+@cc THE ORDER INSIDE THE LINKER IS: the program first, THEN the libraries that
+@cc satisfy it. Same rule as the chat build.
+@cc ===========================================================================
+
+@cc --- clear the old build; NO SUCH FILE NAME on a first run is expected -----
+@DELETE-FILE SPLIT:PROG
+@DELETE-FILE SPLITA:BRF
+@DELETE-FILE SPLITB:BRF
+@DELETE-FILE SPLITA:LIST
+@DELETE-FILE SPLITB:LIST
+
+@cc --- compile each module on its own ---------------------------------------
+@cc Quoting: no quotes means the file must already exist, "quotes" means create.
+@PLANC-100-F00
+COMPILE SPLITA:PLNC,"SPLITA:LIST","SPLITA"
+EXIT
+
+@PLANC-100-F00
+COMPILE SPLITB:PLNC,"SPLITB:LIST","SPLITB"
+EXIT
+
+@cc --- link the two objects together ----------------------------------------
+@cc SPLITB holds the PROGRAM, so it goes first; SPLITA is what it needs.
+@cc LIST-ENTRIES-UNDEFINED is the test that every cross-module name resolved -
+@cc a name that did not survive the seven-character BRF limit shows up here and
+@cc NOWHERE else.
+@BRF-LINKER-C01
+PROGRAM-FILE "SPLIT"
+LOAD SPLITB
+LOAD SPLITA
+LIBRARY-MODE ON
+LOAD PLANC-1BANK-F00
+LIST-ENTRIES-UNDEFINED
+EXIT
+
+@cc ===========================================================================
+@cc Built SPLIT:PROG. Run it with @SPLIT
+@cc
+@cc   counter 43, text HELLO   -> shared data works, the split is safe
+@cc   counter 0 or blank text  -> each module got its OWN copy; the split
+@cc                               cannot share state and CHAT.PLNC would have
+@cc                               to pass it in parameters instead
+@cc
+@cc Check BOTH listings for "*** ERROR" before believing anything.
+@cc ===========================================================================
