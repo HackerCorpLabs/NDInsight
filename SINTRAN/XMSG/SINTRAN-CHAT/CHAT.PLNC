@@ -1867,15 +1867,121 @@ $INCLUDE screen
     % roughly 37000 words spare - so the cache can be three times the size and
     % still leave room. Ask the linker rather than guessing: the FREE line is
     % printed on every build and is the only number that matters.
-    CONSTANT cacheLines=300
+    % =====================================================================
+    % WINDOWS - ALTERNATIVE CONTENTS FOR ONE RECTANGLE
+    %
+    % Window 1 is THE ROOM. Windows 2 upward are one-to-one conversations -
+    % the `=KARI' entries the mockup's bar always showed and nothing stood
+    % behind. They are NOT overlapping windows and there is deliberately no
+    % window manager here: only one is ever painted, so there is no clipping,
+    % no stack order and no three-places-must-agree problem. TESTUI already
+    % paid for that lesson.
+    %
+    % EACH WINDOW OWNS A SLICE OF ONE ARRAY rather than having an array of its
+    % own. The slice is (w - 1) * winLines lines long, so the ring arithmetic
+    % is unchanged - it just starts somewhere other than zero. One array also
+    % means the memory cost is decided once, here, instead of growing every
+    % time a window is added.
+    CONSTANT maxWins=4
+    CONSTANT winLines=75
+    CONSTANT cacheLines=300      % maxWins * winLines - the whole array
+
     BYTES : cache(0:23099)
-    INTEGER : cacheCount := 0    % lines held, 0..cacheLines
+
+    % PER WINDOW, all of it. An earlier draft kept the room's counters as
+    % scalars and only the conversations in arrays; that meant every routine
+    % had two paths and the room's path was the one that got tested.
+    INTEGER ARRAY : winCount(0:4)   % lines held in that window
+    INTEGER ARRAY : winFirst(0:4)   % slot holding its OLDEST line
+    INTEGER ARRAY : winView(0:4)    % how far back it is paged, 0 = live
+    INTEGER ARRAY : winUnread(0:4)  % lines arrived since it was last looked at
+    INTEGER ARRAY : winUsed(0:4)    % 0 = this window does not exist yet
+    INTEGER ARRAY : winBell(0:4)    % your nick appeared - the * on the bar
+
+    % EVERY LINE EVER ADDED TO THAT WINDOW, counted. Not the number held -
+    % this one never goes down, so it gives each line a number of its own that
+    % stays with it while it moves up the pane.
+    %
+    % That is what lets the painter tell "this row already shows this line"
+    % from "this row shows a different line that happens to sit in the same
+    % ring slot" - a slot number alone cannot, because the ring reuses slots.
+    INTEGER ARRAY : winTotal(0:4)
+
+    % What the bar calls it. The room's label is the room name; a conversation
+    % is labelled with the other person, and the = is added when it is drawn
+    % rather than stored, so the name stays comparable with one that arrives.
+    BYTES : winLabel(0:79)          % 5 windows x 16 characters
+    INTEGER ARRAY : winLabLen(0:4)
+
+    % WHICH ONE IS ON SCREEN. Everything that paints reads this and nothing
+    % else decides it.
+    INTEGER : curWin := 1
+
+    % Kept as the names the rest of the file already uses, so that only the
+    % routines that TOUCH the ring had to change. They are the current
+    % window's counters, copied in and out around anything that moves them.
+    INTEGER : cacheCount := 0    % lines held, 0..winLines
     INTEGER : cacheFirst := 0    % slot holding the OLDEST line
 
     % HOW FAR BACK WE ARE LOOKING, counted in lines from the newest.
     % ZERO MEANS LIVE. Keeping it as a distance rather than an absolute slot
     % is what lets a new arrival leave it alone without any adjustment.
     INTEGER : viewFrom := 0
+
+    % THE LAST /tell, KEPT, because the server's confirmation does not carry
+    % it back. kDirSent says only WHO it reached, so if the text were not held
+    % here the sent half of a conversation could not be shown at all - the
+    % window would fill with one side of it and read as a row of unanswered
+    % messages.
+    %
+    % Overwritten by every /tell. Two sent before either is confirmed would
+    % show the second text against both, which is wrong but harmless and
+    % vanishingly rare on a link this fast; holding a queue for it would cost
+    % more than the fault does.
+    BYTES : lastTell(0:76)
+    INTEGER : lastTellLen := 0
+
+    % WHAT IS ACTUALLY ON EACH ROW OF THE PANE, by line number.
+    %
+    % THE POINT OF THIS IS NOT TO PAINT WHAT IS ALREADY THERE. Repainting all
+    % seventeen rows for one arriving line is about 1300 characters - well over
+    % a second on a real 9600 baud line - and it makes the whole pane flicker
+    % for a change of one row.
+    %
+    % VTM HAS NO SCROLL VERB. There is no SCROLL, ROLL, MARGIN, REGION or PAGE
+    % anywhere in it, and the API reference says in as many words that a
+    % scrolling pane means keeping your own buffer and repainting the lines. So
+    % the pane cannot be told to shift; what it CAN do is skip every row whose
+    % content has not changed, which is all of them on a screen that is still
+    % filling and none of them once it is full and shifting.
+    %
+    % Minus one means "blank". Zero is a real line number.
+    INTEGER ARRAY : rowShown(0:16)
+    INTEGER : shadowWin := 0     % which window the shadow describes
+
+    % ONE ROW OF SPACES, for a pane row with no line on it. Held rather than
+    % cleared with VTCREC so that blanking a row costs exactly what painting
+    % one costs, and goes through the same single write.
+    BYTES : blankRow := '                                                                             '
+
+    % WHAT THE STATUS LINE LAST SHOWED. Same rule as rowShown: a region that
+    % has not changed is not painted. The status line is redrawn on EVERY
+    % arriving message, and it changes only when the clock ticks a minute, the
+    % count moves, the room changes or scrollback is entered - so most of
+    % those repaints put back exactly what was already there.
+    INTEGER : lastMin := 0 - 1
+    INTEGER : lastHour := 0 - 1
+    INTEGER : lastCount := 0 - 1
+    INTEGER : lastView := 0 - 1
+    INTEGER : lastRemote := 0 - 1
+    INTEGER : lastRoomLen := 0 - 1
+    BYTES : lastRoom(0:19)
+
+    % THE TYPED LINE ONLY CHANGES WHEN IT IS TYPED IN. Everything else that
+    % repaints still has to put the CURSOR back - SINTRAN echoes at wherever
+    % the cursor happens to be - but parking the cursor costs a few bytes and
+    % rewriting the whole row costs eighty.
+    BOOLEAN : inputDirty := TRUE
 
     % One line under construction.
     BYTES : lineBuf(0:76)
@@ -1992,6 +2098,52 @@ $INCLUDE screen
         digits(v MOD 10) =: lineBuf(at + 1)
     ENDROUTINE
 
+    % A WHOLE NUMBER INTO lineBuf, no leading zeros, and it answers how many
+    % characters it used so the caller can go on writing after it.
+    %
+    % put2 above is fixed at two digits because a clock field is always two.
+    % An unread count is not: it is usually one digit, and a window left alone
+    % all afternoon can reach four. Padding it to a fixed width would put a
+    % ragged gap in the middle of the bar.
+    %
+    % CLAMPED AT 9999. Nothing sensible counts higher, and a fifth digit would
+    % need a fifth byte in the scratch below - which PLANC would not check.
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER) : putNum(at, value)
+        INTEGER : v
+        INTEGER : n
+        INTEGER : i
+        BYTES : scratch(0:3)
+
+        value =: v
+        IF v < 0 THEN
+            0 =: v
+        ENDIF
+        IF v > 9999 THEN
+            9999 =: v
+        ENDIF
+
+        % Digits come out backwards, so they are held and then written in
+        % reverse. A zero has to be handled on its own - the loop below would
+        % produce nothing at all for it.
+        0 =: n
+        IF v = 0 THEN
+            digits(0) =: lineBuf(at)
+            1 RETURN
+        ENDIF
+
+        DO
+            WHILE v > 0
+            digits(v MOD 10) =: scratch(n)
+            n + 1 =: n
+            v / 10 =: v
+        ENDDO
+
+        FOR i IN 1:n DO
+            scratch(n - i) =: lineBuf(at + i - 1)
+        ENDFOR
+        n RETURN
+    ENDROUTINE
+
     % Blank the whole line buffer. Every stored line is PADDED to full width
     % so a short line painted over a long one cannot leave the old tail
     % behind - that removes the need for a separate erase before each paint.
@@ -2101,6 +2253,96 @@ $INCLUDE screen
         ENDFOR
     ENDROUTINE
 
+    % THE CURRENT WINDOW'S COUNTERS GO BACK INTO ITS ROW.
+    %
+    % cacheCount, cacheFirst and viewFrom are the WORKING copies - every
+    % routine that paints or adds reads those three names. Keeping them as
+    % scalars is what let windows be added without touching any of that code.
+    % The price is that they must be put back before another window is loaded,
+    % and that is what these two routines are for. They are always used as a
+    % pair; a save without a load leaves two windows sharing one ring.
+    ROUTINE VOID, VOID : winSave
+        cacheCount =: winCount(curWin)
+        cacheFirst =: winFirst(curWin)
+        viewFrom   =: winView(curWin)
+    ENDROUTINE
+
+    % MAKE A WINDOW THE WORKING ONE. This does NOT clear its unread count -
+    % it is used both by a person switching to a window and by the delivery
+    % path stepping into one for long enough to drop a line in. Only the
+    % first of those means "you have seen it", so the clearing lives in
+    % winGo where the person actually is.
+    ROUTINE VOID, VOID (INTEGER) : winUse(w)
+        w =: curWin
+        winCount(w) =: cacheCount
+        winFirst(w) =: cacheFirst
+        winView(w)  =: viewFrom
+    ENDROUTINE
+
+    % What the bar calls a window. Stored WITHOUT the leading = so it can be
+    % compared with a name that arrives off the wire; the = is drawn.
+    ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER) : winName(w, at, n)
+        INTEGER : i
+        INTEGER : take
+
+        n =: take
+        IF take > 16 THEN
+            16 =: take
+        ENDIF
+        IF take < 0 THEN
+            0 =: take
+        ENDIF
+        IF take > 0 THEN
+            FOR i IN 1:take DO
+                inBuf(at + i - 1) =: winLabel(w * 16 + i - 1)
+            ENDFOR
+        ENDIF
+        take =: winLabLen(w)
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % The same message, but addressed to a WINDOW rather than to a name the
+    % user typed.
+    %
+    % This is what makes a conversation window behave like a conversation: the
+    % target comes from the window's own label, so a plain line typed there
+    % goes to that person and nowhere else. buildTell above cannot serve this
+    % because its target is a run of characters inside `typed`, and here the
+    % whole of `typed` is the message.
+    %
+    % The wire shape is identical - "TARGET/message" - so a server that has
+    % never heard of windows sees an ordinary direct message.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER) : buildTellTo(w, msgLen)
+        INTEGER : i, at, tgtLen
+
+        winLabLen(w) =: tgtLen
+
+        kDirect =: outBuf(0)
+        lenMyName =: outBuf(1)
+        2 =: at
+        FOR i IN 1:lenMyName DO
+            myName(i - 1) =: outBuf(at)
+            at + 1 =: at
+        ENDFOR
+
+        0 =: outBuf(at)
+        tgtLen + 1 + msgLen =: outBuf(at + 1)
+        at + 2 =: at
+
+        FOR i IN 1:tgtLen DO
+            winLabel(w * 16 + i - 1) =: outBuf(at)
+            at + 1 =: at
+        ENDFOR
+        slashByte(0) =: outBuf(at)
+        at + 1 =: at
+        FOR i IN 1:msgLen DO
+            typed(i - 1) =: outBuf(at)
+            at + 1 =: at
+        ENDFOR
+        at RETURN
+    ENDROUTINE
+
     % EMPTY THE ROOM. Used when this client moves to another one.
     ROUTINE VOID, VOID : cacheClear
         0 =: cacheCount
@@ -2113,11 +2355,16 @@ $INCLUDE screen
         INTEGER : i
         INTEGER : base
 
-        IF cacheCount >= cacheLines THEN
+        % BOUNDED BY winLines, NOT cacheLines. cacheLines is the whole array
+        % across every window; a window counting up to it would walk straight
+        % through its neighbour's lines. PLANC checks no bound, so nothing
+        % would say so - the other window's history would simply start
+        % changing under it.
+        IF cacheCount >= winLines THEN
             % Full: the oldest slot is reused and becomes the newest.
             cacheFirst =: slot
             cacheFirst + 1 =: cacheFirst
-            IF cacheFirst >= cacheLines THEN
+            IF cacheFirst >= winLines THEN
                 0 =: cacheFirst
             ENDIF
         ELSE
@@ -2125,7 +2372,15 @@ $INCLUDE screen
             cacheCount + 1 =: cacheCount
         ENDIF
 
-        slot * lineWide =: base
+        % ONE MORE LINE HAS EXISTED IN THIS WINDOW, ever. This is what gives
+        % the line a number the painter can compare a row against - see
+        % rowShown. It counts lines, not messages, because a wrapped message
+        % becomes several lines and each occupies a row of its own.
+        winTotal(curWin) + 1 =: winTotal(curWin)
+
+        % The slice this window owns starts here. The slot above is WITHIN the
+        % window; this is the only place the two are added.
+        ((curWin - 1) * winLines + slot) * lineWide =: base
         FOR i IN 0:lineWide - 1 DO
             lineBuf(i) =: cache(base + i)
         ENDFOR
@@ -2147,13 +2402,16 @@ $INCLUDE screen
 
     % Which cache slot holds the line at a given position, counted from the
     % OLDEST held line. The ring is unwound in ONE place, here.
+    % ABSOLUTE, so the caller can index the array straight away. It wraps
+    % WITHIN the window and only then adds the window's offset - the other way
+    % round would wrap one window's last line onto the next window's first.
     ROUTINE VOID, INTEGER (INTEGER) : slotAt(index)
         INTEGER : s
         cacheFirst + index =: s
-        IF s >= cacheLines THEN
-            s - cacheLines =: s
+        IF s >= winLines THEN
+            s - winLines =: s
         ENDIF
-        s RETURN
+        (curWin - 1) * winLines + s RETURN
     ENDROUTINE
 
     % =====================================================================
@@ -2253,9 +2511,18 @@ $INCLUDE screen
         INTEGER : idx
         INTEGER : base
         INTEGER : st
+        INTEGER : oldest
+        INTEGER : want
 
+        % NO BLANKET CLEAR ANY MORE.
+        %
+        % VTCREC over the whole pane blanked seventeen rows and then drew
+        % seventeen back, every time one line arrived - which is both the cost
+        % and the flicker. Every stored line is PADDED to the full width, so
+        % writing one straight over another leaves nothing of the old one
+        % behind and the erase was never needed. Rows with no line get an
+        % explicit blank below, and only when they are not already blank.
         winEnter(midRow, 1, midHigh, scrWide)
-        VTCREC(firstMsgRow, textCol, firstMsgRow + msgRows - 1, textCol + lineWide - 1) =: st
 
         % Which held line goes on the top row. viewFrom counts BACK from the
         % newest, so at viewFrom = 0 the last msgRows lines are shown.
@@ -2269,18 +2536,59 @@ $INCLUDE screen
             msgRows =: shown
         ENDIF
 
-        IF shown > 0 THEN
-            FOR i IN 0:shown - 1 DO
-                slotAt(first + i) =: idx
-                idx * lineWide =: base
-                % THE WIDTH IS PASSED, NOT LEFT AS 0. Width 0 means "the
-                % string's own length" and is right for a LITERAL; given a
-                % SUBARRAY of a big buffer it ran off the right-hand side and
-                % wiped borders a 77-character write could not reach.
-                bytdis(firstMsgRow + i, textCol, lineWide, &
-                       cache(base : base + lineWide - 1), '')
+        % THE SHADOW ONLY DESCRIBES ONE WINDOW. Line numbers are counted per
+        % window, so a row holding line 12 of the room and a row holding line
+        % 12 of a conversation would compare equal and the pane would keep
+        % somebody else's text. Switching windows throws the shadow away.
+        % INVALIDATE WITH A VALUE `want` CANNOT TAKE.
+        %
+        % This was minus one, and minus one is a REAL value - it is what want
+        % holds for a row with no line on it. So every blank row compared
+        % EQUAL to its shadow and was skipped, and switching windows left the
+        % previous window's text on screen beneath the new window's first
+        % line. MEASURED on D100 2026-08-26; it looked like two windows
+        % sharing one buffer, which is a far more alarming thing than it was.
+        %
+        % Minus two is never a row number and never means blank, so nothing
+        % can match it.
+        IF shadowWin >< curWin THEN
+            FOR i IN 0:msgRows - 1 DO
+                0 - 2 =: rowShown(i)
             ENDFOR
+            curWin =: shadowWin
         ENDIF
+
+        % The number of the oldest line still held. Everything below counts up
+        % from it, so each row can be named by the line that is on it.
+        winTotal(curWin) - cacheCount =: oldest
+
+        FOR i IN 0:msgRows - 1 DO
+            IF i < shown THEN
+                oldest + first + i =: want
+            ELSE
+                % No line for this row - it should be blank.
+                0 - 1 =: want
+            ENDIF
+
+            % ALREADY RIGHT? THEN LEAVE IT ALONE. This is the whole point: a
+            % pane that is still filling changes ONE row per arriving line, and
+            % a pane where nothing has moved changes none.
+            IF rowShown(i) >< want THEN
+                IF want < 0 THEN
+                    bytdis(firstMsgRow + i, textCol, lineWide, blankRow, '')
+                ELSE
+                    slotAt(first + i) =: idx
+                    idx * lineWide =: base
+                    % THE WIDTH IS PASSED, NOT LEFT AS 0. Width 0 means "the
+                    % string's own length" and is right for a LITERAL; given a
+                    % SUBARRAY of a big buffer it ran off the right-hand side
+                    % and wiped borders a 77-character write could not reach.
+                    bytdis(firstMsgRow + i, textCol, lineWide, &
+                           cache(base : base + lineWide - 1), '')
+                ENDIF
+                want =: rowShown(i)
+            ENDIF
+        ENDFOR
         winLeave
 
         % SHOW IT. VTM holds its output in a buffer and a terminal READ is what
@@ -2306,8 +2614,83 @@ $INCLUDE screen
     ROUTINE VOID, VOID : drawStatus
         INTEGER : st
         INTEGER : at
+        INTEGER : i
+        INTEGER : nowView
+        INTEGER : nowRemote
+        INTEGER : same
 
         MN113(cal)
+
+        % NOTHING ON IT CHANGED? THEN DO NOT PAINT IT.
+        %
+        % Called on every arriving message, and its content moves only when
+        % the clock ticks a minute, the count changes, the room changes or
+        % scrollback is entered or left. The rest of the time this put back
+        % exactly what was already there - eighty characters a message.
+        %
+        % The clock is compared to the MINUTE because that is all it shows.
+        % Comparing seconds would make it repaint every second for a display
+        % that cannot show the difference.
+        0 =: nowView
+        IF viewFrom > 0 THEN
+            1 =: nowView
+        ENDIF
+        0 =: nowRemote
+        IF sawRemote THEN
+            1 =: nowRemote
+        ENDIF
+
+        1 =: same
+        IF cal(2) >< lastMin THEN
+            0 =: same
+        ENDIF
+        IF cal(3) >< lastHour THEN
+            0 =: same
+        ENDIF
+        IF hereCount >< lastCount THEN
+            0 =: same
+        ENDIF
+        IF nowView >< lastView THEN
+            0 =: same
+        ENDIF
+        IF nowRemote >< lastRemote THEN
+            0 =: same
+        ENDIF
+        IF lenRoomName >< lastRoomLen THEN
+            0 =: same
+        ENDIF
+        IF same >< 0 THEN
+            % The NAME as well as its length - two rooms can be the same
+            % length, and a switch between them would otherwise leave the old
+            % name on the line.
+            IF lenRoomName > 0 THEN
+                FOR i IN 1:lenRoomName DO
+                    IF i <= 20 THEN
+                        IF roomName(i - 1) >< lastRoom(i - 1) THEN
+                            0 =: same
+                        ENDIF
+                    ENDIF
+                ENDFOR
+            ENDIF
+        ENDIF
+
+        IF same >< 0 THEN
+            RETURN
+        ENDIF
+
+        cal(2) =: lastMin
+        cal(3) =: lastHour
+        hereCount =: lastCount
+        nowView =: lastView
+        nowRemote =: lastRemote
+        lenRoomName =: lastRoomLen
+        IF lenRoomName > 0 THEN
+            FOR i IN 1:lenRoomName DO
+                IF i <= 20 THEN
+                    roomName(i - 1) =: lastRoom(i - 1)
+                ENDIF
+            ENDFOR
+        ENDIF
 
         winEnter(topRow, 1, topHigh, scrWide)
         VTCREC(2, 2, 2, scrWide - 1) =: st
@@ -2375,48 +2758,138 @@ $INCLUDE screen
         INTEGER : st
 
         winEnter(botRow, 1, botHigh, scrWide)
-        VTCREC(inpRow, 2, inpRow, scrWide - 1) =: st
-        bytdis(inpRow, 2, 0, '>', '')
-        IF typedLen > 0 THEN
-            bytdis(inpRow, inpCol, typedLen, typed(0:typedLen - 1), '')
+
+        % THE CURSOR IS PUT BACK WHATEVER HAPPENS, because SINTRAN echoes a
+        % typed character wherever the cursor was left and every repaint above
+        % moves it. That is a few bytes.
+        %
+        % THE ROW ITSELF IS ONLY REDRAWN WHEN IT CHANGED. It changes when
+        % somebody types, and not when a message arrives - and it was being
+        % cleared and rewritten on every single arrival.
+        IF inputDirty THEN
+            VTCREC(inpRow, 2, inpRow, scrWide - 1) =: st
+            bytdis(inpRow, 2, 0, '>', '')
+            IF typedLen > 0 THEN
+                bytdis(inpRow, inpCol, typedLen, typed(0:typedLen - 1), '')
+            ENDIF
+            FALSE =: inputDirty
         ENDIF
+
         VTPCUR(inpRow, inpCol + typedLen) =: st
         winLeave
     ENDROUTINE
 
-    % The window bar. DRAWN BUT INERT - multi-window is not built, and this
-    % is here so the layout is proved with it in place rather than having to
-    % find room for it later.
-    % THE WINDOW BAR - one window, and it says which.
+    % THE WINDOW BAR - every window that exists, and which one you are in.
     %
-    % It held a literal lifted straight out of the mockup: five room names and
-    % two people who did not exist. That was worse than empty, because a
-    % screen full of invented state looks finished when it is not.
+    % It once held a literal lifted straight out of the mockup: five room
+    % names and two people who did not exist. That was worse than empty,
+    % because a screen full of invented state looks finished when it is not.
+    % Everything on it now is read from the window table.
     %
-    % SO IT SHOWS WHAT IS TRUE, WHICH IS ONE WINDOW. There is exactly one
-    % conversation - the room this client is in - and the bar names it. When
-    % there are more, this is where they go; until then it is not pretending.
+    % Window 1 is the room. Window 2 upward are conversations and are drawn
+    % with a leading = , which is what tells a person called LOBBY apart from
+    % a room called LOBBY at a glance.
     %
-    % The number is there because a switching key will need one, and a bar
-    % that gains numbers later would move under the reader.
+    % THE CURRENT ONE IS IN BRACKETS rather than marked with a colour or a
+    % highlight. This terminal has attributes, but a bracket survives a
+    % screen-grab, a printer and a terminal that ignores them - and the whole
+    % bar has to stay readable on the worst terminal in the room.
+    %
+    %   [1 LOBBY]  2 =KARI 3*  4 =OLAV 12
+    %
+    % A number after a window is UNREAD LINES. A * means your own nick was
+    % said in it, which is the one thing worth interrupting for, so it is not
+    % folded into the count - a person scanning the bar looks for the star
+    % first and reads the numbers second.
     ROUTINE VOID, VOID : drawBar
         INTEGER : at
+        INTEGER : w
+        INTEGER : i
+        INTEGER : st
 
         winEnter(botRow, 1, botHigh, scrWide)
-        VTCREC(3, 2, 3, scrWide - 1) =: at
+        VTCREC(3, 2, 3, scrWide - 1) =: st
 
         blankLine
         0 =: at
-        at + putField(at, 3, '1 ') =: at
-        IF joined THEN
-            at + putField(at, 20, roomName(0:lenRoomName - 1)) =: at
-        ELSE
-            % NOT IN A ROOM IS A REAL STATE and it says so, rather than
-            % leaving a bare number with nothing after it.
-            at + putField(at, 20, 'no room yet') =: at
-        ENDIF
+        FOR w IN 1:maxWins DO
+            IF winUsed(w) >< 0 THEN
 
-        bytdis(3, 4, at, lineBuf(0:at - 1), '')
+                % CLAMPED AGAINST THE LINE BUFFER, not against a guess at how
+                % many windows fit. Four windows with sixteen-character names
+                % and four-digit counts would overrun 77 columns, and PLANC
+                % checks no bound - the write would simply carry on into
+                % whatever follows lineBuf.
+                IF at < lineWide - 24 THEN
+                    IF w = curWin THEN
+                        at + putField(at, 1, '[') =: at
+                    ELSE
+                        IF at > 0 THEN
+                            at + putField(at, 1, ' ') =: at
+                        ENDIF
+                    ENDIF
+
+                    digits(w) =: lineBuf(at)
+                    at + 1 =: at
+                    at + putField(at, 1, ' ') =: at
+
+                    IF w = 1 THEN
+                        IF joined THEN
+                            at + putField(at, lenRoomName, &
+                                roomName(0:lenRoomName - 1)) =: at
+                        ELSE
+                            % NOT IN A ROOM IS A REAL STATE and it says so,
+                            % rather than leaving a bare number with nothing
+                            % after it.
+                            at + putField(at, 11, 'no room yet') =: at
+                        ENDIF
+                    ELSE
+                        at + putField(at, 1, '=') =: at
+
+                        % COPIED BYTE BY BYTE RATHER THAN THROUGH putField.
+                        %
+                        % The putField form was
+                        %     at + putField(at, winLabLen(w), &
+                        %         winLabel(w * 16 : w * 16 + winLabLen(w) - 1)) &
+                        %         =: at
+                        % and it printed NOTHING while the label was plainly
+                        % there - a temporary diagnostic on this very line
+                        % showed winLabLen reading 9 for a stored "FJELL!BOB".
+                        % Three readings of the source did not explain it; the
+                        % measurement took one build.
+                        %
+                        % A subarray whose bounds are both computed from an
+                        % expression is the one thing that call did which
+                        % nothing else in this file does, and an explicit loop
+                        % removes the question entirely. It is also no slower:
+                        % putField copies a byte at a time too.
+                        IF winLabLen(w) > 0 THEN
+                            FOR i IN 1:winLabLen(w) DO
+                                winLabel(w * 16 + i - 1) =: lineBuf(at)
+                                at + 1 =: at
+                            ENDFOR
+                        ENDIF
+                    ENDIF
+
+                    % THE STAR FIRST, THEN THE COUNT - see the note above.
+                    IF winBell(w) >< 0 THEN
+                        at + putField(at, 1, '*') =: at
+                    ENDIF
+                    IF winUnread(w) > 0 THEN
+                        at + putField(at, 1, ' ') =: at
+                        at + putNum(at, winUnread(w)) =: at
+                    ENDIF
+
+                    IF w = curWin THEN
+                        at + putField(at, 1, ']') =: at
+                    ENDIF
+                ENDIF
+            ENDIF
+        ENDFOR
+
+        IF at > 0 THEN
+            bytdis(3, 3, at, lineBuf(0:at - 1), '')
+        ENDIF
         winLeave
     ENDROUTINE
 
@@ -2473,10 +2946,157 @@ $INCLUDE screen
         ENDIF
         bytdis(1, col, at, lineBuf(0:at - 1), '')
 
+        % A FULL REPAINT STARTS FROM NOTHING KNOWN. drawAll is only ever
+        % called when the whole screen has to be rebuilt, so anything the
+        % shadow believed about the pane is stale by definition.
+        0 =: shadowWin
+        TRUE =: inputDirty
+
+        % And the status line has just had its row wiped by the frame, so it
+        % must paint whatever it last showed.
+        0 - 1 =: lastMin
+
         drawStatus
         paintChat
         drawBar
         drawInput
+    ENDROUTINE
+
+    % =====================================================================
+    % WHICH WINDOW BELONGS TO A PERSON
+    %
+    % Answers an existing one if there is one, opens the lowest free one if
+    % not, and answers ZERO when every window is taken. Zero is a real answer
+    % and the callers deal with it by putting the line in the room instead -
+    % losing a private message because the bar was full would be the worst
+    % possible way to run out of a resource.
+    %
+    % THE COMPARISON IS EXACT, including case. Every name in this system comes
+    % from the server, which has already settled what a name looks like; a
+    % client that matched loosely would open a second window for the same
+    % person the first time somebody typed a name differently.
+    % =====================================================================
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER) : winFor(at, n)
+        INTEGER : w
+        INTEGER : i
+        INTEGER : same
+        INTEGER : take
+
+        n =: take
+        IF take > 16 THEN
+            16 =: take
+        ENDIF
+        IF take < 1 THEN
+            0 RETURN
+        ENDIF
+
+        % An existing conversation. Window 1 is the room and is never a match.
+        FOR w IN 2:maxWins DO
+            IF winUsed(w) >< 0 THEN
+                IF winLabLen(w) = take THEN
+                    1 =: same
+                    FOR i IN 1:take DO
+                        IF winLabel(w * 16 + i - 1) >< inBuf(at + i - 1) THEN
+                            0 =: same
+                        ENDIF
+                    ENDFOR
+                    IF same >< 0 THEN
+                        w RETURN
+                    ENDIF
+                ENDIF
+            ENDIF
+        ENDFOR
+
+        % A new one. Opened EMPTY rather than seeded with anything: the line
+        % that caused it to open is added by the caller, in the ordinary way,
+        % so there is only one path that ever puts a line in a window.
+        FOR w IN 2:maxWins DO
+            IF winUsed(w) = 0 THEN
+                1 =: winUsed(w)
+                0 =: winCount(w)
+                0 =: winFirst(w)
+                0 =: winView(w)
+                0 =: winUnread(w)
+                0 =: winBell(w)
+                winName(w, at, take)
+                w RETURN
+            ENDIF
+        ENDFOR
+
+        0 RETURN
+    ENDROUTINE
+
+    % =====================================================================
+    % SWITCHING WINDOWS
+    %
+    % The whole screen is repainted, not just the middle. The status line
+    % carries the room name and the bar carries the brackets, so painting only
+    % the middle would leave both of them describing the window you just left -
+    % and a header that disagrees with the text under it is worse than a slow
+    % repaint.
+    %
+    % A WINDOW THAT DOES NOT EXIST IS NOT AN ERROR. Typing /w 3 with three
+    % windows open is a normal thing to do while the third is being closed by
+    % somebody else, and refusing it loudly would put a notice in the room
+    % over a keystroke nobody meant anything by.
+    % =====================================================================
+    ROUTINE VOID, VOID (INTEGER) : winGo(w)
+        IF w < 1 THEN
+            RETURN
+        ENDIF
+        IF w > maxWins THEN
+            RETURN
+        ENDIF
+        IF winUsed(w) = 0 THEN
+            RETURN
+        ENDIF
+        IF w = curWin THEN
+            RETURN
+        ENDIF
+
+        % SAVE BEFORE LOAD, always. The two are a pair - see winSave.
+        winSave
+        winUse(w)
+
+        % LOOKED AT, so it is no longer unread and no longer ringing. This is
+        % the one path where that is true - see winUse.
+        0 =: winUnread(w)
+        0 =: winBell(w)
+
+        % ONLY WHAT CHANGED. Switching windows changes the pane, the status
+        % line and the bar - and nothing else. The frame, the title and the
+        % typed line are all exactly as they were, so drawAll would rub out
+        % twenty-four rows to alter three regions.
+        %
+        % This is TESTUI's rule and it is the one this file got wrong: put
+        % back what the change actually touched, never the whole screen.
+        IF screenOn THEN
+            paintChat
+            drawStatus
+            drawBar
+            drawInput
+            flush
+        ENDIF
+    ENDROUTINE
+
+    % The next window that exists, wrapping round. This is what a single key
+    % gets you: with two windows open it is a toggle, which is the case that
+    % matters most - one room and one person.
+    ROUTINE VOID, VOID : winNext
+        INTEGER : i
+        INTEGER : w
+
+        FOR i IN 1:maxWins DO
+            curWin + i =: w
+            DO
+                WHILE w > maxWins
+                w - maxWins =: w
+            ENDDO
+            IF winUsed(w) >< 0 THEN
+                winGo(w)
+                RETURN
+            ENDIF
+        ENDFOR
     ENDROUTINE
 
     % =====================================================================
@@ -2844,6 +3464,8 @@ $INCLUDE screen
         panelAdd('  /topic                show the room topic')
         panelAdd('  /topic <text>         set it')
         panelAdd('  /tell <name> <text>   a message to one person')
+        panelAdd('  /w <n>                go to window n  (ctrl-W cycles)')
+        panelAdd('  /close                close a conversation window')
         panelAdd('  /leave                leave the room')
         panelAdd('  /exit                 Exit chat program')
         panelAdd(' ')
@@ -2919,6 +3541,16 @@ $INCLUDE screen
         ENDIF
         winLeave
         TRUE =: panelUp
+
+        % THE SHADOW IS NOW A LIE. This window has just been painted straight
+        % over the pane, so the rows it covered no longer hold what rowShown
+        % says they do - and paintChat would skip them as "already correct",
+        % leaving the panel's remains on screen after it closed.
+        %
+        % Zeroing shadowWin makes the next paint redraw every row. That is the
+        % one case where a full pane repaint is right: something else really
+        % did overwrite it.
+        0 =: shadowWin
     ENDROUTINE
 
     % An answer that arrived as a message: a heading, then the text wrapped.
@@ -2939,6 +3571,90 @@ $INCLUDE screen
             RETURN
         ENDIF
         addSaid(starByte, uiBuf(0:uiLen - 1))
+    ENDROUTINE
+
+    % PUT A LINE IN A WINDOW THAT MAY NOT BE THE ONE ON SCREEN.
+    %
+    % The line is built by the ordinary ui* helpers, so it wraps and is padded
+    % exactly like every other line - stepping into the window and back out
+    % again is the whole trick, and it is why winUse exists separately from
+    % winGo.
+    %
+    % THE COUNTERS ARE ONLY TOUCHED WHEN IT IS SOMEBODY ELSE'S WINDOW. A
+    % message arriving in the window you are reading has been seen by
+    % definition, and showing "1 unread" against the line you are looking at
+    % would train a reader to ignore the number.
+    %
+    % Note it does NOT repaint. The caller is the arrival path, which repaints
+    % once for everything that arrived - see the main loop.
+    ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER, INTEGER, INTEGER) : &
+            putInWin(w, nmAt, nmLen, txAt, txLen)
+        INTEGER : prev
+
+        curWin =: prev
+        IF w >< prev THEN
+            winSave
+            winUse(w)
+        ENDIF
+
+        % THE STARS ARE NOT DECORATION. A reply typed as an ordinary line goes
+        % to the whole room, so a private message that looks like room traffic
+        % is a privacy failure caused entirely by the display. They stay even
+        % in the person's own window, where the context is already private,
+        % because the line is what gets read back later out of context.
+        uiClear
+        uiWord('*(')
+        uiFrom(nmAt, nmLen)
+        uiWord(') ')
+        uiFrom(txAt, txLen)
+        uiNotice
+
+        IF w >< prev THEN
+            winSave
+            winUse(prev)
+            winUnread(w) + 1 =: winUnread(w)
+
+            % A DIRECT MESSAGE ALWAYS RINGS. Elsewhere the star means "your
+            % nick was said"; a message addressed to you personally is the
+            % strongest form of that, so it does not need a name match.
+            1 =: winBell(w)
+        ENDIF
+    ENDROUTINE
+
+    % YOUR OWN SIDE OF A CONVERSATION.
+    %
+    % Separate from putInWin because the two read their text from different
+    % places: an arriving message is in inBuf, and your own is in lastTell,
+    % which the send path kept precisely because the server does not send it
+    % back. Trying to serve both from one routine would mean a flag deciding
+    % which array to read, and a flag like that is read wrongly exactly once.
+    %
+    % NOTHING IS MARKED UNREAD. This line is your own; counting it would put
+    % a number on the bar for something you just typed.
+    ROUTINE VOID, VOID (INTEGER) : putSentInWin(w)
+        INTEGER : prev
+
+        curWin =: prev
+        IF w >< prev THEN
+            winSave
+            winUse(w)
+        ENDIF
+
+        uiClear
+        uiWord('*(')
+        IF lenMyName > 0 THEN
+            uiWord(myName(0:lenMyName - 1))
+        ENDIF
+        uiWord(') ')
+        IF lastTellLen > 0 THEN
+            uiWord(lastTell(0:lastTellLen - 1))
+        ENDIF
+        uiNotice
+
+        IF w >< prev THEN
+            winSave
+            winUse(prev)
+        ENDIF
     ENDROUTINE
 
     % Copy the speaker out of the arriving message into its own buffer.
@@ -3006,7 +3722,13 @@ $INCLUDE screen
         seen RETURN
     ENDROUTINE
 
-    ROUTINE VOID, BOOLEAN : uiArrived
+    % THE INNER HALF. Everything it renders goes into whatever window is
+    % current, which is exactly what it did before windows existed - it is the
+    % wrapper below that decides which window that is.
+    ROUTINE VOID, BOOLEAN : uiArrivedInner
+        % Which conversation window a private message belongs in. Zero means
+        % there was no room for one - see winFor.
+        INTEGER : dirWin
         INTEGER : kind
         INTEGER : nameLength
         INTEGER : textLength
@@ -3053,21 +3775,50 @@ $INCLUDE screen
         % The stars are not decoration. A reply typed as an ordinary line goes
         % to the whole room, so a private message that looks like room traffic
         % is a privacy failure caused entirely by the display.
+        % A PRIVATE MESSAGE GETS ITS OWN WINDOW, one per person.
+        %
+        % It used to go in the room's buffer marked with stars. That worked,
+        % but it put one person's private conversation in the middle of
+        % everybody else's traffic, where it scrolls away behind lines that
+        % have nothing to do with it - and the stars had to carry the whole
+        % weight of saying "this one is not what it looks like".
+        %
+        % IF EVERY WINDOW IS TAKEN IT GOES IN THE ROOM, exactly as before.
+        % winFor answers zero for that, and the old path is still right there
+        % as the fallback rather than being an error case somebody has to
+        % have thought about.
         IF kind = kDirected THEN
-            uiClear
-            uiWord('*(')
-            uiFrom(2, nameLength)
-            uiWord(') ')
-            uiFrom(textAt, textLength)
-            uiNotice
+            winFor(2, nameLength) =: dirWin
+            IF dirWin > 0 THEN
+                putInWin(dirWin, 2, nameLength, textAt, textLength)
+            ELSE
+                uiClear
+                uiWord('*(')
+                uiFrom(2, nameLength)
+                uiWord(') ')
+                uiFrom(textAt, textLength)
+                uiNotice
+            ENDIF
             TRUE RETURN
         ENDIF
 
+        % YOUR OWN HALF OF THE CONVERSATION, in the same window as their half.
+        % Without this a window would hold one side of a conversation, which
+        % reads as a series of unanswered messages.
+        %
+        % The server sends this WITHOUT the text - it only confirms who it
+        % went to - so what is shown is the line as it was typed, which the
+        % send path kept for exactly this.
         IF kind = kDirSent THEN
-            uiClear
-            uiWord('sent to ')
-            uiFrom(2, nameLength)
-            uiNotice
+            winFor(2, nameLength) =: dirWin
+            IF dirWin > 0 THEN
+                putSentInWin(dirWin)
+            ELSE
+                uiClear
+                uiWord('sent to ')
+                uiFrom(2, nameLength)
+                uiNotice
+            ENDIF
             TRUE RETURN
         ENDIF
 
@@ -3215,6 +3966,61 @@ $INCLUDE screen
         % can report, and reaching this one would vanish in silence.
         FALSE RETURN
     ENDROUTINE
+
+    % =====================================================================
+    % WHICH WINDOW AN ARRIVING MESSAGE BELONGS IN
+    %
+    % A ROOM LINE ALWAYS GOES IN WINDOW 1, whatever is on screen. Without
+    % this, reading a private conversation would quietly fill THAT window with
+    % the room's traffic - the room would appear to have moved, and going back
+    % to it would show a gap where the lines should be.
+    %
+    % A private message places itself, because only the handler knows whose
+    % conversation it is; those two kinds are left alone here.
+    %
+    % THE UNREAD COUNT IS THE DIFFERENCE IN LINES, not one per message. A long
+    % line becomes several cache lines, and a reader who sees "3" and finds one
+    % sentence learns not to trust the number.
+    % =====================================================================
+    ROUTINE VOID, BOOLEAN : uiArrived
+        INTEGER : prev
+        INTEGER : before
+        INTEGER : grew
+        INTEGER : what
+        BOOLEAN : handled
+
+        % READ FROM inBuf, not passed in. The inner routine reads its own kind
+        % the same way from the same byte, so there is no second copy that
+        % could disagree with it.
+        inBuf(0) =: what
+        curWin =: prev
+
+        IF what = kDirected OR what = kDirSent THEN
+            uiArrivedInner =: handled
+            handled RETURN
+        ENDIF
+
+        IF prev = 1 THEN
+            uiArrivedInner =: handled
+            handled RETURN
+        ENDIF
+
+        % Somebody is reading a conversation. Step into the room, put the line
+        % where it belongs, and step straight back out.
+        winSave
+        winUse(1)
+        cacheCount =: before
+        uiArrivedInner =: handled
+        cacheCount - before =: grew
+        winSave
+        winUse(prev)
+
+        IF grew > 0 THEN
+            winUnread(1) + grew =: winUnread(1)
+        ENDIF
+        handled RETURN
+    ENDROUTINE
+
 
     ROUTINE VOID, VOID : showArrived
         INTEGER : kind, nameLength, textLength, textAt, i
@@ -4702,6 +5508,66 @@ $INCLUDE screen
         % room - they do not, and that is half the point of the feature. It is
         % because the SENDER needs a name for the message to be from, which is
         % the same reason the server refuses this below its own seat test.
+        % /w N - go to a window. Also /window.
+        %
+        % A COMMAND AS WELL AS A KEY, because the key cycles and cycling past
+        % the one you want is annoying with four open. The command is also the
+        % only form that works on a printing terminal, which has no bar to
+        % look at but can still hold a conversation.
+        IF cmdIs('W', 1) = 1 OR cmdIs('WINDOW', 6) = 1 THEN
+            IF NOT screenOn THEN
+                OUTPUT(1, 'AL', 'windows need a screen terminal$')
+                RETURN
+            ENDIF
+
+            % The digit is the last character typed, so a bare /w is a cycle
+            % rather than an error - which is what a person who typed it
+            % without thinking almost certainly meant.
+            IF typedLen < 3 THEN
+                winNext
+                RETURN
+            ENDIF
+
+            typed(typedLen - 1) - 48 =: at
+            IF at < 1 THEN
+                winNext
+                RETURN
+            ENDIF
+            IF at > maxWins THEN
+                winNext
+                RETURN
+            ENDIF
+            winGo(at)
+            RETURN
+        ENDIF
+
+        % /close - put a conversation window away.
+        %
+        % THE ROOM CANNOT BE CLOSED. It is where a plain line goes when no
+        % conversation is open, and a client with no window at all would have
+        % nowhere to put an arriving room line.
+        IF cmdIs('CLOSE', 5) = 1 THEN
+            IF curWin = 1 THEN
+                OUTPUT(1, 'AL', 'the room window stays open$')
+                RETURN
+            ENDIF
+
+            0 =: winUsed(curWin)
+            0 =: winCount(curWin)
+            0 =: winLabLen(curWin)
+            winGo(1)
+
+            % THE BAR HAS LOST AN ENTRY even if winGo decided it had nothing
+            % to do, so it is redrawn here - and only it. Nothing else on the
+            % screen changed when a window went away.
+            IF screenOn THEN
+                drawBar
+                drawInput
+                flush
+            ENDIF
+            RETURN
+        ENDIF
+
         IF cmdIs('TELL', 4) = 1 THEN
             IF NOT joined THEN
                 OUTPUT(1, 'AL34', 'not in a room yet - wait or /join$')
@@ -4744,6 +5610,16 @@ $INCLUDE screen
                     OUTPUT(1, 'AL', 'a name cannot have a slash in it$')
                     RETURN
                 ENDIF
+            ENDFOR
+
+            % KEPT BEFORE IT IS SENT, so the confirmation has something to
+            % show. See lastTell.
+            argLen - cut - 1 =: lastTellLen
+            IF lastTellLen > 76 THEN
+                76 =: lastTellLen
+            ENDIF
+            FOR i IN 1:lastTellLen DO
+                typed(at + cut + i) =: lastTell(i - 1)
             ENDFOR
 
             buildTell(at, cut, argLen - cut - 1) =: length
@@ -4864,6 +5740,12 @@ $INCLUDE screen
         INTEGER : drained
 
         INISTACK stack
+
+        % WINDOW 1 IS THE ROOM AND IT ALWAYS EXISTS. Everything else in the
+        % table stays zero until a conversation opens one, and zero is what
+        % winUsed reads as "not there" - so no other seeding is needed.
+        1 =: winUsed(1)
+        1 =: curWin
 
         xmpfopn(0, myPort) =: returnStatus
         IF returnStatus >< XMOK THEN
@@ -5087,6 +5969,7 @@ $INCLUDE screen
         % has to MEAN something before the first prompt. Nothing above sets it,
         % and PLANC does not promise a module variable starts at zero.
         0 =: typedLen
+        TRUE =: inputDirty
 
         % THE FIRST PAINT GOES OVER THE JOIN BANNER, which is the point: those
         % lines were printed before the renderer was known and they are the
@@ -5131,6 +6014,7 @@ $INCLUDE screen
                 MON1(1) =: drained
             ENDDO
             0 =: typedLen
+            TRUE =: inputDirty
             drawInput
             flush
         ENDIF
@@ -5242,6 +6126,21 @@ $INCLUDE screen
                     ENDIF
                 ENDIF
 
+                % ONE KEY CYCLES THE WINDOWS.
+                %
+                % Control-W, because the letter matches the /w command and a
+                % control character cannot be part of anything somebody is
+                % typing - a plain letter would have to be a mode, and a mode
+                % is the thing that makes a terminal program feel haunted.
+                %
+                % 23 is Control-W after the parity mask above.
+                IF ch = 23 THEN
+                    IF screenOn THEN
+                        winNext
+                    ENDIF
+                    0 =: ch
+                ENDIF
+
                 IF ch = carriageRet THEN
                     TRUE =: lineReady
 
@@ -5282,6 +6181,7 @@ $INCLUDE screen
                     IF ch = 8 OR ch = 127 THEN
                         IF typedLen > 0 THEN
                             typedLen - 1 =: typedLen
+                            TRUE =: inputDirty
                         ENDIF
                     ENDIF
                 ENDIF
@@ -5294,6 +6194,7 @@ $INCLUDE screen
                     IF typedLen < maxTyped THEN
                         ch =: typed(typedLen)
                         typedLen + 1 =: typedLen
+                        TRUE =: inputDirty
                     ENDIF
                 ENDIF
 
@@ -5326,8 +6227,34 @@ $INCLUDE screen
                     handleCommand
                 ELSE
                     IF joined THEN
-                        buildOwn(kSay, typedLen) =: length
-                        sendToServer(length)
+
+                        % WHERE A PLAIN LINE GOES DEPENDS ON THE WINDOW, and
+                        % this is the single most important rule in the whole
+                        % window feature.
+                        %
+                        % In a conversation window it goes to THAT PERSON. If
+                        % it went to the room instead, somebody reading a
+                        % private exchange and replying to it would broadcast
+                        % their reply to everybody - a privacy failure caused
+                        % entirely by the display, which is the exact thing the
+                        % stars on a direct message exist to prevent. Getting
+                        % this wrong would be worse than not having windows.
+                        IF curWin = 1 THEN
+                            buildOwn(kSay, typedLen) =: length
+                            sendToServer(length)
+                        ELSE
+                            % Kept for the confirmation, exactly as /tell does.
+                            typedLen =: lastTellLen
+                            IF lastTellLen > 76 THEN
+                                76 =: lastTellLen
+                            ENDIF
+                            FOR i IN 1:lastTellLen DO
+                                typed(i - 1) =: lastTell(i - 1)
+                            ENDFOR
+
+                            buildTellTo(curWin, typedLen) =: length
+                            sendToServer(length)
+                        ENDIF
                     ELSE
                         OUTPUT(1, 'AL20', 'not in the room yet$')
                     ENDIF
@@ -5338,6 +6265,7 @@ $INCLUDE screen
             % line still being typed is not thrown away by a drain pass.
             IF lineReady THEN
                 0 =: typedLen
+                TRUE =: inputDirty
             ENDIF
 
             % PUT THE PROMPT BACK WHENEVER SOMETHING HAS BEEN WRITTEN OVER IT -
@@ -5359,6 +6287,17 @@ $INCLUDE screen
                     IF NOT panelUp THEN
                         IF lastDrainCount > 0 THEN
                             paintChat
+
+                            % THE BAR CARRIES THE NEWS ABOUT WINDOWS YOU ARE
+                            % NOT LOOKING AT - a conversation that just
+                            % opened, an unread count, the star. None of that
+                            % is on the pane, so an arrival that never redrew
+                            % the bar left a private message sitting in a
+                            % window nothing on screen mentioned.
+                            %
+                            % Only on a real arrival, and drawBar itself is
+                            % one short row.
+                            drawBar
                         ENDIF
                         drawStatus
                         drawInput

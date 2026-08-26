@@ -3959,6 +3959,82 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         value RETURN
     ENDROUTINE
 
+    % A MACHINE BY ITS NAME - "FJELL" or "VIDDA" - answering its number.
+    %
+    % WHY THIS EXISTS: this server PRINTS machines by name. A direct message
+    % from somebody on this machine arrives labelled FJELL!BOB, and one from a
+    % peer arrives VIDDA!SYSTEM, because a name reads far better than D100. But
+    % the target parser only ever understood DIGITS, so the very label the
+    % server had just printed could not be typed back at it:
+    %
+    %     NOT sent to FJELL!BOB: that machine has no number in it
+    %
+    % MEASURED on D100 2026-08-26, and it is the one thing that stopped a reply
+    % typed in a conversation window from arriving. A product that shows a name
+    % it will not accept is asking a person to translate for it.
+    %
+    % Case folded, exactly as sameRmt does for a person: a name that works in
+    % one case and fails in the other is a maddening thing to report.
+    %
+    % Answers 0 for a name nobody has, and 0 is not a machine.
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER) : machineByName(at, length)
+        INTEGER : i, j, a, b, same
+
+        IF length < 1 THEN
+            0 RETURN
+        ENDIF
+
+        % OURSELVES FIRST. A local conversation is the common case, and it is
+        % also the one that has to work when no trunk has ever come up.
+        IF lenSysName = length THEN
+            1 =: same
+            FOR j IN 1:length DO
+                sysName(j - 1) =: a
+                inBuf(at + j - 1) =: b
+                IF a > 96 THEN
+                    a - 32 =: a
+                ENDIF
+                IF b > 96 THEN
+                    b - 32 =: b
+                ENDIF
+                IF a >< b THEN
+                    0 =: same
+                ENDIF
+            ENDFOR
+            IF same >< 0 THEN
+                mySystem RETURN
+            ENDIF
+        ENDIF
+
+        % Then the peers we have been told the names of. A peer that has never
+        % said its name has pNameLen 0 and simply does not match.
+        FOR i IN 1:maxPeers DO
+            IF peerSystem(i) >< 0 THEN
+                IF pNameLen(i) = length THEN
+                    1 =: same
+                    FOR j IN 1:length DO
+                        pName(i, j) =: a
+                        inBuf(at + j - 1) =: b
+                        IF a > 96 THEN
+                            a - 32 =: a
+                        ENDIF
+                        IF b > 96 THEN
+                            b - 32 =: b
+                        ENDIF
+                        IF a >< b THEN
+                            0 =: same
+                        ENDIF
+                    ENDFOR
+                    IF same >< 0 THEN
+                        peerSystem(i) RETURN
+                    ENDIF
+                ENDIF
+            ENDIF
+        ENDFOR
+
+        0 RETURN
+    ENDROUTINE
+
     % Does the person we hold in remote row "row" have this name?
     %
     % Case folded exactly as sameName does for a local seat. A direct message
@@ -4316,11 +4392,21 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
             0 =: sysNum
         ELSE
             machineNum(tgtAt, bang) =: sysNum
+
+            % NO DIGITS? THEN TRY IT AS A NAME. This is what makes the label
+            % the server itself printed - FJELL!BOB, VIDDA!SYSTEM - typeable
+            % straight back, which is what a reply in a conversation window
+            % does. Digits are still tried FIRST so D102!RONNY is unaffected
+            % and costs nothing.
+            IF sysNum = 0 THEN
+                machineByName(tgtAt, bang) =: sysNum
+            ENDIF
+
             tgtAt + bang + 1 =: aliasAt
             tgtLen - bang - 1 =: aliasLen
             IF sysNum = 0 THEN
                 sendDirBad(memberMagic(slot), tgtAt, tgtLen, &
-                    'that machine has no number in it - try D102!RONNY')
+                    'no machine of that name or number - try D102!RONNY')
                 RETURN
             ENDIF
             IF aliasLen < 1 THEN
