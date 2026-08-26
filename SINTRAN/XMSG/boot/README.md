@@ -139,3 +139,51 @@ end.
    `START-TRUNK` in the boot file so the boot log records what actually happened either way.
 
 **Still unproved: that the trunk comes up at boot.** That needs a reboot.
+
+## INSTALLED ON THE LIVE MACHINES, 2026-08-26
+
+D100 5697, D102 5581, D103 4780 bytes - each matching its staged file exactly.
+
+**NOT with `install-boot-files.py`.** That script writes into the RetroCore disk IMAGES and says in
+its own header that the machines must be stopped first, because an emulator holds the image open
+and a write underneath it corrupts the filesystem. These went over the LIVE link instead, which
+needs nothing stopped: the staged files are already byte-exact SINTRAN text (even parity, CRLF), so
+FA carries them unchanged.
+
+### TWO THINGS THAT COST TIME, both worth knowing before doing this again
+
+**THE BOOT FILE IS OWNED BY UTILITY, NOT SYSTEM.** `LOAD-MODE:BATC` calls
+
+```
+@MODE (PACK-ONE:UTILITY)XMSG-STARTEX-L03:MODE,,
+```
+
+so `LIST-FILES` as SYSTEM does not show it and `COPY-FILE` as SYSTEM answers **NOT WRITE ACCESS** -
+the file is `PUBLIC ACCESS : READ`, `FRIEND ACCESS : READ`, and only its OWNER may write it. Log in
+as **UTILITY** (blank password, same as SYSTEM) and copy from there.
+
+There IS a `XSTART:MODE` under SYSTEM, 4278 bytes, the same size as the old boot file. **It is not
+the file the boot reads.** Editing it would have looked like a successful install and changed
+nothing.
+
+**A ROLLBACK COPY FIRST.** `STRTBAK:MODE` beside each one holds the previous content, so putting a
+machine back is one `COPY-FILE XMSG-STARTEX-L03:MODE,STRTBAK:MODE` as UTILITY.
+
+### What they now do that they did not
+
+```
+@CHAT-MON
+SET-NAME FJELL          (VIDDA on D102, SKOGEN on D103)
+START-TRUNK 102
+START-TRUNK 103
+LIST-TRUNKS
+EXIT
+```
+
+SET-NAME before the trunks, because the name travels on the trunk Hello. Three trunks rather than
+two, because a machine only learns names from its DIRECT peers and because dedup cannot be
+exercised on a chain. D100 had also never had `START-TRUNK 103` at all.
+
+**NOT PROVED FROM A COLD BOOT.** The files are in place and their contents are verified byte for
+byte, but no machine has been restarted since. That is the one test that matters and it has not
+been run.
