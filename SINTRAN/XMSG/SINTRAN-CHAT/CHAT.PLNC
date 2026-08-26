@@ -2638,6 +2638,21 @@ $INCLUDE screen
     ENDROUTINE
 
     % A notice - no speaker, so the star column that the line renderer uses.
+    % Append from a module buffer that carries its length separately - the
+    % nickname and the machine both do. uiFrom reads inBuf; this does not.
+    ROUTINE VOID, VOID (BYTES, INTEGER) : uiWho2(src, n)
+        INTEGER : i
+        IF n < 1 THEN
+            RETURN
+        ENDIF
+        FOR i IN 1:n DO
+            IF uiLen < 250 THEN
+                src(i - 1) =: uiBuf(uiLen)
+                uiLen + 1 =: uiLen
+            ENDIF
+        ENDFOR
+    ENDROUTINE
+
     ROUTINE VOID, VOID : uiNotice
         IF uiLen < 1 THEN
             RETURN
@@ -2962,22 +2977,47 @@ $INCLUDE screen
             % SAY WHO YOU ARE, ONCE, AND ONLY NOW THAT IT IS TRUE. The server
             % has accepted the name, so this is a fact rather than a hope - see
             % the note in setupName for what printing it early looked like.
-            OUTPUT(1, 'AL8', 'you are ')
-            showMyName
+            % ON A SCREEN THIS GOES IN THE ROOM, NOT TO THE CURSOR.
+            %
+            % MEASURED on D100 2026-08-26: printed with OUTPUT while the frame
+            % was already up, it landed ON THE INPUT ROW -
+            %
+            %     > you are TESTER on FJELL  (/nick to change)
+            %
+            % because OUTPUT writes wherever the cursor happens to be, and the
+            % cursor is parked on the input line by drawInput. It used to be
+            % harmless: the welcome arrived before the first paint and was
+            % simply drawn over. It is not harmless now that the welcome also
+            % triggers a repaint.
+            %
+            % The corner already says TESTER@FJELL, so this is only the
+            % sentence - and a sentence belongs with the other sentences.
+            IF screenOn THEN
+                uiClear
+                uiWord('you are ')
+                uiWho2(myName, lenMyName)
+                IF lenMyMach > 0 THEN
+                    uiWord(' on ')
+                    uiWho2(myMachine, lenMyMach)
+                ENDIF
+                uiNotice
+            ELSE
+                OUTPUT(1, 'AL8', 'you are ')
+                showMyName
 
-            % AND WHICH MACHINE, when the server said. This is the only place
-            % the line renderer shows it, and without it the fact would be
-            % invisible until the screen renderer is switched on - a feature
-            % you cannot see is a feature you cannot test.
-            IF lenMyMach > 0 THEN
-                OUTPUT(1, 'AL', ' on ')
-                FOR i IN 1:lenMyMach DO
-                    myMachine(i - 1) =: oneChar(0)
-                    OUTPUT(1, 'AL1', oneChar)
-                ENDFOR
+                % AND WHICH MACHINE, when the server said. Without it the fact
+                % would be invisible on a printing terminal - a feature you
+                % cannot see is a feature you cannot test.
+                IF lenMyMach > 0 THEN
+                    OUTPUT(1, 'AL', ' on ')
+                    FOR i IN 1:lenMyMach DO
+                        myMachine(i - 1) =: oneChar(0)
+                        OUTPUT(1, 'AL1', oneChar)
+                    ENDFOR
+                ENDIF
+
+                OUTPUT(1, 'AL20', '  (/nick to change)$')
             ENDIF
-
-            OUTPUT(1, 'AL20', '  (/nick to change)$')
 
             % RETURN, LIKE EVERY OTHER CASE IN THIS CHAIN.
             %
