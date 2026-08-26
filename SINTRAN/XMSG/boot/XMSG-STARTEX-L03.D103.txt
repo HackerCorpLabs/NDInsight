@@ -82,7 +82,36 @@ EXIT
 @CC  not when it has claimed its admin port, and CHAT-MON talks to that
 @CC  port. LIST-TRUNKS follows so the boot log says what happened.
 @CC ====================================================================
+@CC  ---- WHAT THIS MACHINE IS CALLED ----------------------------------
+@CC
+@CC  SET-NAME is NOT written to disk by the server, deliberately - so it
+@CC  belongs here, beside the trunks, in the one file that describes this
+@CC  machine. Without it the machine comes back as D<number>, which is
+@CC  exactly how everything behaved before names existed. Nothing breaks;
+@CC  the name is simply missing.
+@CC
+@CC  IT MUST COME BEFORE THE TRUNKS. The name travels on the trunk Hello,
+@CC  so a trunk started first says hello with no name and the peer learns
+@CC  one only on the NEXT exchange.
+@CC
+@CC  ---- AND WHY THREE TRUNKS, NOT TWO --------------------------------
+@CC
+@CC  These machines are a TRIANGLE now, not a chain. Two reasons, both
+@CC  measured 2026-08-26:
+@CC
+@CC    A MACHINE ONLY LEARNS NAMES FROM ITS DIRECT PEERS. On the chain a
+@CC    line relayed D103 -> D100 -> D102 arrived on D102 as @D103 and not
+@CC    @SKOGEN, because D102 had no peer row for 103 to look a name up in.
+@CC
+@CC    DEDUP CANNOT BE EXERCISED ON A CHAIN. There is one path between any
+@CC    two machines, so dupe reads 0 whatever the code does - and a broken
+@CC    implementation reads 0 too. The third trunk is what made it say 1.
+@CC
+@CC  D100's boot file was ALSO missing START-TRUNK 103 entirely, which is
+@CC  why D103 was never registered here from a cold start.
 @CHAT-MON
+SET-NAME SKOGEN
 START-TRUNK 100
+START-TRUNK 102
 LIST-TRUNKS
 EXIT
