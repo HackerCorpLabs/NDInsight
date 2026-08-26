@@ -52,9 +52,32 @@ Typed at the client. Matched on a prefix by `cmdIs`, so `/j` works for `/join`.
 | `/topic <text>` | set the room's topic; everyone is told |
 | `/tell <name> <text>` | a message to ONE person - `RONNY`, or `D102!RONNY` for another machine. Section 6. |
 | `/leave` | leave the room |
-| `/quit` | leave and exit the client |
+| `/exit` | leave and exit the client. `/quit` still works but is not listed |
 
 Anything not starting with `/` is said to the room.
+
+### AN ANSWER THAT IS FOR YOU GOES IN A WINDOW
+
+`/help`, `/who`, `/list`, `/map` and an asked-for `/topic` are replies to ONE person. On a screen
+terminal they open a centred panel over the room instead of going into it - putting them in the
+room mixes one person's questions into everybody's conversation and pushes real lines off the top.
+
+**The window is measured from the text.** The lines are held as a table; the widest sets the width,
+the count sets the height. Adding a command moves the frame instead of overflowing it, and the
+closing hint is a table line like any other so it is measured too. The line renderer prints the
+same table, so the printed help and the window cannot say different things.
+
+Proved on D100 2026-08-26 - the help panel came out 57 wide and 16 tall, the `/who` panel 37 by 6,
+from the same code.
+
+**Any key closes it, and does nothing else** - the key is consumed before every other test, so it
+cannot also land in the input line. The room is not repainted while a panel is up; anything that
+arrives meanwhile is in the cache and appears the moment it closes.
+
+**TWO OF THEM NEEDED A FLAG.** `kWho` is also the count the client takes automatically when it
+joins, and `kTopic` is also how the whole room is told the topic changed - so the KIND alone cannot
+say whether a reply is for you. Typing the command is what makes the answer yours. Without that, a
+window would open over the room the moment you joined.
 
 ---
 
