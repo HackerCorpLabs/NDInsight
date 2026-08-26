@@ -2101,6 +2101,13 @@ $INCLUDE screen
         ENDFOR
     ENDROUTINE
 
+    % EMPTY THE ROOM. Used when this client moves to another one.
+    ROUTINE VOID, VOID : cacheClear
+        0 =: cacheCount
+        0 =: cacheFirst
+        0 =: viewFrom
+    ENDROUTINE
+
     ROUTINE VOID, VOID : cacheAdd
         INTEGER : slot
         INTEGER : i
@@ -2708,6 +2715,11 @@ $INCLUDE screen
     % way in, kTopic for a change the whole room is told about - so the kind
     % alone cannot say whether the reply is FOR YOU. Typing the command is
     % what makes it yours.
+    % HAS THE FIRST WELCOME BEEN SEEN? Every /join gets a welcome of its own,
+    % so without this the "you are TESTER on FJELL" line is repeated on every
+    % room change - and the machine has not changed, so it says nothing new.
+    BOOLEAN : firstWelcome := TRUE
+
     BOOLEAN : askedWho := FALSE
     BOOLEAN : askedTopic := FALSE
 
@@ -3325,14 +3337,28 @@ $INCLUDE screen
             % The corner already says TESTER@FJELL, so this is only the
             % sentence - and a sentence belongs with the other sentences.
             IF screenOn THEN
-                uiClear
-                uiWord('you are ')
-                uiWho2(myName, lenMyName)
-                IF lenMyMach > 0 THEN
-                    uiWord(' on ')
-                    uiWho2(myMachine, lenMyMach)
+                IF firstWelcome THEN
+                    FALSE =: firstWelcome
+                    uiClear
+                    uiWord('you are ')
+                    uiWho2(myName, lenMyName)
+                    IF lenMyMach > 0 THEN
+                        uiWord(' on ')
+                        uiWho2(myMachine, lenMyMach)
+                    ENDIF
+                    uiNotice
+                ELSE
+                    % A LATER WELCOME IS A ROOM CHANGE, and the lines above
+                    % belong to the room just left. Keeping them would put one
+                    % room's conversation under another room's name in the
+                    % status line and the bar - which is worse than losing
+                    % them, because it is not visibly wrong.
+                    %
+                    % They ARE lost, and that is the honest cost of one buffer
+                    % for one window. A buffer per window is what fixes it, and
+                    % that is the next phase rather than something to fake now.
+                    cacheClear
                 ENDIF
-                uiNotice
             ELSE
                 OUTPUT(1, 'AL8', 'you are ')
                 showMyName
