@@ -46,23 +46,63 @@ MODULE chatlib
 
     % ---- THE MESSAGE KINDS ----------------------------------------------
     %
-    % One list, so the two programs cannot drift. The numbers are the WIRE and
-    % may never be renumbered - a machine running an older build is on the
-    % other end of the trunk and will read whatever it is sent.
+    % ALL TWENTY that the client and the server BOTH declared. They agreed
+    % only because somebody kept checking; nothing made them agree, and an
+    % unhandled kind is SILENT - the worst failure this product has. Declared
+    % here and IMPORTed by both, a drift becomes a LINK error instead, and
+    % LIST-ENTRIES-UNDEFINED already runs in every link.
     %
-    % Kept as the same numbers the client and server already used, so this
-    % library changes nothing about what goes on the wire.
+    % THE NUMBERS ARE THE WIRE AND MAY NEVER BE RENUMBERED. A machine running
+    % an older build is on the other end of the trunk and will read whatever
+    % it is sent. CHATTST asserts every one of these values for that reason -
+    % a test that only checks a round trip would happily agree with a renumber.
+    %
+    % TWO NAMES CHANGED, and only because they could not cross a BRF boundary:
+    % names are unique in SEVEN characters there, so kRename/kRenamed both
+    % read KRENAME and kDirect/kDirected both read KDIRECT. The SECOND of each
+    % pair was renamed - kRenamed became kRenOk, kDirected became kDirGot -
+    % which is two renames rather than four.
+    EXPORT kJoin
+    EXPORT kWelcome
+    EXPORT kReject
     EXPORT kSay
     EXPORT kSaid
-    EXPORT kDirSnd
+    EXPORT kLeave
+    EXPORT kJoined
+    EXPORT kLeft
+    EXPORT kRename
+    EXPORT kRenOk
+    EXPORT kWho
+    EXPORT kMap
+    EXPORT kRooms
+    EXPORT kTopic
+    EXPORT kAllWho
+    EXPORT kHist
+    EXPORT kDirect
     EXPORT kDirGot
-    EXPORT kTrkRel
+    EXPORT kDirSent
+    EXPORT kDirBad
 
-    INTEGER : kSay     := 4      % a client speaking
-    INTEGER : kSaid    := 5      % the room being told
-    INTEGER : kDirSnd  := 17     % a private message going out
-    INTEGER : kDirGot  := 18     % a private message arriving
-    INTEGER : kTrkRel  := 53     % a room line crossing a trunk
+    INTEGER : kJoin     := 1     % a client asking to come in
+    INTEGER : kWelcome  := 2     % you are in, and this is your name
+    INTEGER : kReject   := 3     % you are not, and this is why
+    INTEGER : kSay      := 4     % a client speaking
+    INTEGER : kSaid     := 5     % the room being told, SPEAKER INCLUDED
+    INTEGER : kLeave    := 6     % a client going
+    INTEGER : kJoined   := 7     % somebody arrived - everyone EXCEPT them
+    INTEGER : kLeft     := 8     % somebody went - everyone EXCEPT them
+    INTEGER : kRename   := 9     % change my nickname
+    INTEGER : kRenOk    := 10    % it changed - everyone, ASKER INCLUDED
+    INTEGER : kWho      := 11    % who is in this room
+    INTEGER : kMap      := 12    % the machines and their trunks
+    INTEGER : kRooms    := 13    % what rooms exist
+    INTEGER : kTopic    := 14    % the room topic, asked or set
+    INTEGER : kAllWho   := 15    % everybody, every room
+    INTEGER : kHist     := 16    % a replayed line, MARKED as history
+    INTEGER : kDirect   := 17    % a private message going out
+    INTEGER : kDirGot   := 18    % a private message arriving
+    INTEGER : kDirSent  := 19    % it reached them
+    INTEGER : kDirBad   := 20    % it did not, and this is why
 
     % ---- ENCODE ---------------------------------------------------------
     %

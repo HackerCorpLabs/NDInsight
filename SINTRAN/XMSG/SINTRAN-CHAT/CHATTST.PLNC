@@ -23,8 +23,26 @@ MODULE chattest
     IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmNmLen)
     IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmTxAt)
     IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmTxLen)
+    IMPORT (INTEGER : kJoin)
+    IMPORT (INTEGER : kWelcome)
+    IMPORT (INTEGER : kReject)
     IMPORT (INTEGER : kSay)
-    IMPORT (INTEGER : kTrkRel)
+    IMPORT (INTEGER : kSaid)
+    IMPORT (INTEGER : kLeave)
+    IMPORT (INTEGER : kJoined)
+    IMPORT (INTEGER : kLeft)
+    IMPORT (INTEGER : kRename)
+    IMPORT (INTEGER : kRenOk)
+    IMPORT (INTEGER : kWho)
+    IMPORT (INTEGER : kMap)
+    IMPORT (INTEGER : kRooms)
+    IMPORT (INTEGER : kTopic)
+    IMPORT (INTEGER : kAllWho)
+    IMPORT (INTEGER : kHist)
+    IMPORT (INTEGER : kDirect)
+    IMPORT (INTEGER : kDirGot)
+    IMPORT (INTEGER : kDirSent)
+    IMPORT (INTEGER : kDirBad)
 
     INTEGER ARRAY : stack(0:1000)
 
@@ -102,9 +120,9 @@ MODULE chattest
 
         % ---- an empty name ----------------------------------------------
         'hi' =: tx
-        cmEnc(buf, kTrkRel, nm, 0, tx, 2, 256) =: len
+        cmEnc(buf, kDirect, nm, 0, tx, 2, 256) =: len
         check('no name, length         ', len, 6)
-        check('no name, kind           ', cmKind(buf), kTrkRel)
+        check('no name, kind           ', cmKind(buf), kDirect)
         check('no name, text length    ', cmTxLen(buf), 2)
         check('no name, text at 4      ', cmTxAt(buf), 4)
 
@@ -123,6 +141,35 @@ MODULE chattest
         check('long text length        ', cmTxLen(buf), 300)
         check('long text high byte     ', buf(7), 1)
         check('long text low byte      ', buf(8), 44)
+
+        % ---- THE WIRE NUMBERS THEMSELVES ---------------------------------
+        %
+        % EVERY KIND, ASSERTED AGAINST A LITERAL. This is the half a round-trip
+        % test cannot do: encoding and decoding with the same wrong number
+        % agrees with itself perfectly, and a machine running an older build on
+        % the far end of a trunk does not. These numbers are the WIRE and may
+        % never be renumbered - if one of these fails, somebody has changed a
+        % number and every other machine still expects the old one.
+        check('kJoin is 1              ', kJoin, 1)
+        check('kWelcome is 2           ', kWelcome, 2)
+        check('kReject is 3            ', kReject, 3)
+        check('kSay is 4               ', kSay, 4)
+        check('kSaid is 5              ', kSaid, 5)
+        check('kLeave is 6             ', kLeave, 6)
+        check('kJoined is 7            ', kJoined, 7)
+        check('kLeft is 8              ', kLeft, 8)
+        check('kRename is 9            ', kRename, 9)
+        check('kRenOk is 10            ', kRenOk, 10)
+        check('kWho is 11              ', kWho, 11)
+        check('kMap is 12              ', kMap, 12)
+        check('kRooms is 13            ', kRooms, 13)
+        check('kTopic is 14            ', kTopic, 14)
+        check('kAllWho is 15           ', kAllWho, 15)
+        check('kHist is 16             ', kHist, 16)
+        check('kDirect is 17           ', kDirect, 17)
+        check('kDirGot is 18           ', kDirGot, 18)
+        check('kDirSent is 19          ', kDirSent, 19)
+        check('kDirBad is 20           ', kDirBad, 20)
 
         % ---- the count ---------------------------------------------------
         OUTPUT(1, 'AL', '$')
