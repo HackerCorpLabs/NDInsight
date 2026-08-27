@@ -93,7 +93,7 @@ be showing, and as the fallback for a printing terminal.
 3. **DELETE the local echo on RETURN.** Send the line, print nothing, let the arriving `kSaid`
    draw it. This is the fix above.
 4. **Feed the cache from the message loop** instead of the fake timer: `kSaid`, `kJoined`,
-   `kLeft`, `kRenamed`, `kTopic`, `kHist` each become a formatted line.
+   `kLeft`, `kRenOk`, `kTopic`, `kHist` each become a formatted line.
 5. **Fill the status line from real state** - room name, `/who` count, the clock.
 
 *Proof:* two users on two machines, one on a screen terminal and one on a line terminal, in the

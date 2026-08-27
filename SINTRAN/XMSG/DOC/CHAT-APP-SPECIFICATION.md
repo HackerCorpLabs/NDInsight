@@ -95,7 +95,7 @@ one seat left out and `0` leaves nobody out.**
 | the joiner themselves | `kWelcome` (2) | just them |
 | a join is refused | `kReject` (3) | just them |
 | somebody leaves | `kLeft` (8) | everyone **except** the leaver |
-| somebody renames | `kRenamed` (10) | **everyone, including the asker** |
+| somebody renames | `kRenOk` (10) | **everyone, including the asker** |
 | the topic changes | `kTopic` (14) | **everyone, including the asker** |
 | `/who`, `/list`, `/map` | `kWho`/`kRooms`/`kMap` | just the asker |
 

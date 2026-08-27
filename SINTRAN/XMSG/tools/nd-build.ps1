@@ -110,6 +110,32 @@ if (-not $GateOnly) {
     }
 
     # -----------------------------------------------------------------------
+    # 1b. DOES CHATLIB STILL AGREE WITH THE PROTOCOL REGISTRY?
+    #
+    #     The registry in DOC\protocols is the recorded truth about the wire, and it has
+    #     generators for C, C# and Lua - but NOT for PLANC, so CHATLIB.PLNC is a copy
+    #     written by hand. A hand-written copy drifts, and this drift is silent: both
+    #     ends compile, both ends run, and they disagree only when one machine is on an
+    #     older build. An unhandled kind is SILENT, which is this product's worst failure
+    #     mode, so a wrong number would not announce itself anywhere.
+    #
+    #     It costs under a second and needs no machine, so it runs on every build rather
+    #     than only on chat ones - a check that is easy to skip will be skipped.
+    # -----------------------------------------------------------------------
+    Write-Step 'registry'
+    $regCheck = Join-Path $PSScriptRoot 'check-chatlib-against-registry.py'
+    if (Test-Path $regCheck) {
+        & python $regCheck
+        if ($LASTEXITCODE -ne 0) {
+            Stop-WithReason 'CHATLIB and the protocol registry disagree' `
+                'fix the number, or record the new kind in DOC\protocols\chat-wire.json and regenerate'
+        }
+    }
+    else {
+        Write-Host 'no check-chatlib-against-registry.py - skipped'
+    }
+
+    # -----------------------------------------------------------------------
     # 2. STAGE - into the folder the daemon is ACTUALLY watching.
     #
     #    Reading it out of the running process is the whole point. A default that

@@ -77,6 +77,35 @@ else {
     $watch = if ($cmd -match '--sync\s+(\S+)') { $Matches[1] } else { '(none)' }
     Write-Check 'daemon --sync' $true $watch
 
+    # ---- CAN THE GATE FETCH AT ALL? -------------------------------------
+    # The build gate reads a LISTING, and the only way it gets one is by dropping a
+    # .req in the daemon's --sync-pull folder. A daemon started WITHOUT --sync-pull
+    # takes those requests nowhere: the .req file just sits there. Nothing errors,
+    # nothing logs, and the gate reports "no listing - the compile did not run",
+    # which points at the compile instead of at the daemon.
+    #
+    # MEASURED 2026-08-27: a CHATUI.LIST.req sat unclaimed for TWO DAYS beside a
+    # perfectly healthy daemon, and the gate could not run at all.
+    #
+    # WITHOUT THE GATE THERE IS NO BUILD VERIFICATION - a PLANC source with errors
+    # links and runs, so this is not a convenience, it is the check itself.
+    $pull = if ($cmd -match '--sync-pull\s+(\S+)') { $Matches[1] } else { $null }
+    Write-Check 'daemon --sync-pull' ($null -ne $pull) $(
+        if ($pull) { $pull } else { 'NOT SET - the build gate cannot pull a listing' })
+    if ($null -eq $pull) {
+        $problems.Add('daemon has no --sync-pull, so the build gate cannot fetch a listing - restart it with --sync-pull sync-pull')
+    }
+    else {
+        # A request nobody claimed is the same fault wearing a different hat: the
+        # option is set, but this daemon is not the one watching that folder.
+        $stale = @(Get-ChildItem -Path $pull -Filter '*.req' -ErrorAction SilentlyContinue |
+                   Where-Object { $_.LastWriteTime -lt (Get-Date).AddMinutes(-5) })
+        if ($stale.Count -gt 0) {
+            Write-Check 'pull requests' $false "$($stale.Count) unclaimed .req older than 5 min - $($stale[0].Name)"
+            $problems.Add('unclaimed .req files in the pull folder - the daemon is not servicing it')
+        }
+    }
+
     # The window. The last positional argument is the number of seconds it will run.
     $started = $daemon.CreationDate
     $window  = if ($cmd -match '\s(\d{3,6})\s*$') { [int]$Matches[1] } else { 0 }

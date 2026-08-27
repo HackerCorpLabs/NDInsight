@@ -188,7 +188,7 @@ Three, and each needs a golden in **both** directions before it is built:
 
 ```
 kDirect     client -> server   target machine, target alias, text
-kDirected   server -> client   from machine!alias, text
+kDirGot   server -> client   from machine!alias, text
 kDirectSent client -> ...      server -> client, the qualified name it was delivered to
 kDirectBad  server -> client   why it failed, and the candidate list when ambiguous
 kWhoAsk     client -> server   optional machine filter
@@ -206,7 +206,7 @@ Follows the federation phases rather than fighting them:
 
 1. **Config file and alias memory** - needs no server change at all, and can be built and proved on
    one machine today. `/nick` starts persisting.
-2. **Local direct messages** - the server-scope member table, `kDirect` / `kDirected` /
+2. **Local direct messages** - the server-scope member table, `kDirect` / `kDirGot` /
    `kDirectSent` / `kDirectBad`, `@` and `/direct`. Still one machine; ambiguity cannot arise yet,
    but the qualified syntax and the delivery report are there from the start, so nothing has to
    change later and the habit of reading "sent to X" forms before it matters.

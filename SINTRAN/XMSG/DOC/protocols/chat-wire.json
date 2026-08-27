@@ -166,7 +166,7 @@
       {
         "name": "Renamed",
         "value": "10",
-        "meaning": "server to room: somebody is now known by a different name. Carries BOTH names, because a client showing a transcript has the old one on screen and could not otherwise connect the two.",
+        "meaning": "server to room: somebody is now known by a different name. Carries BOTH names, because a client showing a transcript has the old one on screen and could not otherwise connect the two. PLANC calls this kRenOk, not the obvious kRenamed: names are unique in only SEVEN characters across a BRF EXPORT/IMPORT, where kRename and kRenamed both read KRENAME and the linker would silently fold them into one. The wire number is unchanged and always was.",
         "status": "MEASURED",
         "evidence": "/nick proved on D100"
       },
@@ -292,7 +292,7 @@
       {
         "name": "Directed",
         "value": "18",
-        "meaning": "Server to client: a direct message addressed to this user personally. The name field carries the sender QUALIFIED (D102!KARI) so that what is displayed is also what can be typed back. A client marks these so they cannot be mistaken for room traffic.",
+        "meaning": "Server to client: a direct message addressed to this user personally. The name field carries the sender QUALIFIED (D102!KARI) so that what is displayed is also what can be typed back. A client marks these so they cannot be mistaken for room traffic. PLANC calls this kDirGot, not kDirected, for the same seven-character reason - kDirect and kDirected both read KDIRECT. The wire number is unchanged.",
         "status": "DESIGNED",
         "evidence": "ChatMessageKind.Directed = 18, pinned by ADirectedMessageCarriesTheSenderQualified - the name field holds 'D102!KARI' and the text is the message alone, because what is displayed must also be what can be typed back. BUILT AND PROVED ON D100 2026-08-25 - see the run recorded in CHAT-APP-SPECIFICATION.md section 6."
       },
