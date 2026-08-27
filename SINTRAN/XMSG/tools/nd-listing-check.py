@@ -55,20 +55,50 @@ def read_listing(path):
 def last_source_line(lines):
     """The highest source line number the listing mentions.
 
-    The listing puts the compiler's own line count on the left and the SOURCE line number in
-    brackets after it, so the last bracketed number is how far the compiler actually read.
+    THERE ARE TWO LISTING FORMATS AND THEY LOOK NOTHING ALIKE.
+
+    A source with $INCLUDE gets two numbers - the compiler's own running count on the
+    left, then the line number WITHIN THE CURRENT FILE in brackets:
+
+        1629   (944)/BUILDTELLT  *** ERROR   - ...
+
+    A source with no includes gets ONE number, and no brackets at all:
+
+           279          ENDMODULE
+
+    Reading only the bracketed number, this returned 0 for the second format - except it
+    did not even manage that, because a `(1)` written in an ordinary COMMENT is a bracketed
+    digit too. MEASURED 2026-08-27: a complete, clean 279-line CHATLIB listing was reported
+    as "reached source line 1 of 279" and the gate refused a perfectly good build.
+
+    That direction of failure is the less dangerous one - it cries wolf rather than waving
+    a broken build through - but it lands on exactly the small, include-free test programs
+    the fast build loop is built from, and a gate that fires on good builds is a gate people
+    start to skip. That is the failure this whole file exists to prevent.
+
+    So: decide the format first, and only then read the number.
     """
+    # The two-number shape, anchored: leading digits, spaces, then a bracketed number.
+    # Anchoring matters - it is what a `(1)` in prose cannot satisfy.
+    two_number = re.compile(r"^\s*\d+\s+\((\d+)\)")
+
     best = 0
     for line in lines:
-        start = line.find("(")
-        if start == -1:
-            continue
-        end = line.find(")", start)
-        if end == -1:
-            continue
-        inner = line[start + 1:end].strip()
-        if inner.isdigit():
-            value = int(inner)
+        m = two_number.match(line)
+        if m:
+            value = int(m.group(1))
+            if value > best:
+                best = value
+    if best > 0:
+        return best
+
+    # No line anywhere had the two-number shape, so this is the one-number format and the
+    # leading count IS the source line. Anchored for the same reason.
+    one_number = re.compile(r"^\s*(\d+)\s")
+    for line in lines:
+        m = one_number.match(line)
+        if m:
+            value = int(m.group(1))
             if value > best:
                 best = value
     return best
@@ -104,6 +134,44 @@ def self_test():
     for line in must_pass:
         if DIAGNOSTIC.match(line):
             problems.append("wrongly flags an echoed comment: " + line.strip()[:60])
+
+    # ---- HOW FAR DID THE COMPILER READ? Both listing formats. ----------------
+    #
+    # The truncation test is the OTHER half of this gate, and it was wrong for the
+    # include-free format until 2026-08-27 - it reported a complete 279-line listing
+    # as reaching line 1 and refused a good build. Pinned here in both shapes so it
+    # cannot quietly go back.
+
+    # Two numbers, as produced for a source with $INCLUDE.
+    with_includes = [
+        "  1627   (942)/BUILDTELLT",
+        "  1629   (944)/BUILDTELLT  *** ERROR   - NOT PREVIOUSLY DECLARED",
+        "  1630   (945)",
+    ]
+    if last_source_line(with_includes) != 945:
+        problems.append("two-number listing: read %d, expected 945"
+                        % last_source_line(with_includes))
+
+    # One number and no brackets, as produced for a plain module. The comment
+    # holding "(1)" is the exact thing that used to be mistaken for a line number.
+    without_includes = [
+        "     1          % a comment that mentions (1) in passing",
+        "   277              ENDROUTINE",
+        "   279          ENDMODULE",
+    ]
+    if last_source_line(without_includes) != 279:
+        problems.append("one-number listing: read %d, expected 279"
+                        % last_source_line(without_includes))
+
+    # A GENUINELY TRUNCATED one-number listing must still read SHORT. Without this
+    # the fix above could have been "return the expected number and pass everything".
+    truncated = [
+        "     1          % the top of a file that never finished arriving",
+        "    12              somewhere in the middle",
+    ]
+    if last_source_line(truncated) != 12:
+        problems.append("truncated listing: read %d, expected 12"
+                        % last_source_line(truncated))
 
     return problems
 
