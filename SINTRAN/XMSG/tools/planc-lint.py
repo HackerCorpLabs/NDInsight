@@ -145,6 +145,129 @@ def check(path):
             if stripped and not stripped.startswith('%'):
                 yield i + 1, line, stripped
 
+    # ---- A LITERAL AND A HAND-COUNTED LENGTH BESIDE IT ------------------------
+    #
+    # This project is full of helpers shaped `f('some text', <count>, ...)` -
+    # buildAdmText, putWord, bytdis and friends. The count is written by hand, and
+    # a wrong one NEVER fails to build: it silently truncates the string, or runs
+    # past its end and prints whatever follows.
+    #
+    # MEASURED 2026-08-27: 'peers locked - no new ones will be learned' was given
+    # 41 where the string is 42, and the machine printed "...will be learne". One
+    # character, a clean compile, and only a person watching the screen would ever
+    # know. The same session miscounted a second one the same way.
+    #
+    # This is the 'ALn' width rule (R28) wearing different clothes, and it is why
+    # MAXINDEX (R115) is the better habit where a routine can ask the string
+    # itself. Where the count has to be written, this catches it in a second
+    # rather than in a build.
+    #
+    # ONLY the (literal, number) pair is checked, and only when they are adjacent.
+    # A count that is a variable is somebody's deliberate choice and none of this
+    # check's business.
+    for number, line, stripped in code_lines():
+        for m in re.finditer(r"\(\s*'((?:[^']|'')*)'\s*,\s*(\d+)\s*[,)]", stripped):
+            # NOT `text` - that name holds the WHOLE FILE in this function, and
+            # assigning to it here made every later check read a fragment of a
+            # string literal instead of the source. It turned a clean file into
+            # 119 invented "undeclared name" reports, and the only reason it was
+            # caught is that the file had been linted clean minutes before.
+            lit = m.group(1).replace("''", "'")
+            said = int(m.group(2))
+            # A '$' is CRLF but is still a character in the string, and it counts.
+            if said != len(lit):
+                out.append('%s:%d  the literal %r is %d character(s) but is given %d '
+                           'beside it. A wrong count builds CLEAN and either truncates '
+                           'the string on screen or reads past its end. Count the '
+                           'trailing $ too, or use MAXINDEX and let the string say.'
+                           % (path, number, lit[:44], len(lit), said))
+
+    # ---- A CALL THAT CLAIMS AN ARRAY IS BIGGER THAN IT IS ---------------------
+    #
+    # Routines that write into a caller's buffer take its size as a parameter and
+    # have to believe it. PLANC checks no array bound, so a call that overstates
+    # the size writes past the end IN SILENCE - and every assertion about the
+    # early bytes still passes, because those bytes are in bounds.
+    #
+    # MEASURED 2026-08-27, in a TEST SUITE that reported success on every run:
+    #
+    #     BYTES : buf(0:255)
+    #     BYTES : tx(0:63)
+    #     cmEnc(buf, kSay, nm, 5, tx, 300, 512)
+    #
+    # 512 for a 256-byte buffer. It wrote fifty-three bytes past buf and read 236
+    # past tx, and printed "codec is good".
+    #
+    # WHAT IS CHECKED, and deliberately nothing more: a call whose FIRST argument
+    # is a BYTES array declared in this file and whose LAST argument is a plain
+    # number BIGGER than that array holds. That is the shape a write-into-buffer
+    # routine has here - cmEnc(buf, ..., bufMax) - and nothing else is guessed at.
+    #
+    # THE FIRST VERSION OF THIS CHECK COMPARED THE NUMBER AGAINST ANY ARRAY IN THE
+    # CALL, and it fired on `xmpblet(letterBuf, 64, offSet, 123, ...)`, where 123
+    # is a SERVICE NUMBER, and on every correct cmEnc call in the test suite,
+    # because a 256 meant for a 256-byte buffer was compared against a 16-byte
+    # name sitting in the same argument list. Thirteen false alarms against three
+    # real faults. This file's own note at the undeclared-name check says it: a
+    # page of false alarms trains you to ignore the linter, which costs more than
+    # the check ever saves. Narrow beats clever.
+    array_size = {}
+    for number, line, stripped in code_lines():
+        m = re.match(r'^BYTES\s*:\s*(\w+)\s*\(\s*(\d+)\s*:\s*(\d+)\s*\)', stripped)
+        if m:
+            array_size[m.group(1)] = int(m.group(3)) - int(m.group(2)) + 1
+
+    if array_size:
+        for number, line, stripped in code_lines():
+            call = re.match(r'^(?:\w+\s*=:\s*)?(\w+)\s*\((.*)\)\s*(?:=:\s*\w+)?\s*$', stripped)
+            if not call:
+                continue
+            if call.group(1).upper() in ('IF', 'FOR', 'WHILE', 'OUTPUT', 'INPUT'):
+                continue
+            args = [a.strip() for a in call.group(2).split(',')]
+            if len(args) < 3:
+                continue
+            first, last = args[0], args[-1]
+            if first not in array_size or not re.match(r'^\d+$', last):
+                continue
+            if int(last) > array_size[first]:
+                out.append('%s:%d  %s is given %s as its last argument while %s holds only '
+                           '%d byte(s). If that number is the buffer size the callee '
+                           'believes, this call writes past the end - silently, because '
+                           'PLANC checks no array bound. A test doing exactly this passed '
+                           'while corrupting memory.'
+                           % (path, number, call.group(1), last, first, array_size[first]))
+
+    # ---- A BOOLEAN WHERE AN INTEGER IS DECLARED ------------------------------
+    #
+    # PLANC does not convert at a call. `len <= 256` is a BOOLEAN, so it cannot be
+    # handed to a routine whose parameter is INTEGER - and the error names the
+    # ROUTINE, not the argument, which sends you to the declaration.
+    #
+    # Only comparison operators are flagged, because those are unambiguous. A
+    # BOOLEAN VARIABLE passed to an INTEGER parameter needs the signature, which
+    # is a bigger job than this check is worth.
+    int_param_routines = set()
+    for number, line, stripped in code_lines():
+        m = re.match(r'^ROUTINE\s+\S+\s*,\s*\S+\s*\(([^)]*)\)\s*:\s*(\w+)', stripped)
+        if m and 'BOOLEAN' not in m.group(1) and 'INTEGER' in m.group(1):
+            int_param_routines.add(m.group(2))
+
+    if int_param_routines:
+        for number, line, stripped in code_lines():
+            m = re.match(r'^(?:\w+\s*=:\s*)?(\w+)\s*\((.*)\)', stripped)
+            if not m or m.group(1) not in int_param_routines:
+                continue
+            for a in m.group(2).split(','):
+                a = a.strip()
+                if re.search(r'(?:<=|>=|><|(?<![<>=:])=(?!:))\s*\S', a) and not a.startswith("'"):
+                    out.append('%s:%d  passes the comparison "%s" to %s, whose parameters '
+                               'are INTEGER. A comparison is a BOOLEAN and PLANC will not '
+                               'convert it - and the error names the ROUTINE, not this '
+                               'argument. Write a separate BOOLEAN routine.'
+                               % (path, number, a[:40], m.group(1)))
+                    break
+
     # ---- TWO EXPORTS THAT ARE THE SAME NAME ACROSS A BRF BOUNDARY -------------
     #
     # Names are unique in TEN characters to the compiler but only SEVEN across an

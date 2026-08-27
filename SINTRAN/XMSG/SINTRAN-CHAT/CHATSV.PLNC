@@ -5227,7 +5227,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
                 RETURN
             ENDIF
             FALSE =: peersOpen
-            buildAdmText('peers locked - no new ones will be learned', 41) =: length
+            buildAdmText('peers locked - no new ones will be learned', 42) =: length
             sendTo(senderMagic, length)
             RETURN
         ENDIF
@@ -5237,7 +5237,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
                 RETURN
             ENDIF
             TRUE =: peersOpen
-            buildAdmText('peers open - any system may be learned', 37) =: length
+            buildAdmText('peers open - any system may be learned', 38) =: length
             sendTo(senderMagic, length)
             RETURN
         ENDIF

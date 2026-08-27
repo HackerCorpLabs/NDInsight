@@ -344,6 +344,20 @@
         "meaning": "CHAT-MON to server: what this machine calls itself. The text is the name, and an EMPTY text CLEARS it - a machine with no name falls back to D<number> everywhere, which is exactly how every machine behaved before names existed, so there is a way back from a typo that needs no restart. Answered with AdminReply like every other admin verb, so CHAT-MON needs no new decoding. A NAME IS ONLY A LABEL ON A NUMBER and that is the property to protect: which machine a message came from is still decided by the sender's magic, which the kernel supplies and no sender can choose. So a machine may call itself anything and still cannot claim to BE another machine. The name reaches the other machines on the TRUNK HELLO (kind 48), appended after the direction byte that was always there - and the old Hello handler reads that first byte and nothing else, so an un-upgraded server ignores the name instead of breaking. Same trick as TrunkRelay, and it is what lets three running machines be upgraded one at a time. The name is NOT written to disk: it belongs in the machine's boot mode file beside START-TRUNK, which already drives CHAT-MON.",
         "status": "MEASURED",
         "evidence": "ChatMessageKind has no entry yet - this kind is PLANC-only so far, and the C# decoder bound has NOT been moved. Built in CHATSV.PLNC (kAdmName) and CHATMON.PLNC (SET-NAME)."
+      },
+      {
+        "name": "AdminLockPeers",
+        "value": "40",
+        "meaning": "CHAT-MON to server, on the ADMIN port: learn no NEW peers. A server adds any system that reaches its trunk port to its peer table, which is what lets a lab be set up without naming every machine, and is the default. It also means the server believes whatever that system says about who is speaking on it - a trunk line is delivered as NAME@thatsystem - so this is how an operator says the network is now complete. It does NOT drop peers already known: they were learned before the line was drawn, and cutting live trunks is not what 'take no more' means. STOP-TRUNK removes a peer. Deliberately not saved to disk - a server that came back from a reboot silently refusing its own trunks would be a worse failure than the one this prevents. PLANC calls it kAdmLock.",
+        "status": "BUILT, NOT YET OBSERVED ON A WIRE",
+        "evidence": "handler in CHATSV.PLNC guarded by fromAdmin; verb LOCK-PEERS in CHATMON.PLNC. Neither has been compiled or run at the time of writing."
+      },
+      {
+        "name": "AdminOpenPeers",
+        "value": "41",
+        "meaning": "The other half of kind 40: learn any system again. Answered with AdminStatusReply like every other admin verb, so CHAT-MON needs no new decoding. Two kinds rather than one with an argument, because every other admin verb here is its own number and a verb whose meaning depends on parsing its text is the one that gets typed wrong. PLANC calls it kAdmOpen.",
+        "status": "BUILT, NOT YET OBSERVED ON A WIRE",
+        "evidence": "handler in CHATSV.PLNC guarded by fromAdmin; verb OPEN-PEERS in CHATMON.PLNC. Neither has been compiled or run at the time of writing."
       }
     ],
     "admin_note": "Kinds 32 and up are ADMIN, and they arrive on the server's command port rather than CHAT-LOBBY. They share this one enum, and therefore one decoder bound, on purpose: the bound has been left behind TWICE and an unknown kind is dropped in SILENCE, so a second enum would be a second place to forget. A server must still refuse an admin kind that arrives on the lobby port - sharing the vocabulary is not sharing the authority.",

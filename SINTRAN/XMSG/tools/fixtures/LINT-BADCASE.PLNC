@@ -1,0 +1,37 @@
+% A file holding exactly the two faults the new linter checks were written for,
+% both taken from real code that compiled clean and ran.
+MODULE badcase
+
+    EXPORT cmTxLen
+    EXPORT cmTxLenN
+
+    BYTES : buf(0:255)
+    BYTES : nm(0:15)
+    BYTES : tx(0:63)
+
+    INTEGER : passed
+
+    ROUTINE VOID, VOID (BYTES, INTEGER, INTEGER) : check(what, got, want)
+        passed + 1 =: passed
+    ENDROUTINE
+
+    ROUTINE VOID, INTEGER (BYTES) : cmTxLen(b)
+        b(1) RETURN
+    ENDROUTINE
+
+    ROUTINE VOID, INTEGER (BYTES, INTEGER) : cmTxLenN(b, arrived)
+        b(1) RETURN
+    ENDROUTINE
+
+    PROGRAM : bad
+        INTEGER : len
+
+        % FAULT 1: 512 for a 256-byte buffer, and a 300-byte read out of a
+        % 64-byte source. This exact line printed "codec is good".
+        cmEnc(buf, 4, nm, 5, tx, 300, 512) =: len
+
+        % FAULT 2: a comparison handed to a routine whose parameters are INTEGER.
+        check('fits', len <= 256, 1)
+    ENDROUTINE
+
+ENDMODULE
