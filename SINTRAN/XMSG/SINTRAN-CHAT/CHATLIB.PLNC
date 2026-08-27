@@ -44,6 +44,8 @@ MODULE chatlib
     EXPORT cmNmLen
     EXPORT cmTxAt
     EXPORT cmTxLen
+    EXPORT cmLenN
+    EXPORT cmSane
 
     % ---- THE MESSAGE KINDS ----------------------------------------------
     %
@@ -132,6 +134,29 @@ MODULE chatlib
             255 =: nl
         ENDIF
 
+        % THE NAME MUST FIT THE BUFFER TOO, and for a long time it did not.
+        %
+        % The clamp below reduced only the TEXT. With a 255-byte name and a
+        % 256-byte buffer the text clamped to nothing, and then the name loop
+        % wrote buf(2)..buf(256) and the two length bytes landed at buf(257)
+        % and buf(258) - THREE BYTES PAST THE END of a 256-byte array, in
+        % silence, because PLANC checks no array bound.
+        %
+        % It was never reachable from the wire: the client sends its own
+        % nickname and the server drops any join with a name longer than 16.
+        % But that made the safety a property of the CALLERS, and a library
+        % whose guarantee lives in its callers is not providing one. It is
+        % enforced here now, so no future caller can reintroduce it.
+        %
+        % A name needs room for the 2-byte header and the 2-byte text length,
+        % so the most that can ever fit is bufMax - 4.
+        IF nl > bufMax - 4 THEN
+            bufMax - 4 =: nl
+            IF nl < 0 THEN
+                0 =: nl
+            ENDIF
+        ENDIF
+
         textLen =: tl
         IF tl < 0 THEN
             0 =: tl
@@ -209,6 +234,15 @@ MODULE chatlib
             255 =: nl
         ENDIF
 
+        % SAME CLAMP AS cmEnc, and it was missing here for the same reason.
+        % See the long note there.
+        IF nl > bufMax - 4 THEN
+            bufMax - 4 =: nl
+            IF nl < 0 THEN
+                0 =: nl
+            ENDIF
+        ENDIF
+
         srcLen =: tl
         IF tl < 0 THEN
             0 =: tl
@@ -270,10 +304,65 @@ MODULE chatlib
     % HIGH BYTE TIMES 256 PLUS LOW. Reading only the low byte would work for
     % every message this product has ever sent and would be wrong for the
     % first one that did not.
+    %
+    % IT READS TWO BYTES THE CALLER MAY NOT HAVE. The pair sits at
+    % buf(1) + 2, and buf(1) is ONE BYTE off a wire - it can say 255, which
+    % points at buf(257) in a 256-byte buffer. The callers' guard
+    % (2 + nameLength + 1 > readLength) permits nameLength + 3 = readLength, so
+    % a 256-byte message with a 253-byte name still reads one past the end.
+    % Narrow, and a READ rather than a write, but it is exactly the kind of
+    % thing that is impossible to see in PLANC.
+    %
+    % cmLenN is the safe form: it is told how many bytes ARRIVED and answers
+    % -1 if the length field is not wholly inside them. cmTxLen is kept as it
+    % was so no existing caller changes behaviour without being edited.
     ROUTINE VOID, INTEGER (BYTES) : cmTxLen(buf)
         INTEGER : at
         buf(1) + 2 =: at
         buf(at) * 256 + buf(at + 1) RETURN
+    ENDROUTINE
+
+    % The same reading, bounded by what actually arrived.
+    %
+    % Answers -1 when the message is too short to hold the field, which is a
+    % value no real length can take - so a caller that ignores it gets an
+    % obviously wrong answer rather than a plausible one built out of whatever
+    % the previous, longer message left in the buffer.
+    ROUTINE VOID, INTEGER (BYTES, INTEGER) : cmLenN(buf, arrived)
+        INTEGER : at
+
+        % Two bytes for kind and name length must be there before buf(1) means
+        % anything at all. Nothing in either program checked even this.
+        IF arrived < 2 THEN
+            -1 RETURN
+        ENDIF
+
+        buf(1) + 2 =: at
+
+        % Both bytes of the pair must be inside the message: the last one is at
+        % at + 1, so the message needs at + 2 bytes.
+        IF at + 2 > arrived THEN
+            -1 RETURN
+        ENDIF
+
+        buf(at) * 256 + buf(at + 1) RETURN
+    ENDROUTINE
+
+    % Is this buffer a message at all? Answers FALSE for anything too short to
+    % hold the fixed part of a header, or whose name and length fields do not
+    % fit inside what arrived.
+    %
+    % WHY IT EXISTS: neither program checked that TWO bytes had arrived before
+    % reading buf(0) and buf(1). A zero-length or one-byte delivery decoded
+    % stale bytes left by the previous message and acted on them.
+    ROUTINE VOID, BOOLEAN (BYTES, INTEGER) : cmSane(buf, arrived)
+        IF arrived < 4 THEN
+            FALSE RETURN
+        ENDIF
+        IF buf(1) + 4 > arrived THEN
+            FALSE RETURN
+        ENDIF
+        TRUE RETURN
     ENDROUTINE
 
 ENDMODULE

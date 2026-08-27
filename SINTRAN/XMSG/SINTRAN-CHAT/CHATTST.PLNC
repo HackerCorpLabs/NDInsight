@@ -25,6 +25,8 @@ MODULE chattest
     IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmNmLen)
     IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmTxAt)
     IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmTxLen)
+    IMPORT (ROUTINE VOID, INTEGER (BYTES, INTEGER) : cmLenN)
+    IMPORT (ROUTINE VOID, BOOLEAN (BYTES, INTEGER) : cmSane)
     IMPORT (INTEGER : kJoin)
     IMPORT (INTEGER : kWelcome)
     IMPORT (INTEGER : kReject)
@@ -54,6 +56,18 @@ MODULE chattest
     BYTES : nm(0:15)
     BYTES : tx(0:63)
 
+    % A buffer and a source that can genuinely hold a 300-byte text, so the
+    % two-byte-length case can be proved WITHOUT writing past the end of
+    % anything. See the note at that test for what it used to do instead.
+    BYTES : bigBuf(0:511)
+    BYTES : bigTx(0:319)
+
+    % A name long enough to overflow a 256-byte buffer on its own. cmEnc clamps
+    % the TEXT against the buffer but did not clamp the NAME, so a 255-byte name
+    % wrote three bytes past a 256-byte buffer while the text was clamped to
+    % nothing. Nothing in this file ever passed a name longer than five bytes.
+    BYTES : hugeNm(0:255)
+
     INTEGER : passed
     INTEGER : failed
 
@@ -77,6 +91,48 @@ MODULE chattest
         OUTPUT(1, 'AL', '  want ')
         OUTPUT(1, 'I', want)
         OUTPUT(1, 'AL', '$')
+    ENDROUTINE
+
+    % The same check for a BOOLEAN answer. PLANC will not pass a BOOLEAN where
+    % an INTEGER is declared, so cmSane needs its own - and printing "got 1
+    % want 0" would be less use than TRUE and FALSE anyway.
+    ROUTINE VOID, VOID (BYTES, BOOLEAN, BOOLEAN) : checkB(what, got, want)
+        IF got = want THEN
+            passed + 1 =: passed
+            OUTPUT(1, 'AL', 'PASS ')
+            OUTPUT(1, 'AL', what)
+            OUTPUT(1, 'AL', '$')
+            RETURN
+        ENDIF
+
+        failed + 1 =: failed
+        OUTPUT(1, 'AL', 'FAIL ')
+        OUTPUT(1, 'AL', what)
+        IF got THEN
+            OUTPUT(1, 'AL', '  got TRUE want FALSE')
+        ELSE
+            OUTPUT(1, 'AL', '  got FALSE want TRUE')
+        ENDIF
+        OUTPUT(1, 'AL', '$')
+    ENDROUTINE
+
+    % ---- CAN A ROUTINE ASK ITS ARRAY PARAMETER HOW BIG IT IS? --------------
+    %
+    % THIS DECIDES THE SHAPE OF THE WHOLE LIBRARY, so it is asked of the machine
+    % rather than assumed.
+    %
+    % cmEnc is told a buffer size by its caller and has to believe it. A caller
+    % that passes the wrong number gets a silent overflow, because PLANC checks
+    % no array bound - and one of the tests in this very file did exactly that,
+    % claiming 512 for a 256-byte buffer.
+    %
+    % If MAXINDEX works on a PARAMETER, the library can ask each array its own
+    % size and stop trusting the caller at all. ND-60.117.5 3.17 says MAXINDEX
+    % returns the DECLARED UPPER BOUND, and page 249 says it is NOT available on
+    % array parameters in a STANDARD routine - which implies it IS in an ordinary
+    % one. "Implies" is not a measurement, so these three checks measure it.
+    ROUTINE VOID, INTEGER (BYTES) : askSize(a)
+        MAXINDEX(a, 1) RETURN
     ENDROUTINE
 
     PROGRAM : ctmain
@@ -139,10 +195,36 @@ MODULE chattest
         % ---- a two-byte length is really two bytes -----------------------
         % 300 does not fit in one byte. If cmTxLen only read the low byte it
         % would answer 44 here, which is the whole point of the case.
-        cmEnc(buf, kSay, nm, 5, tx, 300, 512) =: len
-        check('long text length        ', cmTxLen(buf), 300)
-        check('long text high byte     ', buf(7), 1)
-        check('long text low byte      ', buf(8), 44)
+        %
+        % THIS TEST USED TO CORRUPT MEMORY AND PASS. It read
+        %
+        %     cmEnc(buf, kSay, nm, 5, tx, 300, 512)
+        %
+        % telling cmEnc the buffer was 512 bytes when buf is 256, with a
+        % 300-byte text. Nothing clamped, so it wrote buf(9)..buf(308) - FIFTY
+        % THREE BYTES past the end - while reading tx(0)..tx(299), which is 236
+        % past the end of a 64-byte array. The three checks below still passed,
+        % because buf(7) and buf(8) are in bounds, and the run printed
+        % "codec is good".
+        %
+        % That is the exact trap this file exists to catch, sitting inside the
+        % file itself: PLANC checks no array bound, so an overflow is invisible
+        % unless a test is written to see it.
+        %
+        % The case is kept because the two-byte length still needs proving. It
+        % now uses a buffer that can HOLD 300 bytes and a source that HAS 300
+        % bytes, so the numbers below mean what they say.
+        FOR i IN 0:299 DO
+            65 + (i MOD 26) =: bigTx(i)
+        ENDFOR
+        cmEnc(bigBuf, kSay, nm, 5, bigTx, 300, 512) =: len
+        check('long text total length  ', len, 309)
+        check('long text length        ', cmTxLen(bigBuf), 300)
+        check('long text high byte     ', bigBuf(7), 1)
+        check('long text low byte      ', bigBuf(8), 44)
+        % The LAST text byte really arrived - a length that says 300 while only
+        % some of it was copied would pass every check above.
+        check('long text last byte     ', bigBuf(8 + 300), 65 + (299 MOD 26))
 
         % ---- THE OFFSET ENCODER ------------------------------------------
         %
@@ -229,6 +311,87 @@ MODULE chattest
         check('hand-built long name len', cmTxLen(buf), 1)
         cmTxAt(buf) =: at
         check('hand-built long name txt', buf(at), 88)
+
+        % ---- THE BOUNDED READERS -----------------------------------------
+        %
+        % cmLenN and cmSane are what a receive loop should use: they are told
+        % how many bytes ARRIVED and refuse to read outside them. Every case
+        % here is one that the unbounded readers answer WRONGLY but plausibly.
+        'RONNY' =: nm
+        'hello' =: tx
+        cmEnc(buf, kSay, nm, 5, tx, 5, 256) =: len          % len is 14
+
+        check('bounded len, full msg   ', cmLenN(buf, len), 5)
+        checkB('sane, full message      ', cmSane(buf, len), TRUE)
+
+        % One byte short of the length field: the pair sits at 7 and 8, so 8
+        % bytes is not enough. The UNBOUNDED reader answers 5 here by reading a
+        % byte that did not arrive.
+        check('bounded len, truncated  ', cmLenN(buf, 8), -1)
+        checkB('sane, truncated header  ', cmSane(buf, 8), FALSE)
+
+        % Exactly enough for the field, and no text. A message may legally
+        % carry no text, so this must be ACCEPTED, not refused.
+        check('bounded len, header only', cmLenN(buf, 9), 5)
+        checkB('sane, header only       ', cmSane(buf, 9), TRUE)
+
+        % Nothing arrived at all. buf still holds the last message, so an
+        % unguarded reader happily decodes it and the caller acts on a message
+        % nobody sent. This is the case neither program checked.
+        check('bounded len, empty      ', cmLenN(buf, 0), -1)
+        checkB('sane, empty             ', cmSane(buf, 0), FALSE)
+        checkB('sane, one byte          ', cmSane(buf, 1), FALSE)
+
+        % A name length that points beyond what arrived - the corrupt-length
+        % case. buf(1) says 5, so a 6-byte message cannot hold the header.
+        checkB('sane, name past end     ', cmSane(buf, 6), FALSE)
+
+        % ---- THE NAME MUST BE CLAMPED TOO --------------------------------
+        %
+        % cmEnc clamped the TEXT against bufMax and never the NAME. With a
+        % 255-byte name and a 256-byte buffer the text clamped to nothing, and
+        % then the name loop wrote buf(2)..buf(256) and the two length bytes
+        % landed at buf(257) and buf(258) - THREE BYTES PAST THE END, silently.
+        %
+        % Not reachable from the wire today: the client sends its own nickname
+        % and the server drops a join whose name is longer than 16. But that
+        % safety lives in the CALLERS, which is the exact duplication this
+        % library exists to remove - so it is enforced here and tested here.
+        %
+        % A message can never be longer than the buffer it was written into.
+        % That single check is the one that would have caught the overflow.
+        % The clamp has ONE right answer, so it is checked exactly rather than
+        % as "small enough": a name must leave room for the 2-byte header and
+        % the 2-byte length, so the most that fits a 256-byte buffer is 252,
+        % and the total written is then exactly 256.
+        FOR i IN 0:255 DO
+            88 =: hugeNm(i)
+        ENDFOR
+        cmEnc(buf, kSay, hugeNm, 255, tx, 5, 256) =: len
+        check('huge name clamped to 252', cmNmLen(buf), 252)
+        check('huge name total is 256  ', len, 256)
+        check('huge name text at 256   ', cmTxAt(buf), 256)
+
+        % The same for the offset encoder, which had the identical hole.
+        cmEncAt(buf, kSay, hugeNm, 255, tx, 0, 5, 256) =: len
+        check('cmEncAt name clamped    ', cmNmLen(buf), 252)
+        check('cmEncAt total is 256    ', len, 256)
+
+        % And a name that fits exactly must NOT be clamped - a fix that just
+        % refused every long name would pass the three checks above.
+        cmEnc(buf, kSay, hugeNm, 16, tx, 5, 256) =: len
+        check('a 16-byte name survives ', cmNmLen(buf), 16)
+        % 2 header + 16 name + 2 length + 5 text ('hello', set above) = 25.
+        check('16-byte name total len  ', len, 25)
+
+        % ---- DOES MAXINDEX WORK ON A PARAMETER? --------------------------
+        %
+        % If all three pass, the library can bound itself and no caller can lie
+        % to it about a size. If the subarray case fails, it can still bound
+        % itself for whole arrays, which is how every current caller passes them.
+        check('MAXINDEX on a parameter ', askSize(buf), 255)
+        check('MAXINDEX sees a SMALLER ', askSize(nm), 15)
+        check('MAXINDEX on a SUBARRAY  ', askSize(tx(0:9)), 9)
 
         % ---- THE DECODERS AGAINST THE ARITHMETIC THEY REPLACE -------------
         %

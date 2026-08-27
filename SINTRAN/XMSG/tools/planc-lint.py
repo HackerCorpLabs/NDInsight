@@ -145,6 +145,36 @@ def check(path):
             if stripped and not stripped.startswith('%'):
                 yield i + 1, line, stripped
 
+    # ---- TWO EXPORTS THAT ARE THE SAME NAME ACROSS A BRF BOUNDARY -------------
+    #
+    # Names are unique in TEN characters to the compiler but only SEVEN across an
+    # EXPORT/IMPORT, because that is what a BRF entry carries (ND-60.117.5
+    # appendix G item 27). Two exports agreeing in their first seven characters
+    # are ONE name to the linker.
+    #
+    # WHAT IT ACTUALLY DOES is the reason this is worth a check: it does NOT
+    # report a duplicate. The linker resolves both imports to whichever entry it
+    # met first, so calls meant for one routine silently land in the other - and
+    # if the signatures differ, it reads arguments that were never passed. The
+    # compile is clean, the link is clean, and LIST-ENTRIES-UNDEFINED is empty,
+    # because nothing is undefined.
+    #
+    # This is how kRenamed and kDirected had to be renamed. MEASURED again
+    # 2026-08-27: adding cmTxLenN beside cmTxLen made both CMTXLEN, and it was
+    # caught by hand rather than by any tool - which is why it is a tool now.
+    exports = {}
+    for number, line, stripped in code_lines():
+        m = re.match(r'^EXPORT\s+(\w+)', stripped)
+        if m:
+            exports.setdefault(m.group(1)[:7].upper(), []).append((number, m.group(1)))
+    for short, found in sorted(exports.items()):
+        if len(found) > 1:
+            names = ', '.join('%s (line %d)' % (n, ln) for ln, n in found)
+            out.append('line %d: EXPORTS COLLIDE at seven characters - %s all read '
+                       '"%s" across a BRF boundary. The linker will not complain; it '
+                       'will resolve every import to ONE of them. Rename all but one.'
+                       % (found[0][0], names, short))
+
     # ---- assignment written the wrong way round -------------------------------
     # PLANC stores with "expression =: variable". Writing "variable := expression"
     # is the habit of every other language and it compiles as far as the ":=" then
