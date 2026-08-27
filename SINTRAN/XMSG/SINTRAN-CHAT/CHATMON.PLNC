@@ -76,6 +76,12 @@ $INCLUDE XMP-B02:IMPT
     % SET-NAME <name> - what this machine calls itself.
     INTEGER : kAdmName   := 39
 
+    % LOCK-PEERS / OPEN-PEERS - may the server learn a machine nobody
+    % configured? Open is the default and always has been; locking is how an
+    % operator says these are the machines, once the lab is up.
+    INTEGER : kAdmLock   := 40
+    INTEGER : kAdmOpen   := 41
+
     % The server's command port, by name. XROUT turns this into an
     % address; nothing here knows or wants the number.
     BYTES : admName := 'CHAT-ADMIN'
@@ -123,6 +129,8 @@ $INCLUDE XMP-B02:IMPT
     BYTES : vListTrunks := 'LIST-TRUNKS'
     BYTES : vInit       := 'INITIALIZE'
     BYTES : vSetName    := 'SET-NAME'
+    BYTES : vLockPeers  := 'LOCK-PEERS'
+    BYTES : vOpenPeers  := 'OPEN-PEERS'
     INTEGER : i
 
     % ONE NUMBER PER COMMAND. The matcher below finds WHICH command was typed
@@ -145,6 +153,8 @@ $INCLUDE XMP-B02:IMPT
     INTEGER : cListTrunks  := 10
     INTEGER : cInit        := 11
     INTEGER : cSetName     := 12
+    INTEGER : cLockPeers   := 13
+    INTEGER : cOpenPeers   := 14
 
     % The RT program that IS the chat server. This is the PROGRAM unit's name
     % from CHATSV.PLNC - "PROGRAM : chatServer" - not the file name, and it is
@@ -510,6 +520,11 @@ $INCLUDE XMP-B02:IMPT
         OUTPUT(1, 'AL41', '  LIST-TRUNKS           peers and states$')
         OUTPUT(1, 'AL49', '  INITIALIZE <room> <n> how much that room keeps$')
         OUTPUT(1, 'AL', '  SET-NAME <name>      what this machine is called$')
+        % NO WIDTH ON THESE. 'ALn' is a FIELD, not a maximum: a count one short
+        % truncates the line and one too long pads it with asterisks, and both
+        % build clean. The bare descriptor sizes itself.
+        OUTPUT(1, 'AL', '  LOCK-PEERS           learn no NEW machines$')
+        OUTPUT(1, 'AL', '  OPEN-PEERS           learn any machine again$')
         OUTPUT(1, 'AL1',  '$')
         OUTPUT(1, 'AL57', 'Commands may be shortened: L-T or LI-TRU is LIST-TRUNKS.$')
         OUTPUT(1, 'AL37', 'Upper or lower case, either is fine.$')
@@ -692,6 +707,8 @@ $INCLUDE XMP-B02:IMPT
         tryCmd(vListTrunks, 11, cListTrunks)
         tryCmd(vInit,       10, cInit)
         tryCmd(vSetName,     8, cSetName)
+        tryCmd(vLockPeers,  10, cLockPeers)
+        tryCmd(vOpenPeers,  10, cOpenPeers)
     ENDROUTINE
 
     % -----------------------------------------------------------------------
@@ -948,6 +965,21 @@ $INCLUDE XMP-B02:IMPT
         % beside START-TRUNK and it is set on every cold start.
         IF cmdId = cSetName THEN
             sndArgMsg(kAdmName)
+            showAnswer
+            RETURN
+        ENDIF
+
+        % LOCK-PEERS / OPEN-PEERS carry no argument, so they go out with
+        % sendAdmin rather than sndArgMsg. The server answers with kAdmRepl like
+        % every other admin verb, so showAnswer needs no new decoding.
+        IF cmdId = cLockPeers THEN
+            sendAdmin(kAdmLock)
+            showAnswer
+            RETURN
+        ENDIF
+
+        IF cmdId = cOpenPeers THEN
+            sendAdmin(kAdmOpen)
             showAnswer
             RETURN
         ENDIF

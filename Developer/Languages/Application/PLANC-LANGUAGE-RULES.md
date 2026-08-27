@@ -2112,6 +2112,142 @@ tested and found to be a wrong conclusion from a missing control.
 
 ---
 
+## R114 - Two EXPORTs that agree in their first SEVEN characters are ONE name
+
+Names are unique in **ten** characters to the compiler but only **seven** across an
+`EXPORT`/`IMPORT`, because seven is what a BRF entry carries (ND-60.117.5 appendix G item 27).
+
+**What makes this dangerous is what the linker does NOT do.** It does not report a duplicate. It
+resolves every matching import to whichever entry it met first, so calls meant for one routine
+land in the other - and if the two have different signatures, the callee reads arguments that
+were never passed. The compile is clean, the link is clean, and **`LIST-ENTRIES-UNDEFINED` is
+empty, because nothing is undefined.** There is no message anywhere.
+
+```planc
+EXPORT cmTxLen                  % CMTXLEN
+EXPORT cmTxLenN                 % CMTXLEN  <- the same name to the linker
+```
+
+The compiler only says `IDENTIFIER ALREADY SPECIFIED/DECLARED` when the collision is inside ONE
+module at ten characters. Across modules at seven, it says nothing at all.
+
+**Detect:** compare the first seven characters, upper-cased, of every `EXPORT` in a module and
+refuse any pair that matches. Do the same across modules that are linked together.
+**Source:** ND-60.117.5 appendix G item 27; MEASURED 2026-08-27 - caught by hand while adding a
+routine beside one it collided with, which is why it is a linter check now.
+
+---
+
+## R115 - `MAXINDEX` works on an array PARAMETER, and on a SUBARRAY
+
+A routine can ask an array it was PASSED how big it is. MEASURED on D100 2026-08-27, all three:
+
+```planc
+ROUTINE VOID, INTEGER (BYTES) : askSize(a)
+    MAXINDEX(a, 1) RETURN
+ENDROUTINE
+
+askSize(buf)        -> 255      % BYTES : buf(0:255)  - a whole array parameter
+askSize(nm)         -> 15       % BYTES : nm(0:15)    - it sees the SMALLER one
+askSize(tx(0:9))    -> 9        % a SUBARRAY, bounds and all
+```
+
+**Why it matters:** it removes a whole class of caller-trust bug. A routine told a size by its
+caller - `writeInto(buf, ..., bufMax)` - has no way to check that number, and PLANC checks no
+array bound, so a caller that passes the wrong one gets a silent overflow. `MAXINDEX(buf, 1) + 1`
+is the real size and cannot be lied about.
+
+A `BYTES` parameter subscripts from **zero**, so the usable length is `MAXINDEX(a, 1) + 1`.
+
+**The one restriction** (ND-60.117.5 p.249): `MININDEX`/`MAXINDEX` on array parameters are NOT
+available in a `STANDARD` routine - the FORTRAN/COBOL calling sequence. An ordinary PLANC routine
+is fine.
+
+**Detect:** not a lint rule - a design one. Prefer asking the array over believing a size.
+**Source:** ND-60.117.5 3.17 p.52, p.153, p.249; MEASURED on D100 2026-08-27.
+
+---
+
+## R116 - A clamp that bounds only ONE field is not a clamp
+
+When several fields are written into one buffer, every one of them has to be bounded, not just
+the last. The usual shape of the bug is a clamp that reduces the FINAL field to make things fit
+while an earlier field has already been allowed to fill the buffer on its own:
+
+```planc
+IF headerLen + bodyLen > bufMax THEN
+    bufMax - headerLen =: bodyLen      % only the BODY is reduced
+    IF bodyLen < 0 THEN 0 =: bodyLen ENDIF
+ENDIF
+...
+FOR i IN 1:headerLen DO ... ENDFOR     % still writes headerLen bytes
+```
+
+With `headerLen` larger than `bufMax`, the body clamps to nothing and the header writes past the
+end regardless. Nothing reports it - see R24, PLANC checks no array bound - and the overflow is
+usually a few bytes, which corrupts whatever the compiler happened to place next.
+
+**Clamp each field against what is left after the ones before it**, and treat a comment that
+claims a routine is bounded as a claim to be checked, not a fact.
+
+**Detect:** for each field written into a buffer, is there a bound derived from the buffer size?
+**Source:** MEASURED 2026-08-27 - a name field written into a 256-byte buffer put three bytes
+past the end while the text field was correctly clamped to nothing.
+
+---
+
+## R117 - A test that overflows an array can PASS
+
+This is the testing consequence of R24, and it is worth its own rule because it makes a test
+suite actively misleading.
+
+```planc
+BYTES : buf(0:255)
+BYTES : src(0:63)
+
+writeInto(buf, src, 300, 512)          % 512 is a LIE - buf holds 256
+check('length high byte', buf(7), 1)   % PASSES - byte 7 is in bounds
+check('length low byte',  buf(8), 44)  % PASSES
+```
+
+Fifty-three bytes went past the end of `buf` and 236 past the end of `src`, and every assertion
+passed, because the assertions all landed on bytes that were in bounds. The suite printed its
+success line.
+
+**So assert the TOTAL, not only the fields.** A message can never be longer than the buffer it
+was written into, and that single check is the one that catches it:
+
+```planc
+check('total fits the buffer', len, expectedTotal)
+```
+
+And size the fixtures for the case being tested rather than telling a routine the buffer is
+bigger than it is.
+
+**Detect:** any call whose declared maximum exceeds the declared size of the array passed with
+it. Comparable literals make this checkable.
+**Source:** MEASURED 2026-08-27 in a live test suite that reported success while corrupting
+memory on every run.
+
+---
+
+## R118 - A BOOLEAN will not pass where an INTEGER is declared
+
+PLANC does not convert between them at a call. A routine declared
+`ROUTINE VOID, VOID (BYTES, INTEGER, INTEGER) : check(...)` cannot be handed the result of a
+`BOOLEAN` function, and an expression like `len <= 256` is a BOOLEAN, not a 0 or a 1.
+
+Write a second routine for the BOOLEAN case rather than trying to convert. It also produces
+better output - `got TRUE want FALSE` says more than `got 1 want 0`.
+
+Related: R108 and R109 are the same idea for `BYTES` and `BYTE`, and both report the type error
+against the wrong identifier, so check the ARGUMENT TYPES before the argument the message names.
+
+**Detect:** a BOOLEAN-valued expression or routine passed where the declaration says INTEGER.
+**Source:** MEASURED 2026-08-27.
+
+---
+
 # Appendix A - Compiler messages worth mapping to rules
 
 When a linter reports something, quoting the message the compiler will actually print saves a build
@@ -2128,6 +2264,8 @@ cycle. The mapping:
 | EXITFOR / EXITWHILE ALREADY PRESENT WITHIN THE LOOP | R58 |
 | EXPRESSION DOES NOT STORE A VALUE | R19 |
 | IDENTIFIER ALREADY SPECIFIED/DECLARED | R4, R39, R113 |
+| *(no message at all)* - two EXPORTs equal in 7 chars | R114 |
+| *(no message at all)* - a write past the end of an array | R24, R116, R117 |
 | IDENTIFIER IN EXPORT, BUT NO DECLARATION | R83 |
 | ILLEGAL CHARACTER | R1, R2, R15 |
 | ILLEGAL CONTROL IDENTIFIER | R58 |

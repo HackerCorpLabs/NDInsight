@@ -126,6 +126,20 @@ The compiler produces three files:
   ran with it permanently set. The signature is a flag that will not change: printing it
   immediately after `FALSE =: x` showed `1`. When a variable ignores an assignment, check the
   DECLARATION before debugging the logic. `SINTRAN/XMSG/tools/planc-lint.py` flags this
+- **Two `EXPORT`s that agree in their first SEVEN characters are ONE name to the linker.** Ten
+  characters to the compiler, seven across an `EXPORT`/`IMPORT`. It does NOT report a duplicate --
+  it resolves every import to whichever entry it met first, so calls land in the wrong routine and
+  read arguments that were never passed. Clean compile, clean link, and `LIST-ENTRIES-UNDEFINED`
+  **empty**, because nothing is undefined. There is no message anywhere. See R114
+- **`MAXINDEX` works on an array PARAMETER, and on a SUBARRAY** -- measured on D100.
+  `MAXINDEX(a, 1) + 1` is the real length of a `BYTES` parameter, so a routine can bound itself
+  instead of believing a size its caller passed. Not available inside a `STANDARD` routine. See R115
+- **PLANC checks no array bounds, and that reaches the TESTS too.** A clamp that bounds only one of
+  several fields is not a clamp (R116), and a test that overflows an array still PASSES, because its
+  assertions land on bytes that are in bounds (R117). Assert the TOTAL length against the buffer
+  size -- that is the check that catches it
+- **A BOOLEAN will not pass where an INTEGER is declared.** `len <= 256` is a BOOLEAN, not a 0 or a
+  1; write a second routine rather than trying to convert. See R118
 - `BYTES : name := 'string'` declares byte array with implicit length
 - `%` starts a comment to end of line
 - `&` at end of line continues statement on next line

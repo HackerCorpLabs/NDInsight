@@ -296,6 +296,20 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     INTEGER : kAdmName    := 39
     INTEGER : kAdmTrunks  := 37
 
+    % LOCK-PEERS and OPEN-PEERS from CHAT-MON.
+    %
+    % A server learns a peer from any system that reaches its trunk port, which
+    % is what makes a lab easy to set up and is the default. It also means the
+    % server believes whatever that system says about who is speaking on it - a
+    % trunk line is delivered as NAME@thatsystem - so an operator needs a way to
+    % say "these are the machines, take no more".
+    %
+    % TWO KINDS RATHER THAN ONE WITH AN ARGUMENT. Every other admin verb here is
+    % its own number, and a verb whose meaning depends on parsing its text is
+    % the one that gets typed wrong at three in the morning.
+    INTEGER : kAdmLock    := 40
+    INTEGER : kAdmOpen    := 41
+
     % SERVER TO SERVER, on the trunk port. 48 and up, left clear of the admin
     % block so a future admin verb cannot collide with a trunk one.
     %
@@ -895,6 +909,46 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     INTEGER ARRAY  : pNameLen(1:8)
     INTEGER ARRAY  : peerState(1:8)       % see the three constants below
     INTEGER ARRAY  : peerHeard(1:8)       % loop ticks since we last heard from it
+
+    % ---- WHO PUT THIS PEER HERE: the operator, or the wire? ----------------
+    %
+    % 1 for a row an operator asked for with START-TRUNK, 0 for one this server
+    % LEARNED because a message arrived from a system it had never seen.
+    %
+    % WHY THE DISTINCTION EXISTS. markPeerUp adds any unknown system on first
+    % contact, so the eight rows can be filled entirely by machines nobody
+    % configured - and then a real START-TRUNK answers "no room for another
+    % trunk". The note above this table says a table that cannot overflow
+    % quietly is worth more than a big one, and that was only half true: the
+    % OPERATOR path refuses out loud, the LEARNING path filled it in silence.
+    %
+    % With this flag an operator can always get a row - addPeer takes one back
+    % from a learned peer rather than refusing - so the table stays small and
+    % the loud refusal is reserved for the case where every row was asked for.
+    INTEGER ARRAY  : peerFixed(1:8)
+    INTEGER        : peerLearned := 0
+    INTEGER        : peerAsked   := 1
+
+    % ---- MAY THIS SERVER LEARN A PEER IT WAS NEVER TOLD ABOUT? -------------
+    %
+    % TRUE by default, which is exactly what the server has always done: any
+    % system that reaches the trunk port becomes a peer. That keeps setting up
+    % a lab easy - no list of friends to type - and nothing that works today
+    % stops working.
+    %
+    % BE CLEAR ABOUT WHAT IT COSTS. An open server believes whatever a peer
+    % says about who is speaking on it: a line arriving on the trunk port is
+    % delivered as NAME@thatsystem, and the only thing standing between a
+    % stranger and impersonating anybody is whether XMSG would carry their
+    % letter at all. LOCK-PEERS is how an operator ends that once the lab is
+    % up: the peers that are already known keep working, and no new one is
+    % ever learned.
+    %
+    % It is deliberately NOT saved anywhere. A lock is a statement about the
+    % running system, and a server that came back from a reboot silently
+    % refusing its own trunks would be a worse failure than the one this
+    % prevents.
+    BOOLEAN        : peersOpen := TRUE
 
     % Peer states. NOT a BOOLEAN pair, because "we have never heard from it" and
     % "we heard from it and then it went quiet" are different things to an
@@ -1946,11 +2000,31 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
                 IF st = peerUnknown THEN
                     putWord('unknown', 7, at) =: at
                 ENDIF
+
+                % WHO PUT IT THERE. Only the LEARNED ones are marked, so the
+                % ordinary case - every trunk asked for by an operator - reads
+                % exactly as it always did. A "(learned)" beside a system
+                % nobody remembers configuring is the whole point: until now
+                % there was no way to tell the two apart at all.
+                IF peerFixed(i) = peerLearned THEN
+                    spaceByte(0) =: outBuf(at)
+                    at + 1 =: at
+                    putWord('(learned)', 9, at) =: at
+                ENDIF
             ENDIF
         ENDFOR
 
         IF at = textAt THEN
             putWord('no trunks', 9, at) =: at
+        ENDIF
+
+        % AND WHETHER MORE CAN STILL ARRIVE. An operator reading this list needs
+        % to know it is the whole list and not just the part that has turned up
+        % so far - "locked" is the difference between a network and a snapshot.
+        IF NOT peersOpen THEN
+            spaceByte(0) =: outBuf(at)
+            at + 1 =: at
+            putWord('[locked]', 8, at) =: at
         ENDIF
 
         at - textAt =: textLen
@@ -4698,11 +4772,29 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         ENDIF
 
         findPeer(system) =: row
+
+        % ---- A SYSTEM WE HAVE NEVER SEEN --------------------------------
+        %
+        % Learning one is how a trunk comes up without an operator on both
+        % ends, and it is the default. When the table has been LOCKED it is
+        % also how a stranger would get in, so the answer is simply to stop
+        % here: a peer already in the table keeps working, because findPeer
+        % found it above and this branch is not taken at all.
+        %
+        % Dropped in silence on purpose. Anything that reaches this point sent
+        % a message on the trunk port, and answering a stranger tells them a
+        % server is here.
         IF row = 0 THEN
+            IF NOT peersOpen THEN
+                RETURN
+            ENDIF
             FOR i IN 1:maxPeers DO
                 IF peerSystem(i) = 0 THEN
                     IF row = 0 THEN
                         system =: peerSystem(i)
+                        % LEARNED, not asked for. This is the row addPeer is
+                        % allowed to take back when an operator needs one.
+                        peerLearned =: peerFixed(i)
                         i =: row
                     ENDIF
                 ENDIF
@@ -4733,23 +4825,61 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
             FOR i IN 1:maxPeers DO
                 IF peerSystem(i) = 0 THEN
                     IF row = 0 THEN
-                        system =: peerSystem(i)
-                        peerUnknown =: peerState(i)
-                        0 =: peerHeard(i)
-                        % Start the backoff clock, or peerTick would count down
-                        % from an uninitialised value and greet at random.
-                        peerFirstWait =: peerWait(i)
-                        peerFirstWait =: peerCount(i)
                         i =: row
                     ENDIF
                 ENDIF
             ENDFOR
         ENDIF
 
+        % ---- STILL NO ROW: TAKE ONE BACK FROM A LEARNED PEER -------------
+        %
+        % An operator asking for a trunk must always be able to have one. Every
+        % row can be occupied by a system nobody configured, because markPeerUp
+        % adds any system that reaches the trunk port - so without this, eight
+        % strangers are enough to stop the machine being given a real trunk,
+        % and the operator is told "no room" by machines they never chose.
+        %
+        % A learned row is the right one to take: nobody asked for it, and if
+        % that peer is genuinely there it will be learned again on its next
+        % message. A row an operator asked for is never taken.
+        IF row = 0 THEN
+            FOR i IN 1:maxPeers DO
+                IF peerFixed(i) = peerLearned THEN
+                    IF row = 0 THEN
+                        i =: row
+                    ENDIF
+                ENDIF
+            ENDFOR
+        ENDIF
+
+        % Only when EVERY row was asked for is the refusal a true one - and
+        % that is the case the table's small size is meant to make loud.
         IF row = 0 THEN
             buildAdmText('no room for another trunk', 25) =: length
             sendTo(senderMagic, length)
             RETURN
+        ENDIF
+
+        % Set the row up, whether it was free, reclaimed, or already this peer.
+        %
+        % A ROW CHANGING HANDS MUST LOSE THE OLD PEER'S NAME. pName is learned
+        % from a Hello, so a reclaimed row would otherwise report the machine
+        % that used to be in it - LIST-TRUNKS would print the wrong name beside
+        % a perfectly good system number, which is the kind of wrong that gets
+        % believed.
+        IF peerSystem(row) >< system THEN
+            0 =: pNameLen(row)
+        ENDIF
+
+        system =: peerSystem(row)
+        peerAsked =: peerFixed(row)
+        IF peerState(row) >< peerUp THEN
+            peerUnknown =: peerState(row)
+            0 =: peerHeard(row)
+            % Start the backoff clock, or peerTick would count down from an
+            % uninitialised value and greet at random.
+            peerFirstWait =: peerWait(row)
+            peerFirstWait =: peerCount(row)
         ENDIF
 
         % Greet it now rather than waiting for the retry tick, so an operator
@@ -5083,6 +5213,35 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         %
         % Guarded by fromAdmin like every other admin verb: rewiring the network
         % is not something a room member may do.
+        % ---- LOCK-PEERS / OPEN-PEERS ---------------------------------------
+        %
+        % Both are guarded by fromAdmin like every other admin verb, and for a
+        % sharper reason than most: a member who could unlock the peer table
+        % could then introduce any machine they liked.
+        %
+        % Locking does NOT drop the peers already known - they were learned
+        % before the operator drew the line, and cutting live trunks is not what
+        % "take no more" means. STOP-TRUNK is how a peer is removed.
+        IF kind = kAdmLock THEN
+            IF NOT fromAdmin THEN
+                RETURN
+            ENDIF
+            FALSE =: peersOpen
+            buildAdmText('peers locked - no new ones will be learned', 41) =: length
+            sendTo(senderMagic, length)
+            RETURN
+        ENDIF
+
+        IF kind = kAdmOpen THEN
+            IF NOT fromAdmin THEN
+                RETURN
+            ENDIF
+            TRUE =: peersOpen
+            buildAdmText('peers open - any system may be learned', 37) =: length
+            sendTo(senderMagic, length)
+            RETURN
+        ENDIF
+
         IF kind = kAdmTrunk THEN
             IF NOT fromAdmin THEN
                 RETURN
