@@ -149,6 +149,19 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     % kRenOk and kDirected is now kDirGot. The WIRE NUMBERS are unchanged.
     IMPORT (ROUTINE VOID, INTEGER (BYTES, INTEGER, BYTES, INTEGER, BYTES, &
             INTEGER, INTEGER, INTEGER) : cmEncAt)
+
+    % THE DECODERS, so the header is read in ONE place rather than parsed by
+    % hand at each arrival. See the same note in CHAT.PLNC.
+    %
+    % THESE ARE FOR THE CHAT HEADER ONLY. The server also parses a TRUNK RELAY
+    % header (origin, hops, relay id) and an XROUT LETTER header (service byte,
+    % payload offset), and those are DIFFERENT FORMATS that happen to be read
+    % out of the same buffer. Do not reach for cmNmLen there - inBuf(1) means
+    % something else in each of them.
+    IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmKind)
+    IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmNmLen)
+    IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmTxAt)
+    IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmTxLen)
     IMPORT (INTEGER : kJoin)
     IMPORT (INTEGER : kWelcome)
     IMPORT (INTEGER : kReject)
@@ -4902,7 +4915,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         % gets an obviously wrong answer rather than a plausible one.
         INTEGER : relayId
 
-        inBuf(0) =: kind
+        cmKind(inBuf) =: kind
 
         % ---- A RELAYED LINE HAS A LONGER HEADER, so take it off HERE --------
         %
@@ -4963,7 +4976,11 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
             ENDIF
         ENDIF
 
-        inBuf(1) =: nameLength
+        % THE RELAY HEADER, IF THERE WAS ONE, HAS ALREADY BEEN SLID OFF ABOVE -
+        % so inBuf(1) is the chat name length again here, and cmNmLen is the
+        % right reader for it. Above the slide it is the relay origin's high
+        % byte, which is why that code parses by hand and must keep doing so.
+        cmNmLen(inBuf) =: nameLength
         2 =: nameAt
 
         % A "parse k= nlen= rlen=" line printed here on EVERY message while the
@@ -5008,9 +5025,10 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
             RETURN
         ENDIF
 
-        nameAt + nameLength =: textAt
-        inBuf(textAt) * 256 + inBuf(textAt + 1) =: textLength
-        textAt + 2 =: textAt
+        % READ ONLY AFTER THE TWO GUARDS ABOVE - cmTxLen fetches the two bytes
+        % at nameLength + 2, which is the over-read "name past end" prevents.
+        cmTxLen(inBuf) =: textLength
+        cmTxAt(inBuf) =: textAt
 
         IF textAt + textLength > readLength THEN
             OUTPUT(1, 'AL22', 'SV: DROP text past end')

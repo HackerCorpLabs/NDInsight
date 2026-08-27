@@ -321,6 +321,18 @@ $INCLUDE screen
     % kRenOk and kDirected is now kDirGot. The WIRE NUMBERS are unchanged.
     IMPORT (ROUTINE VOID, INTEGER (BYTES, INTEGER, BYTES, INTEGER, BYTES, &
             INTEGER, INTEGER) : cmEnc)
+
+    % THE DECODERS, so the header is read in ONE place rather than parsed by
+    % hand at each arrival. The two-byte text length is the part worth sharing:
+    % written out longhand it is `inBuf(at) * 256 + inBuf(at + 1)`, and a copy
+    % that read only the low byte would be right for every message this product
+    % has ever sent and wrong for the first one over 255 characters. CHATTST
+    % compares these against the longhand form for every header length that fits
+    % the buffer, so replacing one with the other is a proved swap, not a hope.
+    IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmKind)
+    IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmNmLen)
+    IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmTxAt)
+    IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmTxLen)
     IMPORT (INTEGER : kJoin)
     IMPORT (INTEGER : kWelcome)
     IMPORT (INTEGER : kReject)
@@ -3762,18 +3774,22 @@ $INCLUDE screen
             FALSE RETURN
         ENDIF
 
-        inBuf(0) =: kind
-        inBuf(1) =: nameLength
+        cmKind(inBuf) =: kind
+        cmNmLen(inBuf) =: nameLength
 
         % THE SAME LENGTH GUARD THE LINE RENDERER USES, and for the same
         % reason: nameLength is one byte and can say 255, which would read
         % past the end of a message that never held that much.
+        %
+        % IT STAYS AHEAD OF cmTxLen ON PURPOSE. cmTxLen reads the two bytes at
+        % nameLength + 2, so calling it before this guard would do exactly the
+        % over-read the guard exists to prevent - the library clamps what it
+        % WRITES, and cannot know how many bytes actually arrived.
         IF 2 + nameLength + 1 > readLength THEN
             TRUE RETURN
         ENDIF
-        2 + nameLength =: textAt
-        inBuf(textAt) * 256 + inBuf(textAt + 1) =: textLength
-        textAt + 2 =: textAt
+        cmTxLen(inBuf) =: textLength
+        cmTxAt(inBuf) =: textAt
 
         % ---- somebody spoke -------------------------------------------
         % A ZERO-LENGTH FIELD WOULD MAKE A REVERSED SUBARRAY - inBuf(2:1) -
@@ -4016,7 +4032,7 @@ $INCLUDE screen
         % READ FROM inBuf, not passed in. The inner routine reads its own kind
         % the same way from the same byte, so there is no second copy that
         % could disagree with it.
-        inBuf(0) =: what
+        cmKind(inBuf) =: what
         curWin =: prev
 
         IF what = kDirGot OR what = kDirSent THEN
@@ -4066,8 +4082,8 @@ $INCLUDE screen
             RETURN
         ENDIF
 
-        inBuf(0) =: kind
-        inBuf(1) =: nameLength
+        cmKind(inBuf) =: kind
+        cmNmLen(inBuf) =: nameLength
 
         % THE JOIN IS ONE STEP, and a two-step handshake used to live here.
         %
@@ -4113,9 +4129,10 @@ $INCLUDE screen
             RETURN
         ENDIF
 
-        2 + nameLength =: textAt
-        inBuf(textAt) * 256 + inBuf(textAt + 1) =: textLength
-        textAt + 2 =: textAt
+        % READ ONLY AFTER THE GUARD ABOVE - cmTxLen fetches the two bytes at
+        % nameLength + 2, which is the over-read that guard prevents.
+        cmTxLen(inBuf) =: textLength
+        cmTxAt(inBuf) =: textAt
 
         IF textAt + textLength > readLength THEN
             RETURN
