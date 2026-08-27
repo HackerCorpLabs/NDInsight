@@ -306,16 +306,40 @@ $INCLUDE screen
     % output has to be READ - nothing else fails.
 
     % ----- message kinds, mirroring ChatMessageKind.cs ----------------------
-    INTEGER : kJoin    := 1
-    INTEGER : kWelcome := 2
-    INTEGER : kReject  := 3
-    INTEGER : kSay     := 4
-    INTEGER : kSaid    := 5
-    INTEGER : kLeave   := 6
-    INTEGER : kJoined  := 7
-    INTEGER : kLeft    := 8
-    INTEGER : kRename  := 9
-    INTEGER : kRenamed := 10
+    % ---- THE MESSAGE KINDS COME FROM CHATLIB -------------------------
+    %
+    % They used to be declared here AND in the other program - twenty of
+    % them, agreeing only because somebody kept checking. Nothing made
+    % them agree, and an unhandled kind is SILENT, which is the worst
+    % failure this product has. Imported from one place, a drift is a
+    % LINK error instead, and LIST-ENTRIES-UNDEFINED already runs in every
+    % link.
+    %
+    % TWO NAMES CHANGED because they could not cross a BRF boundary -
+    % names are unique in SEVEN characters there, so kRename/kRenamed both
+    % read KRENAME and kDirect/kDirected both read KDIRECT. kRenamed is now
+    % kRenOk and kDirected is now kDirGot. The WIRE NUMBERS are unchanged.
+    IMPORT (INTEGER : kJoin)
+    IMPORT (INTEGER : kWelcome)
+    IMPORT (INTEGER : kReject)
+    IMPORT (INTEGER : kSay)
+    IMPORT (INTEGER : kSaid)
+    IMPORT (INTEGER : kLeave)
+    IMPORT (INTEGER : kJoined)
+    IMPORT (INTEGER : kLeft)
+    IMPORT (INTEGER : kRename)
+    IMPORT (INTEGER : kRenOk)
+    IMPORT (INTEGER : kWho)
+    IMPORT (INTEGER : kMap)
+    IMPORT (INTEGER : kRooms)
+    IMPORT (INTEGER : kTopic)
+    IMPORT (INTEGER : kAllWho)
+    IMPORT (INTEGER : kHist)
+    IMPORT (INTEGER : kDirect)
+    IMPORT (INTEGER : kDirGot)
+    IMPORT (INTEGER : kDirSent)
+    IMPORT (INTEGER : kDirBad)
+
 
     % ONE KIND, BOTH DIRECTIONS. We send it with an empty text to ask; the room
     % answers with the same kind and the members' names in the text, separated
@@ -329,7 +353,6 @@ $INCLUDE screen
     % address arrives WITH the message - there was nothing to hand shake about.
     % /who is different: the membership list is real information that only the
     % room has, so there is something to ask for.
-    INTEGER : kWho     := 11
 
     % /topic and /list. Both are one kind in both directions, same as kWho.
     % These MUST match CHATSV.PLNC, DOC/protocols/chat-wire.json and
@@ -339,29 +362,20 @@ $INCLUDE screen
     % sent with an empty text, answered with readable text. A ROOM kind, not an
     % admin one - seeing how the network is wired is not the same right as
     % rewiring it, which is what keeps it off the admin port.
-    INTEGER : kMap     := 12
 
-    INTEGER : kRooms   := 13
-    INTEGER : kTopic   := 14
 
     % The answer to /who when this client has NO SEAT - every room and the
     % people in each. RECEIVE ONLY: the client never sends 15, it sends kWho and
     % the SERVER picks the answer, because the server is the one that knows
     % whether we have a seat. See the note beside it in CHATSV.PLNC.
-    INTEGER : kAllWho  := 15
 
     % Replayed history, one per remembered message, sent to us alone when we
     % join. RECEIVE ONLY - the client never sends it.
-    INTEGER : kHist    := 16
 
     % DIRECT MESSAGES - one person to one person. kDirect goes out, and the
     % other three come back: the message itself to the person it is FOR, a
     % receipt to the sender naming who it actually reached, and a refusal with
     % the reason when it reached nobody.
-    INTEGER : kDirect   := 17
-    INTEGER : kDirected := 18
-    INTEGER : kDirSent  := 19
-    INTEGER : kDirBad   := 20
 
     INTEGER : ownTerminal := 1        % FILE number of your own terminal - MON1 only
 
@@ -958,7 +972,7 @@ $INCLUDE screen
     % free to carry the new name and nothing is lost by not sending the old one.
     %
     % myName is deliberately NOT changed here. Our own name changes when the
-    % room says so with kRenamed, so a refused rename leaves us as we were.
+    % room says so with kRenOk, so a refused rename leaves us as we were.
     % -----------------------------------------------------------------------
     ROUTINE VOID, INTEGER (INTEGER, INTEGER) : buildRename(nameFrom, newLength)
         INTEGER : i, at
@@ -1475,7 +1489,7 @@ $INCLUDE screen
     % - it is the next piece of work, not a closed one.
     %
     % Changing the name is /nick, and the room has to agree to it: the save
-    % happens when the SERVER confirms with kRenamed, never when the request is
+    % happens when the SERVER confirms with kRenOk, never when the request is
     % sent. See showArrived.
     % -----------------------------------------------------------------------
     % -----------------------------------------------------------------------
@@ -3804,7 +3818,7 @@ $INCLUDE screen
         % winFor answers zero for that, and the old path is still right there
         % as the fallback rather than being an error case somebody has to
         % have thought about.
-        IF kind = kDirected THEN
+        IF kind = kDirGot THEN
             winFor(2, nameLength) =: dirWin
             IF dirWin > 0 THEN
                 putInWin(dirWin, 2, nameLength, textAt, textLength)
@@ -3879,7 +3893,7 @@ $INCLUDE screen
         % A RENAME CARRIES THE NEW NAME IN THE NAME FIELD and the old one as
         % the text - the order that is easiest to get backwards, which is why
         % the C# golden test pins it.
-        IF kind = kRenamed THEN
+        IF kind = kRenOk THEN
             uiClear
             uiFrom(textAt, textLength)
             uiWord(' is now ')
@@ -4012,7 +4026,7 @@ $INCLUDE screen
         inBuf(0) =: what
         curWin =: prev
 
-        IF what = kDirected OR what = kDirSent THEN
+        IF what = kDirGot OR what = kDirSent THEN
             uiArrivedInner =: handled
             handled RETURN
         ENDIF
@@ -4043,7 +4057,7 @@ $INCLUDE screen
         INTEGER : kind, nameLength, textLength, textAt, i
         % Only the screen path uses this - the /who it asks for on the way in.
         INTEGER : length
-        % Only used by the kRenamed branch: is this rename about US?
+        % Only used by the kRenOk branch: is this rename about US?
         BOOLEAN : sameAsOurs
         INTEGER : newLen
 
@@ -4257,7 +4271,7 @@ $INCLUDE screen
         % ---- OUR OWN NAME CHANGES ONLY WHEN THE ROOM SAYS SO ---------------
         % A comment in handleCommand has promised this for as long as /nick has
         % existed - "our own name changes only when the room says so, with
-        % kRenamed" - and nothing implemented it. The name in myName therefore
+        % kRenOk" - and nothing implemented it. The name in myName therefore
         % stayed at the old one after a successful rename, so the next thing
         % this client SENT went out under a name the room no longer knew.
         %
@@ -4272,7 +4286,7 @@ $INCLUDE screen
         % refuses an empty one, and one already taken - so the save waits for
         % the room's confirmation. A refused rename changes nothing, on screen
         % or on disk.
-        IF kind = kRenamed THEN
+        IF kind = kRenOk THEN
             IF textLength = lenMyName THEN
                 TRUE =: sameAsOurs
                 FOR i IN 1:textLength DO
@@ -4556,7 +4570,7 @@ $INCLUDE screen
         % every kind nobody had written a case for arrived here and was rendered
         % as a person talking. Three separate bugs came out of that one habit:
         % kReject as "OLAV: that nickname is taken", kJoined as a bare "SYSTEM:",
-        % and - the same blindness one layer up - writeCnfg hung off kRenamed
+        % and - the same blindness one layer up - writeCnfg hung off kRenOk
         % while the server answers kWelcome, so /nick was confirmed and never
         % saved.
         %
@@ -4572,7 +4586,7 @@ $INCLUDE screen
         % room, which is a privacy failure caused entirely by the display.
         % The stars say it was private, and the name is printed QUALIFIED -
         % D102!KARI - because that is exactly what has to be typed back.
-        IF kind = kDirected THEN
+        IF kind = kDirGot THEN
             OUTPUT(1, 'AL1', '$')
             OUTPUT(1, 'AL2', '*(')
             FOR i IN 1:nameLength DO
@@ -5515,7 +5529,7 @@ $INCLUDE screen
             buildRename(at, argLen) =: length
             sendToServer(length)
 
-            % Our own name changes only when the room says so, with kRenamed.
+            % Our own name changes only when the room says so, with kRenOk.
             RETURN
         ENDIF
 

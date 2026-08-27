@@ -134,20 +134,43 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     INTEGER) : MN120 )
 
     % ----- message kinds, mirroring ChatMessageKind.cs ----------------------
-    INTEGER : kJoin    := 1
-    INTEGER : kWelcome := 2
-    INTEGER : kReject  := 3
-    INTEGER : kSay     := 4
-    INTEGER : kSaid    := 5
-    INTEGER : kLeave   := 6
-    INTEGER : kJoined  := 7
-    INTEGER : kLeft    := 8
-    INTEGER : kRename  := 9
-    INTEGER : kRenamed := 10
+    % ---- THE MESSAGE KINDS COME FROM CHATLIB -------------------------
+    %
+    % They used to be declared here AND in the other program - twenty of
+    % them, agreeing only because somebody kept checking. Nothing made
+    % them agree, and an unhandled kind is SILENT, which is the worst
+    % failure this product has. Imported from one place, a drift is a
+    % LINK error instead, and LIST-ENTRIES-UNDEFINED already runs in every
+    % link.
+    %
+    % TWO NAMES CHANGED because they could not cross a BRF boundary -
+    % names are unique in SEVEN characters there, so kRename/kRenamed both
+    % read KRENAME and kDirect/kDirected both read KDIRECT. kRenamed is now
+    % kRenOk and kDirected is now kDirGot. The WIRE NUMBERS are unchanged.
+    IMPORT (INTEGER : kJoin)
+    IMPORT (INTEGER : kWelcome)
+    IMPORT (INTEGER : kReject)
+    IMPORT (INTEGER : kSay)
+    IMPORT (INTEGER : kSaid)
+    IMPORT (INTEGER : kLeave)
+    IMPORT (INTEGER : kJoined)
+    IMPORT (INTEGER : kLeft)
+    IMPORT (INTEGER : kRename)
+    IMPORT (INTEGER : kRenOk)
+    IMPORT (INTEGER : kWho)
+    IMPORT (INTEGER : kMap)
+    IMPORT (INTEGER : kRooms)
+    IMPORT (INTEGER : kTopic)
+    IMPORT (INTEGER : kAllWho)
+    IMPORT (INTEGER : kHist)
+    IMPORT (INTEGER : kDirect)
+    IMPORT (INTEGER : kDirGot)
+    IMPORT (INTEGER : kDirSent)
+    IMPORT (INTEGER : kDirBad)
+
 
     % ONE KIND, BOTH DIRECTIONS: the member asks with an empty text, the room
     % answers with the same kind and the names in the text. See buildWho.
-    INTEGER : kWho     := 11
 
     % ALSO ONE KIND BOTH DIRECTIONS, same shape as kWho.
     %
@@ -167,10 +190,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     % and not an admin one on purpose: SEEING how the network is wired is not
     % the same right as REWIRING it. Reserved here since 2026-08-20; built
     % 2026-08-22. See buildMap.
-    INTEGER : kMap     := 12
 
-    INTEGER : kRooms   := 13
-    INTEGER : kTopic   := 14
 
     % THE ANSWER TO /who WHEN THE ASKER IS IN NO ROOM.
     %
@@ -188,7 +208,6 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     % ONE DIRECTION ONLY, unlike its neighbours: the client never sends 15. It
     % sends kWho and the SERVER decides which answer fits, because the server is
     % the one that knows whether the asker has a seat.
-    INTEGER : kAllWho  := 15
 
     % REPLAYED HISTORY - one of these per remembered message, sent to a joiner
     % before the room hears they arrived.
@@ -202,7 +221,6 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     %
     % Same shape as kSaid otherwise: the speaker in the name field, what they
     % said in the text.
-    INTEGER : kHist    := 16
 
     % ----- DIRECT MESSAGES, one person to one person -----------------------
     %
@@ -215,7 +233,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     %           whole family rather than a special case per direction. The
     %           target is either a bare alias (RONNY) or one qualified by
     %           machine (D102!RONNY).
-    % kDirected server to the TARGET. The name field holds the sender
+    % kDirGot server to the TARGET. The name field holds the sender
     %           QUALIFIED - D102!KARI, never a bare KARI - because what is
     %           shown has to be what can be typed back, and a bare name is
     %           ambiguous the moment two machines each hold one. The text is
@@ -233,10 +251,6 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     % THERE IS DELIBERATELY NO STORE AND FORWARD. "not logged in" is a refusal,
     % not a queue. A message that waits for somebody is a mailbox - a different
     % product with different rules, and SINTRAN already has mail for that.
-    INTEGER : kDirect   := 17
-    INTEGER : kDirected := 18
-    INTEGER : kDirSent  := 19
-    INTEGER : kDirBad   := 20
 
     % ADMIN kinds - 32 and up, and they belong on the command port. These MUST
     % match DOC/protocols/chat-wire.json and ChatMessageKind.cs; all three move
@@ -3073,7 +3087,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     ROUTINE VOID, INTEGER (INTEGER, INTEGER, INTEGER) : &
             buildRenamed(slot, newAt, newLength)
         INTEGER : i, at
-        kRenamed =: outBuf(0)
+        kRenOk =: outBuf(0)
         newLength =: outBuf(1)
         2 =: at
         FOR i IN 1:newLength DO
@@ -4305,7 +4319,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
             deliverLocal(fromSlot, toSlot, msgAt, msgLen)
         INTEGER : i, at, textStart
 
-        kDirected =: outBuf(0)
+        kDirGot =: outBuf(0)
         0 =: outBuf(1)
         2 =: at
         putQualSlot(mySystem, fromSlot, at) =: at
@@ -4548,7 +4562,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
             RETURN
         ENDIF
 
-        kDirected =: outBuf(0)
+        kDirGot =: outBuf(0)
         0 =: outBuf(1)
         2 =: at
         putQualIn(origSys, nameAt, nameLength, at) =: at

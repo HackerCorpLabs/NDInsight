@@ -91,6 +91,10 @@ EXIT
 @BRF-LINKER-C01
 PROGRAM-FILE "CHATSV"
 LOAD CHATSV
+@cc CHATLIB carries the twenty message kinds both programs used to
+@cc declare separately. It must be loaded or every kind is undefined -
+@cc LIST-ENTRIES-UNDEFINED below is what says so.
+LOAD CHATLIB
 LIBRARY-MODE ON
 LOAD XMP-100-1-B02
 @cc MON-CALL-1B-A00 supplies 5MON_P, which is what MONITOR_CALL compiles into.
