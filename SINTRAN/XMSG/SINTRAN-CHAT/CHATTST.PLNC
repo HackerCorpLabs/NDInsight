@@ -142,6 +142,67 @@ MODULE chattest
         check('long text high byte     ', buf(7), 1)
         check('long text low byte      ', buf(8), 44)
 
+        % ---- DECODE A MESSAGE WE DID NOT ENCODE --------------------------
+        %
+        % EVERY TEST ABOVE READS BACK WHAT cmEnc WROTE, and that is a weaker
+        % check than it looks: an encoder and a decoder that are wrong in the
+        % same way agree with each other perfectly. These build the buffer BY
+        % HAND, byte by byte, exactly as the SERVER puts one on the wire, and
+        % then ask the readers what they see.
+        %
+        %   kind 5, name length 3, 'BOB', length 0 and 7, 'hey you'
+        5 =: buf(0)
+        3 =: buf(1)
+        66 =: buf(2)
+        79 =: buf(3)
+        66 =: buf(4)
+        0 =: buf(5)
+        7 =: buf(6)
+        104 =: buf(7)
+        101 =: buf(8)
+        121 =: buf(9)
+        32 =: buf(10)
+        121 =: buf(11)
+        111 =: buf(12)
+        117 =: buf(13)
+
+        check('hand-built kind         ', cmKind(buf), 5)
+        check('hand-built name length  ', cmNmLen(buf), 3)
+        check('hand-built text length  ', cmTxLen(buf), 7)
+        check('hand-built text starts  ', cmTxAt(buf), 7)
+
+        % AND THE TEXT REALLY IS THERE, at the offset the reader gave. An
+        % offset that is right by accident still points at the wrong byte.
+        cmTxAt(buf) =: at
+        check('hand-built text byte 0  ', buf(at), 104)
+        check('hand-built text byte 6  ', buf(at + 6), 117)
+
+        % A NAME OF ZERO LENGTH, hand built. The text then starts at 4, and
+        % this is the case a reader that assumes a name is present gets wrong.
+        9 =: buf(0)
+        0 =: buf(1)
+        0 =: buf(2)
+        2 =: buf(3)
+        104 =: buf(4)
+        105 =: buf(5)
+        check('hand-built empty name   ', cmNmLen(buf), 0)
+        check('hand-built empty at 4   ', cmTxAt(buf), 4)
+        check('hand-built empty length ', cmTxLen(buf), 2)
+
+        % A SIXTEEN-CHARACTER NAME - the longest a nickname may be. The text
+        % offset must move with it, and 4 + 16 is the first case where a
+        % reader with a hard-coded offset still looks plausible.
+        5 =: buf(0)
+        16 =: buf(1)
+        0 =: buf(18)
+        1 =: buf(19)
+        88 =: buf(20)
+        check('hand-built long name    ', cmNmLen(buf), 16)
+        check('hand-built long name at ', cmTxAt(buf), 20)
+        check('hand-built long name len', cmTxLen(buf), 1)
+        cmTxAt(buf) =: at
+        check('hand-built long name txt', buf(at), 88)
+
         % ---- THE WIRE NUMBERS THEMSELVES ---------------------------------
         %
         % EVERY KIND, ASSERTED AGAINST A LITERAL. This is the half a round-trip
