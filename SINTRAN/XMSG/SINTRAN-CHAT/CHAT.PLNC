@@ -319,6 +319,8 @@ $INCLUDE screen
     % names are unique in SEVEN characters there, so kRename/kRenamed both
     % read KRENAME and kDirect/kDirected both read KDIRECT. kRenamed is now
     % kRenOk and kDirected is now kDirGot. The WIRE NUMBERS are unchanged.
+    IMPORT (ROUTINE VOID, INTEGER (BYTES, INTEGER, BYTES, INTEGER, BYTES, &
+            INTEGER, INTEGER) : cmEnc)
     IMPORT (INTEGER : kJoin)
     IMPORT (INTEGER : kWelcome)
     IMPORT (INTEGER : kReject)
@@ -835,35 +837,26 @@ $INCLUDE screen
         at RETURN
     ENDROUTINE
 
+    % ---------------------------------------------------------------------
+    % ONE OF OUR OWN MESSAGES, built by the LIBRARY.
+    %
+    % This used to be twenty lines that wrote the kind, the name length, the
+    % name, a two-byte text length and the text - the same twenty lines the
+    % SERVER also had, and neither was tested. cmEnc does exactly that and is
+    % checked by CHATTST on every build, so the encoder that SHIPS is now the
+    % encoder that is TESTED.
+    %
+    % THE THREE ARRAYS ARE THREE DIFFERENT ARRAYS - outBuf, myName and typed -
+    % which cmEnc requires: passing two subarrays of ONE array to a single
+    % routine corrupts both and compiles clean.
+    %
+    % One behaviour improved for free. The old code wrote the length as a
+    % zero and one byte, which is right until a line reaches 256 characters;
+    % cmEnc writes both bytes properly, and CHATTST checks a 300-byte text
+    % for exactly that reason.
+    % ---------------------------------------------------------------------
     ROUTINE VOID, INTEGER (INTEGER, INTEGER) : buildOwn(kind, textLength)
-        INTEGER : i, at
-        kind =: outBuf(0)
-        lenMyName =: outBuf(1)
-        2 =: at
-        % SUBSCRIPT FROM ZERO. myName is a BYTES declared from a literal, so its
-        % first character is at index 0. This said myName(i) and that is why the
-        % server saw the nickname as ONNY, not RONNY: the R was skipped and one
-        % byte was read past the end of the string. MEASURED 2026-08-18 in a raw
-        % dump of the arriving letter - the length byte said 5 and the five bytes
-        % were 'O','N','N','Y',0. Nothing reports this; PLANC checks no bound,
-        % and a wrong name is not an error to anyone. Compare cmdIs below, which
-        % has always had it right with word(i - 1).
-        FOR i IN 1:lenMyName DO
-            myName(i - 1) =: outBuf(at)
-            at + 1 =: at
-        ENDFOR
-        0 =: outBuf(at)
-        textLength =: outBuf(at + 1)
-        at + 2 =: at
-        FOR i IN 1:textLength DO
-            typed(i - 1) =: outBuf(at)
-            at + 1 =: at
-        ENDFOR
-        % The out-value goes BEFORE the keyword. ND-60.117.5 prints it as
-        % "result RETURN" in the complex-addition example; writing "RETURN at"
-        % makes the compiler read RETURN as a type and answer
-        % ILLEGAL DATA TYPE "RETURN".
-        at RETURN
+        cmEnc(outBuf, kind, myName, lenMyName, typed, textLength, 256) RETURN
     ENDROUTINE
 
     % -----------------------------------------------------------------------
