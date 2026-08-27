@@ -78,7 +78,14 @@ param(
     [int]$Priority     = 75,
     [int]$Ring         = 2,
 
-    [string[]]$Libraries = @("XMP-100-1-B02", "MON-CALL-1B-A00", "PLANC-1BANK-F00"),
+    # CHATLIB FIRST, and it is not optional for CHATSV any more.
+    #
+    # The server used to declare the twenty message kinds itself; it now IMPORTs
+    # them, so the RT load needs the library exactly as the BRF-LINKER step does.
+    # Without it END-LOAD answers NEGLECTING REFERENCES and the load is
+    # INCOMPLETE - which is what happened the first time, and the script stopped
+    # rather than leaving a half-loaded server running.
+    [string[]]$Libraries = @("CHATLIB", "XMP-100-1-B02", "MON-CALL-1B-A00", "PLANC-1BANK-F00"),
 
     [string]$User       = "SYSTEM",
     [string]$Password   = "",
