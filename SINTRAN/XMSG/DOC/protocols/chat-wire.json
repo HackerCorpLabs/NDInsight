@@ -286,29 +286,29 @@
         "name": "Direct",
         "value": "17",
         "meaning": "Client to server: send this text to ONE person, who need not be in the sender's room or in any room. The name field carries the target as typed - a bare alias (RONNY) or one qualified by machine (D102!RONNY). The separator is '!' and NOT '@' deliberately: '@' is the short command prefix, so @RONNY@D100 would need a parser that counts at-signs, whereas machine!alias reads left to right as route-then-person and has precedent in UUCP addressing of the same era. A bare alias matching more than one person in the federation is REFUSED with DirectBad and the candidate list, never guessed at - two machines can each hold a RONNY long before they trunk to each other, so no global uniqueness rule could ever have been applied, and a direct message delivered silently to the wrong person is a privacy failure rather than an inconvenience.",
-        "status": "DESIGNED",
-        "evidence": "ChatMessageKind.Direct = 17, with ADirectMessageHasExactlyTheseBytes and ThoseExactBytesDecodeBackToADirectMessage pinning both directions. The '!' between machine and person is pinned as byte 0x21, NOT 0x40. BUILT AND PROVED ON D100 2026-08-25 with server segment 2605B, START ADDRESS 32255B. The PLANC client sends it from /tell and the server answers. The design is DOC/CHAT-DIRECT-MESSAGES-AND-CLIENT-CONFIG.md."
+        "status": "PROVED ON D100, ONE MACHINE",
+        "evidence": "handler in CHAT.PLNC and CHATSV.PLNC; CHAT-PLAN.md records Phase 3 proved on D100 2026-08-25. Cross-trunk delivery is kind 54 and is NOT covered by this."
       },
       {
         "name": "Directed",
         "value": "18",
         "meaning": "Server to client: a direct message addressed to this user personally. The name field carries the sender QUALIFIED (D102!KARI) so that what is displayed is also what can be typed back. A client marks these so they cannot be mistaken for room traffic. PLANC calls this kDirGot, not kDirected, for the same seven-character reason - kDirect and kDirected both read KDIRECT. The wire number is unchanged.",
-        "status": "DESIGNED",
-        "evidence": "ChatMessageKind.Directed = 18, pinned by ADirectedMessageCarriesTheSenderQualified - the name field holds 'D102!KARI' and the text is the message alone, because what is displayed must also be what can be typed back. BUILT AND PROVED ON D100 2026-08-25 - see the run recorded in CHAT-APP-SPECIFICATION.md section 6."
+        "status": "PROVED ON D100, ONE MACHINE",
+        "evidence": "handler in both programs; same Phase 3 run. PLANC calls it kDirGot."
       },
       {
         "name": "DirectSent",
         "value": "19",
         "meaning": "Server to client: the direct message was delivered, and this is the QUALIFIED name it went to. Sent on every delivery, not only ambiguous ones. Refusing an ambiguous alias protects the sender when the collision is visible; this protects them when it is not - a machine that just went Down, a second RONNY who logged in a moment ago, a trunk that came back with a different user list. A wrong delivery becomes visible immediately instead of days later, for one line.",
-        "status": "DESIGNED",
-        "evidence": "ChatMessageKind.DirectSent = 19, pinned by ADirectSentReceiptNamesTheTargetAndHasNoText, which also pins that an EMPTY text still writes BOTH length bytes - a PLANC encoder that omits them makes a message one byte short and the receiver reads the next field from the wrong offset, which looks like a corrupt name rather than a missing length. BUILT AND PROVED ON D100 2026-08-25 - see the run recorded in CHAT-APP-SPECIFICATION.md section 6."
+        "status": "PROVED ON D100, ONE MACHINE",
+        "evidence": "handler in both programs; same Phase 3 run."
       },
       {
         "name": "DirectBad",
         "value": "20",
         "meaning": "Server to client: the direct message was NOT delivered, and why. The name field carries the target that was tried; the text carries the reason, and for an ambiguous alias the candidate list ('which RONNY? D100!RONNY, D102!RONNY'). Carrying the candidates is what makes the refusal usable rather than merely annoying. 'not logged in' is a refusal too: there is deliberately NO store and forward, because a message that waits for somebody is a mailbox - a different product with different rules, and SINTRAN already has mail for that.",
-        "status": "DESIGNED",
-        "evidence": "ChatMessageKind.DirectBad = 20, pinned by ADirectBadCarriesTheCandidateList - the name field holds the target that was tried and the text holds the reason, which for an ambiguous alias is the candidate list the sender can retype straight off the screen. BUILT AND PROVED ON D100 2026-08-25 - see the run recorded in CHAT-APP-SPECIFICATION.md section 6."
+        "status": "PROVED ON D100, ONE MACHINE",
+        "evidence": "handler in both programs; same Phase 3 run."
       },
       {
         "name": "AdminInitialize",
@@ -321,22 +321,22 @@
         "name": "TrunkRelay",
         "value": "52",
         "meaning": "Server to server: a line being RELAYED onward, carrying where it started and how many hops it has left. Layout is TrunkSaid's with a three-byte header in front: origin system big-endian, then hops remaining, then the usual speaker length, speaker, two-byte text length and ROOM/text. The ORIGIN must travel explicitly because the receiver's usual trick - qualify the speaker with the system the letter came from - names the RELAY on a forwarded message rather than the speaker's own machine. HOPS is decremented at each relay and the message dropped at zero, which is what stops a mesh reflecting for ever. A separate kind rather than extra fields on TrunkSaid, so that a server which has not been upgraded yet keeps handling its direct trunks unchanged while the machines are upgraded one at a time.",
-        "status": "DESIGNED",
-        "evidence": "ChatMessageKind.TrunkRelay = 52 and the golden pair ATrunkRelayMessageHasExactlyTheseBytes / ThoseExactBytesDecodeBackToARelayedMessage in ChatMessageGoldenBytesTests. NOT YET SEEN ON A WIRE - the PLANC server does not send or read it yet, so this describes an agreed format and not an observed one."
+        "status": "PROVED LIVE D103 -> D100 -> D102",
+        "evidence": "relay header parsed in CHATSV.PLNC; recorded run shows a D103 line arriving on D102 qualified @D103 rather than @D100, with relay 2 on the middle machine and relay 0 on the ends."
       },
       {
         "name": "TrunkRelayId",
         "value": "53",
         "meaning": "Server to server: a relayed line that ALSO carries the line number the ORIGIN stamped on it, so the same line arriving by two different paths is delivered once. Layout is TrunkRelay's with two more bytes: origin system big-endian, hops remaining, line id big-endian, then the usual speaker length, speaker, two-byte text length and ROOM/text. The id MUST be stamped by the machine the line was typed on and passed on unchanged - a relay that renumbered it would make one line look like two to any node reachable by more than one path, which is the exact fault this kind prevents. A SEPARATE kind rather than a longer TrunkRelay header because these machines are upgraded one at a time: a server that had not been upgraded would read the two extra bytes as a name length and a name and hand its users garbage, whereas a kind it does not know it simply ignores.",
-        "status": "DESIGNED",
-        "evidence": "ChatMessageKind.TrunkRelayId = 53, with the golden pair ATrunkRelayIdMessageHasExactlyTheseBytes / ThoseExactBytesDecodeBackToARelayedMessageWithAnId in ChatMessageGoldenBytesTests pinning both directions, ATruncatedRelayIdHeaderIsRefused pinning the short-header case, and TrunkRelayIsUnchangedByTheArrivalOfTrunkRelayId proving kind 52's bytes did not move. The dedup window itself is ChatLineMemory with ChatLineMemoryTests, including OneLineArrivingByTwoPathsIsDeliveredOnce. NOT YET SEEN ON A WIRE: the PLANC server does not emit or accept kind 53 yet, and no mesh exists to produce a duplicate - D100/D102/D103 are a CHAIN, so today there is only ever one path between any two machines."
+        "status": "PROVED LIVE - the dedup counter moved",
+        "evidence": "recorded run over the D100/D102/D103 triangle: dupe went 0 to 1 while the line appeared ONCE. The counter is the evidence - one line on screen is also what a single delivery looks like."
       },
       {
         "name": "TrunkDirect",
         "value": "54",
         "meaning": "Server to server: a direct message being carried across a trunk. It reuses TrunkRelayId's FIVE-BYTE HEADER - origin system big-endian, hops remaining, line id big-endian - because a direct message two machines away must be relayed and de-duplicated in exactly the same way a room line is, and a second mechanism would mean two places to get hop counting wrong. It also reuses TrunkSaid's text trick: TrunkSaid packs ROOM/message, this packs TARGET/message, which leaves the name field free to carry the SENDER - the thing the receiver has to display. The receiving server looks the target alias up in its own table and delivers, or relays onward if the addressed machine is not a direct neighbour.",
-        "status": "DESIGNED",
-        "evidence": "ChatMessageKind.TrunkDirect = 54, with the golden pair ATrunkDirectMessageHasExactlyTheseBytes / ThoseExactBytesDecodeBackToATrunkDirectMessage pinning both directions, and AQualifiedTargetKeepsItsMachineSeparator pinning that the machine separator on the wire is 0x21 ('!') and not 0x40 ('@'). ENCODER AND DECODER BUILT AND TESTED; the PLANC server neither sends nor accepts it yet, and no direct message has ever crossed a trunk."
+        "status": "BUILT, NOT YET OBSERVED ON A WIRE",
+        "evidence": "handler present in CHATSV.PLNC, but no recorded run of a direct message crossing a trunk. CHAT-PLAN.md still lists cross-machine private messages as the open half of Phase 3."
       },
       {
         "name": "AdminSetName",
