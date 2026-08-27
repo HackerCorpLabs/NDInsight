@@ -39,6 +39,7 @@
 MODULE chatlib
 
     EXPORT cmEnc
+    EXPORT cmEncAt
     EXPORT cmKind
     EXPORT cmNmLen
     EXPORT cmTxAt
@@ -167,6 +168,78 @@ MODULE chatlib
         IF tl > 0 THEN
             FOR i IN 1:tl DO
                 text(i - 1) =: buf(at)
+                at + 1 =: at
+            ENDFOR
+        ENDIF
+
+        at RETURN
+    ENDROUTINE
+
+    % ---- ENCODE, WITH THE TEXT AT AN OFFSET -----------------------------
+    %
+    % The same message, but the text is read from `src` starting at `srcAt`
+    % rather than from the beginning of an array.
+    %
+    % WHY THIS EXISTS RATHER THAN A SUBARRAY. The server's text sits inside its
+    % receive buffer at an offset, so the obvious call would be
+    % cmEnc(..., inBuf(textAt : textAt + textLength - 1), ...). That is a
+    % subarray with BOTH bounds computed, and this project has one measured
+    % case of exactly that form compiling clean, running, and WRITING NOTHING
+    % AT ALL - see the note on drawBar in CHAT.PLNC. Until that is understood,
+    % the form is avoided rather than trusted.
+    %
+    % The alternative was copying the text into a flat buffer first, which is
+    % more work per message and more code than the hand-written encoder it
+    % would replace. An offset costs nothing.
+    %
+    % src, name and buf must still be THREE DIFFERENT ARRAYS.
+    ROUTINE VOID, INTEGER (BYTES, INTEGER, BYTES, INTEGER, BYTES, INTEGER, &
+            INTEGER, INTEGER) : &
+            cmEncAt(buf, kind, name, nameLen, src, srcAt, srcLen, bufMax)
+        INTEGER : i
+        INTEGER : at
+        INTEGER : nl
+        INTEGER : tl
+
+        nameLen =: nl
+        IF nl < 0 THEN
+            0 =: nl
+        ENDIF
+        IF nl > 255 THEN
+            255 =: nl
+        ENDIF
+
+        srcLen =: tl
+        IF tl < 0 THEN
+            0 =: tl
+        ENDIF
+        IF 4 + nl + tl > bufMax THEN
+            bufMax - 4 - nl =: tl
+            IF tl < 0 THEN
+                0 =: tl
+            ENDIF
+        ENDIF
+
+        kind =: buf(0)
+        nl =: buf(1)
+        2 =: at
+
+        IF nl > 0 THEN
+            FOR i IN 1:nl DO
+                name(i - 1) =: buf(at)
+                at + 1 =: at
+            ENDFOR
+        ENDIF
+
+        tl / 256 =: buf(at)
+        tl MOD 256 =: buf(at + 1)
+        at + 2 =: at
+
+        % THE ONLY DIFFERENCE FROM cmEnc: the text is read from srcAt, and the
+        % source subscripts from srcAt + i - 1 rather than from i - 1.
+        IF tl > 0 THEN
+            FOR i IN 1:tl DO
+                src(srcAt + i - 1) =: buf(at)
                 at + 1 =: at
             ENDFOR
         ENDIF

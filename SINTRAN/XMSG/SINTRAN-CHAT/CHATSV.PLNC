@@ -147,6 +147,8 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     % names are unique in SEVEN characters there, so kRename/kRenamed both
     % read KRENAME and kDirect/kDirected both read KDIRECT. kRenamed is now
     % kRenOk and kDirected is now kDirGot. The WIRE NUMBERS are unchanged.
+    IMPORT (ROUTINE VOID, INTEGER (BYTES, INTEGER, BYTES, INTEGER, BYTES, &
+            INTEGER, INTEGER, INTEGER) : cmEncAt)
     IMPORT (INTEGER : kJoin)
     IMPORT (INTEGER : kWelcome)
     IMPORT (INTEGER : kReject)
@@ -638,6 +640,11 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     % array, and PLANC checks no bound.
     INTEGER : inBufSize := 256
     BYTES : inBuf(0:255)
+    % A MEMBER'S NAME, FLAT. memberName is two-dimensional and the library
+    % takes BYTES, so the name is copied here on the way out - see
+    % buildFromSlot for why a row subarray is avoided.
+    BYTES : nameFlat(0:15)
+
     BYTES : outBuf(0:255)
 
     % ONE SPACE, AS A BYTE. buildWho puts a separator between names, and
@@ -3005,24 +3012,36 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     % incoming buffer - used for Said, where the speaker is named by the room
     % and NOT by whatever the sender claimed.
     % -----------------------------------------------------------------------
+    % ONE OF OUR MESSAGES, built by the LIBRARY.
+    %
+    % The sixteen lines that wrote the kind, the name length, the name, a
+    % two-byte length and the text are gone; cmEncAt does exactly that and is
+    % checked by CHATTST on every build, so the encoder that SHIPS is the
+    % encoder that is TESTED. The client's buildOwn was changed the same way.
+    %
+    % THE NAME IS COPIED FLAT FIRST, and that is not laziness. memberName is
+    % TWO-DIMENSIONAL - memberName(slot, i) - and the library takes BYTES.
+    % Taking a row as memberName(slot, 1:n) would be a subarray with computed
+    % bounds, and this project has a measured case of that form compiling
+    % clean, running, and writing NOTHING AT ALL (see drawBar in CHAT.PLNC).
+    % Three obvious lines beat a form that is not understood.
+    %
+    % nameFlat, outBuf and inBuf are THREE DIFFERENT ARRAYS, which the library
+    % requires: two subarrays of one array passed to a single routine corrupts
+    % both and compiles clean.
+    %
+    % The text length is now written as two real bytes rather than a zero and
+    % one, so a line of 256 characters or more no longer goes out mis-stated.
     ROUTINE VOID, INTEGER (INTEGER, INTEGER, INTEGER, INTEGER) : &
             buildFromSlot(kind, slot, textAt, textLength)
-        INTEGER : i, at
-        kind =: outBuf(0)
-        memberLen(slot) =: outBuf(1)
-        2 =: at
+        INTEGER : i
+
         FOR i IN 1:memberLen(slot) DO
-            memberName(slot, i) =: outBuf(at)
-            at + 1 =: at
+            memberName(slot, i) =: nameFlat(i - 1)
         ENDFOR
-        0 =: outBuf(at)
-        textLength =: outBuf(at + 1)
-        at + 2 =: at
-        FOR i IN 1:textLength DO
-            inBuf(textAt + i - 1) =: outBuf(at)
-            at + 1 =: at
-        ENDFOR
-        at RETURN
+
+        cmEncAt(outBuf, kind, nameFlat, memberLen(slot), &
+                inBuf, textAt, textLength, 256) RETURN
     ENDROUTINE
 
     % -----------------------------------------------------------------------

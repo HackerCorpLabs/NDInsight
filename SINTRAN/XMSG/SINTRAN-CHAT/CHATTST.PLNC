@@ -19,6 +19,8 @@ MODULE chattest
 
     IMPORT (ROUTINE VOID, INTEGER (BYTES, INTEGER, BYTES, INTEGER, BYTES, &
             INTEGER, INTEGER) : cmEnc)
+    IMPORT (ROUTINE VOID, INTEGER (BYTES, INTEGER, BYTES, INTEGER, BYTES, &
+            INTEGER, INTEGER, INTEGER) : cmEncAt)
     IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmKind)
     IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmNmLen)
     IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmTxAt)
@@ -141,6 +143,31 @@ MODULE chattest
         check('long text length        ', cmTxLen(buf), 300)
         check('long text high byte     ', buf(7), 1)
         check('long text low byte      ', buf(8), 44)
+
+        % ---- THE OFFSET ENCODER ------------------------------------------
+        %
+        % cmEncAt reads the text from a POSITION inside another buffer, which
+        % is what the server needs - its text arrives inside the receive buffer
+        % rather than at the start of an array.
+        %
+        % THE OFFSET IS THE WHOLE POINT, so the test uses a NON-ZERO one. At
+        % offset 0 this routine and cmEnc are indistinguishable, and a test
+        % that only tried 0 would pass against a version that ignored srcAt
+        % completely.
+        'RONNYhello there' =: tx
+        cmEnc(buf, kSay, nm, 5, tx, 5, 256) =: len
+        cmEncAt(buf, kSay, nm, 5, tx, 5, 11, 256) =: at
+
+        check('offset encoder length   ', at, 20)
+        check('offset encoder kind     ', cmKind(buf), kSay)
+        check('offset encoder name len ', cmNmLen(buf), 5)
+        check('offset encoder text len ', cmTxLen(buf), 11)
+
+        % The text must be what sat at offset 5, not what sat at 0. 'h' is 104
+        % and 'R' is 82 - if srcAt were ignored this reads 82 and fails.
+        cmTxAt(buf) =: at
+        check('offset encoder skipped 5', buf(at), 104)
+        check('offset encoder last byte', buf(at + 10), 101)
 
         % ---- DECODE A MESSAGE WE DID NOT ENCODE --------------------------
         %
