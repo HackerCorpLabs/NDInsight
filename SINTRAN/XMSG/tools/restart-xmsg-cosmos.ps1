@@ -114,7 +114,7 @@ Invoke-Steps @("START-TAD", "TADA", "SET-AVAIL") "" 12000 "3. start TAD, set ava
 # ONLY when -WithEthernet. ABORT is a SINTRAN command at the @ prompt, NOT an X-C one - it belongs
 # here, before the X-C session, alongside the COSMOS mode file's own "@ABORT FSART".
 #
-# WHY: if a previous START-NET-SERVER took XMSG down with it, the ENNS0 RT program is left wedged,
+# WHY: if a previous START-NET-SERVER took XMSG down with it, the ENNS0 RT program is left hung,
 # and starting it again on top of that just repeats the crash. Aborting a program that is not
 # running is harmless, so this is safe to do unconditionally.
 #

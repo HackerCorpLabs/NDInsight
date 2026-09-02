@@ -917,7 +917,7 @@ New documents of record:
   `[V]`: it is NOT a 3022 CS-load verify poll - there is ZERO ND-500 3022 IOX in the band (the real
   3022 devices are 0650B-0777B, absent here); the "153011B IOXT/RETG5" the emulator cited is a
   table-bit-set loop, so the CS poll lives in a different MON-60/N500M overlay, and NDBusND500IF's
-  CS-load/RETG5/5CLOST + "Loading Control Store" wedge are already modeled/fixed. The band is S3SM5
+  CS-load/RETG5/5CLOST + "Loading Control Store" hang are already modeled/fixed. The band is S3SM5
   PLANC swapper-management code (MON 116B UNFIX / 50B+43B OPEN+CLOSE / 61B FIXC5 / 76B SETBS / 217B
   GUIOI + table/chain scans) doing a SOFTWARE WAIT on ND-100 table state that the REAL swapper (proc 0)
   would build by answering the swapper message + building descriptor/segment/process tables
@@ -1829,11 +1829,11 @@ open **Q7** (microcode image NOT FOUND). **No microcode/control-store image exis
 repo** (only the manuals) — so this install genuinely lacks it.
 
 **RULE for the live machine:** until the control store is confirmed loaded, do **NOT** run ND-500-MON
-commands — even "read-only" ones like `VERSION` are unsafe (they wedge the machine). First resolve
+commands — even "read-only" ones like `VERSION` are unsafe (they hang the machine). First resolve
 the microcode image. Unknown, do not guess: the exact default microcode filename this J04 monitor
 expects, and whether this is real hardware or the emulator.
 
-### CONTROL STORE / microcode — why the emulator wedges, and the way past it (2026-07-15)
+### CONTROL STORE / microcode — why the emulator hangs, and the way past it (2026-07-15)
 
 **Context:** Ronny's setup is the **RetroCore emulator** with enough of the ND-100 bus interface
 working to lure the real `ND-500-MON-J:PROG` (J04) into starting. There is **no ND-500 CPU / no
@@ -1854,7 +1854,7 @@ microcode** behind it.
 `CONTROL-STORE:DATA` and no microcode image.** => Q7 confirmed on the live install. Also: Ronny's
 earlier `LOAD-SWAPPER swapper-k01` used the wrong name — the file is `SWAPPER-K` (`:PSEG`/`:DSEG`).
 
-**Why it wedges:** with WCS empty, the monitor's `ECSLOAD` "CONTROL STORE MUST BE LOADED" gate fires;
+**Why it hangs:** with WCS empty, the monitor's `ECSLOAD` "CONTROL STORE MUST BE LOADED" gate fires;
 `LOAD-SWAPPER` (and even `VERSION`) implicitly attempt a control-store load, which fails because
 `CONTROL-STORE:DATA` is absent — and `VERSION` loops until reboot.
 
@@ -1964,7 +1964,7 @@ status reads: (1) "CPU present?" — the emulator already answers yes (real HW p
    to load control store is the `ECSLOAD` path (decoded in the MON 60B wrapper). Verify its compare
    matches the register/value you captured — so the emulator returns the RIGHT status, not just any
    value that dodges the branch. The interface status word likely packs CPU-present + running/stopped
-   + stop-reason + control-store-loaded together; a blind value could clear one bit and wedge on
+   + stop-reason + control-store-loaded together; a blind value could clear one bit and hang on
    another. `LOOK-AT-HARDWARE INTERFACE` reads this same status word.
 4. Then `VERSION` / `START-MONCALL-LOG All` should work -> live capture of the ND-100<->ND-500
    traffic (the whole point).
@@ -2009,7 +2009,7 @@ path, and the error handlers. Index: `60B-N500M\CARVE-PROGRESS.md`.
 same NPL and **agree exactly** (mutual validation: 117B/122B shared body, 024B/157B duplicate,
 MSTOP/MSTCL STOP sequence). The worker carve **closes the caller's open item** (the >142B handler
 identities); the caller carve **confirms the control-store gate** (gateway `146244` auto-loads the
-control store on `ECSLOAD` error - the byte-level cause of the emulator's `VERSION` wedge) and enriches
+control store on `ECSLOAD` error - the byte-level cause of the emulator's `VERSION` hang) and enriches
 the `5NOPAR` codes with verbatim purposes. Both converge on the same next target: the ND-500 SYSTEM
 MONITOR (`FPT2ENTRY`).
 

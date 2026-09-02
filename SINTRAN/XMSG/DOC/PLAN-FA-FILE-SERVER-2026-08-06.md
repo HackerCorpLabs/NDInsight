@@ -54,7 +54,7 @@ this project has lost days before.
 
 The fix is in and unit-tested (`TheClosingCloseEchoesTheClientConversationNumber`), but the live
 retry never completed: the D100 terminal stopped echoing after repeated reconnects and each attempt
-stalled a step earlier. That is consistent with a wedged line, **not** with the fix. It needs a
+stalled a step earlier. That is consistent with a hung line, **not** with the fix. It needs a
 clean machine to confirm.
 
 ### 1.4 The first real read
@@ -137,7 +137,7 @@ Each of these is a considered decision, not an oversight. Do not "fix" them with
 
 ## Traps that will cost you a session
 
- - **ONE terminal connection to D100.** Reconnecting mid-program wedges the line. Six reconnects on
+ - **ONE terminal connection to D100.** Reconnecting mid-program hangs the line. Six reconnects on
    2026-08-05 left it not echoing at all and made the close fix impossible to verify.
  - **Stop the runner before building.** A running runner holds the DLLs, the build silently fails to
    replace them, and the test run reports green against a STALE build. Assert the build succeeded

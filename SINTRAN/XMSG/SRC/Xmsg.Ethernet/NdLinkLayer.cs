@@ -843,6 +843,33 @@ namespace NDInsight.Sintran.Xmsg.Ethernet
             {
                 ConnectionRequestsReceived++;
                 SendConnectionConfirm(header);
+
+                // A CONNECTION REQUEST ENDS THE OLD CONNECTION JUST AS SURELY AS A DISCONNECT DOES,
+                // so the send state dies with it - the same three lines as the disconnect path
+                // below, for the same reason, and see that comment for the mechanism.
+                //
+                // MEASURED on the live segment 2026-08-27, and it cost the whole afternoon's build
+                // path. The runner restarted while D100 was still mid-run on link 048C, so our send
+                // sequence began again at 0 where D100 expected a far higher number. D100 discarded
+                // that frame in SILENCE - no acknowledgement and no error:
+                //
+                //   17:07:16.939  us -> 100  DT seq=00 snd=048C rcv=0001   never acknowledged
+                //   17:07:56.642  100-> us   DT seq=45   the same payload again
+                //   17:08:36.454  100-> us   DT seq=46   and again
+                //   17:09:16.241  100-> us   CR seq=79 snd=0000 rcv=048D   gives up, NEW link
+                //
+                // D100 rebuilt the link perfectly well. This node confirmed it and then never
+                // transmitted again - ZERO data frames in the next fifty-eight minutes, while the
+                // runner's own log reported four connect letters "accepted by our transport". They
+                // were all queued behind the one frame left outstanding on a connection that no
+                // longer existed: outstanding 1, unpositioned window 1, and 1 < 1 is false.
+                //
+                // On D100 this showed up as "no access to system 19999" and its file server never
+                // answering - neither of which is where the fault was.
+                _peerNextExpected = _nextSequence;   // nothing is outstanding on a link that is gone
+                _havePeerPosition = false;           // the new connection has to place us again
+                _unpositioned = null;                // and the frame kept for a resend is stale now
+                DrainWaiting();
                 return true;
             }
 
@@ -972,7 +999,8 @@ namespace NDInsight.Sintran.Xmsg.Ethernet
         }
 
         /// <summary>
-        /// The wire byte this node sends for a connection confirm. UNVERIFIED - see the remarks.
+        /// The wire byte this node sends for a connection confirm. CONFIRMED on 2026-08-27 - see
+        /// the remarks for the capture that settled it.
         /// </summary>
         /// <remarks>
         /// <para>
@@ -986,6 +1014,27 @@ namespace NDInsight.Sintran.Xmsg.Ethernet
         /// How to tell whether it is right: after we answer a CR with this byte, a peer that
         /// accepts it should stop repeating the CR and move on to sending DT. If it keeps
         /// repeating, the byte or the field layout is wrong.
+        /// </para>
+        /// <para><b>That test was run, and the byte is RIGHT.</b></para>
+        /// <para>
+        /// Hub capture, 2026-08-27, D100 (08:00:26:64:00:00) to this node (08:00:26:1F:4E:00,
+        /// which is 19999 = 0x4E1F little-endian):
+        /// </para>
+        /// <code>
+        /// 17:09:16.241  D100 -> us   ...02 0F 00 79...   CR, sent ONCE
+        /// 17:09:16.241  us   -> D100 ...02 1F 00 79...   this byte
+        /// 17:09:16.243  D100 -> us   ...02 20 00 00...   DT, 2 ms later
+        /// </code>
+        /// <para>
+        /// D100 sent the CR once, took the confirm, and moved on to data without repeating - which
+        /// is exactly the accept case the test above describes. The low nibble F, guessed from the
+        /// other control frames all ending in F, is correct.
+        /// </para>
+        /// <para>
+        /// The name is kept as-is so callers do not have to change; only the claim has been
+        /// corrected. What the capture does NOT explain is why this node then sent only ONE data
+        /// frame in ninety minutes while its own log claimed four connect letters - that is a
+        /// separate, still-open fault above this layer.
         /// </para>
         /// </remarks>
         public const byte ConnectionConfirmKindUnverified = 0x1F;

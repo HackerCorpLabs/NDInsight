@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Text;
 
 namespace NDInsight.Sintran.Xmsg.Chat
@@ -181,9 +181,47 @@ namespace NDInsight.Sintran.Xmsg.Chat
         }
 
         /// <summary>
+        /// A replayed history line, carrying the moment it was originally said.
+        /// </summary>
+        /// <param name="nickname">
+        /// The speaker, as their own machine knew them when they said it.
+        /// </param>
+        /// <param name="text">
+        /// What they said.
+        /// </param>
+        /// <param name="saidAt">
+        /// When it was said, from the ND's own clock. Pass
+        /// <see cref="NdCalendarTime.Unknown"/> for a line replayed out of a history block
+        /// written before the time was recorded.
+        /// </param>
+        /// <remarks>
+        /// The time is what separates history from live traffic in a way that matters. A replayed
+        /// line used to be shown with the time it was REPLAYED, so a whole backlog shared one
+        /// timestamp and could not say what happened when.
+        /// </remarks>
+        /// <exception cref="ArgumentException">
+        /// Thrown when either string is longer than its length field can describe.
+        /// </exception>
+        public ChatMessage(string nickname, string text, NdCalendarTime saidAt)
+            : this(ChatMessageKind.History, nickname, text)
+        {
+            SaidAt = saidAt;
+        }
+
+        /// <summary>
         /// Gets what this message is.
         /// </summary>
         public ChatMessageKind Kind { get; }
+
+        /// <summary>
+        /// Gets when a <see cref="ChatMessageKind.History"/> line was originally said.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="NdCalendarTime.Unknown"/> on every other kind, and on a history line whose
+        /// block predates the time being recorded. Live traffic needs no such field: it is
+        /// arriving now, so the receiver's own clock is the right answer.
+        /// </remarks>
+        public NdCalendarTime SaidAt { get; }
 
         /// <summary>
         /// Gets the nickname this message concerns.
@@ -249,7 +287,8 @@ namespace NDInsight.Sintran.Xmsg.Chat
             {
                 return Kind == ChatMessageKind.TrunkRelay
                     || Kind == ChatMessageKind.TrunkRelayId
-                    || Kind == ChatMessageKind.TrunkDirect;
+                    || Kind == ChatMessageKind.TrunkDirect
+                    || Kind == ChatMessageKind.TrunkDirectBad;
             }
         }
 
@@ -261,7 +300,8 @@ namespace NDInsight.Sintran.Xmsg.Chat
             get
             {
                 return Kind == ChatMessageKind.TrunkRelayId
-                    || Kind == ChatMessageKind.TrunkDirect;
+                    || Kind == ChatMessageKind.TrunkDirect
+                    || Kind == ChatMessageKind.TrunkDirectBad;
             }
         }
 
@@ -274,6 +314,7 @@ namespace NDInsight.Sintran.Xmsg.Chat
             {
                 if (HasLineId) { return RelayIdHeaderLength; }
                 if (HasRelayHeader) { return RelayHeaderLength; }
+                if (Kind == ChatMessageKind.History) { return NdCalendarTime.ByteCount; }
                 return 0;
             }
         }
@@ -334,6 +375,16 @@ namespace NDInsight.Sintran.Xmsg.Chat
                     destination[at + 1] = (byte)(LineId & 0xFF);
                     at += RelayIdHeaderLength - RelayHeaderLength;
                 }
+            }
+
+            // A HISTORY LINE CARRIES WHEN IT WAS SAID, in the same place a relay header sits -
+            // between the kind and the name. The two never occur together: history is local to
+            // one machine and deliberately does not cross a trunk, so there is no kind that
+            // would need both.
+            if (Kind == ChatMessageKind.History)
+            {
+                SaidAt.WriteTo(destination.Slice(at));
+                at += NdCalendarTime.ByteCount;
             }
 
             destination[at] = (byte)Nickname.Length;
@@ -400,8 +451,14 @@ namespace NDInsight.Sintran.Xmsg.Chat
             byte hopsRemaining = 0;
 
             ushort lineId = 0;
+            // TrunkDirectBad carries the SAME five bytes. Leaving it out here was a real bug for
+            // as long as it took to notice: the decoder bound had already been raised to 55, so
+            // the frame decoded, and its header was then read as a nickname length and a name -
+            // exactly the nonsense the comment above warns about, and it would have shown a
+            // person garbage instead of telling them their message was dropped.
             bool carriesId = kind == (byte)ChatMessageKind.TrunkRelayId
-                || kind == (byte)ChatMessageKind.TrunkDirect;
+                || kind == (byte)ChatMessageKind.TrunkDirect
+                || kind == (byte)ChatMessageKind.TrunkDirectBad;
 
             if (kind == (byte)ChatMessageKind.TrunkRelay || carriesId)
             {
@@ -419,6 +476,21 @@ namespace NDInsight.Sintran.Xmsg.Chat
                 }
 
                 at += headerLength;
+            }
+
+            // The history time, read before the name for the same reason the relay header is -
+            // and length-checked first, or a truncated one would be read as a nickname length
+            // and produce nonsense instead of a refusal.
+            NdCalendarTime saidAt = NdCalendarTime.Unknown;
+            if (kind == (byte)ChatMessageKind.History)
+            {
+                if (source.Length < at + NdCalendarTime.ByteCount)
+                {
+                    return false;
+                }
+
+                saidAt = NdCalendarTime.ReadFrom(source.Slice(at));
+                at += NdCalendarTime.ByteCount;
             }
 
             if (source.Length < at + 1)
@@ -457,6 +529,10 @@ namespace NDInsight.Sintran.Xmsg.Chat
             else if (kind == (byte)ChatMessageKind.TrunkRelay)
             {
                 message = new ChatMessage(nickname, text, originSystem, hopsRemaining);
+            }
+            else if (kind == (byte)ChatMessageKind.History)
+            {
+                message = new ChatMessage(nickname, text, saidAt);
             }
             else
             {

@@ -44,19 +44,19 @@ MICRO-START (RETG5:=0 per FUNCS MPSTA @153006B) -> gate opens.
 ## 3. Strobe-direction facts (trace-proven; the reference implies write-only)
 
 SINTRAN strobes via **IOX READS**: `UNLC5` (611k reads in one load), `MCLR5` (5MCLE), plus
-`SLOC5`. An emulator implementing these only on the write side wedges the lock (STATUS $28/$204).
+`SLOC5`. An emulator implementing these only on the write side hangs the lock (STATUS $28/$204).
 WRTAG wraps EVERY TAG access in `LCON5:=44B` - CONTROL activate writes must NOT set busy/finished
 or touch the micro clock (the "activate = operation" model is disproven; only RETG5 bit-1-clear
 and MCLR5 restart the clock).
 
-## 4. STATUS value timeline (healthy vs wedge signatures)
+## 4. STATUS value timeline (healthy vs hang signatures)
 
 | Phase | RSTA5 |
 |---|---|
 | cold idle (clock stopped) | `$200` |
 | during download | `$004`/`$024` (busy artifacts in pre-fix emulator; real HW expectation: lock toggling) |
 | stopped for verify | `$200` |
-| WEDGE signatures (emulator bugs, fixed) | `$28` (stale finished+lock), `$204` (stale busy+stopped) |
+| HANG signatures (emulator bugs, fixed) | `$28` (stale finished+lock), `$204` (stale busy+stopped) |
 | healthy idle after full cycle | `$0` |
 
 ## 4b. MAR is an ND-100 WORD address (live-proven)

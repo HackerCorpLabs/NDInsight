@@ -334,6 +334,34 @@ bound.
 `ADDR(buf(0)) FORCE XMUSERADDRESS` - **round** brackets. The guide prints square ones and
 PLANC F rejects them with `EXPECTS ")" ILLEGAL SYNTAX "["`. Plain `ADDR(buf)` is not enough.
 
+**`XMUSERADDRESS` IS `INTEGER`, NOT `INTEGER4`, BECAUSE AN ND-100 ADDRESS IS SIXTEEN BITS.**
+`XMP-B02:IMPT` declares `TYPE XMUSERADDRESS = INTEGER`. The line above it,
+`% modify XMUSERADDRESS = INTEGER4 %`, is a **COMMENT** describing what the MC68000 compiler needs -
+and taking that first matching line for the declaration is what produced two withdrawn measurements
+on 2026-08-27.
+
+**Forcing to a 32-bit type does not fail the build.** It is a size mismatch, which `FORCE` refuses -
+but only as a WARNING:
+
+```
+    668/XRADDROF  *** WARNING - ILLEGAL DATA-ELEMENT TO BE CONVERTED
+```
+
+so the program links, runs, and hands XMSG a plausible wrong address: `3473663` where the caller's
+own `ADDR` said `65791`, **reproducibly across two builds**. A wrong address given to `xmpfrea` is a
+write to memory nobody owns, and PLANC checks no bounds, so nothing else would have reported it.
+Read the LISTING - see R110 and R46.
+
+### Rule 5.3a - a routine MAY take `ADDR` of a buffer it was HANDED
+
+MEASURED 2026-08-27: `ADDR param 1001 / ADDR here 1001`. PLANC passes arrays by reference, so a
+shared routine given a `BYTES` parameter can take its address and gets the CALLER'S OWN array.
+
+This is what makes a shared transport layer possible at all - every `ADDR` in this product used to
+be of a module-level array, in the same module as its XMSG call, because a routine handed a buffer
+had never been shown to work. "Should" was not good enough for something whose failure mode is a
+silent write into memory nobody owns.
+
 ### Rule 5.4 - the buffer builders return -1 on a bad buffer
 
 `xmpblet`: "headerBuffer must start on an even byte boundary and lengthBuffer must be big

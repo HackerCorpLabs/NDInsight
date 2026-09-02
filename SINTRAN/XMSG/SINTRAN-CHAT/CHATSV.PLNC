@@ -64,6 +64,30 @@
 
 MODULE chatsv
 
+% ---- HANDED TO CHATVT, the offline server-side test -----------------------
+% EXPORT allocates nothing - it only makes the name visible across the BRF
+% boundary, so CHATVT.PLNC can drive buildFromSlot and broadcast with
+% synthetic members and inspect outBuf, the way CHATCTST drives the client.
+% The block sits HERE, before the includes, because EXPORT must follow the
+% MODULE statement - after an ordinary declaration it is MISPLACED STATEMENT,
+% one error per line (R119; it cost CHATLIB ten errors that still linked).
+%
+% SEVEN CHARACTERS is all a BRF entry carries. No two of these agree in their
+% first seven, and planc-lint checks that across the whole set of sources.
+EXPORT buildFromSlot
+EXPORT broadcast
+EXPORT sendTo
+EXPORT outBuf
+EXPORT inBuf
+EXPORT memberUsed
+EXPORT memberName
+EXPORT memberLen
+EXPORT memberMagic
+EXPORT mbrRoom
+EXPORT lenMbrRoom
+EXPORT myPort
+EXPORT sendFlags
+
 % THE REAL COSMOS BINDING, from ND-10609, and INSIDE the module. Above MODULE
 % the declarations land in the outer scope, the body cannot see them, and every
 % call fails NOT PREVIOUSLY DECLARED while the include's own lines draw no
@@ -93,6 +117,21 @@ $INCLUDE XMP-B02:IMPT
 IMPORT ( ROUTINE VOID, INTEGER (BYTES, BYTES, INTEGER) : MON50 )
 IMPORT ( ROUTINE BYTE, VOID (INTEGER) : MON2 )
 IMPORT ( ROUTINE VOID, VOID (INTEGER) : MON43 )
+
+% MN113 CLOCK - seven elements, and it is the ND's OWN date and time.
+% 0 basic units, 1 sec, 2 min, 3 hour, 4 day, 5 month, 6 year - and the
+% year is the FULL 1998, not 98. Nothing here converts it to an epoch or
+% to text: the words are stored as the machine gives them and are read
+% back the same way, which is Ronny's call and also the only form that
+% cannot drift with somebody's idea of a date format.
+IMPORT ( ROUTINE VOID, VOID (INTEGER ARRAY WRITE) : MN113 )
+
+% MON11 TIME - basic time units, a fiftieth of a second each, as an
+% INTEGER4. Signature from ND-60.117.5 page 13445: ROUTINE VOID,INTEGER4.
+% THE TICK HAS TO COME OFF THE CLOCK once the sleep can be cut short by a
+% wake-up - counting sleeps only measures seconds while every sleep runs
+% its full length. See the main loop.
+IMPORT ( ROUTINE VOID, INTEGER4 : MON11 )
 
 % ---------------------------------------------------------------------------
 % RANDOM BLOCK ACCESS, for the per-room history ring.
@@ -162,6 +201,36 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmNmLen)
     IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmTxAt)
     IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmTxLen)
+
+    % THE RELAY HEADER. trHLen answers how many bytes a kind carries - 0 for
+    % anything that is not relayed - so the receive loop asks it about every
+    % message and needs no special case. trStrip takes the header off and
+    % leaves an ordinary chat frame behind, which is why cmNmLen is correct
+    % AFTER it and would be nonsense before.
+    IMPORT (ROUTINE VOID, INTEGER (INTEGER) : trHLen)
+    IMPORT (ROUTINE VOID, INTEGER (BYTES) : trOrig)
+    IMPORT (ROUTINE VOID, INTEGER (BYTES) : trHops)
+    IMPORT (ROUTINE VOID, INTEGER (BYTES) : trId)
+    IMPORT (ROUTINE VOID, INTEGER (BYTES, INTEGER, INTEGER) : trStrip)
+
+    % THE TRUNK KINDS. Declared in CHATLIB so the relay codec and this
+    % server cannot disagree about a number that crosses a wire between
+    % MACHINES - the far end may be running an older build.
+    %
+    % THEY MUST BE HERE, not beside the comments that explain them further
+    % down: PLANC answers MISPLACED STATEMENT for an IMPORT that follows an
+    % ordinary declaration, and every IMPORT belongs in this one block.
+    IMPORT (INTEGER : kTrkHello)
+    IMPORT (INTEGER : trkAsk)
+    IMPORT (INTEGER : trkAnswer)
+    IMPORT (INTEGER : kTrkWho)
+    IMPORT (INTEGER : kTrkMbrs)
+    IMPORT (INTEGER : kTrkSaid)
+    IMPORT (INTEGER : kTrkRly)
+    IMPORT (INTEGER : maxHops)
+    IMPORT (INTEGER : kTrkRlId)
+    IMPORT (INTEGER : kTrkDir)
+    IMPORT (INTEGER : kTrkDBad)
     IMPORT (INTEGER : kJoin)
     IMPORT (INTEGER : kWelcome)
     IMPORT (INTEGER : kReject)
@@ -310,6 +379,35 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     INTEGER : kAdmLock    := 40
     INTEGER : kAdmOpen    := 41
 
+    % DROP-MEMBER <name> - RELEASE A SEAT AND TELL NOBODY.
+    %
+    % THIS EXISTS TO TEST kTrkDBad, and it is the only way to reach that code
+    % path on purpose. kTrkDBad fires when THIS machine is asked to deliver a
+    % private message to somebody a PEER still believes is seated here. Every
+    % ordinary way of ending a session keeps the two machines in step, which is
+    % exactly right for the product and leaves the refusal unreachable by hand:
+    %
+    %   /quit          sends kLeave, which broadcasts kLeft and calls tellMbrs
+    %   /nick          crosses the trunk, so the peer follows the new name
+    %   an RT-load     empties the table, but the orphaned client REJOINS
+    %   a peer restart makes the other side purge what it knew
+    %
+    % MEASURED 2026-08-30: all four were tried against D100/D102 and every one
+    % of them self-healed, so all four refusals came back as the LOCAL one
+    % ("nobody of that name is here now") and the trunk path never ran. The
+    % reason string is the only thing that tells the two apart.
+    %
+    % So this verb frees the seat and does NOTHING ELSE - no kLeft to the room,
+    % no tellMbrs to the peers. That is precisely the disagreement kTrkDBad was
+    % written for, and it is a state the machine can otherwise only reach by
+    % losing a race.
+    INTEGER : kAdmDrop    := 42
+
+    % LIST-MEMBER - who is seated here right now, and which room. The other
+    % half of the DROP-MEMBER pair Ronny asked for: DROP-MEMBER acts on a seat,
+    % LIST-MEMBER shows them. Answered with kAdmRepl, same as LIST-TRUNKS.
+    INTEGER : kAdmMbrs    := 43
+
     % SERVER TO SERVER, on the trunk port. 48 and up, left clear of the admin
     % block so a future admin verb cannot collide with a trunk one.
     %
@@ -317,9 +415,9 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     % "I am here, are you?" and 1 is "I am here, and I am answering you". Without
     % that byte two servers answering each other's HELLO would say hello for
     % ever. An ANSWER is never answered.
-    INTEGER : kTrkHello   := 48
-    INTEGER : trkAsk      := 0
-    INTEGER : trkAnswer   := 1
+    % (imported at the top of the module - see the IMPORT block)
+    % (imported at the top of the module - see the IMPORT block)
+    % (imported at the top of the module - see the IMPORT block)
 
     % Phase C - "tell me who is on you" and the answer.
     %
@@ -332,8 +430,8 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     % THE ANSWER'S TEXT is "NAME/ROOM NAME/ROOM ...", space between people and a
     % slash between a person and their room. Readable on a trace, and it needs
     % no length table - the same shape /who already sends to a client.
-    INTEGER : kTrkWho     := 49
-    INTEGER : kTrkMbrs    := 50
+    % (imported at the top of the module - see the IMPORT block)
+    % (imported at the top of the module - see the IMPORT block)
 
     % Phase D - somebody spoke on another machine.
     %
@@ -348,39 +446,39 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     % need a hop count and an origin, which is the rest of phase D and is not
     % built. Forwarding blindly now would loop the moment a third machine
     % appeared.
-    INTEGER : kTrkSaid    := 51
+    % (imported at the top of the module - see the IMPORT block)
     % A line being RELAYED onward. Same shape as kTrkSaid with three bytes in
     % front: the origin system, big-endian, then how many hops it may still
     % take. A SEPARATE kind rather than extra fields on kTrkSaid so a server
     % that has not been upgraded keeps handling its direct trunks unchanged -
     % these machines are upgraded one at a time.
-    INTEGER : kTrkRelay   := 52
+    % (imported at the top of the module - see the IMPORT block)
     % How far a line may travel from the machine it was typed on. Three is
     % ample for D100/D102/D103 and bounds the damage if a future mesh ever
     % loops: the count is what makes the loop terminate, not the topology.
-    INTEGER : maxHops     := 3
+    % (imported at the top of the module - see the IMPORT block)
     % A relayed line that also carries the number its ORIGIN gave it. Same
-    % shape as kTrkRelay with two more bytes after the hop count.
+    % shape as kTrkRly with two more bytes after the hop count.
     %
     % THE ID MUST COME FROM THE ORIGIN. It cannot be handed out by a relay: a
     % machine with two peers sends one line to both, each would stamp its own
     % number, and a machine further out would see two names for one line and
     % show it twice - which is the very thing this exists to stop.
     %
-    % A SEPARATE kind rather than a longer kTrkRelay header, for the same
-    % reason kTrkRelay is separate from kTrkSaid: a server that has not been
+    % A SEPARATE kind rather than a longer kTrkRly header, for the same
+    % reason kTrkRly is separate from kTrkSaid: a server that has not been
     % upgraded would read the two extra bytes as a name length and a name and
     % show its users rubbish. A kind it does not know it just ignores.
-    INTEGER : kTrkRelId   := 53
+    % (imported at the top of the module - see the IMPORT block)
 
-    % A DIRECT MESSAGE CROSSING A TRUNK. Same six-byte header as kTrkRelId -
+    % A DIRECT MESSAGE CROSSING A TRUNK. Same six-byte header as kTrkRlId -
     % origin system, hops remaining, line id - so it is relayed and de-duplicated
     % by the machinery that already exists rather than by a second mechanism.
     %
-    % The difference is what the text holds: kTrkRelId packs ROOM/message, this
+    % The difference is what the text holds: kTrkRlId packs ROOM/message, this
     % packs TARGET/message, which leaves the name field free for the SENDER -
     % the one thing the far end has to display.
-    INTEGER : kTrkDirect  := 54
+    % (imported at the top of the module - see the IMPORT block)
     % How many recent lines we remember in order to spot a repeat. A second
     % copy arrives within a hop or two of the first, so a short window is
     % enough, and a FIXED one cannot be made to grow by a peer sending us
@@ -481,6 +579,21 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     % here writes straight through the other seven members' names and out the far
     % side of the array. See the guard at the top of handleMessage.
     INTEGER        : maxNameLen := 16
+
+    % LAYOUT OF A LISTING, and both of these are named rather than typed.
+    %
+    % idWide is the column the machine NUMBER sits in - six, which holds the
+    % five digits of 19999 and a space after it. The NAME column is not here:
+    % it is maxNameLen above, asked of the buffer the names live in, so the two
+    % cannot drift apart.
+    INTEGER        : idWide := 6
+
+    % THE LINE BREAK INSIDE A REPLY. A listing travels as ONE message and
+    % CHAT-MON prints it byte by byte, so a break between elements has to be a
+    % byte the printer knows: LF, which showAnswer turns into a CRLF. 10 is
+    % written once, here, instead of appearing as a bare number in the middle
+    % of a builder.
+    INTEGER        : lineBreak := 10
     % NAMES ARE UNIQUE IN THEIR FIRST TEN CHARACTERS, and that is not a style
     % note - it is what the compiler enforces. memberName and memberNameLen both
     % start MEMBERNAME, so the second silently became a redeclaration of the
@@ -516,11 +629,41 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     %
     % Sixteen characters, same as a nickname. A room is a name a person types.
     BYTES ARRAY    : mbrRoom(1:16, 1:16)
-    INTEGER ARRAY  : mbrRoomLen(1:16)
+    INTEGER ARRAY  : lenMbrRoom(1:16)
 
     % Where a member goes when the Join names no room - see copyRoomIn.
     BYTES          : homeRoom := 'LOBBY'
     INTEGER        : lenHomeRoom := 5
+
+    % ---- WHICH BUILD EACH MEMBER IS RUNNING -------------------------------
+    %
+    % Added 2026-08-31 chasing a bug that turned out NOT to be a version
+    % mismatch - but there was no cheap way to see that without reading
+    % FILE-STATISTICS on the machine by hand. A client now rides its own
+    % build stamp in on the Join, after the room name and a '|'; an older
+    % client that has never heard of this sends no separator and the whole
+    % text is read as the room, exactly as before - see findJoinSep.
+    %
+    % EIGHT characters, same as clientVersion in CHAT.PLNC. The two must
+    % agree or a version this long gets clipped and LIST-MEMBER lies.
+    INTEGER : maxVerLen := 8
+    BYTES ARRAY    : memberVer(1:16, 1:8)
+    INTEGER ARRAY  : memberVerLen(1:16)
+
+    % This server's OWN build stamp, printed by STATUS - so a stale CLIENT
+    % and a fresh SERVER (or the other way round) show up side by side in one
+    % command instead of two FILE-STATISTICS calls compared by eye.
+    %
+    % BUMP THIS ON EVERY BUILD THAT SHIPS - it is a hand-set constant, and it
+    % read S31-0854 across the presence fix, the history fix and the putNumber
+    % fix, so STATUS could not tell any of those servers apart. Format: one
+    % letter, day of month, dash, hour and minute.
+    BYTES : serverVersion := 'S02-1340'
+    INTEGER : lenServerVer := 8
+
+    % Same byte as CHAT.PLNC's verSepByte - the two must agree or a version
+    % never parses out of the room field at all.
+    BYTES : verSepByte := '|'
 
     % ---- ROOM TOPICS -----------------------------------------------------
     %
@@ -539,7 +682,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     % refusal a user can read beats a feature that quietly does nothing.
     INTEGER        : maxTopics := 8
     BYTES ARRAY    : topicRoom(1:8, 1:16)
-    INTEGER ARRAY  : topicRoomLen(1:8)
+    INTEGER ARRAY  : topicRmLen(1:8)
 
     % 64 characters. The whole message must fit outBuf's 250-byte text field
     % alongside the room name, and a topic is a headline, not an essay.
@@ -555,7 +698,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     % IT SHARES THE TOPIC TABLE'S SLOTS, AND THAT IS THE WHOLE STRUCTURE. The
     % design note used to say this needed a room table first, because rooms are
     % DERIVED from the seats and there is no per-room anything. There already
-    % is one: topicRoom/topicRoomLen with findTopic and claimTopic is a room
+    % is one: topicRoom/topicRmLen with findTopic and claimTopic is a room
     % table under another name. Using the same index for history means the two
     % can never disagree about what a room is - and a room that has neither a
     % topic nor a history needs no entry at all.
@@ -612,6 +755,32 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     % 256 words = 512 bytes = one SINTRAN block.
     INTEGER        : histWords := 256
     INTEGER ARRAY  : histBlock(0:255)
+
+    % ---- WHEN A LINE WAS SAID, AND HOW AN OLD FILE STILL READS -------
+    %
+    % A replayed line used to be stamped with the moment it was REPLAYED,
+    % so a whole backlog shared one time and could not say what happened
+    % when. The block had nowhere to put the real one: word 0 is the id,
+    % 1 and 2 are the two lengths, and the name started at 3.
+    %
+    % THE OLD FILES ON THE THREE MACHINES MUST STILL REPLAY, so the new
+    % layout is marked rather than assumed. Word 3 is now a MARKER:
+    %
+    %   histBlock(3) = histStamp  ->  words 4..9 are the ND calendar and
+    %                                 the name starts at 10
+    %   anything else             ->  an OLD block: no time, name at 3
+    %
+    % IT IS SAFE BECAUSE WORD 3 USED TO HOLD THE FIRST CHARACTER OF A
+    % NAME. Names are ASCII, so that word was always small and positive;
+    % 27127 cannot be a character and so cannot be mistaken for one. No
+    % migration, no history thrown away, and a machine still running the
+    % old build writes blocks this one reads correctly as timeless.
+    INTEGER        : histStamp := 27127
+    INTEGER        : histHdrNew := 10     % name starts here when stamped
+    INTEGER        : histHdrOld := 3      % ...and here when it is not
+
+    % The ND calendar as MN113 fills it - see the IMPORT at the top.
+    INTEGER ARRAY  : histCal(0:6)
 
     % The file name being built.
     %
@@ -1008,6 +1177,35 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     BYTES ARRAY    : rmtRoom(1:32, 1:16)
     INTEGER ARRAY  : rmtRoomLen(1:32)
 
+    % ---- THE PRESENCE DIFF, 2026-09-02 --------------------------------------
+    %
+    % A kTrkMbrs replaces a peer's rows WHOLESALE, and until tonight it did so
+    % in silence: a person joining or leaving on another machine changed the
+    % tables and told no local client anything, so the room's count and its
+    % "has joined"/"has left" notices only ever covered THIS machine. These
+    % arrays hold a snapshot of one peer's rows from BEFORE the replace, so
+    % the difference can be announced to local seats as ordinary kJoined and
+    % kLeft - the kinds the client already renders and counts. oldUsed is 1
+    % for a snapshot row, and 2 once the diff has matched it to a new row.
+    INTEGER ARRAY  : oldUsed(1:32)
+    BYTES ARRAY    : oldNm(1:32, 1:16)
+    INTEGER ARRAY  : oldNmLen(1:32)
+    BYTES ARRAY    : oldRm(1:32, 1:16)
+    INTEGER ARRAY  : oldRmLen(1:32)
+
+    % One announcement's name and room, copied FLAT so a single announceGo
+    % serves both directions of the diff - the joined side reads the rmt
+    % tables, the left side reads the snapshot, and neither 2-D row can be
+    % passed to a routine.
+    BYTES          : annName(0:15)
+    INTEGER        : annNameLen := 0
+    BYTES          : annRoom(0:15)
+    INTEGER        : annRoomLen := 0
+
+    % Quiet seconds on an UP trunk before a keepalive hello goes out - see
+    % peerTick. Two of these fit inside peerDeadAfter with room to spare.
+    INTEGER        : peerPingAt := 20
+
     % TRUE once the ports are open. MODULE data lives in the RT segment and
     % SURVIVES the terminate above - the member table, the port numbers and the
     % magic are all still here on the next start. INISTACK is not: it runs
@@ -1079,6 +1277,63 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     INTEGER  : sleepUnits
     INTEGER  : sleepKind
     INTEGER  : sleepWhy
+
+    % ---- THE TICK COMES OFF THE CLOCK, NOT OFF THE SLEEPS -------------
+    %
+    % peerTick has to run ONCE A SECOND: every counter it touches is in
+    % seconds - peerHeard against peerDeadAfter, and peerWait doubling to a
+    % five-minute ceiling. Ticking it too fast ages a quiet trunk out early
+    % and re-dials it too often, which is a healthy trunk that looks like a
+    % flapping one.
+    %
+    % IT USED TO BE COUNTED IN SLEEPS - ten sleeps of 100 ms to a second -
+    % and that only measures time while EVERY SLEEP RUNS ITS FULL LENGTH.
+    % The doorbell below breaks exactly that assumption: a wake-up cuts the
+    % sleep short, so on a busy server ten "sleeps" could pass in a few
+    % milliseconds and every trunk timeout would run fast. The counter had
+    % to go before the doorbell could arrive.
+    %
+    % So the tick is now a CLOCK COMPARISON. MON11 is the machine's own
+    % basic-unit counter; when 50 units (one second) have gone by since the
+    % last tick, tick. This is right whatever the sleep does.
+    % ALL THREE INTEGER4, DELIBERATELY. MON11 hands back an INTEGER4, and
+    % ND-60.117.5 section 5.4 says a relational operator needs both operands
+    % of the SAME data type - allowing modified integers to be mixed, which
+    % probably covers this. "Probably" is a twenty-minute compile to test, and
+    % the one shape PROVED to build on D100 keeps every term the same type:
+    % CHATUI.PLNC declares lastAdd, nowTime AND addEvery as INTEGER4 for the
+    % identical "IF nowTime - lastAdd >= addEvery" comparison. Copy what
+    % compiled rather than what the manual permits.
+    INTEGER4 : lastTick  := 0
+    INTEGER4 : nowTicks  := 0
+    INTEGER4 : tickUnits := 50
+
+    % ---- THE DOORBELL, AND THE THING THAT TURNS IT OFF ----------------
+    %
+    % XFWAK arms a wake-up on a port: when a message lands, XMSG performs
+    % an RT-start on this program. @RT's own rule 3 (ND-60.128.5, the entry
+    % for @RT, whose related monitor call is RT/MON 100) says a program in
+    % HOLD "is removed from that state", and TimeOut documents a restart
+    % cause of -1 for exactly this. So the wake-up cuts the sleep short and
+    % says so in sleepWhy. That is the whole point: one second of sleep for
+    % a machine that is doing nothing, and no wait at all when a message
+    % actually arrives.
+    %
+    % WHAT IS NOT PROVED, AND WHY THE COUNTER BELOW EXISTS: nothing we have
+    % read says whether the restart flag is CLEARED when TimeOut consumes
+    % it. If it is sticky, every following TimeOut returns instantly, the
+    % sleep stops sleeping, and this program burns the machine - which is
+    % the one outcome that must not happen while nobody is watching.
+    %
+    % So the doorbell disarms itself. Every wake with cause -1 that finds
+    % all three ports still empty counts; a real message resets the count.
+    % Twenty in a row is not a busy server, it is a flag that will not
+    % clear - so drop back to flags 0 and the old 100 ms poll, log it, and
+    % carry on. The product keeps working either way; the log says which
+    % path it took.
+    INTEGER  : wakeSpin    := 0
+    INTEGER  : wakeSpinMax := 20
+    BOOLEAN  : doorbellOn  := TRUE
 
     % XMROU, "routed message (via XROUT)", is what msgType carries when a letter
     % arrives. It is the ONLY thing that says a SEAT was spent: XROUT takes one
@@ -1211,7 +1466,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     % one 64-byte buffer, unlike MON50 which takes name and type separately.
     BYTES   : logFull     := 'CHATLG2:SYMB'
     INTEGER : lenLogFull  := 12
-    INTEGER : nameBufSize := 64
+    INTEGER : sizeNameBuf := 64
     BYTES   : nameBuf(0:63)
     BYTES   : blankByte   := ' '
     INTEGER4 : startAddr  := 0
@@ -1233,7 +1488,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     % -----------------------------------------------------------------------
     ROUTINE VOID, VOID : makeLog
         INTEGER : i
-        FOR i IN 1:nameBufSize DO
+        FOR i IN 1:sizeNameBuf DO
             blankByte(0) =: nameBuf(i - 1)
         ENDFOR
         FOR i IN 1:lenLogFull DO
@@ -1350,11 +1605,14 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         b MON2(dev)
     ENDROUTINE
 
-    ROUTINE VOID, VOID (BYTES, INTEGER, INTEGER) : logLine(tag, tagLen, value)
-        INTEGER : dev, i, left, rest, digit, digitCount
+    % The tag length is DERIVED, not passed - see buildAdmText for the whole
+    % argument. Nineteen callers used to type the count beside the literal.
+    ROUTINE VOID, VOID (BYTES, INTEGER) : logLine(tag, value)
+        INTEGER : dev, i, left, rest, digit, digitCount, tagLen
         BYTE    : b
         BOOLEAN : writeFailed
 
+        MAXINDEX(tag, 1) + 1 =: tagLen
         logOpen =: dev
         IF dev = 0 THEN
             RETURN
@@ -1533,11 +1791,34 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         value =: left
         FALSE =: started
 
-        % Hundreds and tens are skipped until a non-zero one appears, so 7
-        % prints as "7" and not "007". Zero itself still has to print, which
+        % Leading digits are skipped until a non-zero one appears, so 7
+        % prints as "7" and not "00007". Zero itself still has to print, which
         % the final digit below always does.
-        left / 100 =: digit
+        %
+        % FIVE DIGITS, NOT THREE. Until 2026-09-02 this started at the hundreds,
+        % and a counter past 999 printed its "hundreds digit" as value/100 -
+        % 63 for 6345 - added to '0', which is the letter 'o'. STATUS on D100
+        % read "empty o45" and, an hour later, "empty r36": a climbing count
+        % disguised as a mystery letter. An INTEGER is 16-bit signed, so 32767
+        % is the most this can ever be asked to print, and five digits cover it.
+        left / 10000 =: digit
         IF digit > 0 THEN
+            zeroByte(0) + digit =: outBuf(p)
+            p + 1 =: p
+            TRUE =: started
+            left - digit * 10000 =: left
+        ENDIF
+
+        left / 1000 =: digit
+        IF digit > 0 OR started THEN
+            zeroByte(0) + digit =: outBuf(p)
+            p + 1 =: p
+            TRUE =: started
+            left - digit * 1000 =: left
+        ENDIF
+
+        left / 100 =: digit
+        IF digit > 0 OR started THEN
             zeroByte(0) + digit =: outBuf(p)
             p + 1 =: p
             TRUE =: started
@@ -1678,8 +1959,11 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     % SUBSCRIPT FROM ZERO - a BYTES from a literal starts at index 0. See
     % buildAdmText.
     % -----------------------------------------------------------------------
-    ROUTINE VOID, INTEGER (BYTES, INTEGER, INTEGER) : putWord(text, textLen, at)
-        INTEGER : i, p
+    % The length is DERIVED, not passed - see buildAdmText for the whole
+    % argument. Twenty-nine callers used to type the count beside the literal.
+    ROUTINE VOID, INTEGER (BYTES, INTEGER) : putWord(text, at)
+        INTEGER : i, p, textLen
+        MAXINDEX(text, 1) + 1 =: textLen
         at =: p
         FOR i IN 1:textLen DO
             text(i - 1) =: outBuf(p)
@@ -1740,6 +2024,15 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         at + 1 =: at
         putNumber(maxSeats, at) =: at
 
+        % THIS SERVER'S OWN BUILD - beside the seat count so a stale client
+        % and a fresh server show up together in one command, not two
+        % FILE-STATISTICS calls compared by eye.
+        putWord('  build ', at) =: at
+        FOR j IN 1:lenServerVer DO
+            serverVersion(j - 1) =: outBuf(at)
+            at + 1 =: at
+        ENDFOR
+
         % ---- AND WHAT THE HISTORY IS DOING ---------------------------------
         %
         % Ronny asked for three things here, 2026-08-23: what each room keeps
@@ -1758,18 +2051,18 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         % HELD is "how many are actually in there" - histNext when the ring has
         % not wrapped, the size once it has. Two numbers because 50/12 says a
         % room is a quarter full, where 12 alone does not say what of.
-        putWord('  default ', 10, at) =: at
+        putWord('  default ', at) =: at
         putNumber(histDefault, at) =: at
 
         0 =: kbTotal
         FOR i IN 1:maxHistRooms DO
-            IF topicRoomLen(i) > 0 THEN
+            IF topicRmLen(i) > 0 THEN
                 kbTotal + histSize(i) =: kbTotal
             ENDIF
         ENDFOR
-        putWord('  disk ', 7, at) =: at
+        putWord('  disk ', at) =: at
         putNumber(kbTotal / 2, at) =: at        % blocks of 512 bytes -> KB
-        putWord('KB', 2, at) =: at
+        putWord('KB', at) =: at
 
         % ---- THE THREE COUNTS THAT USED TO BE A FLOOD ----------------------
         % empty  routed letters with no payload. One per seat returned, because
@@ -1785,33 +2078,33 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         % Before this they printed a line each, every time, and the terminal
         % filled with the two that are expected. A number you can ask for beats
         % a line you cannot avoid.
-        putWord('  empty ', 8, at) =: at
+        putWord('  empty ', at) =: at
         putNumber(nEmptyLet, at) =: at
-        putWord(' bounce ', 8, at) =: at
+        putWord(' bounce ', at) =: at
         putNumber(nBounced, at) =: at
-        putWord(' relay ', 7, at) =: at
+        putWord(' relay ', at) =: at
         putNumber(nRelayed, at) =: at
 
         % FWD is what a LOCAL speaker sent onward; BAD is how many of those the
         % send refused. relay above is a different path entirely - see the note
         % on nForwarded.
-        putWord(' fwd ', 5, at) =: at
+        putWord(' fwd ', at) =: at
         putNumber(nForwarded, at) =: at
-        putWord(' fwdbad ', 8, at) =: at
+        putWord(' fwdbad ', at) =: at
         putNumber(nFwdBad, at) =: at
-        putWord(' dupe ', 6, at) =: at
+        putWord(' dupe ', at) =: at
         putNumber(nDupes, at) =: at
-        putWord(' refuse ', 8, at) =: at
+        putWord(' refuse ', at) =: at
         putNumber(nRefused, at) =: at
 
         FOR i IN 1:maxHistRooms DO
-            IF topicRoomLen(i) > 0 THEN
+            IF topicRmLen(i) > 0 THEN
                 % Bounded like every other builder here: a name plus two
                 % numbers is at most 25 bytes, and outBuf's text field is 250.
                 IF at - textAt < 215 THEN
                     spaceByte(0) =: outBuf(at)
                     at + 1 =: at
-                    FOR j IN 1:topicRoomLen(i) DO
+                    FOR j IN 1:topicRmLen(i) DO
                         topicRoom(i, j) =: outBuf(at)
                         at + 1 =: at
                     ENDFOR
@@ -1843,8 +2136,23 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     % and reads one byte past the end. That defect turned RONNY into ONNY on the
     % wire once already; see the note in refuse().
     % -----------------------------------------------------------------------
-    ROUTINE VOID, INTEGER (BYTES, INTEGER) : buildAdmText(text, textLen)
-        INTEGER : i, at
+    % THE LENGTH IS NOT A PARAMETER - THE STRING IS ASKED FOR IT.
+    %
+    % Every caller passes a literal, and each one used to hand the count in
+    % beside it. Eighteen hand-typed numbers that nothing could check: change a
+    % word in a message and the number beside it is silently wrong, the build is
+    % clean, and the reply goes out truncated or padded. That is the same trap
+    % as an 'ALn' field width, which cost five wrong widths in one sitting.
+    %
+    % MAXINDEX(text, 1) is the DECLARED UPPER BOUND of the parameter, and a
+    % string literal subscripts from ZERO, so the length is that plus one. It is
+    % a STANDARD routine the compiler provides - no IMPORT - and it works on an
+    % array parameter, which is exactly what this is. (It is NOT available in a
+    % STANDARD routine, the FORTRAN calling sequence; this is an ordinary PLANC
+    % one, so it is fine.)
+    ROUTINE VOID, INTEGER (BYTES) : buildAdmText(text)
+        INTEGER : i, at, textLen
+        MAXINDEX(text, 1) + 1 =: textLen
         kAdmRepl =: outBuf(0)
         0 =: outBuf(1)                        % no name: the SERVER is answering
         2 =: at
@@ -1947,13 +2255,13 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         textAt =: at
 
         IF lenSysName > 0 THEN
-            putWord('this machine is now ', 20, at) =: at
+            putWord('this machine is now ', at) =: at
             FOR i IN 1:lenSysName DO
                 sysName(i - 1) =: outBuf(at)
                 at + 1 =: at
             ENDFOR
         ELSE
-            putWord('this machine has no name - it answers to ', 41, at) =: at
+            putWord('this machine has no name - it answers to ', at) =: at
             putSysLabel(mySystem, at) =: at
         ENDIF
 
@@ -1962,8 +2270,24 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         at RETURN
     ENDROUTINE
 
+    % ONE TRUNK PER LINE, IN FIXED COLUMNS.
+    %
+    % This used to run every trunk together on one line separated by a single
+    % space - "100 FJELL up 103 SKOGEN down" - with both fields as wide as
+    % whatever happened to be in them, so nothing lined up and two trunks read
+    % as one sentence. Reported by Ronny 2026-08-31.
+    %
+    % THE LINE BREAK IS A BYTE IN THE TEXT, not a second message. The whole
+    % answer travels as ONE kAdmRepl and CHAT-MON prints it byte by byte, so a
+    % break has to be something the PRINTER recognises: an LF, which showAnswer
+    % turns into a CRLF. That costs no new kind and no wire change, and it fixes
+    % EVERY listing carried on kAdmRepl rather than only this one.
+    %
+    % THE WIDTHS ARE NAMED, and the name field is ASKED OF THE DATA rather than
+    % typed: maxNameLen is what pName is declared to hold, so the column cannot
+    % drift from the buffer the way a hand-written 16 would.
     ROUTINE VOID, INTEGER : buildTrunks
-        INTEGER : i, j, at, textAt, textLen, st
+        INTEGER : i, j, at, textAt, textLen, st, fieldAt
 
         kAdmRepl =: outBuf(0)
         0 =: outBuf(1)
@@ -1975,30 +2299,48 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
 
         FOR i IN 1:maxPeers DO
             IF peerSystem(i) >< 0 THEN
+                % A BREAK BEFORE EVERY LINE BUT THE FIRST, so the text never
+                % ENDS with one - a trailing break prints a blank line under
+                % every listing.
                 IF at - textAt > 0 THEN
-                    spaceByte(0) =: outBuf(at)
+                    lineBreak =: outBuf(at)
                     at + 1 =: at
                 ENDIF
+
+                % The system number, in a field of its own.
+                at =: fieldAt
                 putNumber(peerSystem(i), at) =: at
-                spaceByte(0) =: outBuf(at)
-                at + 1 =: at
+                DO
+                    WHILE at - fieldAt < idWide
+                    spaceByte(0) =: outBuf(at)
+                    at + 1 =: at
+                ENDDO
+
+                % The name, padded to the widest this server can hold, so the
+                % state word starts at the same column on every line - including
+                % the lines where the peer has no name yet.
+                at =: fieldAt
                 IF pNameLen(i) > 0 THEN
                     FOR j IN 1:pNameLen(i) DO
                         pName(i, j) =: outBuf(at)
                         at + 1 =: at
                     ENDFOR
+                ENDIF
+                DO
+                    WHILE at - fieldAt < maxNameLen + 1
                     spaceByte(0) =: outBuf(at)
                     at + 1 =: at
-                ENDIF
+                ENDDO
+
                 peerState(i) =: st
                 IF st = peerUp THEN
-                    putWord('up', 2, at) =: at
+                    putWord('up', at) =: at
                 ENDIF
                 IF st = peerDown THEN
-                    putWord('down', 4, at) =: at
+                    putWord('down', at) =: at
                 ENDIF
                 IF st = peerUnknown THEN
-                    putWord('unknown', 7, at) =: at
+                    putWord('unknown', at) =: at
                 ENDIF
 
                 % WHO PUT IT THERE. Only the LEARNED ones are marked, so the
@@ -2009,22 +2351,117 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
                 IF peerFixed(i) = peerLearned THEN
                     spaceByte(0) =: outBuf(at)
                     at + 1 =: at
-                    putWord('(learned)', 9, at) =: at
+                    putWord('(learned)', at) =: at
                 ENDIF
             ENDIF
         ENDFOR
 
         IF at = textAt THEN
-            putWord('no trunks', 9, at) =: at
+            putWord('no trunks', at) =: at
         ENDIF
 
         % AND WHETHER MORE CAN STILL ARRIVE. An operator reading this list needs
         % to know it is the whole list and not just the part that has turned up
         % so far - "locked" is the difference between a network and a snapshot.
         IF NOT peersOpen THEN
-            spaceByte(0) =: outBuf(at)
-            at + 1 =: at
-            putWord('[locked]', 8, at) =: at
+            % ON A LINE OF ITS OWN, and that is not decoration. This marker is
+            % about the WHOLE LIST, not about one trunk. While the listing ran
+            % everything together on one line that was clear enough; one trunk
+            % per line puts it hard against the last entry, where it reads as
+            % if THAT machine were the locked one. Seen on D102 the first time
+            % the new layout ran:
+            %
+            %     100   FJELL            up
+            %     103   SKOGEN           up [locked]
+            %
+            % A break costs one byte and removes the wrong reading.
+            IF at - textAt > 0 THEN
+                lineBreak =: outBuf(at)
+                at + 1 =: at
+            ENDIF
+            putWord('[locked]', at) =: at
+        ENDIF
+
+        at - textAt =: textLen
+        textLen =: outBuf(3)
+        at RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % LIST-MEMBER - who is seated here right now, and which room.
+    %
+    % SAME COLUMN DISCIPLINE AS buildTrunks: the name padded to maxNameLen+1
+    % so the room column lines up under every seat, ONE seat per line with
+    % lineBreak between them, no trailing break. An operator's own listing -
+    % dispatched only IF fromAdmin, same guard as DROP-MEMBER and LIST-TRUNKS.
+    %
+    % memberName/memberLen are the SAME arrays findByName searches and
+    % DROP-MEMBER clears, so this listing is always what DROP-MEMBER can act
+    % on - never a stale copy of it.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER : buildSeats
+        INTEGER : i, j, at, textAt, textLen, fieldAt
+
+        kAdmRepl =: outBuf(0)
+        0 =: outBuf(1)
+        2 =: at
+        0 =: outBuf(at)
+        0 =: outBuf(at + 1)
+        at + 2 =: textAt
+        textAt =: at
+
+        FOR i IN 1:maxSeats DO
+            IF memberUsed(i) = 1 THEN
+                IF at - textAt > 0 THEN
+                    lineBreak =: outBuf(at)
+                    at + 1 =: at
+                ENDIF
+
+                % The name, padded to the widest this server can hold, so the
+                % room column starts at the same place on every line.
+                at =: fieldAt
+                IF memberLen(i) > 0 THEN
+                    FOR j IN 1:memberLen(i) DO
+                        memberName(i, j) =: outBuf(at)
+                        at + 1 =: at
+                    ENDFOR
+                ENDIF
+                DO
+                    WHILE at - fieldAt < maxNameLen + 1
+                    spaceByte(0) =: outBuf(at)
+                    at + 1 =: at
+                ENDDO
+
+                % The room, padded the same way, so the version column also
+                % starts at the same place on every line.
+                at =: fieldAt
+                IF lenMbrRoom(i) > 0 THEN
+                    FOR j IN 1:lenMbrRoom(i) DO
+                        mbrRoom(i, j) =: outBuf(at)
+                        at + 1 =: at
+                    ENDFOR
+                ENDIF
+                DO
+                    WHILE at - fieldAt < maxNameLen + 1
+                    spaceByte(0) =: outBuf(at)
+                    at + 1 =: at
+                ENDDO
+
+                % THE BUILD VERSION - blank for a client old enough to carry
+                % none, which is worth SEEING rather than hiding: a blank
+                % column is the visible difference between "matches" and
+                % "cannot say".
+                IF memberVerLen(i) > 0 THEN
+                    FOR j IN 1:memberVerLen(i) DO
+                        memberVer(i, j) =: outBuf(at)
+                        at + 1 =: at
+                    ENDFOR
+                ENDIF
+            ENDIF
+        ENDFOR
+
+        IF at = textAt THEN
+            putWord('no members', at) =: at
         ENDIF
 
         at - textAt =: textLen
@@ -2070,9 +2507,9 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         at + 2 =: textAt
         textAt =: at
 
-        putWord('this is ', 8, at) =: at
+        putWord('this is ', at) =: at
         putSysLabel(mySystem, at) =: at
-        putWord(' - ', 3, at) =: at
+        putWord(' - ', at) =: at
 
         % REMEMBER WHERE THE HEADER ENDED, do not compute it.
         %
@@ -2097,13 +2534,13 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
                 at + 1 =: at
                 peerState(i) =: st
                 IF st = peerUp THEN
-                    putWord('up', 2, at) =: at
+                    putWord('up', at) =: at
                 ENDIF
                 IF st = peerDown THEN
-                    putWord('down', 4, at) =: at
+                    putWord('down', at) =: at
                 ENDIF
                 IF st = peerUnknown THEN
-                    putWord('unknown', 7, at) =: at
+                    putWord('unknown', at) =: at
                 ENDIF
             ENDIF
         ENDFOR
@@ -2112,7 +2549,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         % a person wants to read; an empty list after a dash is what a program
         % would print. Same reason /topic spells out an absent topic.
         IF at = headAt THEN
-            putWord('on its own', 10, at) =: at
+            putWord('on its own', at) =: at
         ENDIF
 
         at - textAt =: textLen
@@ -2164,7 +2601,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         FOR i IN 1:maxSeats DO
             IF memberUsed(i) = 1 THEN
                 % name + '/' + room, and a space if anything is there already
-                memberLen(i) + mbrRoomLen(i) + 1 =: need
+                memberLen(i) + lenMbrRoom(i) + 1 =: need
                 IF textLen > 0 THEN
                     need + 1 =: need
                 ENDIF
@@ -2181,7 +2618,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
                     ENDFOR
                     slashByte(0) =: outBuf(at)
                     at + 1 =: at
-                    FOR j IN 1:mbrRoomLen(i) DO
+                    FOR j IN 1:lenMbrRoom(i) DO
                         mbrRoom(i, j) =: outBuf(at)
                         at + 1 =: at
                     ENDFOR
@@ -2292,10 +2729,10 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     % somebody had thought to. Moved up 2026-08-22 when /who was fixed.
     ROUTINE VOID, BOOLEAN (INTEGER, INTEGER) : sameRoom(slotA, slotB)
         INTEGER : i
-        IF mbrRoomLen(slotA) >< mbrRoomLen(slotB) THEN
+        IF lenMbrRoom(slotA) >< lenMbrRoom(slotB) THEN
             FALSE RETURN
         ENDIF
-        FOR i IN 1:mbrRoomLen(slotA) DO
+        FOR i IN 1:lenMbrRoom(slotA) DO
             IF mbrRoom(slotA, i) >< mbrRoom(slotB, i) THEN
                 FALSE RETURN
             ENDIF
@@ -2317,9 +2754,9 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         BOOLEAN : match
 
         FOR t IN 1:maxTopics DO
-            IF topicRoomLen(t) = mbrRoomLen(slot) THEN
+            IF topicRmLen(t) = lenMbrRoom(slot) THEN
                 TRUE =: match
-                FOR i IN 1:topicRoomLen(t) DO
+                FOR i IN 1:topicRmLen(t) DO
                     IF topicRoom(t, i) >< mbrRoom(slot, i) THEN
                         FALSE =: match
                     ENDIF
@@ -2335,7 +2772,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     % -----------------------------------------------------------------------
     % Claim a topic entry for this member's room, or 0 if the table is full.
     %
-    % An unused entry is one with topicRoomLen 0 - a room name is never empty,
+    % An unused entry is one with topicRmLen 0 - a room name is never empty,
     % so zero cannot collide with a real one.
     % -----------------------------------------------------------------------
     ROUTINE VOID, INTEGER (INTEGER) : claimTopic(slot)
@@ -2347,11 +2784,11 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         ENDIF
 
         FOR t IN 1:maxTopics DO
-            IF topicRoomLen(t) = 0 THEN
-                FOR i IN 1:mbrRoomLen(slot) DO
+            IF topicRmLen(t) = 0 THEN
+                FOR i IN 1:lenMbrRoom(slot) DO
                     mbrRoom(slot, i) =: topicRoom(t, i)
                 ENDFOR
-                mbrRoomLen(slot) =: topicRoomLen(t)
+                lenMbrRoom(slot) =: topicRmLen(t)
                 0 =: topicTextLen(t)
 
                 % TAKE A COPY OF THE DEFAULT AS IT IS NOW. This is what makes
@@ -2383,7 +2820,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
             0 RETURN
         ENDIF
         FOR t IN 1:maxTopics DO
-            IF topicRoomLen(t) = len THEN
+            IF topicRmLen(t) = len THEN
                 TRUE =: match
                 FOR i IN 1:len DO
                     IF topicRoom(t, i) >< inBuf(at + i - 1) THEN
@@ -2420,11 +2857,11 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         ENDIF
 
         FOR t IN 1:maxTopics DO
-            IF topicRoomLen(t) = 0 THEN
+            IF topicRmLen(t) = 0 THEN
                 FOR i IN 1:len DO
                     inBuf(at + i - 1) =: topicRoom(t, i)
                 ENDFOR
-                len =: topicRoomLen(t)
+                len =: topicRmLen(t)
                 0 =: topicTextLen(t)
 
                 % Same copy as claimTopic, for the same reason - see the note
@@ -2473,7 +2910,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     ROUTINE VOID, VOID (INTEGER) : makeHistFile(t)
         INTEGER : i, at
 
-        FOR i IN 1:nameBufSize DO
+        FOR i IN 1:sizeNameBuf DO
             blankByte(0) =: nameBuf(i - 1)
         ENDFOR
 
@@ -2579,6 +3016,18 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
             0 =: dev
         ENDIF
 
+        % NO histNext RECOVERY SCAN. A version on 2026-09-02 tried to rebuild
+        % histNext by reading every block's stored id, so on-disk history
+        % would survive an RT-load. It is REMOVED because it is UNSAFE on a
+        % CONTINUOUS file: the unwritten pages are NOT guaranteed zero, and a
+        % garbage block whose first word happens to equal its own block number
+        % was counted as a real message - MEASURED as a fresh room reporting
+        % held=23 after two lines. Surviving a reload needs histNext persisted,
+        % or a much stricter block-validity test (id AND a sane name AND
+        % lengths); until one is written and PROVED, history is best-effort and
+        % starts empty after a reload, which is the behaviour that shipped
+        % before the scan.
+
         dev =: histDev(t)
         dev RETURN
     ENDROUTINE
@@ -2621,8 +3070,8 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         % ended the no-wait hunt in the client. It costs one line per message
         % and comes out the moment the answer is known.
         histOpen(t) =: dev
-        logLine('SV hist slot      ', 18, t)
-        logLine('SV hist dev       ', 18, dev)
+        logLine('SV hist slot      ', t)
+        logLine('SV hist dev       ', dev)
 
         IF dev = 0 THEN
             RETURN                            % no history; the room still works
@@ -2637,15 +3086,30 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         IF nLen > 16 THEN
             16 =: nLen
         ENDIF
-        IF 3 + nLen + tLen > histWords THEN
-            histWords - 3 - nLen =: tLen
+        % histHdrNew, not 3: the stamp and the six calendar words sit in
+        % front of the name now, so the text has that much less room.
+        IF histHdrNew + nLen + tLen > histWords THEN
+            histWords - histHdrNew - nLen =: tLen
         ENDIF
 
         histNext(t) =: id
         id =: histBlock(0)
         nLen =: histBlock(1)
         tLen =: histBlock(2)
-        3 =: at
+
+        % ---- WHEN, ASKED ONCE AND STORED AS THE MACHINE GIVES IT -----
+        % Read HERE rather than passed in, because this is the moment the
+        % line is kept - a time taken earlier and carried down would be
+        % the time of something else.
+        MN113(histCal)
+        histStamp =: histBlock(3)
+        histCal(1) =: histBlock(4)        % second
+        histCal(2) =: histBlock(5)        % minute
+        histCal(3) =: histBlock(6)        % hour
+        histCal(4) =: histBlock(7)        % day
+        histCal(5) =: histBlock(8)        % month
+        histCal(6) =: histBlock(9)        % FULL year, 1998 not 98
+        histHdrNew =: at
 
         FOR i IN 1:nLen DO
             memberName(slot, i) =: histBlock(at)
@@ -2680,10 +3144,10 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     % -----------------------------------------------------------------------
     ROUTINE VOID, BOOLEAN (INTEGER, INTEGER) : sameRoomAs(slot, row)
         INTEGER : i
-        IF mbrRoomLen(slot) >< rmtRoomLen(row) THEN
+        IF lenMbrRoom(slot) >< rmtRoomLen(row) THEN
             FALSE RETURN
         ENDIF
-        FOR i IN 1:mbrRoomLen(slot) DO
+        FOR i IN 1:lenMbrRoom(slot) DO
             IF mbrRoom(slot, i) >< rmtRoom(row, i) THEN
                 FALSE RETURN
             ENDIF
@@ -2825,9 +3289,9 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         INTEGER : i, at, t, len
 
         kTopic =: outBuf(0)
-        mbrRoomLen(slot) =: outBuf(1)
+        lenMbrRoom(slot) =: outBuf(1)
         2 =: at
-        FOR i IN 1:mbrRoomLen(slot) DO
+        FOR i IN 1:lenMbrRoom(slot) DO
             mbrRoom(slot, i) =: outBuf(at)
             at + 1 =: at
         ENDFOR
@@ -2910,7 +3374,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
 
                     % name + "(" + up to two digits + ")" + a leading space
                     % once there is something to separate from.
-                    mbrRoomLen(i) + 4 =: need
+                    lenMbrRoom(i) + 4 =: need
                     IF textLen > 0 THEN
                         need + 1 =: need
                     ENDIF
@@ -2921,11 +3385,11 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
                             at + 1 =: at
                             textLen + 1 =: textLen
                         ENDIF
-                        FOR j IN 1:mbrRoomLen(i) DO
+                        FOR j IN 1:lenMbrRoom(i) DO
                             mbrRoom(i, j) =: outBuf(at)
                             at + 1 =: at
                         ENDFOR
-                        textLen + mbrRoomLen(i) =: textLen
+                        textLen + lenMbrRoom(i) =: textLen
 
                         openParen(0) =: outBuf(at)
                         at + 1 =: at
@@ -3019,7 +3483,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
                     % ---- the room name, then a colon ----------------------
                     % Two spaces before it once there is something to separate
                     % from, so the groups read apart at a glance.
-                    mbrRoomLen(i) + 1 =: need
+                    lenMbrRoom(i) + 1 =: need
                     IF textLen > 0 THEN
                         need + 2 =: need
                     ENDIF
@@ -3031,7 +3495,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
                             spaceByte(0) =: outBuf(at)
                             at + 1 =: at
                         ENDIF
-                        FOR j IN 1:mbrRoomLen(i) DO
+                        FOR j IN 1:lenMbrRoom(i) DO
                             mbrRoom(i, j) =: outBuf(at)
                             at + 1 =: at
                         ENDFOR
@@ -3171,14 +3635,53 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
             FOR i IN 1:lenHomeRoom DO
                 homeRoom(i - 1) =: mbrRoom(slot, i)
             ENDFOR
-            lenHomeRoom =: mbrRoomLen(slot)
+            lenHomeRoom =: lenMbrRoom(slot)
             RETURN
         ENDIF
 
         FOR i IN 1:take DO
             inBuf(at + i - 1) =: mbrRoom(slot, i)
         ENDFOR
-        take =: mbrRoomLen(slot)
+        take =: lenMbrRoom(slot)
+    ENDROUTINE
+
+    % A CLIENT OLD ENOUGH TO CARRY NO VERSION LEAVES THIS EMPTY, on purpose -
+    % an unknown build reads as "unknown", not as a guess.
+    ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER) : copyVersionIn(slot, at, length)
+        INTEGER : i, take
+
+        0 =: memberVerLen(slot)
+        length =: take
+        IF take > maxVerLen THEN
+            maxVerLen =: take
+        ENDIF
+        IF take <= 0 THEN
+            RETURN
+        ENDIF
+
+        FOR i IN 1:take DO
+            inBuf(at + i - 1) =: memberVer(slot, i)
+        ENDFOR
+        take =: memberVerLen(slot)
+    ENDROUTINE
+
+    % WHERE THE ROOM ENDS AND THE VERSION BEGINS, inside a Join's text field -
+    % the first '|', searched only within THIS message's own text so a room
+    % name that runs into whatever inBuf held before it is never read.
+    %
+    % Returns -1 when there is none, which is exactly what an OLDER client's
+    % Join looks like: the whole field is the room name and nothing rides
+    % after it.
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER) : findJoinSep(at, length)
+        INTEGER : i
+        IF length > 0 THEN
+            FOR i IN 0:length - 1 DO
+                IF inBuf(at + i) = verSepByte(0) THEN
+                    at + i RETURN
+                ENDIF
+            ENDFOR
+        ENDIF
+        0 - 1 RETURN
     ENDROUTINE
 
     % -----------------------------------------------------------------------
@@ -3232,7 +3735,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
             OUTPUT(1, 'AL18', 'SV: get failed st=')
             OUTPUT(1, 'I6', returnStatus)
             OUTPUT(1, 'AL1', '$')
-            logLine('SV get failed st= ', 18, returnStatus)
+            logLine('SV get failed st= ', returnStatus)
             RETURN
         ENDIF
         xmpfwri(0, 0, &
@@ -3242,7 +3745,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
             OUTPUT(1, 'AL18', 'SV: wri failed st=')
             OUTPUT(1, 'I6', returnStatus)
             OUTPUT(1, 'AL1', '$')
-            logLine('SV wri failed st= ', 18, returnStatus)
+            logLine('SV wri failed st= ', returnStatus)
         ENDIF
         IF returnStatus >< XMOK THEN
             xmpfrel(0, ident) =: returnStatus
@@ -3275,7 +3778,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
             OUTPUT(1, 'AL18', 'SV: snd failed st=')
             OUTPUT(1, 'I6', returnStatus)
             OUTPUT(1, 'AL1', '$')
-            logLine('SV snd failed st= ', 18, returnStatus)
+            logLine('SV snd failed st= ', returnStatus)
 
             % ---- A MEMBER WHO IS NO LONGER THERE, IF WE ARE EVER TOLD HERE --
             % Two statuses would mean the seat is holding somebody who has gone.
@@ -3335,6 +3838,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     % magic is the ADDRESS a reply goes to, and it is 32 bits.
     ROUTINE VOID, VOID (INTEGER, INTEGER4) : histReplay(t, magic)
         INTEGER : dev, id, first, blk, i, at, nLen, tLen, length
+        INTEGER : base
 
         IF t < 1 THEN
             RETURN
@@ -3361,6 +3865,21 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
                 histBlock(1) =: nLen
                 histBlock(2) =: tLen
 
+                % ---- WHICH LAYOUT IS THIS BLOCK IN? ------------------
+                % A block written before the time was stored has the first
+                % character of the NAME in word 3, and a name is ASCII, so
+                % it can never equal histStamp. See the note beside the
+                % declaration - this is what lets the history already on
+                % the three machines go on replaying instead of being
+                % thrown away or read as rubbish.
+                %
+                % base is the word BEFORE the name, so the loops below read
+                % base + i exactly as they always did.
+                histHdrOld - 1 =: base
+                IF histBlock(3) = histStamp THEN
+                    histHdrNew - 1 =: base
+                ENDIF
+
                 % A BLOCK CAN HOLD RUBBISH AND STILL MATCH ITS ID. The lengths
                 % come off the disk, so they are bounded here before they are
                 % used as loop limits - a stale block claiming a 30000-byte
@@ -3379,6 +3898,18 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
                     200 =: tLen
                 ENDIF
 
+                % AND THE PAIR MUST FIT THE BLOCK. Each length is bounded
+                % on its own above, but a stale block can claim two that
+                % are each legal and together run off the end - PLANC
+                % checks no array bound, so the read would walk into
+                % whatever the loader put after histBlock.
+                IF base + nLen + tLen > histWords - 1 THEN
+                    histWords - 1 - base - nLen =: tLen
+                    IF tLen < 0 THEN
+                        0 =: tLen
+                    ENDIF
+                ENDIF
+
                 % FOR, NOT WHILE. PLANC has no WHILE...ENDWHILE: WHILE is a
                 % CONTINUE-TEST inside DO ... ENDDO, so "WHILE c DO ... ENDWHILE"
                 % is two errors, and the second one - ENDWHILE - is reported as
@@ -3386,17 +3917,47 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
                 % linter caught this before it reached the machine; it would
                 % otherwise have cost a four-minute compile to be told.
                 kHist =: outBuf(0)
-                nLen =: outBuf(1)
-                2 =: at
+
+                % ---- WHEN IT WAS SAID, IN FRONT OF THE NAME --------------
+                %
+                % Seven bytes in the place a relay header sits, so CHATLIB's
+                % trHLen and trStrip handle them with no new code and the
+                % frame underneath stays an ordinary chat message.
+                %
+                % ALL ZERO WHEN THE BLOCK NEVER HELD A TIME. The history
+                % already on the three machines was written before there was
+                % anywhere to put one, and those blocks still replay - they
+                % just cannot say when. Zero is how the client is told that,
+                % so it can leave the column blank instead of inventing a
+                % moment, which is the whole defect this fixes.
+                0 =: outBuf(1)
+                0 =: outBuf(2)
+                0 =: outBuf(3)
+                0 =: outBuf(4)
+                0 =: outBuf(5)
+                0 =: outBuf(6)
+                0 =: outBuf(7)
+                IF base = histHdrNew - 1 THEN
+                    histBlock(4) =: outBuf(1)          % second
+                    histBlock(5) =: outBuf(2)          % minute
+                    histBlock(6) =: outBuf(3)          % hour
+                    histBlock(7) =: outBuf(4)          % day
+                    histBlock(8) =: outBuf(5)          % month
+                    histBlock(9) / 256 =: outBuf(6)    % year, HIGH byte
+                    histBlock(9) MOD 256 =: outBuf(7)  % year, low byte
+                ENDIF
+
+                nLen =: outBuf(8)
+                9 =: at
                 FOR i IN 1:nLen DO
-                    histBlock(2 + i) =: outBuf(at)
+                    histBlock(base + i) =: outBuf(at)
                     at + 1 =: at
                 ENDFOR
                 0 =: outBuf(at)
                 tLen =: outBuf(at + 1)
                 at + 2 =: at
                 FOR i IN 1:tLen DO
-                    histBlock(2 + nLen + i) =: outBuf(at)
+                    histBlock(base + nLen + i) =: outBuf(at)
                     at + 1 =: at
                 ENDFOR
 
@@ -3444,7 +4005,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
             % Worth a line of its own. "Nobody was in the room" and "this was
             % never called" look identical from outside, and telling them apart
             % is most of the work when a message does not arrive.
-            logLine('SV bcast NO ROOM  ', 18, skipSlot)
+            logLine('SV bcast NO ROOM  ', skipSlot)
             RETURN
         ENDIF
 
@@ -3465,7 +4026,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         % rejected everybody; a number with nothing arriving says the sends are
         % the problem; no line at all says broadcast was never reached. Three
         % different faults that all look the same from a terminal.
-        logLine('SV bcast sent to  ', 18, sent)
+        logLine('SV bcast sent to  ', sent)
     ENDROUTINE
 
     % -----------------------------------------------------------------------
@@ -3522,7 +4083,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
                             OUTPUT(1, 'AL18', 'SV: infc failed st')
                             OUTPUT(1, 'I6', returnStatus)
                             OUTPUT(1, 'AL1', '$')
-                            logLine('SV infc faild st= ', 18, returnStatus)
+                            logLine('SV infc faild st= ', returnStatus)
                         ENDIF
 
                         % Worth one line: an operator watching the room needs to
@@ -3531,7 +4092,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
                         OUTPUT(1, 'AL21', 'SV: reaped dead slot ')
                         OUTPUT(1, 'I6', i)
                         OUTPUT(1, 'AL1', '$')
-                        logLine('SV reaped slot    ', 18, i)
+                        logLine('SV reaped slot    ', i)
                     ENDIF
                 ENDIF
             ENDFOR
@@ -3685,7 +4246,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     % BACKWARD COMPATIBLE, and that is not a hope - it is measured from the
     % receiving code. The old handler reads inBuf(textAt) and NOTHING ELSE, so
     % a server that has not been upgraded takes the direction byte and ignores
-    % every byte after it. That is the same property kTrkRelay was given, and
+    % every byte after it. That is the same property kTrkRly was given, and
     % it is what lets three running machines be upgraded one at a time.
     %
     % A machine with no name sends the one byte exactly as before.
@@ -3747,7 +4308,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         FOR i IN 1:maxSeats DO
             IF memberUsed(i) = 1 THEN
                 TRUE =: match
-                IF mbrRoomLen(i) >< roomLen2 THEN
+                IF lenMbrRoom(i) >< roomLen2 THEN
                     FALSE =: match
                 ELSE
                     FOR j IN 1:roomLen2 DO
@@ -3785,6 +4346,140 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
 
                     sendTo(memberMagic(i), at)
                 ENDIF
+            ENDIF
+        ENDFOR
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % THE PRESENCE DIFF - 2026-09-02. Three small routines that turn a peer's
+    % silent kTrkMbrs table replace into the kJoined / kLeft notices local
+    % clients already render and count. See the note by oldUsed.
+    % -----------------------------------------------------------------------
+
+    % Copy every row we hold for one peer into the snapshot, before the
+    % replace throws them away.
+    ROUTINE VOID, VOID (INTEGER) : snapshotRem(system)
+        INTEGER : r, i
+        FOR r IN 1:maxRemote DO
+            0 =: oldUsed(r)
+            IF rmtSystem(r) = system THEN
+                1 =: oldUsed(r)
+                rmtNameLen(r) =: oldNmLen(r)
+                FOR i IN 1:rmtNameLen(r) DO
+                    rmtName(r, i) =: oldNm(r, i)
+                ENDFOR
+                rmtRoomLen(r) =: oldRmLen(r)
+                FOR i IN 1:rmtRoomLen(r) DO
+                    rmtRoom(r, i) =: oldRm(r, i)
+                ENDFOR
+            ENDIF
+        ENDFOR
+    ENDROUTINE
+
+    % Announce annName@<machine> as joined or left, to every LOCAL seat in
+    % annRoom. Modeled on deliverRemoteSaid: the person has no seat here, so
+    % the audience is picked by comparing room names byte for byte, and the
+    % label comes from putSysLabel exactly as a relayed line's does.
+    ROUTINE VOID, VOID (INTEGER, INTEGER) : announceGo(kind, system)
+        INTEGER : i, j, at
+        BOOLEAN : match
+
+        FOR i IN 1:maxSeats DO
+            IF memberUsed(i) = 1 THEN
+                TRUE =: match
+                IF lenMbrRoom(i) >< annRoomLen THEN
+                    FALSE =: match
+                ELSE
+                    FOR j IN 1:annRoomLen DO
+                        IF mbrRoom(i, j) >< annRoom(j - 1) THEN
+                            FALSE =: match
+                        ENDIF
+                    ENDFOR
+                ENDIF
+
+                IF match THEN
+                    kind =: outBuf(0)
+                    2 =: at
+                    FOR j IN 1:annNameLen DO
+                        annName(j - 1) =: outBuf(at)
+                        at + 1 =: at
+                    ENDFOR
+                    atByte(0) =: outBuf(at)
+                    at + 1 =: at
+                    putSysLabel(system, at) =: at
+                    at - 2 =: outBuf(1)       % the name length, now known
+
+                    0 =: outBuf(at)           % no text on a presence notice
+                    0 =: outBuf(at + 1)
+                    at + 2 =: at
+
+                    sendTo(memberMagic(i), at)
+                ENDIF
+            ENDIF
+        ENDFOR
+    ENDROUTINE
+
+    % Compare the snapshot against what the replace left, and announce the
+    % difference. Matching is on NAME AND ROOM, so somebody who changed room
+    % on their own machine reads here as a leave from the old room and a join
+    % to the new one - which is exactly what the people in each room saw.
+    ROUTINE VOID, VOID (INTEGER) : announceDiff(system)
+        INTEGER : r, k, i
+        BOOLEAN : match
+
+        % New rows with no snapshot twin: they JOINED.
+        FOR r IN 1:maxRemote DO
+            IF rmtSystem(r) = system THEN
+                FALSE =: match
+                FOR k IN 1:maxRemote DO
+                    IF oldUsed(k) = 1 THEN
+                        IF oldNmLen(k) = rmtNameLen(r) AND &
+                           oldRmLen(k) = rmtRoomLen(r) THEN
+                            TRUE =: match
+                            FOR i IN 1:rmtNameLen(r) DO
+                                IF oldNm(k, i) >< rmtName(r, i) THEN
+                                    FALSE =: match
+                                ENDIF
+                            ENDFOR
+                            FOR i IN 1:rmtRoomLen(r) DO
+                                IF oldRm(k, i) >< rmtRoom(r, i) THEN
+                                    FALSE =: match
+                                ENDIF
+                            ENDFOR
+                            IF match THEN
+                                2 =: oldUsed(k)       % claimed by this row
+                            ENDIF
+                        ENDIF
+                    ENDIF
+                    WHILE NOT match
+                ENDFOR
+
+                IF NOT match THEN
+                    rmtNameLen(r) =: annNameLen
+                    FOR i IN 1:rmtNameLen(r) DO
+                        rmtName(r, i) =: annName(i - 1)
+                    ENDFOR
+                    rmtRoomLen(r) =: annRoomLen
+                    FOR i IN 1:rmtRoomLen(r) DO
+                        rmtRoom(r, i) =: annRoom(i - 1)
+                    ENDFOR
+                    announceGo(kJoined, system)
+                ENDIF
+            ENDIF
+        ENDFOR
+
+        % Snapshot rows nothing claimed: they LEFT.
+        FOR k IN 1:maxRemote DO
+            IF oldUsed(k) = 1 THEN
+                oldNmLen(k) =: annNameLen
+                FOR i IN 1:oldNmLen(k) DO
+                    oldNm(k, i) =: annName(i - 1)
+                ENDFOR
+                oldRmLen(k) =: annRoomLen
+                FOR i IN 1:oldRmLen(k) DO
+                    oldRm(k, i) =: annRoom(i - 1)
+                ENDFOR
+                announceGo(kLeft, system)
             ENDIF
         ENDFOR
     ENDROUTINE
@@ -3831,7 +4526,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
                     % just gave this line, so a machine further out can spot a
                     % repeat. hops is one less than the ceiling because this
                     % send IS the first hop.
-                    kTrkRelId =: outBuf(0)
+                    kTrkRlId =: outBuf(0)
                     mySystem / 256 =: outBuf(1)
                     mySystem MOD 256 =: outBuf(2)
                     maxHops - 1 =: outBuf(3)
@@ -3849,7 +4544,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
                     at + 2 =: at
                     at =: textStart
 
-                    FOR j IN 1:mbrRoomLen(slot) DO
+                    FOR j IN 1:lenMbrRoom(slot) DO
                         mbrRoom(slot, j) =: outBuf(at)
                         at + 1 =: at
                     ENDFOR
@@ -3979,7 +4674,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
                         % would make one line look like two to anybody who
                         % can reach us by a second path - which is the whole
                         % fault dedup exists to stop.
-                        kTrkRelId =: outBuf(0)
+                        kTrkRlId =: outBuf(0)
                         originSys / 256 =: outBuf(1)
                         originSys MOD 256 =: outBuf(2)
                         hopsLeft =: outBuf(3)
@@ -4346,14 +5041,14 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         at + 2 =: at
         at =: textStart
 
-        putWord('which one? ', 11, at) =: at
+        putWord('which one? ', at) =: at
         1 =: first
 
         FOR i IN 1:maxSeats DO
             IF memberUsed(i) = 1 THEN
                 IF sameName(i, aliasAt, aliasLen) = 1 THEN
                     IF first = 0 THEN
-                        putWord(', ', 2, at) =: at
+                        putWord(', ', at) =: at
                     ENDIF
                     0 =: first
                     IF at < 200 THEN
@@ -4367,7 +5062,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
             IF rmtSystem(i) >< 0 THEN
                 IF sameRmt(i, aliasAt, aliasLen) = 1 THEN
                     IF first = 0 THEN
-                        putWord(', ', 2, at) =: at
+                        putWord(', ', at) =: at
                     ENDIF
                     0 =: first
                     IF at < 200 THEN
@@ -4473,7 +5168,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
             1 =: myLineId
         ENDIF
 
-        kTrkDirect =: outBuf(0)
+        kTrkDir =: outBuf(0)
         mySystem / 256 =: outBuf(1)
         mySystem MOD 256 =: outBuf(2)
         maxHops - 1 =: outBuf(3)
@@ -4501,6 +5196,77 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         FOR j IN 1:msgLen DO
             IF at < 250 THEN
                 inBuf(msgAt + j - 1) =: outBuf(at)
+                at + 1 =: at
+            ENDIF
+        ENDFOR
+
+        at - textStart =: outBuf(textStart - 1)
+        sendToName(toSys, at) =: st
+        st RETURN
+    ENDROUTINE
+
+    % =======================================================================
+    % A DIRECT MESSAGE COULD NOT BE DELIVERED HERE - TELL THE SENDER'S MACHINE
+    %
+    % kTrkDBad, kind 55. Without it a direct message that crosses a trunk and
+    % finds nobody at the far end DISAPPEARS: the sender was already told
+    % kDirSent by their own server, so a person who logged out - or renamed - in
+    % the gap between the two ends agreeing loses the line with nobody told.
+    %
+    % THE ORIGIN FIELD IS **US**, not the sender's machine. Every other kind
+    % uses that field for the machine the line was TYPED on, and lineIsNew
+    % dedups on the pair (origin, id) - so a refusal we compose is ours. Nothing
+    % routes by it: the refusal reaches the sender's machine because sendToName
+    % is told where to put it, not because of anything in the header.
+    %
+    % THE ID IS THE FAILED MESSAGE'S, passed straight through. That is what lets
+    % the far end say WHICH message, and it is why the id has to be handed to
+    % takeRemDirect rather than left in handleMessage where it is parsed.
+    %
+    % The text is TARGET/reason, which is exactly the shape kDirBad already uses
+    % locally - so the machine that receives this hands it to code it already
+    % has, and no client changes at all.
+    % =======================================================================
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, &
+                           INTEGER, BYTES) : &
+            sendTrkBad(toSys, lineId, senderAt, senderLen, tgtAt, tgtLen, why)
+        INTEGER : j, at, st, textStart, whyLen
+
+        kTrkDBad =: outBuf(0)
+        mySystem / 256 =: outBuf(1)
+        mySystem MOD 256 =: outBuf(2)
+        maxHops - 1 =: outBuf(3)
+        lineId / 256 =: outBuf(4)
+        lineId MOD 256 =: outBuf(5)
+        senderLen =: outBuf(6)
+        7 =: at
+
+        FOR j IN 1:senderLen DO
+            inBuf(senderAt + j - 1) =: outBuf(at)
+            at + 1 =: at
+        ENDFOR
+
+        0 =: outBuf(at)
+        0 =: outBuf(at + 1)
+        at + 2 =: at
+        at =: textStart
+
+        FOR j IN 1:tgtLen DO
+            IF at < 250 THEN
+                inBuf(tgtAt + j - 1) =: outBuf(at)
+                at + 1 =: at
+            ENDIF
+        ENDFOR
+        slashByte(0) =: outBuf(at)
+        at + 1 =: at
+
+        % The length comes from MAXINDEX and is never typed beside the literal -
+        % a hand-counted length builds clean and shows only as a truncated
+        % sentence on somebody else's screen.
+        MAXINDEX(why, 1) + 1 =: whyLen
+        FOR j IN 1:whyLen DO
+            IF at < 250 THEN
+                why(j - 1) =: outBuf(at)
                 at + 1 =: at
             ENDIF
         ENDFOR
@@ -4644,9 +5410,11 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     % logged out in the second between the two ends disagreeing loses the
     % message with nobody told. Closing that needs a refusal that can travel
     % back over a trunk, and no kind carries one yet.
-    ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER, INTEGER, INTEGER) : &
-            takeRemDirect(origSys, nameAt, nameLength, textAt, textLength)
-        INTEGER : cut, tgtAt, tgtLen, msgAt, msgLen, i, at, textStart
+    ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, &
+                        INTEGER) : &
+            takeRemDirect(origSys, lineId, nameAt, nameLength, textAt, &
+                          textLength)
+        INTEGER : cut, tgtAt, tgtLen, msgAt, msgLen, i, at, textStart, st
 
         findSlash(textAt, textLength) =: cut
         IF cut < 1 THEN
@@ -4665,6 +5433,13 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         % came from.
         resolveTo(tgtAt, tgtLen, mySystem)
         IF dirLocal = 0 THEN
+            % NOT FOUND HERE, AND NOW WE SAY SO. This used to be a bare RETURN
+            % and the comment above it admitted the message was lost with
+            % nobody told. The sender's own machine gets a kTrkDBad carrying the
+            % target we tried and why, and turns it into an ordinary kDirBad for
+            % the person who typed it.
+            sendTrkBad(origSys, lineId, nameAt, nameLength, tgtAt, tgtLen, &
+                       'not logged in') =: st
             RETURN
         ENDIF
 
@@ -4690,6 +5465,72 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         sendTo(memberMagic(dirLocal), at)
     ENDROUTINE
 
+    % =======================================================================
+    % A REFUSAL COMES BACK OVER A TRUNK - TELL THE PERSON WHO TYPED IT
+    %
+    % The far end could not deliver, and this is the other half of kTrkDBad.
+    % The name field holds the SENDER, who is one of ours; the text is
+    % TARGET/reason.
+    %
+    % It becomes an ordinary kDirBad, which is the entire point: the sentence a
+    % person sees for a failure two machines away is the same sentence, in the
+    % same shape, as the one they see for a failure on their own machine. No
+    % client changes at all.
+    %
+    % IF THE SENDER HAS GONE, THE REFUSAL IS DROPPED, and that is honest rather
+    % than lazy: there is nobody to tell. It is also the hole this kind does not
+    % close - the sender is found by NAME, so somebody who renamed between
+    % sending and this arriving is not found. Closing THAT needs an identity
+    % that outlives a rename, which is a bigger change than this one.
+    % =======================================================================
+    ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER, INTEGER) : &
+            takeRemBad(nameAt, nameLength, textAt, textLength)
+        INTEGER : cut, tgtAt, tgtLen, whyAt, whyLen, i, at, textStart
+
+        findSlash(textAt, textLength) =: cut
+        IF cut < 1 THEN
+            RETURN
+        ENDIF
+        textAt =: tgtAt
+        cut =: tgtLen
+        textAt + cut + 1 =: whyAt
+        textLength - cut - 1 =: whyLen
+        IF whyLen < 1 THEN
+            RETURN
+        ENDIF
+
+        % THE SENDER, not the target - this message is addressed to whoever
+        % typed the line that failed.
+        resolveTo(nameAt, nameLength, mySystem)
+        IF dirLocal = 0 THEN
+            RETURN
+        ENDIF
+
+        kDirBad =: outBuf(0)
+        tgtLen =: outBuf(1)
+        2 =: at
+        FOR i IN 1:tgtLen DO
+            inBuf(tgtAt + i - 1) =: outBuf(at)
+            at + 1 =: at
+        ENDFOR
+
+        0 =: outBuf(at)
+        0 =: outBuf(at + 1)
+        at + 2 =: at
+        at =: textStart
+
+        FOR i IN 1:whyLen DO
+            IF at < 250 THEN
+                inBuf(whyAt + i - 1) =: outBuf(at)
+                at + 1 =: at
+            ENDIF
+        ENDFOR
+
+        at - textStart =: outBuf(textStart - 1)
+        dmBad + 1 =: dmBad
+        sendTo(memberMagic(dirLocal), at)
+    ENDROUTINE
+
     ROUTINE VOID, VOID : peerTick
         INTEGER : i, st
 
@@ -4702,10 +5543,32 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
                 IF peerState(i) = peerUp THEN
                     IF peerHeard(i) > peerDeadAfter THEN
                         peerDown =: peerState(i)
+
+                        % TELL THE ROOM WHO WENT WITH IT - 2026-09-02. The
+                        % snapshot-and-diff against a table the forget has
+                        % just emptied announces every one of its members as
+                        % left, through the same path a kTrkMbrs change uses.
+                        snapshotRem(peerSystem(i))
                         forgetRemote(peerSystem(i))
+                        announceDiff(peerSystem(i))
+
                         peerFirstWait =: peerWait(i)
                         peerFirstWait =: peerCount(i)
-                        logLine('SV trunk down sys ', 18, peerSystem(i))
+                        logLine('SV trunk down sys ', peerSystem(i))
+                    ELSE
+                        % ---- THE KEEPALIVE, 2026-09-02 ---------------------
+                        %
+                        % Nothing else speaks on an idle trunk, so before this
+                        % line existed a quiet minute GUARANTEED the down
+                        % branch above: down, forget, greet, up, every ~75
+                        % seconds, for ever - the endless "trunk down/up"
+                        % pairs in the log, and the remote tables wiped on
+                        % every lap. Two hellos fit inside peerDeadAfter, so
+                        % one lost letter does not cost the trunk.
+                        IF peerHeard(i) = peerPingAt OR &
+                           peerHeard(i) = peerPingAt + peerPingAt THEN
+                            sendHello(peerSystem(i), trkAsk) =: st
+                        ENDIF
                     ENDIF
                 ENDIF
 
@@ -4746,6 +5609,51 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
 
         sendToName(system, at) =: st
         st RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % TELL EVERY PEER WHO IS ON US NOW, WITHOUT BEING ASKED.
+    %
+    % THE FAULT THIS FIXES, MEASURED 2026-08-28. A member renamed on D103 and
+    % D102 went on advertising the OLD name in /who for as long as it was
+    % watched. Everything else followed from that one fact: a private message
+    % addressed to the name D102 was showing was sent correctly, found nobody
+    % of that name at the far end, and was DROPPED WITH NOBODY TOLD.
+    %
+    % WHY IT DRIFTED. The member list only ever moved in ONE place - as the
+    % reply to kTrkWho - and kTrkWho is only ever asked when a HELLO arrives.
+    % So between two hellos a peer's picture of us is frozen, and any change
+    % to our membership is invisible to it until the trunk cycles.
+    %
+    % NO NEW WIRE KIND, ON PURPOSE. The receiver's kTrkMbrs handler does not
+    % require having asked - it accepts the list and REPLACES that peer's rows
+    % wholesale - so sending one unasked is already legal and already handled
+    % at both ends. A new kind would have meant a registry entry, golden bytes
+    % and a parser on a machine that may still be running last week's build;
+    % this works against every build that already understands kTrkMbrs.
+    %
+    % AND BECAUSE IT REPLACES RATHER THAN PATCHES, it is idempotent and
+    % self-healing: it repairs any drift, not only the change that triggered
+    % it. Sending one too many costs a message; sending one too few costs a
+    % private message that vanishes.
+    %
+    % ONLY TO PEERS THAT ARE UP, like forwardSaid - a letter to a peer that is
+    % Down or Unknown only bounces.
+    %
+    % REBUILT INSIDE THE LOOP, also like forwardSaid: sendToName hands outBuf
+    % to XMPFWRI, and building it once outside would be fine today but becomes
+    % a two-peer-only bug the moment anything in the send path touches outBuf.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID : tellMbrs
+        INTEGER : i, length, st
+        FOR i IN 1:maxPeers DO
+            IF peerSystem(i) >< 0 THEN
+                IF peerState(i) = peerUp THEN
+                    buildMembers =: length
+                    sendToName(peerSystem(i), length) =: st
+                ENDIF
+            ENDIF
+        ENDFOR
     ENDROUTINE
 
     % -----------------------------------------------------------------------
@@ -4810,7 +5718,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
             peerFirstWait =: peerWait(row)
             peerFirstWait =: peerCount(row)
 
-            logLine('SV trunk up sys   ', 18, system)
+            logLine('SV trunk up sys   ', system)
         ENDIF
     ENDROUTINE
 
@@ -4855,7 +5763,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         % Only when EVERY row was asked for is the refusal a true one - and
         % that is the case the table's small size is meant to make loud.
         IF row = 0 THEN
-            buildAdmText('no room for another trunk', 25) =: length
+            buildAdmText('no room for another trunk') =: length
             sendTo(senderMagic, length)
             RETURN
         ENDIF
@@ -4888,7 +5796,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         % what the retry exists for.
         sendHello(system, trkAsk) =: st
 
-        buildAdmText('trunk added', 11) =: length
+        buildAdmText('trunk added') =: length
         sendTo(senderMagic, length)
     ENDROUTINE
 
@@ -4900,7 +5808,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
 
         findPeer(system) =: row
         IF row = 0 THEN
-            buildAdmText('no such trunk', 13) =: length
+            buildAdmText('no such trunk') =: length
             sendTo(senderMagic, length)
             RETURN
         ENDIF
@@ -4914,7 +5822,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         % would ever come along to remove them.
         forgetRemote(system)
 
-        buildAdmText('trunk removed', 13) =: length
+        buildAdmText('trunk removed') =: length
         sendTo(senderMagic, length)
     ENDROUTINE
 
@@ -5000,7 +5908,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         0 =: outBuf(at + 1)
         at + 2 =: at
 
-        putWord('nickname ', 9, at) =: at
+        putWord('nickname ', at) =: at
         quoteMark(0) =: outBuf(at)
         at + 1 =: at
         FOR i IN 1:nameLength DO
@@ -5009,7 +5917,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         ENDFOR
         quoteMark(0) =: outBuf(at)
         at + 1 =: at
-        putWord(' is taken', 9, at) =: at
+        putWord(' is taken', at) =: at
 
         % The text length, now that it is known. The two length bytes sit
         % immediately before the text.
@@ -5044,8 +5952,15 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         % stamper starts at 1 - so a handler that reads it by mistake
         % gets an obviously wrong answer rather than a plausible one.
         INTEGER : relayId
+        % Where the '|' splits a Join's room name from a client build
+        % version - see findJoinSep.
+        INTEGER : sepAt
 
         cmKind(inBuf) =: kind
+
+        % TEMPORARY - chasing the 2026-09-01 "you are X on Y" bug. Every kind
+        % that reaches this point, raw, before any dispatch touches it.
+        logLine('SV raw kind       ', kind)
 
         % ---- A RELAYED LINE HAS A LONGER HEADER, so take it off HERE --------
         %
@@ -5062,48 +5977,38 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         0 =: relayOrig
         0 =: relayHops
         0 =: relayId
-        IF kind = kTrkRelay THEN
-            IF readLength > 4 THEN
-                inBuf(1) * 256 + inBuf(2) =: relayOrig
-                inBuf(3) =: relayHops
-                FOR i IN 1:readLength - 4 DO
-                    inBuf(i + 3) =: inBuf(i)
-                ENDFOR
-                readLength - 3 =: readLength
-            ELSE
-                % Too short to be one. Drop it rather than read past the end.
-                RETURN
+        % ---- THE RELAY HEADER, READ AND TAKEN OFF BY THE LIBRARY ----------
+        %
+        % This was written out TWICE here - once for kind 52 and again for 53
+        % and 54 - with the length tests, the slide and every byte offset
+        % duplicated between them. CHATLIB owns the layout now, and CHATTST
+        % proves it against HAND-BUILT headers rather than against its own
+        % encoder, including the short ones.
+        %
+        % The short cases are the reason it matters. A truncated relay header
+        % read as a chat frame builds a PLAUSIBLE-LOOKING message out of
+        % rubbish, because the origin's high byte lands exactly where the name
+        % length belongs. And a kind 53 needs SIX bytes where a 52 needs four -
+        % a message long enough to satisfy the shorter test can still be too
+        % short for the longer one, which is precisely the sort of thing two
+        % hand-written copies drift apart on.
+        %
+        % READ THE FIELDS BEFORE STRIPPING. They are gone afterwards.
+        IF trHLen(kind) > 0 THEN
+            trOrig(inBuf) =: relayOrig
+            trHops(inBuf) =: relayHops
+            IF trHLen(kind) = 6 THEN
+                trId(inBuf) =: relayId
             ENDIF
         ENDIF
 
-        % SAME TRICK, TWO BYTES LONGER. The length test is not decoration:
-        % a kind 53 cut short would otherwise have the high byte of its id
-        % read as a name length, and a plausible-looking line built out of
-        % rubbish. Note it needs SIX, not four - a message long enough to
-        % satisfy the kind 52 test above can still be too short for this.
-        % kTrkDirect CARRIES THE SAME SIX-BYTE HEADER, so it is stripped by
-        % the same code rather than by a copy that could drift from it. What
-        % differs is only what the text holds - TARGET/message here, and
-        % ROOM/message for a room line - which its own handler deals with.
-        IF kind = kTrkRelId OR kind = kTrkDirect THEN
-            IF readLength > 6 THEN
-                inBuf(1) * 256 + inBuf(2) =: relayOrig
-                inBuf(3) =: relayHops
-                % A peer that sent a high byte over 127 would overflow a
-                % signed 16-bit INTEGER and land here NEGATIVE. That is ugly
-                % but harmless: this number is only ever compared for
-                % equality, never used as a size or an index, so a negative
-                % one still names the line perfectly well. Our own stamper
-                % never goes above 32000, so it does not arise between our
-                % own machines.
-                inBuf(4) * 256 + inBuf(5) =: relayId
-                FOR i IN 1:readLength - 6 DO
-                    inBuf(i + 5) =: inBuf(i)
-                ENDFOR
-                readLength - 5 =: readLength
-            ELSE
-                RETURN
-            ENDIF
+        % A kind carrying no relay header answers the length unchanged and
+        % touches nothing, so this is called without a special case. -1 means
+        % the message was too short to hold the header it claimed - drop it
+        % rather than read past the end.
+        trStrip(inBuf, readLength, kind) =: readLength
+        IF readLength < 0 THEN
+            RETURN
         ENDIF
 
         % THE RELAY HEADER, IF THERE WAS ONE, HAS ALREADY BEEN SLID OFF ABOVE -
@@ -5227,7 +6132,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
                 RETURN
             ENDIF
             FALSE =: peersOpen
-            buildAdmText('peers locked - no new ones will be learned', 42) =: length
+            buildAdmText('trunks locked - no new machines will be learned') =: length
             sendTo(senderMagic, length)
             RETURN
         ENDIF
@@ -5237,7 +6142,37 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
                 RETURN
             ENDIF
             TRUE =: peersOpen
-            buildAdmText('peers open - any system may be learned', 38) =: length
+            buildAdmText('trunks unlocked - any machine may be learned') =: length
+            sendTo(senderMagic, length)
+            RETURN
+        ENDIF
+
+        % ---- DROP-MEMBER <name> - FREE A SEAT AND TELL NOBODY --------------
+        %
+        % See the comment on kAdmDrop where it is declared for WHY this exists.
+        % In one line: it is the only way to put this machine and a peer into
+        % the disagreement that kTrkDBad answers, because every ordinary way of
+        % leaving keeps them in step.
+        %
+        % fromAdmin like every other verb here - a room member must not be able
+        % to unseat anybody, least of all silently.
+        %
+        % NOTE WHAT IS DELIBERATELY MISSING, and compare it with kLeave below:
+        % there is no buildFromSlot(kLeft...), no broadcast to the room, and no
+        % tellMbrs to the peers. Freeing memberUsed is the WHOLE action. Adding
+        % any of those back would defeat the only purpose this verb has.
+        IF kind = kAdmDrop THEN
+            IF NOT fromAdmin THEN
+                RETURN
+            ENDIF
+            findByName(textAt, textLength) =: taken
+            IF taken = 0 THEN
+                buildAdmText('no member of that name is seated here') =: length
+                sendTo(senderMagic, length)
+                RETURN
+            ENDIF
+            0 =: memberUsed(taken)
+            buildAdmText('seat freed - room and peers NOT told') =: length
             sendTo(senderMagic, length)
             RETURN
         ENDIF
@@ -5248,7 +6183,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
             ENDIF
             trunkNumber(textAt, textLength) =: taken
             IF taken = 0 THEN
-                buildAdmText('TRUNK needs a system number', 27) =: length
+                buildAdmText('TRUNK needs a system number') =: length
                 sendTo(senderMagic, length)
                 RETURN
             ENDIF
@@ -5310,51 +6245,51 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
             IF initSpace = 0 THEN
                 trunkNumber(textAt, textLength) =: taken
                 IF taken < 1 THEN
-                    buildAdmText('INITIALIZE needs a count above zero', 35) &
+                    buildAdmText('INITIALIZE needs a count above zero') &
                         =: length
                     sendTo(senderMagic, length)
                     RETURN
                 ENDIF
                 IF taken > maxHistSize THEN
-                    buildAdmText('that is more than a room can keep', 33) &
+                    buildAdmText('that is more than a room can keep') &
                         =: length
                     sendTo(senderMagic, length)
                     RETURN
                 ENDIF
                 taken =: histDefault
-                buildAdmText('default history size set', 24) =: length
+                buildAdmText('default history size set') =: length
                 sendTo(senderMagic, length)
                 RETURN
             ENDIF
 
             trunkNumber(textAt + initSpace, textLength - initSpace) =: taken
             IF taken < 1 THEN
-                buildAdmText('INITIALIZE needs a count above zero', 35) &
+                buildAdmText('INITIALIZE needs a count above zero') &
                     =: length
                 sendTo(senderMagic, length)
                 RETURN
             ENDIF
             IF taken > maxHistSize THEN
-                buildAdmText('that is more than a room can keep', 33) =: length
+                buildAdmText('that is more than a room can keep') =: length
                 sendTo(senderMagic, length)
                 RETURN
             ENDIF
 
             claimRoomNamed(textAt, initSpace - 1) =: histSlot
             IF histSlot = 0 THEN
-                buildAdmText('no room left in the table', 25) =: length
+                buildAdmText('no room left in the table') =: length
                 sendTo(senderMagic, length)
                 RETURN
             ENDIF
 
             IF histNext(histSlot) > 0 THEN
-                buildAdmText('that room already has history', 29) =: length
+                buildAdmText('that room already has history') =: length
                 sendTo(senderMagic, length)
                 RETURN
             ENDIF
 
             taken =: histSize(histSlot)
-            buildAdmText('room history size set', 21) =: length
+            buildAdmText('room history size set') =: length
             sendTo(senderMagic, length)
             RETURN
         ENDIF
@@ -5365,7 +6300,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
             ENDIF
             trunkNumber(textAt, textLength) =: taken
             IF taken = 0 THEN
-                buildAdmText('UNTRUNK needs a system number', 29) =: length
+                buildAdmText('UNTRUNK needs a system number') =: length
                 sendTo(senderMagic, length)
                 RETURN
             ENDIF
@@ -5378,6 +6313,15 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
                 RETURN
             ENDIF
             buildTrunks =: length
+            sendTo(senderMagic, length)
+            RETURN
+        ENDIF
+
+        IF kind = kAdmMbrs THEN
+            IF NOT fromAdmin THEN
+                RETURN
+            ENDIF
+            buildSeats =: length
             sendTo(senderMagic, length)
             RETURN
         ENDIF
@@ -5442,7 +6386,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
             % would let this mark the right row immediately - worth doing when
             % the state machine grows.
             IF msgType = XMTRE THEN
-                logLine('SV trunk bounce   ', 18, receiveStat)
+                logLine('SV trunk bounce   ', receiveStat)
                 RETURN
             ENDIF
 
@@ -5544,7 +6488,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         % speaker is qualified with the ORIGIN THE LETTER CARRIES, not with the
         % system it arrived from - that one is the relay, and using it would
         % show a D103 user as being on D100.
-        IF kind = kTrkRelay THEN
+        IF kind = kTrkRly THEN
             IF NOT fromTrunk THEN
                 RETURN
             ENDIF
@@ -5568,10 +6512,10 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
 
         % ---- SOMEBODY SPOKE FURTHER AWAY, AND THE LINE HAS A NAME ------------
         %
-        % Same as kTrkRelay above, with the one difference that matters: this
+        % Same as kTrkRly above, with the one difference that matters: this
         % line carries the number its ORIGIN gave it, so we can tell a second
         % copy from a new line and show it once.
-        IF kind = kTrkRelId THEN
+        IF kind = kTrkRlId THEN
             IF NOT fromTrunk THEN
                 RETURN
             ENDIF
@@ -5609,7 +6553,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         % passed to every peer and sorted out at the far end, but doing that
         % with a private message would hand it to machines that have no
         % business seeing it. It arrived here because it was addressed here.
-        IF kind = kTrkDirect THEN
+        IF kind = kTrkDir THEN
             IF NOT fromTrunk THEN
                 RETURN
             ENDIF
@@ -5624,8 +6568,31 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
                 RETURN
             ENDIF
 
-            takeRemDirect(relayOrig, nameAt, nameLength, &
+            takeRemDirect(relayOrig, relayId, nameAt, nameLength, &
                 textAt, textLength)
+            RETURN
+        ENDIF
+
+        % A REFUSAL COMING HOME. Same guards as kTrkDir above, for the same
+        % reasons: only from a trunk, never a returned letter, and never twice.
+        % Not relayed onward - it was addressed here, like the message it is
+        % about.
+        IF kind = kTrkDBad THEN
+            IF NOT fromTrunk THEN
+                RETURN
+            ENDIF
+            IF msgType = XMTRE THEN
+                RETURN
+            ENDIF
+
+            markPeerUp(senderSystem)
+
+            IF lineIsNew(relayOrig, relayId) = 0 THEN
+                nDupes + 1 =: nDupes
+                RETURN
+            ENDIF
+
+            takeRemBad(nameAt, nameLength, textAt, textLength)
             RETURN
         ENDIF
 
@@ -5638,7 +6605,15 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
             ENDIF
             % Hearing from it is itself proof of life.
             markPeerUp(senderSystem)
+
+            % SNAPSHOT, REPLACE, ANNOUNCE THE DIFFERENCE - 2026-09-02. The
+            % replace itself is unchanged; what is new is that local seats
+            % are told who appeared and who went, as ordinary kJoined and
+            % kLeft, so the count and the notices finally cover the other
+            % machines too.
+            snapshotRem(senderSystem)
             takeMembers(senderSystem, textAt, textLength)
+            announceDiff(senderSystem)
             RETURN
         ENDIF
 
@@ -5698,7 +6673,17 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
             % because with one port the room can no longer be told from
             % which port the message arrived on. Everything this member
             % says afterwards is broadcast only to the others in it.
-            copyRoomIn(slot, textAt, textLength)
+            %
+            % A BUILD VERSION MAY RIDE AFTER IT, split off here so copyRoomIn
+            % never sees it and cannot mistake it for part of the room name.
+            findJoinSep(textAt, textLength) =: sepAt
+            IF sepAt >= 0 THEN
+                copyRoomIn(slot, textAt, sepAt - textAt)
+                copyVersionIn(slot, sepAt + 1, textAt + textLength - sepAt - 1)
+            ELSE
+                copyRoomIn(slot, textAt, textLength)
+                0 =: memberVerLen(slot)
+            ENDIF
 
             % The welcome goes only to the joiner; the room hears Joined.
             buildWelcome(nameAt, nameLength) =: length
@@ -5723,6 +6708,13 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
 
             buildMessage(kJoined, nameAt, nameLength, 0, 0) =: length
             broadcast(length, slot, slot)        % their room, not them
+
+            % AND TELL THE OTHER MACHINES SOMEBODY NEW IS HERE.
+            % Without this a peer cannot see them until the next trunk
+            % hello, so a private message addressed to them is refused
+            % with 'nobody of that name is here now' while they sit in
+            % the room. Same cause as the rename drift - see tellMbrs.
+            tellMbrs
             RETURN
         ENDIF
 
@@ -5848,6 +6840,16 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
             buildRenamed(slot, nameAt, nameLength) =: length
             copyNameIn(slot, nameAt, nameLength)
             broadcast(length, slot, 0)            % their room, asker too
+
+            % AND ON TO THE OTHER MACHINES, or they go on advertising the
+            % OLD name. AFTER the local broadcast for the same reason
+            % forwardSaid is: the people in this room are the ones waiting,
+            % and a peer that is slow or absent must not delay them.
+            %
+            % It sends the WHOLE list rather than a rename notice - see
+            % tellMbrs - so a peer that missed an earlier change is repaired
+            % by this one too.
+            tellMbrs
             RETURN
         ENDIF
 
@@ -5911,6 +6913,19 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
             0 =: memberUsed(slot)
             broadcast(length, slot, slot)         % their room, not them
 
+            % AND TELL THE OTHER MACHINES THEY HAVE GONE. AFTER the seat
+            % is released above, so the list we build no longer holds
+            % them - tellMbrs reports the table as it stands.
+            %
+            % A STALE ENTRY HERE IS THE WORSE DIRECTION: a peer that still
+            % believes somebody is seated will accept a private message
+            % for them and send it across the trunk. Since 6.3b the far end
+            % no longer drops that in silence - takeRemDirect answers with
+            % kTrkDBad and the sender is told - but a refusal after the fact
+            % is a worse answer than not sending at all, so the peers are
+            % still told at once.
+            tellMbrs
+
             % Give the seat back to XROUT, or the room fills up permanently and
             % XROUT stops forwarding joins long after anybody left.
             xmpinfc(0, myPort, 1, 0) =: returnStatus
@@ -5924,6 +6939,12 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
     PROGRAM : chatServer
         XMMSGIDENTIFIER : msgIdent
         INTEGER : i
+        % readStatus - 2026-09-01. returnStatus is one shared variable
+        % reused by every XMSG call in this loop, so by the time anything
+        % downstream could look at it, XMPFREL has already overwritten
+        % whatever XMPFREA itself answered. Nothing checked the READ
+        % succeeding before handleMessage trusted what it read into.
+        INTEGER : readStatus
 
         % INISTACK RUNS EVERY START, and it must - the stack does not survive
         % the terminate. Everything below it is guarded instead.
@@ -5943,20 +6964,54 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         %   histNext  a stale value writes the first message into the middle of
         %             the ring and replays blocks that were never written.
         %
+        %   topicRmLen  ADDED 2026-09-02, and it is the "empty list on join"
+        %             bug. This is the marker claimTopic reads as "slot free"
+        %             (zero) and findTopic reads as "which room". Left as
+        %             garbage on a fresh RT segment, claimTopic finds no free
+        %             slot and returns 0, so histSave does NOTHING and nothing
+        %             is ever stored to replay - or findTopic mismatches and a
+        %             real room never finds its history. The neighbours above
+        %             were cleared; this one was missed, and it depends on what
+        %             the freshly allocated segment happened to hold, which is
+        %             why it reads as intermittent. topicTextLen goes with it,
+        %             for the same reason a stale topic would otherwise show.
+        %
         % Cleared here, before anything can be received.
         FOR i IN 1:maxHistRooms DO
             0 =: histDev(i)
             0 =: histNext(i)
             histDefault =: histSize(i)
         ENDFOR
+        FOR i IN 1:maxTopics DO
+            0 =: topicRmLen(i)
+            0 =: topicTextLen(i)
+        ENDFOR
 
-        % ---- NO FLAGS AT ALL. NOT XFWTF, AND NOT XFWAK EITHER. --------------
+        % ---- NEVER XFWTF. XFWAK ONLY AS A DOORBELL. -----------------------
+        %
+        % The history below is kept because both flags have been in this line
+        % before and both took the server down. Read it before changing them.
         %
         % XFWTF was never right here: a task already blocked in XFRCV is ACTIVE,
         % and RT-starting an active program does not queue a second run, so a
         % wake-up arriving during a block is simply LOST.
         %
-        % BUT XFWAK IS ALSO WRONG NOW, AND IT WEDGED THE SERVER. Measured on
+        % CORRECTED 2026-08-28: THE PARAGRAPH BELOW BLAMES THE WRONG FLAG.
+        % Carved from git history - XFWAK appears ZERO times in the version
+        % before 2026-08-21 and first entered this file on 2026-08-25, FOUR
+        % DAYS AFTER the outage. That build had ONE xmpfrcv, on myPort, with
+        % 2**XFWTF - the BLOCKING flag - and no admin receive at all. So the
+        % server was parked by the BLOCKING receive, which is what the first
+        % paragraph above already says. A non-blocking XFWAK parks nothing and
+        % planc-lint no longer refuses it.
+        %
+        % STILL UNEXPLAINED, and worth re-checking before trusting a doorbell:
+        % the LIST-PORTS capture quoted below shows WAK 1 on the admin port,
+        % and the committed source of the day has neither an admin receive nor
+        % XFWAK. Either the running build was uncommitted, or something else
+        % sets that bit.
+        %
+        % BUT XFWAK IS ALSO WRONG NOW, AND IT HUNG THE SERVER. Measured on
         % D100, 2026-08-21, with one client trying to join:
         %
         %   X-C LIST-PORTS
@@ -5978,10 +7033,25 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
         % goes round - and once it stays alive there is nothing for a wake-up to
         % do. Keeping it bought nothing and cost the whole server.
         %
-        % Flags ZERO is XMSG's own no-wait: the call returns at once whether or
-        % not a message was there. Both ports get polled every pass, and the
-        % one-second sleep when both are empty is what keeps it from spinning.
-        0 =: waitFlags
+        % ---- AND NOW XFWAK IS BACK, FOR A DIFFERENT REASON ----------------
+        %
+        % Everything above stays true: XFWAK cannot make one XFRCV watch two
+        % ports, and it does not deliver the message. It is a DOORBELL, and
+        % nothing more. What changed is that there is now something for a
+        % doorbell to ring: the program STAYS ALIVE in a one-second TimeOut
+        % instead of terminating, and TimeOut's own restart cause (-1) is the
+        % bell being heard. See the declarations of wakeSpin for the manual
+        % lines this rests on, and for the counter that disarms it if the
+        % restart flag turns out to be sticky.
+        %
+        % It is still NOT blocking - XFWTF is not set, so all three ports are
+        % polled every pass exactly as before. Take this word out and the
+        % server keeps working; it just waits up to a second again.
+        IF doorbellOn THEN
+            2**XFWAK =: waitFlags
+        ELSE
+            0 =: waitFlags
+        ENDIF
         2**XFSEC =: sendFlags
 
         % ---- OPEN ONCE, NOT ONCE PER START ---------------------------------
@@ -6082,9 +7152,9 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
             OUTPUT(1, 'AL7', ' trunk ')
             OUTPUT(1, 'I6', trunkPort)
             OUTPUT(1, 'AL1', '$')
-            logLine('SV START room prt=', 18, myPort)
-            logLine('SV START admin prt', 18, adminPort)
-            logLine('SV START trunk prt', 18, trunkPort)
+            logLine('SV START room prt=', myPort)
+            logLine('SV START admin prt', adminPort)
+            logLine('SV START trunk prt', trunkPort)
 
             TRUE =: portsOpen
         ENDIF
@@ -6162,20 +7232,68 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
                     % A BARE LOOP WITH NO SLEEP IS NOT AN OPTION. When XMSG
                     % died under this server the receive stopped blocking and
                     % this loop burned the machine until somebody pressed ESC.
-                    50 =: sleepUnits
+                    % A FULL SECOND WHEN THE DOORBELL IS ARMED, because a
+                    % wake-up is what ends it early; 100 ms when it is not,
+                    % which is the poll this loop used before and the state it
+                    % falls back to. sleepWhy comes back 0 for the time simply
+                    % elapsing, 1 for a break, and -1 for the RT-start that a
+                    % waiting message performs.
+                    IF doorbellOn THEN
+                        50 =: sleepUnits
+                    ELSE
+                        5 =: sleepUnits
+                    ENDIF
                     1 =: sleepKind
                     MONITOR_CALL('TimeOut', sleepUnits, sleepKind, sleepWhy)
 
-                    % ---- ONE SECOND HAS PASSED: AGE THE TRUNKS -------------
+                    % ---- DID THE BELL RING, OR DID THE TIME RUN OUT? ------
                     %
-                    % THE IDLE SLEEP IS THE CLOCK, and it is the only one this
-                    % program has. Doing it here rather than on every pass round
-                    % the loop means the tick is a SECOND, not "however fast
-                    % messages happen to be arriving" - a busy room must not
-                    % make peers time out faster.
-                    peerTick
+                    % This is the measurement the whole change exists for, and
+                    % it costs one comparison. A -1 here that found all three
+                    % ports empty is a wake with nothing behind it; twenty in a
+                    % row means the restart flag is not clearing, so disarm and
+                    % go back to polling rather than spin.
+                    IF doorbellOn AND sleepWhy < 0 THEN
+                        wakeSpin + 1 =: wakeSpin
+                        IF wakeSpin >= wakeSpinMax THEN
+                            FALSE =: doorbellOn
+                            0 =: waitFlags
+                            logLine('SV doorbell off   ', wakeSpin)
+                        ENDIF
+                    ENDIF
+
+                    % ---- HAS A SECOND GONE BY? AGE THE TRUNKS --------------
+                    %
+                    % Asked of the CLOCK, not of how many times we have been
+                    % round here. That distinction used to not matter, because
+                    % every sleep ran its full 100 ms and ten of them were a
+                    % second by construction. A doorbell that cuts a sleep
+                    % short destroys that, and a busy room must not make peers
+                    % time out faster - so the question is now MON11's.
+                    %
+                    % It still lives inside the all-ports-empty branch: a
+                    % server with traffic never sleeps, and its trunks are
+                    % plainly alive, so there is nothing to age.
+                    MON11 =: nowTicks
+                    IF nowTicks - lastTick >= tickUnits THEN
+                        nowTicks =: lastTick
+                        peerTick
+                    ENDIF
                 ENDIF
             ENDIF
+
+            % ---- A REAL MESSAGE CLEARS THE DOORBELL'S SUSPICION ------------
+            %
+            % wakeSpin counts wake-ups that turned out to have nothing behind
+            % them, and it must count them CONSECUTIVELY - otherwise a busy
+            % server, where nearly every wake IS a message, would still reach
+            % twenty eventually and disarm a doorbell that was working
+            % perfectly. Anything other than an empty port is proof the
+            % mechanism is delivering, so the count goes back to zero.
+            IF returnStatus >< XMXENTM THEN
+                0 =: wakeSpin
+            ENDIF
+
             % A RECEIVE IS A MESSAGE ONLY WHEN THE STATUS IS A MESSAGE TYPE.
             % Not "= XMOK" and not "> 0". The library remaps statuses: 0 is OK
             % for other calls but is NOT a message type, so comparing to it
@@ -6243,7 +7361,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
                         OUTPUT(1, 'AL23', 'SV: receive refused st=')
                         OUTPUT(1, 'I6', returnStatus)
                         OUTPUT(1, 'AL1', '$')
-                        logLine('SV rcv refused st=', 18, returnStatus)
+                        logLine('SV rcv refused st=', returnStatus)
                     ENDIF
 
                     IF returnStatus = XMXENRU THEN
@@ -6318,6 +7436,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
                 xmpfrea(0, 0, &
                     ADDR(inBuf(0)) FORCE XMUSERADDRESS, &
                     0, readAmount, readLength) =: returnStatus
+                returnStatus =: readStatus
 
                 xmpfrel(0, msgIdent) =: returnStatus
 
@@ -6434,7 +7553,7 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
                 % needs to know and the one thing the reap line cannot say.
                 IF msgType = XMTRE THEN
                     nBounced + 1 =: nBounced
-                    logLine('SV bounced msg st=', 18, receiveStat)
+                    logLine('SV bounced msg st=', receiveStat)
 
                     findByMagic(senderMagic) =: wasMember
 
@@ -6511,7 +7630,15 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
                         %                           port is gone.
                         findByMagic(senderMagic) =: wasMember
 
-                        handleMessage
+                        % THE POINT OF readStatus. A read that did not
+                        % actually succeed has not put anything new in
+                        % inBuf - what is there is whatever the LAST
+                        % successful read left, and dispatching it again is
+                        % how one real message would come back as every
+                        % arrival after it.
+                        IF readStatus = XMOK THEN
+                            handleMessage
+                        ENDIF
                     ENDIF
 
                     % ---- THE SEAT BELONGS TO THE ARRIVAL, SO SETTLE IT HERE ----
@@ -6580,14 +7707,18 @@ IMPORT ( ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER ARRAY, INTEGER, &
                                 OUTPUT(1, 'AL22', 'SV: seat return failed')
                                 OUTPUT(1, 'I6', returnStatus)
                                 OUTPUT(1, 'AL1', '$')
-                                logLine('SV seat back st=  ', 18, returnStatus)
+                                logLine('SV seat back st=  ', returnStatus)
                             ENDIF
                         ENDIF
                     ENDIF
                 ELSE
                     % No header on this path: an ordinary message sent straight
                     % to our magic number is exactly the bytes the peer wrote.
-                    handleMessage
+                    % Same readStatus guard as the routed path above - see the
+                    % note there.
+                    IF readStatus = XMOK THEN
+                        handleMessage
+                    ENDIF
                 ENDIF
                 ENDIF
 

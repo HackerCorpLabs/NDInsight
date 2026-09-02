@@ -333,6 +333,10 @@ $INCLUDE screen
     IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmNmLen)
     IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmTxAt)
     IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmTxLen)
+    IMPORT (ROUTINE VOID, INTEGER (BYTES, INTEGER, INTEGER) : trStrip)
+    IMPORT (ROUTINE VOID, INTEGER (BYTES) : hsHour)
+    IMPORT (ROUTINE VOID, INTEGER (BYTES) : hsMin)
+    IMPORT (ROUTINE VOID, INTEGER (BYTES) : hsYear)
     IMPORT (INTEGER : kJoin)
     IMPORT (INTEGER : kWelcome)
     IMPORT (INTEGER : kReject)
@@ -353,6 +357,73 @@ $INCLUDE screen
     IMPORT (INTEGER : kDirGot)
     IMPORT (INTEGER : kDirSent)
     IMPORT (INTEGER : kDirBad)
+
+    % ---- HANDED TO CHATARR -------------------------------------------------
+    % CHATARR holds the arrival half. It is compiled separately, so everything
+    % it reaches has to be named here - EXPORT allocates nothing, it just makes
+    % the name visible across the BRF boundary.
+    %
+    % SEVEN CHARACTERS is all a BRF entry carries. No two of these agree in
+    % their first seven; planc-lint checks that across the whole set of sources
+    % and will refuse a build if a later edit breaks it.
+
+    EXPORT askedTopic
+    EXPORT askedWho
+    EXPORT addSaid
+    EXPORT cache
+    EXPORT cacheCount
+    EXPORT slotAt
+    EXPORT winTotal
+    EXPORT curWin
+    EXPORT announceWelcome
+    EXPORT hereCount
+    EXPORT inBuf
+    EXPORT joined
+    EXPORT lenMyMach
+    EXPORT lenMyName
+    EXPORT maxNameLen
+    EXPORT myMachine
+    EXPORT myName
+    EXPORT oneChar
+    EXPORT readLength
+    EXPORT screenOn
+    EXPORT senderMagic
+    EXPORT serverMagic
+    EXPORT userChoseNick
+    EXPORT winUnread
+    EXPORT viewFrom
+
+    EXPORT wantForRow
+
+    EXPORT buildOwn
+    EXPORT cacheClear
+    EXPORT countNames
+    EXPORT drawAll
+    EXPORT drawPanel
+    EXPORT flush
+    EXPORT setTopic
+    EXPORT panelAdd
+    EXPORT panelAnswer
+    EXPORT panelClear
+    EXPORT putInWin
+    EXPORT putSentInWin
+    EXPORT sendToServer
+    EXPORT showMyName
+    EXPORT showRoom
+    EXPORT uiClear
+    EXPORT uiFrom
+    EXPORT uiNotice
+    EXPORT uiSaid
+    EXPORT uiWho2
+    EXPORT uiWord
+    EXPORT winFor
+    EXPORT winSave
+    EXPORT winUse
+    EXPORT writeCnfg
+
+    % ---- and what comes back ------------------------------------------------
+    IMPORT (ROUTINE VOID, VOID : showArrived)
+
 
 
     % ONE KIND, BOTH DIRECTIONS. We send it with an empty text to ask; the room
@@ -470,16 +541,80 @@ $INCLUDE screen
     INTEGER : emptyInput  := 3        % InByte in no-wait: nothing was typed
 
     % The idle sleep, so the poll loop is a POLL and not a SPIN. Unit type 1 is
-    % basic time units of 1/50 second, so 10 is a fifth of a second: fast enough
-    % that an arriving line looks instant, slow enough to cost nothing.
+    % basic time units of 1/50 second, so 10 is a fifth of a second.
+    %
+    % THIS SLEEP IS THE LAST HOP OF THE DELAY A READER ACTUALLY SEES, and the
+    % only way to judge it is ADDED UP rather than on its own:
+    %
+    %   same machine   server sleep + this one
+    %   over a trunk   server sleep TWICE, once per machine, + this one
+    %
+    % The budget is 500 ms to the receiver's screen. At the old numbers - a
+    % ONE-SECOND server sleep and a fifth here - it was 1.2 s in a room and
+    % 2.2 s across a trunk, so it was not slightly over, it was more than
+    % double. The server sleep is now 100 ms, which brings this to 300 ms in a
+    % room and 400 ms across a trunk. Both fit, with room for the work itself.
+    %
+    % AND IT STAYS AT A FIFTH ON PURPOSE. Cutting this to 100 ms as well would
+    % buy 100 ms that the budget does not need, and it is the WRONG PLACE to
+    % spend CPU: there is one server per machine and up to SIXTEEN clients, so
+    % every unit of polling here is multiplied by the number of people in the
+    % room. Ronny's call, 2026-08-28, and the arithmetic agrees with it.
     %
     % CHATSV carries the hard-won version of this note: a bare loop with no
     % sleep is not an option. When XMSG died under the server, its receive
     % stopped blocking and the loop burned the machine until somebody pressed
     % ESC. The same trap is waiting here the moment the terminal stops blocking.
+    % ---- WHEN A REPLAYED LINE WAS SAID -----------------------------------
+    %
+    % A history line carries its own time on the wire now, because the one
+    % this program would stamp it with is the time it was REPLAYED - so a
+    % whole backlog used to share one moment and could not say what happened
+    % when.
+    %
+    % msgIsHist is set ONCE where the message arrives and read by addSaid,
+    % rather than threaded through every renderer: both renderers show a
+    % history line, and a parameter would have had to be added to each and
+    % kept in step for ever.
+    %
+    % timeKnown is FALSE for a line out of a block written before there was
+    % anywhere to put a time. The column is then left BLANK - blankLine has
+    % already cleared the row, so not writing it is all it takes - because a
+    % wrong time is worse than no time, which is the whole point of this.
+    BOOLEAN : msgIsHist := FALSE
+    BOOLEAN : timeKnown := TRUE
+    INTEGER : histHour := 0
+    INTEGER : histMin  := 0
+
+    % THE IDLE SLEEP, AND WHY IT BACKS OFF INSTEAD OF BEING ONE LENGTH.
+    %
+    % sleepKind 1 is BASIC TIME UNITS, a fiftieth of a second each, so ten
+    % units is 200 ms. That is what this used to sleep on every idle pass, and
+    % MEASURED on D100 2026-08-29 it is a large part of what a line costs: the
+    % loop is asleep when the key arrives and when the server's answer arrives,
+    % so BOTH can sit unlooked-at for up to a fifth of a second. A local command
+    % that does no messaging at all was timed at 112 ms once and 481 ms another
+    % time, and one whole idle sleep is the difference.
+    %
+    % So: sleep SHORT while something has just been happening, and only settle
+    % to the long sleep once the client has been quiet for a while. Right after
+    % a line is sent - exactly when the reply is on its way - the wait is 20 ms
+    % rather than 200. A client nobody is using still costs the same as before,
+    % which is the whole point of having a long sleep at all.
     INTEGER : sleepUnits := 10
     INTEGER : sleepKind  := 1
     INTEGER : sleepWhy   := 0
+
+    % 1 unit = 20 ms. NOT ZERO - the manual is explicit that no parameter of
+    % this call may be zero, and a zero here would turn the poll back into the
+    % spin the sleep exists to prevent.
+    INTEGER : sleepShort := 1
+    % 10 units = 200 ms, what it always slept.
+    INTEGER : sleepLong  := 10
+    % How many empty passes in a row before dropping to the long sleep.
+    % 25 short sleeps is about half a second of quiet.
+    INTEGER : idleRuns    := 0
+    INTEGER : idleRunsMax := 25
 
     % How many messages the last drain pass printed. Set by drainPort, read by
     % the main loop to decide whether the pass found anything at all.
@@ -545,6 +680,20 @@ $INCLUDE screen
     BYTES : roomName(0:20)
     INTEGER : lenRoomName := 10
 
+    % THE ROOM'S TOPIC, KEPT so the header can show it.
+    %
+    % The client used to PRINT an arriving topic and drop it - there was no
+    % topic buffer anywhere in this file - which is why setting one changed
+    % nothing in the header, reported by Ronny 2026-08-31. A thing the screen
+    % has to show has to be REMEMBERED; a message that is only printed is gone
+    % the moment the next line arrives.
+    %
+    % 64 to match maxTopicLen, which is what the server truncates at. Cleared
+    % by setRoom, because a topic belongs to ONE room and carrying the old
+    % room's topic into a new one would state something false.
+    BYTES : curTopic(0:63)
+    INTEGER : lenTopic := 0
+
     % THE PREFIX EVERY ROOM'S REGISTERED NAME CARRIES, and forgetting it is
     % why /join never worked.
     %
@@ -596,6 +745,29 @@ $INCLUDE screen
     % reached when SINTRAN itself will not say who is logged in.
     BYTES : defaultName := 'USER'
     INTEGER : lenDefault := 4
+
+    % THE BUILD STAMP - bumped by hand every time this file is rebuilt.
+    %
+    % Added 2026-08-31 chasing a bug where two clients kept showing a stale
+    % welcome line: the fix turned out not to be a version mismatch, but there
+    % was no CHEAP way to see that without reading FILE-STATISTICS on the
+    % machine by hand. Now the client SAYS what it is - riding on the join, so
+    % LIST-MEMBER shows it for every seat without a separate query.
+    %
+    % EIGHT CHARACTERS, so it never forces a rework of anything that copies it
+    % - see maxVerLen on the server, which this must never exceed.
+    %
+    % BUMP THIS ON EVERY BUILD THAT SHIPS - it is a hand-set constant. It read
+    % B31-0731 through three rebuilds on 2026-09-01/02, so LIST-MEMBER showed
+    % the same stamp for the client with the repeat-first-message bug and the
+    % one without it. Format: one letter, day of month, dash, hour and minute.
+    BYTES : clientVersion := 'B02-1340'
+    INTEGER : lenClientVer := 8
+
+    % Splits the room name from the build version inside kJoin's text field.
+    % Chosen because a room name is typed by a person and a pipe is not a
+    % character anybody types into one.
+    BYTES : verSepByte := '|'
 
     % Where GetUserName writes. SINTRAN pads the answer, so the name ends at the
     % first space and the buffer is deliberately wider than maxNameLen.
@@ -733,7 +905,7 @@ $INCLUDE screen
     BYTES : cnfgFull := 'CHAT:CNFG'
     INTEGER : lenCnfgFull := 9
     BYTES : nameBuf(0:63)
-    INTEGER : nameBufSize := 64
+    INTEGER : sizeNameBuf := 64
     INTEGER4 : startAddr := 0         % 0 = let SINTRAN place it
     INTEGER4 : noOfPages := 0         % 0 = indexed, grows when written
 
@@ -839,11 +1011,23 @@ $INCLUDE screen
             at + 1 =: at
         ENDFOR
         % Text length, high byte then low. A room name is far short of 256.
+        %
+        % THE VERSION RIDES AFTER THE ROOM, SEPARATED BY '|'. An older server
+        % that has never heard of this just stores the whole thing as the room
+        % name - a room called "LOBBY|B31-0731" - which is wrong but not
+        % dangerous, and is exactly why a build-version check belongs in
+        % LIST-MEMBER instead of anything that gates a join.
         0 =: outBuf(at)
-        lenRoomName =: outBuf(at + 1)
+        lenRoomName + 1 + lenClientVer =: outBuf(at + 1)
         at + 2 =: at
         FOR i IN 1:lenRoomName DO
             roomName(i - 1) =: outBuf(at)
+            at + 1 =: at
+        ENDFOR
+        verSepByte(0) =: outBuf(at)
+        at + 1 =: at
+        FOR i IN 1:lenClientVer DO
+            clientVersion(i - 1) =: outBuf(at)
             at + 1 =: at
         ENDFOR
         at RETURN
@@ -1338,7 +1522,7 @@ $INCLUDE screen
         % Parameters per ND-860228-2-EN page 125: the FULL filespec in a 64-byte
         % buffer, then StartAddress and NoOfPages, both INTEGER4. Zero and zero
         % mean an ordinary indexed file that grows as it is written.
-        FOR i IN 1:nameBufSize DO
+        FOR i IN 1:sizeNameBuf DO
             spaceChar(0) =: nameBuf(i - 1)
         ENDFOR
 
@@ -1664,6 +1848,42 @@ $INCLUDE screen
             typed(shortAt + i - 1) =: roomName(i - 1)
         ENDFOR
         shortLen =: lenRoomName
+
+        % A TOPIC BELONGS TO ONE ROOM. Keeping the old room's topic across a
+        % join would put a line in the header that is about somewhere else -
+        % worse than showing none, because it reads as true. The new room's
+        % topic arrives with its welcome if it has one.
+        0 =: lenTopic
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % Remember a topic that has just arrived, so the header can show it.
+    %
+    % Called from BOTH renderers' kTopic branches in CHATARR.PLNC - the screen
+    % one and the line one. The line renderer has no header to put it in, but
+    % keeping it there too costs one copy and means the two paths cannot drift
+    % into disagreeing about what the topic is.
+    %
+    % CLAMPED, because the length arrives off the wire. The server truncates at
+    % maxTopicLen and this buffer is that size, but a length is not trustworthy
+    % just because it usually behaves - PLANC checks no array bound, so an
+    % overlong one would write past the end in silence.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, VOID (INTEGER, INTEGER) : setTopic(at, length)
+        INTEGER : i
+        INTEGER : take
+
+        length =: take
+        IF take > maxTopicLen THEN
+            maxTopicLen =: take
+        ENDIF
+        IF take < 0 THEN
+            0 =: take
+        ENDIF
+        FOR i IN 1:take DO
+            inBuf(at + i - 1) =: curTopic(i - 1)
+        ENDFOR
+        take =: lenTopic
     ENDROUTINE
 
     % -----------------------------------------------------------------------
@@ -1810,7 +2030,28 @@ $INCLUDE screen
         xmpfwri(0, 0, &
             ADDR(outBuf(0)) FORCE XMUSERADDRESS, &
             0, length, wLength) =: returnStatus
-        xmpfsnd(0, myPort, serverMagic) =: returnStatus
+
+        % XMPSEND, NOT XMPFSND - THIS WAS THE BUG. Plan item 5.7, written
+        % down before this session and never actually applied here.
+        %
+        % XMPFSND takes no message parameter: "the current (default)
+        % message buffer is assumed, namely the port current message if
+        % one exists, or, if none, the task current message" (ND-60.164.3,
+        % XMPFSND). XMPFGET above only makes the new buffer TASK current -
+        % it has no port parameter and cannot make it PORT current. If a
+        % message this program received (drainPort runs constantly) left a
+        % port-current message behind, XMPFSND would send THAT instead of
+        % the reply just built here - and it would keep sending the SAME
+        % one until whatever made it port-current changed, regardless of
+        % what the user typed next. That is exactly the live symptom: one
+        % message, repeating forever, no matter what was sent after it.
+        %
+        % XMPSEND names the exact message: "the message specified by
+        % msgIdentifier is set as task current AND as port current for
+        % localPort. Then the message is sent as described under XMPFSND."
+        % It removes the ambiguity outright rather than hoping nothing else
+        % touches the port between XMPFWRI and the send.
+        xmpsend(0, ident, myPort, serverMagic) =: returnStatus
     ENDROUTINE
 
     % -----------------------------------------------------------------------
@@ -1849,6 +2090,20 @@ $INCLUDE screen
     CONSTANT midHigh=19          % rows 3-21
     CONSTANT botRow=21
     CONSTANT botHigh=4           % rows 21-24
+
+    % THE THREE SINGLE ROWS, BY PHYSICAL NUMBER.
+    %
+    % closePanel has to ask "was this row under the panel?" about each of them,
+    % and a bare 2, 22 and 23 in those tests would say nothing to a reader and
+    % would drift the first time the layout moved. They are written here beside
+    % the windows they belong to, with the arithmetic that produces them:
+    %
+    %   status  topRow + 1   the room name, count and clock
+    %   input   botRow + 1   the line being typed
+    %   bar     botRow + 2   the window list
+    CONSTANT statusPRow=2
+    CONSTANT inputPRow=22
+    CONSTANT barPRow=23
     CONSTANT scrWide=80
 
     % Visible chat rows, in frame B's LOCAL coordinates. Frame B starts on
@@ -1867,6 +2122,36 @@ $INCLUDE screen
     %   buffer 20..76  text      cols 23-79
     CONSTANT lineWide=77
     CONSTANT textCol=3           % where a stored line is painted
+
+    % TRUE while the window is up. Two things read it: the key loop, which
+    % closes the panel instead of typing into the input line, and the repaint,
+    % which CLIPS to what the panel does not cover.
+    BOOLEAN : panelUp := FALSE
+
+    % WHERE THE PANEL IS - AND WHY THESE ARE AT MODULE LEVEL.
+    %
+    % These four used to be LOCALS of drawPanel: computed, drawn with, and gone
+    % when it returned. Nothing else in the program knew where the window was,
+    % and that one fact caused BOTH halves of the bug Ronny reported on
+    % 2026-08-31 - the whole screen repainted on close, and the room frozen
+    % behind an open window.
+    %
+    % Neither was a bad choice. Without the rectangle they were the ONLY
+    % choices: you cannot clip to a rectangle you do not have, and you cannot
+    % repaint just what was covered either, so drawAll and "do not paint at
+    % all" are what is left. THE BUG WAS UPSTREAM OF BOTH.
+    %
+    % TESTUI.PLNC keeps smallRow/smallCol/smallHigh/smallWide and bigRow/... at
+    % module level, and everything it does well follows from that. This is the
+    % same thing. Rule 0 in PLANC-INTERACTIVE-SCREEN-PATTERNS.md.
+    %
+    % NOT called panelWide - that name is already the panel BUFFER's line
+    % width, a constant, and two different widths under one name is exactly the
+    % kind of collision this file has paid for before.
+    INTEGER : panRow  := 0
+    INTEGER : panCol  := 0
+    INTEGER : panHigh := 0
+    INTEGER : panWid  := 0
     CONSTANT offTime=0
     CONSTANT offWho=7
 
@@ -2011,6 +2296,14 @@ $INCLUDE screen
     INTEGER : lastView := 0 - 1
     INTEGER : lastRemote := 0 - 1
     INTEGER : lastRoomLen := 0 - 1
+
+    % AND THE TOPIC, for the same reason. drawStatus repaints the row only
+    % when something on it moved, so a topic that changed while the room name
+    % and the count did not would never reach the screen. The LENGTH is enough
+    % here: a topic is replaced wholesale, never edited in place, so two
+    % different topics of the same length are the one case this misses and the
+    % row is repainted on every room change and every minute anyway.
+    INTEGER : lastTopicL := 0 - 1
     BYTES : lastRoom(0:19)
 
     % THE TYPED LINE ONLY CHANGES WHEN IT IS TYPED IN. Everything else that
@@ -2450,6 +2743,58 @@ $INCLUDE screen
         (curWin - 1) * winLines + s RETURN
     ENDROUTINE
 
+    % ---- THE ARRIVAL INSTRUMENT, behind a compile-time switch --------------
+    %
+    % Five numbers on the TITLE row, repainted on every arrival that was
+    % shown: the kind, the read length, the first text byte OF THE ARRIVAL,
+    % cacheCount, and the first text byte of the NEWEST cache row. One glance
+    % separates "the arriving bytes are stale" (third number wrong) from "the
+    % store went stale" (third right, fifth wrong) - which is exactly how the
+    % repeat-first-message bug was pinned to the painter on 2026-09-01: it
+    % read 005 015 097 003 097 while the screen showed the wrong line, so the
+    % wire and the cache were right and only the paint was wrong.
+    %
+    % $CONSTANT DBGUI is PLANC's #ifdef (ND-60.117.5 appendix A 0.9/0.10):
+    % set it to 0 and the instrument compiles out entirely - code, buffer and
+    % call sites. It stays IN the source either way, by Ronny's decision.
+$CONSTANT DBGUI=0
+$IF DBGUI = 1 $THEN
+    BYTES : dbgRow(0:21)
+
+    ROUTINE VOID, VOID (INTEGER, INTEGER) : dbgPut3(at, v)
+        INTEGER : x
+        v =: x
+        IF x < 0 THEN
+            0 - x =: x
+        ENDIF
+        x - ((x / 1000) * 1000) =: x
+        digits(x / 100) =: dbgRow(at)
+        x - ((x / 100) * 100) =: x
+        digits(x / 10) =: dbgRow(at + 1)
+        digits(x - ((x / 10) * 10)) =: dbgRow(at + 2)
+    ENDROUTINE
+
+    ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER) : dbgShow(k, rl, t0)
+        INTEGER : i, base, c0
+        FOR i IN 0:21 DO
+            spaceByte(0) =: dbgRow(i)
+        ENDFOR
+        dbgPut3(0, k)
+        dbgPut3(4, rl)
+        dbgPut3(8, t0)
+        dbgPut3(12, cacheCount)
+        0 =: c0
+        IF cacheCount > 0 THEN
+            slotAt(cacheCount - 1) * lineWide + offText =: base
+            cache(base) =: c0
+        ENDIF
+        dbgPut3(16, c0)
+        IF screenOn THEN
+            bytdis(1, 56, 19, dbgRow(0:18), '')
+        ENDIF
+    ENDROUTINE
+$ENDIF
+
     % =====================================================================
     % THE ROOM'S MEMBERS, and the one question they answer
     % =====================================================================
@@ -2478,9 +2823,14 @@ $INCLUDE screen
 
         blankLine
         IF withHead = 1 THEN
-            put2(offTime, cal(3))
-            colonByte(0) =: lineBuf(offTime + 2)
-            put2(offTime + 3, cal(2))
+            % NOT WRITING IT IS HOW IT IS BLANKED - blankLine has already
+            % cleared the row to spaces, so a time nobody recorded simply
+            % leaves the column empty instead of asserting a moment.
+            IF timeKnown THEN
+                put2(offTime, cal(3))
+                colonByte(0) =: lineBuf(offTime + 2)
+                put2(offTime + 3, cal(2))
+            ENDIF
             putWho(who)
         ENDIF
 
@@ -2503,7 +2853,15 @@ $INCLUDE screen
         INTEGER : take
         INTEGER : head
 
-        MN113(cal)
+        % A REPLAYED LINE IS STAMPED WITH WHEN IT WAS SAID, not with now.
+        % The two calendar elements pushRow reads are filled from the wire
+        % instead of from the clock; everything downstream is unchanged.
+        IF msgIsHist THEN
+            histHour =: cal(3)
+            histMin =: cal(2)
+        ELSE
+            MN113(cal)
+        ENDIF
 
         % AN @ IN THE NAME IS THE SERVER SAYING "another machine", and that is
         % all the @trunk marker needs.
@@ -2534,20 +2892,157 @@ $INCLUDE screen
     ENDROUTINE
 
     % =====================================================================
+    % CLIPPING - because VTM will not do it for us
+    %
+    % The viewport clips a WRITE to the window it is in, but it knows nothing
+    % about a window drawn ON TOP of that one. So overlap is ours to handle,
+    % and there are exactly two honest ways to do it: paint only the parts
+    % that are visible, or paint nothing at all.
+    %
+    % PAINTING NOTHING IS THE ONE THAT LOOKS SAFE AND IS WRONG. It was what
+    % this file did - "IF NOT panelUp THEN paint" - and it freezes the whole
+    % room to protect the few rows a centred window actually covers. TESTUI
+    % made the same mistake first and Ronny reported it there in the same
+    % words: the buffer updates and the screen does not.
+    %
+    % A cell-by-cell test is NOT expensive. Seventy-seven tests a row is
+    % nothing on the CPU, and it SAVES time on the wire, which is the slow
+    % part - only the visible runs are sent.
+    % =====================================================================
+
+    % Is one PHYSICAL cell visible, or is the panel over it?
+    ROUTINE VOID, BOOLEAN (INTEGER, INTEGER) : visibleAt(prow, pcol)
+        IF panelUp THEN
+            IF prow >= panRow AND prow <= panRow + panHigh - 1 THEN
+                IF pcol >= panCol AND pcol <= panCol + panWid - 1 THEN
+                    FALSE RETURN
+                ENDIF
+            ENDIF
+        ENDIF
+        TRUE RETURN
+    ENDROUTINE
+
+    % Does the panel cover any part of this PHYSICAL row?
+    %
+    % Deliberately coarser than visibleAt: it answers for the whole row, not a
+    % cell. The one-row things - the status line, the bar, the input line - are
+    % drawn by routines that lay out a whole row at once, so the useful
+    % question about them is "leave it alone this time?" and not "which
+    % columns?". Being conservative here costs one row on the close and cannot
+    % draw over the panel.
+    ROUTINE VOID, BOOLEAN (INTEGER) : rowCovered(prow)
+        IF NOT panelUp THEN
+            FALSE RETURN
+        ENDIF
+        IF prow >= panRow AND prow <= panRow + panHigh - 1 THEN
+            TRUE RETURN
+        ENDIF
+        FALSE RETURN
+    ENDROUTINE
+
+    % Paint ONE ROW of the message pane, showing only what is not covered.
+    % Walks the row once and emits each visible run as it ends.
+    %
+    % localRow is the mid window's own row; the window starts at column 1, so a
+    % window column IS a physical column and only the row needs converting.
+    %
+    % THE WIDTH IS PASSED TO bytdis, NEVER 0. Width 0 means "the string says
+    % its own length", which is right for a literal and wrong for a subarray -
+    % measured on D100, a subarray painted with 0 ran off the right-hand side
+    % and wiped two window borders. planc-lint refuses the shape now.
+    %
+    % THE ROW COMES IN THROUGH paintBuf, NOT A PARAMETER - 2026-09-01, and
+    % this closed the repeat-first-message bug. The caller used to pass
+    % cache(base : base + lineWide - 1), a subarray of the 23KB cache with a
+    % COMPUTED base - and every row painted line 0's bytes while the cache
+    % itself, read back by an ordinary computed INDEX, held each line's own
+    % text (measured on the title-row instrument: arrival byte 97 'a', cache
+    % byte 97 'a', screen showing the first line). Same family as the
+    % putField subarray that compiled clean and wrote nothing at all. The
+    % caller now COPIES the row into paintBuf with an explicit indexed loop -
+    % the one form of cache access that is proven right - and the subarrays
+    % below are of a small fixed module array, the exact shape TESTUI's
+    % paintSlot has proven on this machine.
+    BYTES : paintBuf(0:76)
+
+    ROUTINE VOID, VOID (INTEGER) : paintRow(localRow)
+        INTEGER : c
+        INTEGER : runFrom
+        INTEGER : prow
+        BOOLEAN : inRun
+
+        midRow + localRow - 1 =: prow
+        FALSE =: inRun
+        0 =: runFrom
+        FOR c IN 0:lineWide - 1 DO
+            IF visibleAt(prow, textCol + c) THEN
+                IF NOT inRun THEN
+                    TRUE =: inRun
+                    c =: runFrom
+                ENDIF
+            ELSE
+                IF inRun THEN
+                    bytdis(localRow, textCol + runFrom, c - runFrom, &
+                           paintBuf(runFrom : c - 1), '')
+                    FALSE =: inRun
+                ENDIF
+            ENDIF
+        ENDFOR
+        % A run reaching the end of the row still has to be flushed - the loop
+        % only emits one when it meets a covered cell.
+        IF inRun THEN
+            bytdis(localRow, textCol + runFrom, lineWide - runFrom, &
+                   paintBuf(runFrom : lineWide - 1), '')
+        ENDIF
+    ENDROUTINE
+
+
+    % =====================================================================
     % PAINTING THE MIDDLE SECTION
     % =====================================================================
 
     % Repaint the chat. This is what a page costs and it is the most
     % expensive routine here: 17 lines of 77 characters, about 1300, roughly
     % a second and a half on a real 9600-baud line.
+    % WHICH LINE NUMBER BELONGS ON ROW `row` OF THE CURRENT WINDOW - or -1 if
+    % the row has no line yet. Pulled out of paintChat on 2026-09-01 so this
+    % arithmetic can be proved right WITHOUT a screen: it is pure integers
+    % over cacheCount, winTotal, viewFrom and msgRows, and every one of those
+    % is real state this same client already carries.
+    %
+    % ANSWERS AN ABSOLUTE LINE NUMBER, counted from the very first line this
+    % window has ever held - the same number slotAt(index) expects once the
+    % OLDEST-held offset is subtracted back out, which is what the two call
+    % sites below already did inline.
+    ROUTINE VOID, INTEGER (INTEGER) : wantForRow(row)
+        INTEGER : first
+        INTEGER : shown
+        INTEGER : oldest
+
+        cacheCount - msgRows - viewFrom =: first
+        IF first < 0 THEN
+            0 =: first
+        ENDIF
+
+        cacheCount - first =: shown
+        IF shown > msgRows THEN
+            msgRows =: shown
+        ENDIF
+
+        IF row >= shown THEN
+            0 - 1 RETURN
+        ENDIF
+
+        winTotal(curWin) - cacheCount =: oldest
+        oldest + first + row RETURN
+    ENDROUTINE
+
     ROUTINE VOID, VOID : paintChat
         INTEGER : i
         INTEGER : first
-        INTEGER : shown
         INTEGER : idx
         INTEGER : base
         INTEGER : st
-        INTEGER : oldest
         INTEGER : want
 
         % NO BLANKET CLEAR ANY MORE.
@@ -2562,14 +3057,16 @@ $INCLUDE screen
 
         % Which held line goes on the top row. viewFrom counts BACK from the
         % newest, so at viewFrom = 0 the last msgRows lines are shown.
+        %
+        % KEPT HERE TOO, ALONGSIDE wantForRow's OWN COPY, only because
+        % slotAt below wants the RELATIVE index and wantForRow hands back
+        % the ABSOLUTE line number - the two callers of the same arithmetic
+        % need different halves of it. wantForRow is the one that is
+        % TESTED; this is the same three lines, unchanged, so the two never
+        % have a reason to drift apart.
         cacheCount - msgRows - viewFrom =: first
         IF first < 0 THEN
             0 =: first
-        ENDIF
-
-        cacheCount - first =: shown
-        IF shown > msgRows THEN
-            msgRows =: shown
         ENDIF
 
         % THE SHADOW ONLY DESCRIBES ONE WINDOW. Line numbers are counted per
@@ -2594,34 +3091,41 @@ $INCLUDE screen
             curWin =: shadowWin
         ENDIF
 
-        % The number of the oldest line still held. Everything below counts up
-        % from it, so each row can be named by the line that is on it.
-        winTotal(curWin) - cacheCount =: oldest
-
         FOR i IN 0:msgRows - 1 DO
-            IF i < shown THEN
-                oldest + first + i =: want
-            ELSE
-                % No line for this row - it should be blank.
-                0 - 1 =: want
-            ENDIF
+            wantForRow(i) =: want
 
             % ALREADY RIGHT? THEN LEAVE IT ALONE. This is the whole point: a
             % pane that is still filling changes ONE row per arriving line, and
             % a pane where nothing has moved changes none.
             IF rowShown(i) >< want THEN
+                % THROUGH paintRow, WHICH CLIPS. A panel over part of this row
+                % gets the covered columns skipped and the rest painted, so a
+                % line arriving while /help is open still scrolls the room
+                % underneath it. The width goes to bytdis inside paintRow.
+                %
+                % THE ROW IS COPIED INTO paintBuf BY INDEX, never handed over
+                % as a computed-bounds subarray of cache - that subarray form
+                % painted line 0's bytes on every row while the cache held
+                % each line's own text. See the note above paintRow.
                 IF want < 0 THEN
-                    bytdis(firstMsgRow + i, textCol, lineWide, blankRow, '')
+                    FOR base IN 0:lineWide - 1 DO
+                        blankRow(base) =: paintBuf(base)
+                    ENDFOR
                 ELSE
                     slotAt(first + i) =: idx
                     idx * lineWide =: base
-                    % THE WIDTH IS PASSED, NOT LEFT AS 0. Width 0 means "the
-                    % string's own length" and is right for a LITERAL; given a
-                    % SUBARRAY of a big buffer it ran off the right-hand side
-                    % and wiped borders a 77-character write could not reach.
-                    bytdis(firstMsgRow + i, textCol, lineWide, &
-                           cache(base : base + lineWide - 1), '')
+                    FOR idx IN 0:lineWide - 1 DO
+                        cache(base + idx) =: paintBuf(idx)
+                    ENDFOR
                 ENDIF
+                paintRow(firstMsgRow + i)
+
+                % THE SHADOW RECORDS THE LINE, NOT WHAT REACHED THE GLASS.
+                % A row that was partly covered is remembered as painted, which
+                % is right while the panel is up - and is exactly why
+                % closePanel must forget the rows the panel covered before it
+                % repaints. That is what makes the close cheap: only those rows
+                % are stale, so only those are drawn again.
                 want =: rowShown(i)
             ENDIF
         ENDFOR
@@ -2654,6 +3158,7 @@ $INCLUDE screen
         INTEGER : nowView
         INTEGER : nowRemote
         INTEGER : same
+        INTEGER : take        % how much of the topic fits in the room field
 
         MN113(cal)
 
@@ -2695,6 +3200,9 @@ $INCLUDE screen
         IF lenRoomName >< lastRoomLen THEN
             0 =: same
         ENDIF
+        IF lenTopic >< lastTopicL THEN
+            0 =: same
+        ENDIF
         IF same >< 0 THEN
             % The NAME as well as its length - two rooms can be the same
             % length, and a switch between them would otherwise leave the old
@@ -2720,6 +3228,7 @@ $INCLUDE screen
         nowView =: lastView
         nowRemote =: lastRemote
         lenRoomName =: lastRoomLen
+        lenTopic =: lastTopicL
         IF lenRoomName > 0 THEN
             FOR i IN 1:lenRoomName DO
                 IF i <= 20 THEN
@@ -2742,11 +3251,53 @@ $INCLUDE screen
         %   col 31..34   'here'
         %   col 37..58   the hint, OR the scrollback warning - never both
         %   col 64..74   the clock
-        bytdis(2, 3, 0, roomName(0:lenRoomName - 1), '')
+        % THE WIDTH IS PASSED, NOT LEFT AT 0. Width 0 means "the string says its
+        % own length", which is right for a LITERAL. For a SUBARRAY the two
+        % measurements we have DISAGREE, and neither has been explained:
+        % TESTUI's paintRun painted a subarray of a 700-byte buffer with 0 and
+        % the line ran off the right-hand side, wiping two window borders; this
+        % call paints roomName(0:lenRoomName-1) with 0 and the live screen shows
+        % exactly five characters for LOBBY, which is correct. The difference may
+        % be that this subarray starts at index 0 and TESTUI's at a computed
+        % offset - UNVERIFIED, and not worth a build cycle to find out, because
+        % passing lenRoomName is what width 0 is SUPPOSED to mean here. So it is
+        % a no-op if 0 behaves and a fix if it does not.
+        bytdis(2, 3, lenRoomName, roomName(0:lenRoomName - 1), '')
         % THE MARKER IS APPENDED TO THE NAME with no gap, as the design shows,
         % so it reads as part of the room's identity and not as another field.
+        3 + lenRoomName =: at
         IF sawRemote THEN
-            bytdis(2, 3 + lenRoomName, 0, '@trunk', '')
+            bytdis(2, at, 0, '@trunk', '')
+            at + 6 =: at
+        ENDIF
+
+        % THE TOPIC, AS "LOBBY #the topic".
+        %
+        % It reads as part of the room's identity like '@trunk' does, which is
+        % what Ronny asked for: the header said LOBBY and setting a topic
+        % changed nothing.
+        %
+        % CLAMPED TO THE FIELD, WHICH IS NARROW. The count starts at column 26
+        % and the room field must stop at 24 to leave a gap, so what is left for
+        % a topic is 24 minus wherever the name ended, minus the two characters
+        % of ' #'. With a five-character room name and no trunk marker that is
+        % about fourteen characters; with '@trunk' up there too it is about
+        % eight, and a long room name can leave none at all - in which case
+        % nothing is drawn rather than something ragged running into the count.
+        %
+        % THE FULL TOPIC IS STILL ONE COMMAND AWAY - /topic prints it in a
+        % window with no width problem. This line is a reminder, not the
+        % record. Widening it means moving the count, the 'here' and the hint,
+        % which is a layout decision and not this fix.
+        IF lenTopic > 0 THEN
+            24 - at - 1 =: take
+            IF take > lenTopic THEN
+                lenTopic =: take
+            ENDIF
+            IF take > 0 THEN
+                bytdis(2, at, 0, ' #', '')
+                bytdis(2, at + 2, take, curTopic(0 : take - 1), '')
+            ENDIF
         ENDIF
         intdis(2, 26, 4, hereCount, '')
         bytdis(2, 31, 0, 'here', '')
@@ -2987,6 +3538,15 @@ $INCLUDE screen
         % shadow believed about the pane is stale by definition.
         0 =: shadowWin
         TRUE =: inputDirty
+
+        % AND NOTHING IS ON TOP ANY MORE. drawAll has just painted over the
+        % whole screen, panel included, so leaving panelUp set would say a
+        % window is up that the user cannot see: the next keypress would be
+        % swallowed "closing" it, and closePanel would then repaint a rectangle
+        % that already holds the room. Two paths reach here with a panel
+        % possibly open - the welcome, which redraws the frame once a session
+        % when the machine's name arrives, and a room change.
+        FALSE =: panelUp
 
         % And the status line has just had its row wiped by the frame, so it
         % must paint whatever it last showed.
@@ -3376,10 +3936,9 @@ $INCLUDE screen
     INTEGER ARRAY : panelLen(0:21)
     INTEGER : panelRows := 0
 
-    % TRUE while the window is up. Two things read it: the key loop, which
-    % closes the panel instead of typing into the input line, and the repaint,
-    % which must NOT redraw the room over the top of it.
-    BOOLEAN : panelUp := FALSE
+    % The panel's flag and rectangle are declared UP WITH THE SCREEN GEOMETRY,
+    % because paintChat is written before this point and PLANC is single pass -
+    % a name must be declared before the line that uses it.
 
     % DID THIS CLIENT ASK? Both of these answers arrive as a kind that is also
     % used for something else - kWho for the count taken automatically on the
@@ -3390,6 +3949,8 @@ $INCLUDE screen
     % so without this the "you are TESTER on FJELL" line is repeated on every
     % room change - and the machine has not changed, so it says nothing new.
     BOOLEAN : firstWelcome := TRUE
+    % TEMPORARY - 2026-09-01, see announceWelcome.
+    INTEGER : welcomeCalls := 0
 
     BOOLEAN : askedWho := FALSE
     BOOLEAN : askedTopic := FALSE
@@ -3538,27 +4099,43 @@ $INCLUDE screen
         w + 4 =: w
         panelRows + 2 =: h
 
-        % CLAMPED TO THE SCREEN. Text taller than the terminal would otherwise
-        % draw a frame off the bottom and take the layout with it. Clamping
-        % loses the tail, which is visible and fixable; drawing past the edge
-        % is neither.
-        IF w > scrWide THEN
-            scrWide =: w
+        % CLAMPED TO THE SCREEN, AND DELIBERATELY INSIDE THE FRAME.
+        %
+        % Text taller than the terminal would otherwise draw a frame off the
+        % bottom and take the layout with it. Clamping loses the tail, which is
+        % visible and fixable; drawing past the edge is neither.
+        %
+        % THE FRAME IS NOW OUT OF BOUNDS - rows 2..23 and columns 2..79, not
+        % 1..24 and 1..80. That is what makes closePanel cheap and provable:
+        % the only things a panel can cover are the status row, the two
+        % separators, the pane, the input line and the bar, and every one of
+        % those is a single call to put back. Allowing it over the border would
+        % mean repainting frame SEGMENTS, because frame() carries SPACE-FILL
+        % and would blank the whole screen on the way past.
+        IF w > scrWide - 2 THEN
+            scrWide - 2 =: w
         ENDIF
-        IF h > 24 THEN
-            24 =: h
+        IF h > 22 THEN
+            22 =: h
         ENDIF
 
-        % CENTRED. Integer division floors, so an odd remainder puts the
-        % window one column left of centre rather than off the edge.
+        % CENTRED INSIDE THE FRAME. Integer division floors, so an odd
+        % remainder puts the window one column left of centre rather than off
+        % the edge.
         (scrWide - w) / 2 + 1 =: col
         (24 - h) / 2 + 1 =: row
-        IF col < 1 THEN
-            1 =: col
+        IF col < 2 THEN
+            2 =: col
         ENDIF
-        IF row < 1 THEN
-            1 =: row
+        IF row < 2 THEN
+            2 =: row
         ENDIF
+
+        % KEEP IT. This is the whole fix - see the note beside the declarations.
+        row =: panRow
+        col =: panCol
+        h   =: panHigh
+        w   =: panWid
 
         % A VIEWPORT CLIPS, so everything below is in the panel's own
         % coordinates and nothing it draws can reach the room behind it.
@@ -3589,6 +4166,102 @@ $INCLUDE screen
         0 =: shadowWin
     ENDROUTINE
 
+    % =====================================================================
+    % CLOSE THE PANEL, AND PUT BACK ONLY WHAT IT COVERED
+    %
+    % This replaces a call to drawAll. drawAll rebuilds all 24 rows - frame,
+    % title, both separators, the whole pane, the status line, the bar and the
+    % input line - to undo a window that covered a fraction of that. It always
+    % looked correct, which is why it survived; it is also the flicker, and it
+    % is the reason Ronny reported "the whole fucking screen is repainted".
+    %
+    % The rectangle is known now (panRow/panCol/panHigh/panWid), so the work is
+    % exactly: erase it, put back the pieces that were under it, and stop. The
+    % panel is clamped inside the frame by drawPanel, so the frame itself can
+    % never be one of those pieces - which is what keeps this short.
+    %
+    % ORDER MATTERS, bottom up, the painter's algorithm: the separators sit
+    % under the pane rows in the sense that they are drawn on the same screen
+    % and must not be drawn over the top of it.
+    % =====================================================================
+    ROUTINE VOID, VOID : closePanel
+        INTEGER : i
+        INTEGER : prow
+        INTEGER : st
+        BOOLEAN : hitStatus
+        BOOLEAN : hitInput
+        BOOLEAN : hitBar
+        BOOLEAN : hitMid
+        BOOLEAN : hitBot
+
+        IF NOT panelUp THEN
+            RETURN
+        ENDIF
+
+        % ASKED WHILE THE PANEL IS STILL UP. rowCovered answers FALSE once the
+        % flag is cleared, so every question about what was underneath has to
+        % be asked before that happens.
+        rowCovered(statusPRow) =: hitStatus
+        rowCovered(inputPRow) =: hitInput
+        rowCovered(barPRow) =: hitBar
+        rowCovered(midRow) =: hitMid
+        rowCovered(botRow) =: hitBot
+
+        FALSE =: panelUp
+
+        % Erase exactly the rectangle it occupied. VTCREC is viewport-relative,
+        % so from inside the window the rectangle is simply the whole of it and
+        % there are no absolute corners left to get the wrong way round.
+        winEnter(panRow, panCol, panHigh, panWid)
+        VTCREC(1, 1, panHigh, panWid) =: st
+        winLeave
+
+        % The separators are one row each and cheap. fullbar is safe to repeat
+        % - unlike frame, which carries SPACE-FILL and would blank the screen.
+        winEnter(1, 1, 24, scrWide)
+        IF hitMid THEN
+            fullbar(midRow, 2, 1, scrWide - 2)
+        ENDIF
+        IF hitBot THEN
+            fullbar(botRow, 2, 1, scrWide - 2)
+        ENDIF
+        winLeave
+
+        % FORGET ONLY THE PANE ROWS THE PANEL COVERED.
+        %
+        % paintChat records a row as painted even when part of it was clipped
+        % away, which is right while the panel is up. Those rows - and only
+        % those - are now stale, so clearing their shadow is what makes the
+        % next paintChat repaint exactly the covered strip and nothing else.
+        % Minus two is used because minus one is a REAL value meaning "blank".
+        FOR i IN 0:msgRows - 1 DO
+            midRow + firstMsgRow + i - 1 =: prow
+            IF prow >= panRow AND prow <= panRow + panHigh - 1 THEN
+                0 - 2 =: rowShown(i)
+            ENDIF
+        ENDFOR
+        paintChat
+
+        % The one-row things, each only if it was under the panel. Both of the
+        % first two short-circuit on "nothing changed", so each needs its own
+        % invalidation or it would decide the row is already right - it is not,
+        % the panel was over it.
+        IF hitStatus THEN
+            0 - 1 =: lastRoomLen
+            drawStatus
+        ENDIF
+        IF hitInput THEN
+            TRUE =: inputDirty
+            drawInput
+        ENDIF
+        IF hitBar THEN
+            drawBar
+        ENDIF
+
+        flush
+    ENDROUTINE
+
+
     % An answer that arrived as a message: a heading, then the text wrapped.
     ROUTINE VOID, VOID (BYTES, INTEGER, INTEGER) : panelAnswer(head, at, n)
         panelClear
@@ -3607,6 +4280,65 @@ $INCLUDE screen
             RETURN
         ENDIF
         addSaid(starByte, uiBuf(0:uiLen - 1))
+    ENDROUTINE
+
+    % ANNOUNCE THE FIRST WELCOME, ONCE - moved here 2026-09-01 so the check
+    % and the flag it reads live in the SAME module.
+    %
+    % MEASURED: with firstWelcome EXPORTed and read back through an IMPORT in
+    % CHATARR.PLNC, this branch fired TWICE for one real join on a client that
+    % never touched the room a second time - firstWelcome AND cacheCount both
+    % read back as their INITIAL values on the second firing, which is not
+    % what a stray extra message would look like. A ROUTINE call across that
+    % same boundary is what every other line in this room already goes
+    % through - uiWord, uiWho2, uiNotice, addSaid - and none of those have
+    % ever misbehaved. The difference is DATA crossing the boundary versus
+    % CODE crossing it, so the fix is to stop asking CHATARR to read and write
+    % this module's own flag from the other side of it.
+    %
+    % ANSWERS TRUE THE ONE TIME IT ANNOUNCES, so the caller can still tell a
+    % genuine first join from a later room change without needing its own
+    % copy of the flag.
+    ROUTINE VOID, BOOLEAN : announceWelcome
+        % TEMPORARY - 2026-09-01. Counts every CALL, guard or no guard, so a
+        % second visible line can be told apart from a second real CALL.
+        welcomeCalls + 1 =: welcomeCalls
+        uiClear
+        IF welcomeCalls = 1 THEN
+            uiWord('[C1] ')
+        ENDIF
+        IF welcomeCalls = 2 THEN
+            uiWord('[C2] ')
+        ENDIF
+        IF welcomeCalls >= 3 THEN
+            uiWord('[C3+] ')
+        ENDIF
+        IF firstWelcome THEN
+            uiWord('fw=T ')
+        ELSE
+            uiWord('fw=F ')
+        ENDIF
+        IF cacheCount = 0 THEN
+            uiWord('cc=0 ')
+        ELSE
+            uiWord('cc>0 ')
+        ENDIF
+        uiWord('you are ')
+        uiWho2(myName, lenMyName)
+        IF lenMyMach > 0 THEN
+            uiWord(' on ')
+            uiWho2(myMachine, lenMyMach)
+        ENDIF
+        uiNotice
+
+        IF NOT firstWelcome THEN
+            FALSE RETURN
+        ENDIF
+        IF cacheCount >< 0 THEN
+            FALSE RETURN
+        ENDIF
+        FALSE =: firstWelcome
+        TRUE RETURN
     ENDROUTINE
 
     % PUT A LINE IN A WINDOW THAT MAY NOT BE THE ONE ON SCREEN.
@@ -3758,948 +4490,6 @@ $INCLUDE screen
         seen RETURN
     ENDROUTINE
 
-    % THE INNER HALF. Everything it renders goes into whatever window is
-    % current, which is exactly what it did before windows existed - it is the
-    % wrapper below that decides which window that is.
-    ROUTINE VOID, BOOLEAN : uiArrivedInner
-        % Which conversation window a private message belongs in. Zero means
-        % there was no room for one - see winFor.
-        INTEGER : dirWin
-        INTEGER : kind
-        INTEGER : nameLength
-        INTEGER : textLength
-        INTEGER : textAt
-
-        IF NOT screenOn THEN
-            FALSE RETURN
-        ENDIF
-
-        cmKind(inBuf) =: kind
-        cmNmLen(inBuf) =: nameLength
-
-        % THE SAME LENGTH GUARD THE LINE RENDERER USES, and for the same
-        % reason: nameLength is one byte and can say 255, which would read
-        % past the end of a message that never held that much.
-        %
-        % IT STAYS AHEAD OF cmTxLen ON PURPOSE. cmTxLen reads the two bytes at
-        % nameLength + 2, so calling it before this guard would do exactly the
-        % over-read the guard exists to prevent - the library clamps what it
-        % WRITES, and cannot know how many bytes actually arrived.
-        IF 2 + nameLength + 1 > readLength THEN
-            TRUE RETURN
-        ENDIF
-        cmTxLen(inBuf) =: textLength
-        cmTxAt(inBuf) =: textAt
-
-        % ---- somebody spoke -------------------------------------------
-        % A ZERO-LENGTH FIELD WOULD MAKE A REVERSED SUBARRAY - inBuf(2:1) -
-        % and PLANC checks no bounds, so it would be handed whatever that
-        % happens to mean. Both are built as a notice instead, which is also
-        % the more useful thing to show.
-        IF kind = kSaid THEN
-            uiSaid(2, nameLength, textAt, textLength)
-            TRUE RETURN
-        ENDIF
-
-        % REPLAYED HISTORY is drawn exactly like live traffic here, and that
-        % is a deliberate difference from the line renderer, which marks it
-        % with a bar. On a screen the lines above the newest ARE the past, so
-        % the mark says nothing the position does not.
-        IF kind = kHist THEN
-            uiSaid(2, nameLength, textAt, textLength)
-            TRUE RETURN
-        ENDIF
-
-        % ---- a direct message, and it stays marked ---------------------
-        %
-        % The stars are not decoration. A reply typed as an ordinary line goes
-        % to the whole room, so a private message that looks like room traffic
-        % is a privacy failure caused entirely by the display.
-        % A PRIVATE MESSAGE GETS ITS OWN WINDOW, one per person.
-        %
-        % It used to go in the room's buffer marked with stars. That worked,
-        % but it put one person's private conversation in the middle of
-        % everybody else's traffic, where it scrolls away behind lines that
-        % have nothing to do with it - and the stars had to carry the whole
-        % weight of saying "this one is not what it looks like".
-        %
-        % IF EVERY WINDOW IS TAKEN IT GOES IN THE ROOM, exactly as before.
-        % winFor answers zero for that, and the old path is still right there
-        % as the fallback rather than being an error case somebody has to
-        % have thought about.
-        IF kind = kDirGot THEN
-            winFor(2, nameLength) =: dirWin
-            IF dirWin > 0 THEN
-                putInWin(dirWin, 2, nameLength, textAt, textLength)
-            ELSE
-                uiClear
-                uiWord('*(')
-                uiFrom(2, nameLength)
-                uiWord(') ')
-                uiFrom(textAt, textLength)
-                uiNotice
-            ENDIF
-            TRUE RETURN
-        ENDIF
-
-        % YOUR OWN HALF OF THE CONVERSATION, in the same window as their half.
-        % Without this a window would hold one side of a conversation, which
-        % reads as a series of unanswered messages.
-        %
-        % The server sends this WITHOUT the text - it only confirms who it
-        % went to - so what is shown is the line as it was typed, which the
-        % send path kept for exactly this.
-        IF kind = kDirSent THEN
-            winFor(2, nameLength) =: dirWin
-            IF dirWin > 0 THEN
-                putSentInWin(dirWin)
-            ELSE
-                uiClear
-                uiWord('sent to ')
-                uiFrom(2, nameLength)
-                uiNotice
-            ENDIF
-            TRUE RETURN
-        ENDIF
-
-        IF kind = kDirBad THEN
-            uiClear
-            uiWord('NOT sent to ')
-            uiFrom(2, nameLength)
-            uiWord(': ')
-            uiFrom(textAt, textLength)
-            uiNotice
-            TRUE RETURN
-        ENDIF
-
-        % ---- who came and went -----------------------------------------
-        IF kind = kJoined THEN
-            % ONE MORE, WITHOUT ASKING. Asking the server on every arrival
-            % would put a letter on the wire for every join in the room, and
-            % the next /who corrects any drift anyway.
-            hereCount + 1 =: hereCount
-            uiClear
-            uiFrom(2, nameLength)
-            uiWord(' has joined')
-            uiNotice
-            TRUE RETURN
-        ENDIF
-
-        IF kind = kLeft THEN
-            % ONE FEWER, AND NEVER BELOW ZERO. A leave can arrive for somebody
-            % this client never saw join - it joined after them - and counting
-            % down past zero would show a negative in the status line.
-            IF hereCount > 0 THEN
-                hereCount - 1 =: hereCount
-            ENDIF
-            uiClear
-            uiFrom(2, nameLength)
-            uiWord(' has left')
-            uiNotice
-            TRUE RETURN
-        ENDIF
-
-        % A RENAME CARRIES THE NEW NAME IN THE NAME FIELD and the old one as
-        % the text - the order that is easiest to get backwards, which is why
-        % the C# golden test pins it.
-        IF kind = kRenOk THEN
-            uiClear
-            uiFrom(textAt, textLength)
-            uiWord(' is now ')
-            uiFrom(2, nameLength)
-            uiNotice
-            TRUE RETURN
-        ENDIF
-
-        % ---- the room itself -------------------------------------------
-        %
-        % The TOPIC answer names the ROOM in the name field where a nickname
-        % normally sits, so the name is not printed as a speaker here.
-        IF kind = kTopic THEN
-            % ONE KIND, TWO MEANINGS, and only this client knows which it is
-            % looking at. An ASKED-FOR topic is an answer to a question nobody
-            % else heard; a topic somebody SET is news for the whole room. The
-            % wire cannot tell them apart - the server sends the same kind - so
-            % the flag set when /topic was typed with no argument is what
-            % decides, and it is cleared whichever way this goes.
-            IF askedTopic THEN
-                FALSE =: askedTopic
-                IF textLength > 0 THEN
-                    panelAnswer('the topic', textAt, textLength)
-                ELSE
-                    panelClear
-                    panelAdd('the topic')
-                    panelAdd(' ')
-                    panelAdd('  none set')
-                    drawPanel
-                ENDIF
-                TRUE RETURN
-            ENDIF
-
-            uiClear
-            uiWord('topic: ')
-            IF textLength > 0 THEN
-                uiFrom(textAt, textLength)
-            ELSE
-                uiWord('none set')
-            ENDIF
-            uiNotice
-            TRUE RETURN
-        ENDIF
-
-        % ---- answers to a question, all one shape ----------------------
-        %
-        % who / everybody / rooms / map are readable text built by the server
-        % and are not parsed by anything here. They wrap across rows exactly
-        % as a long sentence does.
-        IF kind = kWho THEN
-            % THE COUNT IS TAKEN FROM THE ANSWER, not kept by this client.
-            % Whatever the server says is right, and it is right again every
-            % time somebody asks - so a count that has drifted repairs itself
-            % rather than needing to be got right for ever.
-            countNames(textAt, textLength) =: hereCount
-
-            % THE ONE THIS CLIENT ASKED FOR GOES IN A PANEL; the one it asked
-            % for ITSELF on the way in does not. Without that test the screen
-            % would open a window over the room the moment you joined, which
-            % nobody asked for and which would have to be dismissed before the
-            % first line could be read.
-            IF askedWho THEN
-                FALSE =: askedWho
-                panelAnswer('who is here', textAt, textLength)
-            ENDIF
-            TRUE RETURN
-        ENDIF
-
-        IF kind = kAllWho THEN
-            FALSE =: askedWho
-            panelAnswer('everybody, every room', textAt, textLength)
-            TRUE RETURN
-        ENDIF
-
-        IF kind = kRooms THEN
-            panelAnswer('rooms', textAt, textLength)
-            TRUE RETURN
-        ENDIF
-
-        IF kind = kMap THEN
-            panelAnswer('the machines', textAt, textLength)
-            TRUE RETURN
-        ENDIF
-
-        IF kind = kReject THEN
-            uiClear
-            uiWord('refused: ')
-            uiFrom(textAt, textLength)
-            uiNotice
-            TRUE RETURN
-        ENDIF
-
-        % kWelcome is NOT taken here. It sets serverMagic, joined and the
-        % machine name, and all of that lives in showArrived - so it falls
-        % through on purpose and the line renderer's own branch runs. Its
-        % printing goes to a screen that is about to be drawn over, which
-        % costs nothing.
-        %
-        % ANY OTHER KIND ALSO FALLS THROUGH, which is the right default: an
-        % unknown kind reaching the line renderer prints something a person
-        % can report, and reaching this one would vanish in silence.
-        FALSE RETURN
-    ENDROUTINE
-
-    % =====================================================================
-    % WHICH WINDOW AN ARRIVING MESSAGE BELONGS IN
-    %
-    % A ROOM LINE ALWAYS GOES IN WINDOW 1, whatever is on screen. Without
-    % this, reading a private conversation would quietly fill THAT window with
-    % the room's traffic - the room would appear to have moved, and going back
-    % to it would show a gap where the lines should be.
-    %
-    % A private message places itself, because only the handler knows whose
-    % conversation it is; those two kinds are left alone here.
-    %
-    % THE UNREAD COUNT IS THE DIFFERENCE IN LINES, not one per message. A long
-    % line becomes several cache lines, and a reader who sees "3" and finds one
-    % sentence learns not to trust the number.
-    % =====================================================================
-    ROUTINE VOID, BOOLEAN : uiArrived
-        INTEGER : prev
-        INTEGER : before
-        INTEGER : grew
-        INTEGER : what
-        BOOLEAN : handled
-
-        % READ FROM inBuf, not passed in. The inner routine reads its own kind
-        % the same way from the same byte, so there is no second copy that
-        % could disagree with it.
-        cmKind(inBuf) =: what
-        curWin =: prev
-
-        IF what = kDirGot OR what = kDirSent THEN
-            uiArrivedInner =: handled
-            handled RETURN
-        ENDIF
-
-        IF prev = 1 THEN
-            uiArrivedInner =: handled
-            handled RETURN
-        ENDIF
-
-        % Somebody is reading a conversation. Step into the room, put the line
-        % where it belongs, and step straight back out.
-        winSave
-        winUse(1)
-        cacheCount =: before
-        uiArrivedInner =: handled
-        cacheCount - before =: grew
-        winSave
-        winUse(prev)
-
-        IF grew > 0 THEN
-            winUnread(1) + grew =: winUnread(1)
-        ENDIF
-        handled RETURN
-    ENDROUTINE
-
-
-    ROUTINE VOID, VOID : showArrived
-        INTEGER : kind, nameLength, textLength, textAt, i
-        % Only the screen path uses this - the /who it asks for on the way in.
-        INTEGER : length
-        % Only used by the kRenOk branch: is this rename about US?
-        BOOLEAN : sameAsOurs
-        INTEGER : newLen
-
-        % ON A SCREEN TERMINAL THE RENDERER TAKES IT FIRST.
-        %
-        % uiArrived answers FALSE when it has not dealt with the message -
-        % which is every kind on a printing terminal, and the welcome and any
-        % unknown kind on a screen one - and then everything below runs exactly
-        % as it always has. THE LINE RENDERER IS NOT TOUCHED BY THIS, which is
-        % what makes it safe: it stays the reference for what should be shown
-        % and the fallback for a terminal that cannot address its cursor.
-        IF uiArrived THEN
-            RETURN
-        ENDIF
-
-        cmKind(inBuf) =: kind
-        cmNmLen(inBuf) =: nameLength
-
-        % THE JOIN IS ONE STEP, and a two-step handshake used to live here.
-        %
-        % It was added on the reading that "sending the join through XROUT does
-        % not put the nickname in front of the server" - that the server's
-        % connection port is handed a bare 4-byte connect, so a kHello reply was
-        % needed before the nickname could be sent. That reading was WRONG, and
-        % it was wrong because the SERVER was reading the wrong bytes: a letter
-        % arrives with its XSLET header still attached, and the server was
-        % parsing the header's serial number as a message kind.
-        %
-        % The nickname was in the first letter the whole time. sendJoin writes it
-        % after the header and the Programmer Guide is explicit that XROUT
-        % forwards it untouched. The server's WELCOME is the answer that hands
-        % over the magic number, which is all this side ever needed. See the
-        % header skip in CHATSV.PLNC for the layout and the manual reference.
-        %
-        % Nothing replaces this block: the welcome below already sets
-        % serverMagic, and always did.
-
-        % ---- TRUST NOTHING THAT ARRIVED, ON THIS SIDE TOO ------------------
-        % The server checks exactly these three things before it reads a name or
-        % a text; this side did not, and the reasoning is identical. inBuf holds
-        % 256 bytes and PLANC checks no array bound:
-        %
-        %   nameLength is ONE BYTE, so it can say 255. The name loop would then
-        %   read inBuf(2)..inBuf(256) - past the end - and textAt would already
-        %   be 257 before any text was touched.
-        %
-        %   textLength is TWO BYTES, so it can say 65535, and the text loop
-        %   would walk tens of thousands of bytes off the end of the array.
-        %
-        %   A SHORT message is the quieter half: without testing against
-        %   readLength the loops print whatever the previous, longer message
-        %   left behind in inBuf.
-        %
-        % "The server would never send that" is not a reason. A truncated
-        % message does it by accident, and a client that only survives a
-        % well-behaved peer is not one worth writing.
-        % Both tests are against readLength, which the read below clamps to the
-        % size of inBuf - so a field that fits the MESSAGE also fits the ARRAY.
-        IF 2 + nameLength + 1 > readLength THEN
-            RETURN
-        ENDIF
-
-        % READ ONLY AFTER THE GUARD ABOVE - cmTxLen fetches the two bytes at
-        % nameLength + 2, which is the over-read that guard prevents.
-        cmTxLen(inBuf) =: textLength
-        cmTxAt(inBuf) =: textAt
-
-        IF textAt + textLength > readLength THEN
-            RETURN
-        ENDIF
-
-        % The WELCOME is what reveals the server's address: everything after it
-        % goes straight there.
-        IF kind = kWelcome THEN
-            senderMagic =: serverMagic
-            TRUE =: joined
-
-            % THE WELCOME'S TEXT IS THE MACHINE THIS CLIENT IS ON. It was
-            % always empty before, so a server that has not been upgraded
-            % simply leaves this empty and the screen shows the name alone.
-            IF textLength > 0 THEN
-                textLength =: lenMyMach
-                IF lenMyMach > 16 THEN
-                    16 =: lenMyMach
-                ENDIF
-                FOR i IN 1:lenMyMach DO
-                    inBuf(textAt + i - 1) =: myMachine(i - 1)
-                ENDFOR
-
-                % REDRAW THE WHOLE FRAME, because the corner is painted by
-                % drawAll and drawAll ran before this arrived - the join is
-                % sent first and the welcome answers it. Without this the
-                % corner says TESTER for the rest of the session on a machine
-                % that has a perfectly good name.
-                %
-                % Once per session, so the cost does not matter.
-                IF screenOn THEN
-                    drawAll
-                    flush
-                ENDIF
-            ENDIF
-
-            % ASK WHO IS HERE, ONCE, so the status line starts out TRUE.
-            %
-            % The welcome is the first moment there is a seat to ask from. Only
-            % on a screen: the line renderer has no status line to fill, and an
-            % unasked-for /who answer printed at a user who did not type one
-            % would be noise.
-            IF screenOn THEN
-                buildOwn(kWho, 0) =: length
-                sendToServer(length)
-            ENDIF
-
-            % SAY WHO YOU ARE, ONCE, AND ONLY NOW THAT IT IS TRUE. The server
-            % has accepted the name, so this is a fact rather than a hope - see
-            % the note in setupName for what printing it early looked like.
-            % ON A SCREEN THIS GOES IN THE ROOM, NOT TO THE CURSOR.
-            %
-            % MEASURED on D100 2026-08-26: printed with OUTPUT while the frame
-            % was already up, it landed ON THE INPUT ROW -
-            %
-            %     > you are TESTER on FJELL  (/nick to change)
-            %
-            % because OUTPUT writes wherever the cursor happens to be, and the
-            % cursor is parked on the input line by drawInput. It used to be
-            % harmless: the welcome arrived before the first paint and was
-            % simply drawn over. It is not harmless now that the welcome also
-            % triggers a repaint.
-            %
-            % The corner already says TESTER@FJELL, so this is only the
-            % sentence - and a sentence belongs with the other sentences.
-            IF screenOn THEN
-                IF firstWelcome THEN
-                    FALSE =: firstWelcome
-                    uiClear
-                    uiWord('you are ')
-                    uiWho2(myName, lenMyName)
-                    IF lenMyMach > 0 THEN
-                        uiWord(' on ')
-                        uiWho2(myMachine, lenMyMach)
-                    ENDIF
-                    uiNotice
-                ELSE
-                    % A LATER WELCOME IS A ROOM CHANGE, and the lines above
-                    % belong to the room just left. Keeping them would put one
-                    % room's conversation under another room's name in the
-                    % status line and the bar - which is worse than losing
-                    % them, because it is not visibly wrong.
-                    %
-                    % They ARE lost, and that is the honest cost of one buffer
-                    % for one window. A buffer per window is what fixes it, and
-                    % that is the next phase rather than something to fake now.
-                    cacheClear
-
-                    % AND PAINT THE EMPTY ROOM AT ONCE.
-                    %
-                    % MEASURED on D100 2026-08-26: without this, the FIRST
-                    % line said in the new room was drawn into VTM's buffer
-                    % and stayed there - invisible - until the next terminal
-                    % READ flushed it. One keystroke, any keystroke, made it
-                    % appear. So it looked like the say had been lost, or the
-                    % client had gone deaf after a join, when in fact the
-                    % renderer had already done its work and nobody had asked
-                    % VTM to show it.
-                    %
-                    % A room change is rare, so a whole repaint here costs
-                    % nothing and leaves the screen in a state that agrees
-                    % with the buffer before the first new line arrives.
-                    drawAll
-                    flush
-                ENDIF
-            ELSE
-                OUTPUT(1, 'AL8', 'you are ')
-                showMyName
-
-                % AND WHICH MACHINE, when the server said. Without it the fact
-                % would be invisible on a printing terminal - a feature you
-                % cannot see is a feature you cannot test.
-                IF lenMyMach > 0 THEN
-                    OUTPUT(1, 'AL', ' on ')
-                    FOR i IN 1:lenMyMach DO
-                        myMachine(i - 1) =: oneChar(0)
-                        OUTPUT(1, 'AL1', oneChar)
-                    ENDFOR
-                ENDIF
-
-                OUTPUT(1, 'AL20', '  (/nick to change)$')
-            ENDIF
-
-            % RETURN, LIKE EVERY OTHER CASE IN THIS CHAIN.
-            %
-            % This branch had no RETURN, so after printing the welcome it walked
-            % on through every remaining test and fell into the printer at the
-            % bottom - which printed the sender's name and the welcome's empty
-            % text as
-            %
-            %     SYSTEM:
-            %
-            % That bare line was read as screen noise for two sittings, and the
-            % kJoined/kLeft branches were added on the theory that it was an
-            % arrival notice. It was not: it was THIS message, arriving once and
-            % being printed twice.
-            %
-            % IT WAS THE "unknown message kind: 2" DIAGNOSTIC THAT EXPOSED IT, on
-            % the first run after that diagnostic was added - kind 2 is kWelcome,
-            % a kind which plainly HAS a case, and a handled kind reaching the
-            % bottom of the chain can only mean the case did not stop. Making the
-            % silent path loud paid for itself immediately.
-            RETURN
-        ENDIF
-
-        % ---- OUR OWN NAME CHANGES ONLY WHEN THE ROOM SAYS SO ---------------
-        % A comment in handleCommand has promised this for as long as /nick has
-        % existed - "our own name changes only when the room says so, with
-        % kRenOk" - and nothing implemented it. The name in myName therefore
-        % stayed at the old one after a successful rename, so the next thing
-        % this client SENT went out under a name the room no longer knew.
-        %
-        % A Renamed carries the NEW name in the name field and the OLD one as
-        % its text, which is exactly what is needed to tell whether it is about
-        % us: compare the OLD name with what we currently believe we are called.
-        % Everybody in the room gets every Renamed, so without that test this
-        % client would take somebody else's new name for itself.
-        %
-        % This is also the ONLY place CHAT:CNFG is written. Saving when /nick is
-        % SENT would remember a name the server may be about to refuse - it
-        % refuses an empty one, and one already taken - so the save waits for
-        % the room's confirmation. A refused rename changes nothing, on screen
-        % or on disk.
-        IF kind = kRenOk THEN
-            IF textLength = lenMyName THEN
-                TRUE =: sameAsOurs
-                FOR i IN 1:textLength DO
-                    IF inBuf(textAt + i - 1) >< myName(i - 1) THEN
-                        FALSE =: sameAsOurs
-                    ENDIF
-                ENDFOR
-
-                IF sameAsOurs THEN
-                    % Bounded by the buffer, not by what arrived. A server that
-                    % sent a longer name than we can hold would otherwise write
-                    % past the end of myName - and the room's own limit and
-                    % this buffer are both sixteen, so a name that does not fit
-                    % here is one the room should never have accepted.
-                    nameLength =: newLen
-                    IF newLen > maxNameLen THEN
-                        maxNameLen =: newLen
-                    ENDIF
-                    FOR i IN 1:newLen DO
-                        inBuf(2 + i - 1) =: myName(i - 1)
-                    ENDFOR
-                    newLen =: lenMyName
-
-                    writeCnfg
-                ENDIF
-            ENDIF
-
-            % RETURN, for the same reason kWelcome now does. This branch had none
-            % either, so a rename would have printed nothing of its own and then
-            % fallen through to the bottom of the chain to be rendered as speech.
-            % Two of the seven cases were missing it; a check that every branch
-            % ends in RETURN is worth running whenever a case is added.
-            RETURN
-        ENDIF
-
-        % A BYTE HANDED TO 'AL1' PRINTS AS A NUMBER, NOT A CHARACTER.
-        %
-        % MEASURED on D100 2026-08-18, the first run in which the join actually
-        % completed: the welcome arrived, was received and released correctly,
-        % and printed as
-        %
-        %     8279787889: 7269767679
-        %
-        % which is 82 79 78 78 89 = RONNY and 72 69 76 76 79 = HELLO, each byte
-        % rendered as its decimal value. The message was perfect; only the
-        % printing was wrong, and it looked alarming enough to be mistaken for
-        % a decode fault.
-        %
-        % 'ALn' formats a STRING. inBuf(x) is a BYTE, so it takes the integer
-        % path. Copying the byte into a one-character BYTES first gives 'AL1'
-        % the string it is asking for. This uses nothing new - BYTES arrays,
-        % assignment and OUTPUT with ALn on a BYTES all appear above and all
-        % compile.
-        % THE /who ANSWER IS NOT A LINE SOMEBODY SAID, so it does not get the
-        % "$NAME: text" shape below. Its name field is empty on purpose - the
-        % room is answering, not a member - and the generic printer would open
-        % with a bare colon. Printed here and returned.
-        IF kind = kWho THEN
-            OUTPUT(1, 'AL10', '$CHAT: in ')
-            showRoom
-            OUTPUT(1, 'AL2', ': ')
-            FOR i IN 1:textLength DO
-                inBuf(textAt + i - 1) =: oneChar(0)
-                OUTPUT(1, 'AL1', oneChar)
-            ENDFOR
-            OUTPUT(1, 'AL1', '$')
-            RETURN
-        ENDIF
-
-        % THE TOPIC. Its NAME field carries the ROOM, not a person - it is the
-        % one message that is about a place - so it cannot use the speech
-        % printer either, and it must not print the room as if somebody with
-        % that name had spoken.
-        %
-        % An EMPTY text is not a blank topic, it is NO topic. Saying so in
-        % words beats printing "topic:" followed by nothing, which reads like
-        % something that failed to arrive.
-        IF kind = kTopic THEN
-            OUTPUT(1, 'AL13', '$CHAT: topic ')
-            % 2, not a nameAt local - showArrived has no such variable and the
-            % name field starts at index 2 in every message. Writing nameAt here
-            % drew "2465 (1805)/SHOWARRIVE *** ERROR - ILLEGAL SYNTAX", which is
-            % the compiler naming an undeclared identifier rather than a syntax
-            % problem. Compare the kReject branch below, which has always used
-            % inBuf(2 + i - 1).
-            FOR i IN 1:nameLength DO
-                inBuf(2 + i - 1) =: oneChar(0)
-                OUTPUT(1, 'AL1', oneChar)
-            ENDFOR
-            IF textLength = 0 THEN
-                OUTPUT(1, 'AL18', ' has no topic yet$')
-                RETURN
-            ENDIF
-            OUTPUT(1, 'AL2', ': ')
-            FOR i IN 1:textLength DO
-                inBuf(textAt + i - 1) =: oneChar(0)
-                OUTPUT(1, 'AL1', oneChar)
-            ENDFOR
-            OUTPUT(1, 'AL1', '$')
-            RETURN
-        ENDIF
-
-        % THE ROOM LIST. Empty name, like /who - the server is answering, not
-        % a member. The text is already "LOBBY(2) GENERAL(1)".
-        % /who WHEN YOU ARE IN NO ROOM - every room and the people in each.
-        %
-        % A SEPARATE KIND FROM kWho, and the branch above shows exactly why: it
-        % prints "CHAT: in (LOBBY): ..." using the room THIS CLIENT thinks it is
-        % in. Printing every room's people under that label would state
-        % something false - the same defect /who itself had until it learned to
-        % compare rooms. So this one carries no room label at all.
-        %
-        % NOTHING IS PARSED. The server sends it ready to read - rooms separated
-        % by two spaces, people by one - and a format nobody parses cannot be
-        % parsed wrongly.
-        %
-        % AN EMPTY TEXT IS A REAL ANSWER: nobody is anywhere. Said in words,
-        % because a bare "CHAT: everyone " reads like something that failed to
-        % arrive - the same reason kTopic spells out an absent topic.
-        IF kind = kAllWho THEN
-            IF textLength = 0 THEN
-                OUTPUT(1, 'AL29', '$CHAT: nobody is in any room$')
-                RETURN
-            ENDIF
-            OUTPUT(1, 'AL16', '$CHAT: everyone ')
-            FOR i IN 1:textLength DO
-                inBuf(textAt + i - 1) =: oneChar(0)
-                OUTPUT(1, 'AL1', oneChar)
-            ENDFOR
-            OUTPUT(1, 'AL1', '$')
-            RETURN
-        ENDIF
-
-        % REPLAYED HISTORY, and it is MARKED so it cannot be mistaken for
-        % somebody talking now.
-        %
-        % This is the whole reason the server sends a distinct kind instead of
-        % replaying kSaid. Printed like speech but with a leading marker, so a
-        % transcript reads:
-        %
-        %     | OLAV: what did you think of it
-        %     | ANNA: not much
-        %     OLAV joined
-        %     ANNA: hello again
-        %
-        % - everything before the join visibly older than everything after.
-        IF kind = kHist THEN
-            OUTPUT(1, 'AL3', '$| ')
-            FOR i IN 1:nameLength DO
-                inBuf(2 + i - 1) =: oneChar(0)
-                OUTPUT(1, 'AL1', oneChar)
-            ENDFOR
-            OUTPUT(1, 'AL2', ': ')
-            FOR i IN 1:textLength DO
-                inBuf(textAt + i - 1) =: oneChar(0)
-                OUTPUT(1, 'AL1', oneChar)
-            ENDFOR
-            OUTPUT(1, 'AL1', '$')
-            RETURN
-        ENDIF
-
-        % /map's answer. Printed as it stands, like the rooms list and the
-        % all-rooms /who: the server sends it ready to read and the client
-        % parses nothing.
-        IF kind = kMap THEN
-            OUTPUT(1, 'AL11', '$CHAT: map ')
-            FOR i IN 1:textLength DO
-                inBuf(textAt + i - 1) =: oneChar(0)
-                OUTPUT(1, 'AL1', oneChar)
-            ENDFOR
-            OUTPUT(1, 'AL1', '$')
-            RETURN
-        ENDIF
-
-        IF kind = kRooms THEN
-            OUTPUT(1, 'AL13', '$CHAT: rooms ')
-            FOR i IN 1:textLength DO
-                inBuf(textAt + i - 1) =: oneChar(0)
-                OUTPUT(1, 'AL1', oneChar)
-            ENDFOR
-            OUTPUT(1, 'AL1', '$')
-            RETURN
-        ENDIF
-
-        % A REFUSAL IS NOT SPEECH, AND MUST NOT BE PRINTED AS SPEECH.
-        %
-        % kReject carries the name that was REFUSED and the reason for it. There
-        % was no case for it here, so it fell through to the "<name>: <text>"
-        % printer below and came out as
-        %
-        %     OLAV: that nickname is taken
-        %
-        % which reads as OLAV saying those words in the room. He did not: the
-        % server said them ABOUT him. The name belongs where it is the SUBJECT,
-        % not in the slot reserved for whoever spoke, and the message has to say
-        % what to do next - a refusal the user cannot act on is just a wall.
-        IF kind = kReject THEN
-            % TWO REFUSALS ARRIVE HERE AND THEY MEAN DIFFERENT THINGS.
-            %
-            % If the user has NOT chosen a name this session, we joined under the
-            % name SINTRAN gave us - so "taken" means the SAME SINTRAN USER is
-            % already in the room from ANOTHER TERMINAL. That is worth saying in
-            % those words, because "that nickname is taken" sends someone hunting
-            % for a stranger who has stolen their name, when in fact it is their
-            % own second window.
-            %
-            % DECIDED 2026-08-22: refuse the second instance and say so plainly.
-            % Not auto-suffixed to SYSTEM-2, and not two sessions sharing one
-            % identity - both of those make identity per-INSTANCE, which the
-            % trunk would then have to keep distinct across machines.
-            %
-            % The user is NOT thrown out: /nick still works, so a second window
-            % can join under a name of its own if that is what was wanted.
-            IF NOT userChoseNick THEN
-                OUTPUT(1, 'AL1', '$')
-                FOR i IN 1:nameLength DO
-                    inBuf(2 + i - 1) =: oneChar(0)
-                    OUTPUT(1, 'AL1', oneChar)
-                ENDFOR
-                OUTPUT(1, 'AL37', ' is already in the room from another$')
-                OUTPUT(1, 'AL39', 'terminal - use /nick <name> to join as$')
-                OUTPUT(1, 'AL14', 'somebody else$')
-                RETURN
-            ENDIF
-
-            OUTPUT(1, 'AL1', '$')
-            OUTPUT(1, 'AL15', 'cannot join as ')
-            FOR i IN 1:nameLength DO
-                inBuf(2 + i - 1) =: oneChar(0)
-                OUTPUT(1, 'AL1', oneChar)
-            ENDFOR
-            OUTPUT(1, 'AL3', ' - ')
-            FOR i IN 1:textLength DO
-                inBuf(textAt + i - 1) =: oneChar(0)
-                OUTPUT(1, 'AL1', oneChar)
-            ENDFOR
-            OUTPUT(1, 'AL1', '$')
-            OUTPUT(1, 'AL33', 'use /nick <name> to pick another$')
-            RETURN
-        ENDIF
-
-        % ---- ARRIVALS AND DEPARTURES ARE EVENTS, NOT SPEECH -------------------
-        %
-        % These two had NO case at all and fell through to the "<name>: <text>"
-        % printer below, exactly as kReject once did. A join carries no text, so
-        % it came out as a bare
-        %
-        %     SYSTEM:
-        %
-        % which reads as somebody typing a colon and nothing else - screen noise
-        % rather than a bug, which is why it sat there unnoticed. It was seen on
-        % 2026-08-22 straight after a /nick and dismissed twice before the
-        % dispatch chain was actually read.
-        %
-        % THE NAME IS THE SUBJECT HERE, not the speaker, so it goes in front of a
-        % verb and never in front of a colon.
-        IF kind = kJoined THEN
-            OUTPUT(1, 'AL1', '$')
-            FOR i IN 1:nameLength DO
-                inBuf(2 + i - 1) =: oneChar(0)
-                OUTPUT(1, 'AL1', oneChar)
-            ENDFOR
-            OUTPUT(1, 'AL8', ' joined$')
-            RETURN
-        ENDIF
-
-        IF kind = kLeft THEN
-            OUTPUT(1, 'AL1', '$')
-            FOR i IN 1:nameLength DO
-                inBuf(2 + i - 1) =: oneChar(0)
-                OUTPUT(1, 'AL1', oneChar)
-            ENDFOR
-            OUTPUT(1, 'AL6', ' left$')
-            RETURN
-        ENDIF
-
-        % ---- SPEECH, AND ONLY SPEECH ------------------------------------------
-        %
-        % THE TEST IS EXPLICIT NOW, and that is the whole point. This used to be a
-        % bare fall-through that printed WHATEVER was left as "<name>: <text>", so
-        % every kind nobody had written a case for arrived here and was rendered
-        % as a person talking. Three separate bugs came out of that one habit:
-        % kReject as "OLAV: that nickname is taken", kJoined as a bare "SYSTEM:",
-        % and - the same blindness one layer up - writeCnfg hung off kRenOk
-        % while the server answers kWelcome, so /nick was confirmed and never
-        % saved.
-        %
-        % A KIND NOBODY HANDLES MUST BE LOUD. It produces no error from the
-        % compiler and none at run time, so the only way it ever gets noticed is
-        % if the program says so itself. tools/planc-lint.py now flags a kind that
-        % is declared and never used again, which would have caught all three
-        % before they reached the machine.
-        % A DIRECT MESSAGE, ADDRESSED TO ME PERSONALLY.
-        %
-        % MARKED SO IT CANNOT BE MISTAKEN FOR ROOM TRAFFIC, and that is not
-        % decoration: a reply typed as an ordinary line would go to the whole
-        % room, which is a privacy failure caused entirely by the display.
-        % The stars say it was private, and the name is printed QUALIFIED -
-        % D102!KARI - because that is exactly what has to be typed back.
-        IF kind = kDirGot THEN
-            OUTPUT(1, 'AL1', '$')
-            OUTPUT(1, 'AL2', '*(')
-            FOR i IN 1:nameLength DO
-                inBuf(2 + i - 1) =: oneChar(0)
-                OUTPUT(1, 'AL1', oneChar)
-            ENDFOR
-            OUTPUT(1, 'AL2', ') ')
-            FOR i IN 1:textLength DO
-                inBuf(textAt + i - 1) =: oneChar(0)
-                OUTPUT(1, 'AL1', oneChar)
-            ENDFOR
-            OUTPUT(1, 'AL1', '$')
-            RETURN
-        ENDIF
-
-        % DELIVERED, AND HERE IS WHO TO.
-        %
-        % Shown on EVERY direct message and not only the ambiguous ones. The
-        % server refuses an ambiguous name outright, which protects you when
-        % the collision is visible; this protects you when it is not - a second
-        % RONNY who logged in a moment ago, a machine that just went down. One
-        % line is a cheap price for a wrong delivery being visible at once
-        % rather than days later.
-        IF kind = kDirSent THEN
-            OUTPUT(1, 'AL1', '$')
-            OUTPUT(1, 'AL', 'sent to: ')
-            FOR i IN 1:nameLength DO
-                inBuf(2 + i - 1) =: oneChar(0)
-                OUTPUT(1, 'AL1', oneChar)
-            ENDFOR
-            OUTPUT(1, 'AL1', '$')
-            RETURN
-        ENDIF
-
-        % NOT DELIVERED, AND HERE IS WHY.
-        %
-        % The reason is printed as it arrived. For a name that means more than
-        % one person it is the CANDIDATE LIST, which is what makes the refusal
-        % usable: the sender retypes one of them straight off the screen.
-        IF kind = kDirBad THEN
-            OUTPUT(1, 'AL1', '$')
-            OUTPUT(1, 'AL', 'not sent to ')
-            FOR i IN 1:nameLength DO
-                inBuf(2 + i - 1) =: oneChar(0)
-                OUTPUT(1, 'AL1', oneChar)
-            ENDFOR
-            OUTPUT(1, 'AL2', ': ')
-            FOR i IN 1:textLength DO
-                inBuf(textAt + i - 1) =: oneChar(0)
-                OUTPUT(1, 'AL1', oneChar)
-            ENDFOR
-            OUTPUT(1, 'AL1', '$')
-            RETURN
-        ENDIF
-
-        IF kind = kSaid THEN
-            OUTPUT(1, 'AL1', '$')
-            FOR i IN 1:nameLength DO
-                inBuf(2 + i - 1) =: oneChar(0)
-                OUTPUT(1, 'AL1', oneChar)
-            ENDFOR
-            OUTPUT(1, 'AL2', ': ')
-            FOR i IN 1:textLength DO
-                inBuf(textAt + i - 1) =: oneChar(0)
-                OUTPUT(1, 'AL1', oneChar)
-            ENDFOR
-            OUTPUT(1, 'AL1', '$')
-            RETURN
-        ENDIF
-
-        OUTPUT(1, 'AL1', '$')
-        OUTPUT(1, 'AL23', 'unknown message kind: $')
-        OUTPUT(1, 'I6', kind)
-        OUTPUT(1, 'AL1', '$')
-
-        % AND THE FIRST BYTES, BECAUSE THE NUMBER ALONE CANNOT SETTLE IT.
-        %
-        % MEASURED 2026-08-22: kind 123 arrives on EVERY start-up, and the
-        % welcome line that should be there is MISSING - so 123 IS the welcome,
-        % mis-read, not an extra message. The same welcome parses correctly when
-        % it arrives LATER (on the /nick path), and both paths call the same
-        % drainPort. So the difference is ordinal: the FIRST message on the port
-        % is read differently from every one after it.
-        %
-        % 123 is 0x7B, '{' - a printable character sitting where a kind belongs,
-        % which is what a BODY byte looks like when every field has been shifted
-        % by an unskipped header. CHATSV carries a comment about exactly this
-        % class of fault on the SERVER side ("serial number instead of kJoin,
-        % which is how the missing header skip..."), so this may be its twin.
-        %
-        % These six bytes decide it. If they read as text or as the tail of a
-        % letter header, the shift is confirmed and the fix is a header skip on
-        % the first receive. If they look like a sane message that simply has an
-        % unexpected kind, the answer is somewhere else entirely.
-        %
-        % TEMPORARY. Delete once the question is answered - a dump nobody can
-        % turn off is noise, which is the mistake the status line already made.
-        OUTPUT(1, 'AL12', 'first six: $')
-        FOR i IN 0:5 DO
-            OUTPUT(1, 'I5', inBuf(i))
-        ENDFOR
-        OUTPUT(1, 'AL1', '$')
-    ENDROUTINE
 
     % -----------------------------------------------------------------------
     % Take everything the port is holding and print it, WITHOUT WAITING.
@@ -5075,6 +4865,18 @@ $INCLUDE screen
         ENDON
         FALSE =: sleepFailed
 
+        % Count this empty pass and pick the length from the run of them. The
+        % counter is cleared by the main loop the moment anything happens, so
+        % a busy client never reaches the long sleep at all.
+        IF idleRuns < idleRunsMax THEN
+            idleRuns + 1 =: idleRuns
+        ENDIF
+        IF idleRuns >= idleRunsMax THEN
+            sleepLong =: sleepUnits
+        ELSE
+            sleepShort =: sleepUnits
+        ENDIF
+
         MONITOR_CALL('TimeOut', sleepUnits, sleepKind, sleepWhy)
 
         IF sleepFailed AND NOT sleepBroken THEN
@@ -5086,6 +4888,16 @@ $INCLUDE screen
     ROUTINE VOID, VOID : drainPort
         XMMSGIDENTIFIER : msgIdent
         INTEGER : taken
+        % readStatus - 2026-09-01. returnStatus is one shared variable
+        % reused by xmpfrcv, xmpfmst, xmpfrea and xmpfrel in that order, so
+        % by the time anything downstream could look at it, xmpfrel has
+        % already overwritten whatever xmpfrea itself answered. Nothing
+        % checked the READ succeeding before trusting what it read into.
+        INTEGER : readStatus
+$IF DBGUI = 1 $THEN
+        % Instrument locals - see dbgShow beside slotAt.
+        INTEGER : dbgAt, dbgT0
+$ENDIF
 
         % THIS LOOP IS BOUNDED, and that is not caution for its own sake - the
         % unbounded version hung the client on the first live run. It kept being
@@ -5166,6 +4978,7 @@ $INCLUDE screen
             xmpfrea(0, 0, &
                 ADDR(inBuf(0)) FORCE XMUSERADDRESS, &
                 0, readAmount, readLength) =: returnStatus
+            returnStatus =: readStatus
             % A RETURN MESSAGE IS OUR OWN LETTER COMING BACK UNDELIVERED.
             % XMTRE is the type XMSG uses for "abnormal condition", and the
             % commonest reason a join bounces is that the peer does not have us
@@ -5190,7 +5003,62 @@ $INCLUDE screen
             % than on the user's screen. Put it back if this loop ever misbehaves
             % again: msgType and returnStatus are the two numbers that say why.
 
-            showArrived
+            % ---- THE HISTORY HEADER COMES OFF HERE, AND ONLY HERE ------
+            %
+            % READ THE TIME FIRST: trStrip slides the header away and the
+            % bytes are gone afterwards, exactly as with the relay fields.
+            %
+            % ONCE, at the arrival, NOT in the renderers. trStrip leaves the
+            % KIND byte in place, so a second call on the same buffer would
+            % happily strip another seven bytes - and there are two
+            % renderers, either of which may run. One call here cannot get
+            % that wrong.
+            %
+            % trStrip answers the length unchanged for a kind with no header,
+            % so this is safe to do for every message without a test.
+            FALSE =: msgIsHist
+            TRUE =: timeKnown
+            IF cmKind(inBuf) = kHist THEN
+                TRUE =: msgIsHist
+                hsHour(inBuf) =: histHour
+                hsMin(inBuf) =: histMin
+                IF hsYear(inBuf) = 0 THEN
+                    FALSE =: timeKnown
+                ENDIF
+            ENDIF
+
+            trStrip(inBuf, readLength, cmKind(inBuf)) =: readLength
+
+            % -1 MEANS THE MESSAGE WAS TOO SHORT FOR THE HEADER IT CLAIMED.
+            % Dropped rather than shown: reading on would take the middle of
+            % a truncated timestamp as a name length and build a plausible
+            % line out of rubbish, which is worse than losing one.
+            IF readLength < 0 THEN
+                0 =: readLength
+            ENDIF
+
+            % THE POINT OF readStatus. A read that did not actually
+            % succeed has not put anything new in inBuf - what is there is
+            % whatever the LAST successful read left, and parsing it again
+            % is how one real message would come back as every arrival
+            % after it. Nothing to show is the honest answer to a failed
+            % read, not the last thing that worked.
+            IF readStatus = XMOK AND readLength > 0 THEN
+$IF DBGUI = 1 $THEN
+                % The instrument - capture the arrival's first text byte
+                % BEFORE showArrived touches anything, paint after.
+                % See dbgShow beside slotAt.
+                cmTxAt(inBuf) =: dbgAt
+                0 =: dbgT0
+                IF dbgAt >= 0 AND dbgAt < 256 THEN
+                    inBuf(dbgAt) =: dbgT0
+                ENDIF
+$ENDIF
+                showArrived
+$IF DBGUI = 1 $THEN
+                dbgShow(cmKind(inBuf), readLength, dbgT0)
+$ENDIF
+            ENDIF
         ENDDO
 
         % How many this pass printed, for the main loop's idle test. Nothing
@@ -5234,8 +5102,19 @@ $INCLUDE screen
     % that test "/nickname" would match "/nick" and the rest be read as an
     % argument.
     % -----------------------------------------------------------------------
-    ROUTINE VOID, INTEGER (BYTES, INTEGER) : cmdIs(word, wordLen)
-        INTEGER : i, c, w
+    % THE LENGTH IS NOT A PARAMETER - THE KEYWORD IS ASKED FOR IT.
+    %
+    % Every caller passes a literal, and each one used to hand the count in
+    % beside it. Rename a command, or add one, and the number beside it is
+    % silently wrong: the build is clean and the match then runs over the wrong
+    % number of characters, so /nick could start matching /nickname or stop
+    % matching at all. The same trap as an 'ALn' field width.
+    %
+    % MAXINDEX(word, 1) is the DECLARED UPPER BOUND and a string literal
+    % subscripts from ZERO, so the length is that plus one.
+    ROUTINE VOID, INTEGER (BYTES) : cmdIs(word)
+        INTEGER : i, c, w, wordLen
+        MAXINDEX(word, 1) + 1 =: wordLen
 
         IF typedLen < wordLen + 1 THEN
             0 RETURN
@@ -5283,7 +5162,7 @@ $INCLUDE screen
         % Where the name ends and the message begins in a /tell.
         INTEGER : cut
 
-        IF cmdIs('HELP', 4) = 1 THEN
+        IF cmdIs('HELP') = 1 THEN
             % ON A SCREEN THE HELP IS A WINDOW, and it is built from the same
             % table the line renderer prints below - so the two can never say
             % different things, and the window is measured from the text
@@ -5340,7 +5219,7 @@ $INCLUDE screen
         % the note in the LEAVE branch.
         % ASKED BY HAND, so the answer is for this person and belongs in a
         % window rather than in everybody's room.
-        IF cmdIs('WHO', 3) = 1 THEN
+        IF cmdIs('WHO') = 1 THEN
             TRUE =: askedWho
             buildOwn(kWho, 0) =: length
             sendToServer(length)
@@ -5354,7 +5233,7 @@ $INCLUDE screen
         % are deciding where to go, and refusing to answer it then would be
         % refusing at the one moment it is useful. The server needs no seat to
         % answer - it walks the seats it already has.
-        IF cmdIs('LIST', 4) = 1 THEN
+        IF cmdIs('LIST') = 1 THEN
             buildOwn(kRooms, 0) =: length
             sendToServer(length)
             RETURN
@@ -5369,7 +5248,7 @@ $INCLUDE screen
         % READ-ONLY. There is deliberately no way to change a trunk from here -
         % START-TRUNK and STOP-TRUNK live in CHAT-MON, on the admin port, and
         % that separation is the whole reason /map is a room kind.
-        IF cmdIs('MAP', 3) = 1 THEN
+        IF cmdIs('MAP') = 1 THEN
             buildOwn(kMap, 0) =: length
             sendToServer(length)
             RETURN
@@ -5381,7 +5260,7 @@ $INCLUDE screen
         % Needs a room, because a topic belongs to one. The server refuses a
         % stranger in silence, so asking while unjoined would simply do nothing
         % at all - say why instead.
-        IF cmdIs('TOPIC', 5) = 1 THEN
+        IF cmdIs('TOPIC') = 1 THEN
             IF NOT joined THEN
                 OUTPUT(1, 'AL34', 'not in a room yet - wait or /join$')
                 RETURN
@@ -5416,7 +5295,7 @@ $INCLUDE screen
             RETURN
         ENDIF
 
-        IF cmdIs('JOIN', 4) = 1 THEN
+        IF cmdIs('JOIN') = 1 THEN
             6 =: at
             typedLen - at =: argLen
             IF argLen < 1 THEN
@@ -5452,7 +5331,7 @@ $INCLUDE screen
             RETURN
         ENDIF
 
-        IF cmdIs('NICK', 4) = 1 THEN
+        IF cmdIs('NICK') = 1 THEN
             6 =: at
             typedLen - at =: argLen
             IF argLen < 1 THEN
@@ -5555,7 +5434,7 @@ $INCLUDE screen
         % the one you want is annoying with four open. The command is also the
         % only form that works on a printing terminal, which has no bar to
         % look at but can still hold a conversation.
-        IF cmdIs('W', 1) = 1 OR cmdIs('WINDOW', 6) = 1 THEN
+        IF cmdIs('W') = 1 OR cmdIs('WINDOW') = 1 THEN
             IF NOT screenOn THEN
                 OUTPUT(1, 'AL', 'windows need a screen terminal$')
                 RETURN
@@ -5587,7 +5466,7 @@ $INCLUDE screen
         % THE ROOM CANNOT BE CLOSED. It is where a plain line goes when no
         % conversation is open, and a client with no window at all would have
         % nowhere to put an arriving room line.
-        IF cmdIs('CLOSE', 5) = 1 THEN
+        IF cmdIs('CLOSE') = 1 THEN
             IF curWin = 1 THEN
                 OUTPUT(1, 'AL', 'the room window stays open$')
                 RETURN
@@ -5609,7 +5488,7 @@ $INCLUDE screen
             RETURN
         ENDIF
 
-        IF cmdIs('TELL', 4) = 1 THEN
+        IF cmdIs('TELL') = 1 THEN
             IF NOT joined THEN
                 OUTPUT(1, 'AL34', 'not in a room yet - wait or /join$')
                 RETURN
@@ -5668,7 +5547,7 @@ $INCLUDE screen
             RETURN
         ENDIF
 
-        IF cmdIs('LEAVE', 5) = 1 THEN
+        IF cmdIs('LEAVE') = 1 THEN
             IF NOT joined THEN
                 OUTPUT(1, 'AL20', 'not in the room yet$')
                 RETURN
@@ -5709,7 +5588,7 @@ $INCLUDE screen
         % test.
         %
         % Neither is a prefix of any other command, so /e and /q both work.
-        IF cmdIs('EXIT', 4) = 1 OR cmdIs('QUIT', 4) = 1 THEN
+        IF cmdIs('EXIT') = 1 OR cmdIs('QUIT') = 1 THEN
             IF joined THEN
                 buildOwn(kLeave, 0) =: length
                 sendToServer(length)
@@ -6160,9 +6039,12 @@ $INCLUDE screen
                 % the room is painted back.
                 IF panelUp THEN
                     IF ch >< 0 THEN
-                        FALSE =: panelUp
-                        drawAll
-                        flush
+                        % closePanel, NOT drawAll. It clears the rectangle,
+                        % puts back the separators, the pane rows and the one
+                        % or two single rows that were actually underneath, and
+                        % flushes. drawAll here rebuilt all 24 rows to undo a
+                        % window covering a fraction of them.
+                        closePanel
                         0 =: ch
                     ENDIF
                 ENDIF
@@ -6322,28 +6204,44 @@ $INCLUDE screen
             % keyboard.
             IF lineReady OR lastDrainCount > 0 THEN
                 IF screenOn THEN
-                    % NOT WHILE A PANEL IS UP. Repainting the room would draw
-                    % straight over the window the user is reading, and the
-                    % lines are safe in the cache until they close it.
-                    IF NOT panelUp THEN
-                        IF lastDrainCount > 0 THEN
-                            paintChat
+                    % THE ROOM KEEPS SCROLLING BEHIND AN OPEN WINDOW.
+                    %
+                    % This whole block used to sit under "IF NOT panelUp", so a
+                    % line arriving during /help or /who went into the cache and
+                    % never onto the screen until the window was closed. That
+                    % reads as a lost message. Its comment said repainting would
+                    % draw over the window - true of the paint AS IT WAS, which
+                    % had no clipping, so the guard was a workaround for the
+                    % missing rectangle and not a decision about behaviour.
+                    %
+                    % paintChat clips now, so it is safe to call with a panel up
+                    % and the covered strip is simply skipped. The three
+                    % SINGLE-ROW draws below do NOT clip - each lays out a whole
+                    % row at once - so each is asked whether the panel is over
+                    % its row, and closePanel puts back whichever were skipped.
+                    IF lastDrainCount > 0 THEN
+                        paintChat
 
-                            % THE BAR CARRIES THE NEWS ABOUT WINDOWS YOU ARE
-                            % NOT LOOKING AT - a conversation that just
-                            % opened, an unread count, the star. None of that
-                            % is on the pane, so an arrival that never redrew
-                            % the bar left a private message sitting in a
-                            % window nothing on screen mentioned.
-                            %
-                            % Only on a real arrival, and drawBar itself is
-                            % one short row.
+                        % THE BAR CARRIES THE NEWS ABOUT WINDOWS YOU ARE
+                        % NOT LOOKING AT - a conversation that just
+                        % opened, an unread count, the star. None of that
+                        % is on the pane, so an arrival that never redrew
+                        % the bar left a private message sitting in a
+                        % window nothing on screen mentioned.
+                        %
+                        % Only on a real arrival, and drawBar itself is
+                        % one short row.
+                        IF NOT rowCovered(barPRow) THEN
                             drawBar
                         ENDIF
-                        drawStatus
-                        drawInput
-                        flush
                     ENDIF
+                    IF NOT rowCovered(statusPRow) THEN
+                        drawStatus
+                    ENDIF
+                    IF NOT rowCovered(inputPRow) THEN
+                        drawInput
+                    ENDIF
+                    flush
                 ELSE
                     showPrompt
                 ENDIF
@@ -6362,6 +6260,12 @@ $INCLUDE screen
             % and then only a fifth of a second.
             IF lastDrainCount = 0 AND typedLen = 0 AND NOT lineReady THEN
                 idleSleep
+            ELSE
+                % SOMETHING HAPPENED, so the next idle pass starts short again.
+                % This is the half of the back-off that makes it worth having:
+                % without it the client would still be in its long sleep at the
+                % exact moment the server's answer to the line just sent lands.
+                0 =: idleRuns
             ENDIF
 
             % /quit clears this. The continue-test goes LAST so the leave
@@ -6494,3 +6398,4 @@ ENDMODULE
 %     up in practice, the handler above prints and carries on rather than
 %     mistaking it for a keystroke.
 % ---------------------------------------------------------------------------
+

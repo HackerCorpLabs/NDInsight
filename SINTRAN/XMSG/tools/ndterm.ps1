@@ -1,6 +1,6 @@
 # Drives a live SINTRAN terminal over a RetroCore TCP terminal port, in ONE connection.
 #
-# Why one connection: reconnecting while a program is running wedges the line. So the whole
+# Why one connection: reconnecting while a program is running hangs the line. So the whole
 # interaction - ESC, login, commands, logout - happens on a single socket opened once and closed
 # once at the end.
 #
@@ -54,7 +54,7 @@ param(
     [int]$StepWaitTimeoutMs = 60000,
 
     # How long the login waits for each of ITS OWN prompts (ENTER, then PASSWORD:). Short, because
-    # a login that has not prompted within this long is wedged, not slow.
+    # a login that has not prompted within this long is hung, not slow.
     [int]$LoginPromptTimeoutMs = 45000,
 
     [switch]$NoLogin,
@@ -163,7 +163,7 @@ Write-Output "--- on connect ---"
 Write-Output (Read-Available $OpenWaitMs)
 
 # ESC first. A fresh connection shows only the RetroCore banner; ESC produces the SINTRAN banner
-# and the ENTER prompt. ESC also recovers a wedged line.
+# and the ENTER prompt. ESC also recovers a hung line.
 $stream.Write([byte[]](0x1B), 0, 1)
 $stream.Flush()
 
@@ -180,6 +180,30 @@ if (-not $NoLogin) {
     Write-Output "--- after ESC, waiting for ENTER (or @ if already logged in) ---"
     $woke = Read-UntilAny @("ENTER", "@") $LoginPromptTimeoutMs
     Write-Output $woke.Text
+
+    if ($woke.Matched -eq "") {
+        # NEITHER PROMPT CAME BACK, SO WE DO NOT KNOW WHAT IS ON THIS LINE. STOP.
+        #
+        # This used to fall through to the login branch and TYPE THE USER NAME ANYWAY, on the
+        # assumption that "not @" means "needs a login". It does not. A terminal running a
+        # full-screen program answers neither prompt, and on 2026-08-28 that put SYSTEM,
+        # FILE-STATISTICS and LOGOUT into the LOBBY of the running CHAT CLIENT on D102 and
+        # D103 - as chat lines, which then crossed the trunk to the other machines. It ran
+        # four times before anyone looked at the transcript, because the script reported the
+        # timeout and carried on regardless.
+        #
+        # A timeout here is not a slow machine. It is a line doing something else, and the only
+        # safe move is to send nothing at all. The caller can look at the screen with the
+        # retroterm MCP and decide.
+        Write-Output ""
+        Write-Output "*** ndterm: REFUSING TO LOG IN - neither ENTER nor @ came back. ***"
+        Write-Output "    This line is not at a SINTRAN prompt. Something else is using it -"
+        Write-Output "    very often a full-screen program such as the chat client, in which"
+        Write-Output "    case anything typed here is SAID INTO THE ROOM, not run as a command."
+        Write-Output "    Nothing was sent. Look at the screen before using this port again."
+        $client.Close()
+        exit 5
+    }
 
     if ($woke.Matched -eq "@") {
         # Already logged in from an earlier session. Do NOT send the user name - it would be run as

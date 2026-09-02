@@ -1,5 +1,10 @@
-% A file holding exactly the two faults the new linter checks were written for,
-% both taken from real code that compiled clean and ran.
+% A file holding exactly the faults the linter checks were written for, every
+% one taken from real code that compiled and ran.
+%
+% RUN IT AND IT MUST REPORT 6 PROBLEMS. Fewer means a check has stopped
+% working; more means a check has grown a false alarm.
+%
+%     python tools\planc-lint.py toolsixtures\LINT-BADCASE.PLNC
 MODULE badcase
 
     EXPORT cmTxLen
@@ -11,12 +16,30 @@ MODULE badcase
 
     INTEGER : passed
 
+    % A MISPLACED EXPORT. It reads perfectly well beside the thing it exports,
+    % and PLANC answers *** ERROR - MISPLACED STATEMENT "EXPORT" - after which
+    % the module still links with no undefined entries, runs, and passes its
+    % own tests. Measured on D100 2026-08-27 with ten of them at once.
+    EXPORT lateExp
+    INTEGER : lateExp := 7
+
+    % AN ADDRESS FORCED TO 32 BITS. An address here is a 16-bit INTEGER, so this
+    % draws *** WARNING - ILLEGAL DATA-ELEMENT TO BE CONVERTED - a WARNING, so the
+    % build carries on and the value gets a word of adjacent memory on top of it.
+    % Measured 2026-08-27: two published conclusions had to be withdrawn because
+    % that junk was STABLE across builds and read as a real measurement.
+    INTEGER4 : addrHolder
+
     ROUTINE VOID, VOID (BYTES, INTEGER, INTEGER) : check(what, got, want)
         passed + 1 =: passed
     ENDROUTINE
 
     ROUTINE VOID, INTEGER (BYTES) : cmTxLen(b)
         b(1) RETURN
+    ENDROUTINE
+
+    ROUTINE VOID, VOID (BYTES) : badAddr(b)
+        ADDR(b(0)) FORCE INTEGER4 =: addrHolder
     ENDROUTINE
 
     ROUTINE VOID, INTEGER (BYTES, INTEGER) : cmTxLenN(b, arrived)

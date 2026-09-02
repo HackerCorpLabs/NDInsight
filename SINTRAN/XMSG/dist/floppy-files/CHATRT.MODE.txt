@@ -1,0 +1,60 @@
+@cc ===========================================================================
+@cc CHATRT:MODE - RT-load the chat server from the four files on the install
+@cc floppy, once they have been copied to (SYSTEM).
+@cc
+@cc   @MODE CHATRT:MODE,,
+@cc
+@cc It is the same step list tools\rt-load.ps1 types from Windows. THREE THINGS
+@cc TO SET BEFORE RUNNING IT - edit this file:
+@cc
+@cc   2529      the segment number, in NEW-SEGMENT, every LOAD, and the
+@cc             CHANGE-RT-DESCRIPTION answer. It must be FREE: NEW-SEGMENT
+@cc             allocates a free segment and never reopens one. RELEASE-SEGMENT
+@cc             first frees the number a previous server sat on.
+@cc   FJELL     what this machine calls itself (SET-NAME)
+@cc   102, 103  the system numbers of the peers to trunk to (START-TRUNK)
+@cc
+@cc The server must NOT be running when this runs. CHANGE-RT-DESCRIPTION refuses
+@cc to touch a running program, says so once, and everything after still reports
+@cc success - so ABORT comes first.
+@cc
+@cc CHANGE-RT-DESCRIPTION prompts in this order: RT-PROGRAM, PRIORITY, SEGMENT
+@cc ONE, SEGMENT TWO, START ADDRESS, RING, INITIAL PAGE TABLE, ALTERNATIVE PAGE
+@cc TABLE. START ADDRESS is left BLANK - a ring number typed there starts the
+@cc program inside its own data and it dies with STACK OVERFLOW.
+@cc
+@cc NOT YET RUN AS A MODE FILE. The step list is proved (rt-load.ps1 has typed
+@cc it many times); driving the RT-LOADER from a MODE file has not been tried.
+@cc If it hangs, type the same lines by hand.
+@cc ===========================================================================
+@ABORT CHATSER
+@RT-LOADER
+RELEASE-SEGMENT 2529
+NEW-SEGMENT 2529,2,,,
+LOAD CHATSV,2529,
+Y
+LOAD CHATLIB,2529,
+LOAD XMP-100-1-B02,2529,
+LOAD MON-CALL-1B-A00,2529,
+LOAD PLANC-1BANK-F00,2529,
+END-LOAD
+CHANGE-RT-DESCRIPTION
+CHATSER
+75
+2529
+
+
+
+2
+
+
+EXIT-LOADER
+@RT CHATSER
+@LIST-RT-DESCRIPTION CHATSER
+@CHAT-MON
+SET-NAME FJELL
+START-TRUNK 102
+START-TRUNK 103
+LIST-TRUNKS
+EXIT
+@cc CHATSER should show IN TIME QUEUE above, and LIST-TRUNKS the two peers.

@@ -111,7 +111,7 @@ caller that expects a reply value back from `HandleFrame` is assuming the modell
 command-vs-register trap you warned me about, in its other form.
 
 Two more, made visible rather than left to be debugged: the card only advances when `Run()` is
-called, so a host that never runs it looks exactly like a card that is powered but wedged; and a full
+called, so a host that never runs it looks exactly like a card that is powered but hung; and a full
 receive FIFO looks exactly like a card ignoring commands, so overruns are counted in `FramesDropped`
 instead of being swallowed.
 

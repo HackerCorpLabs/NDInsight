@@ -115,6 +115,30 @@ Every message IS serviced and answered - `N5STA` transitions `1 (MSGN5) -> 2 (WA
 sequence completes. Then SINTRAN waits forever and the ND-5000 stays `PC=0 stopMode=WAIT`:
 **no activation (`3START`, MICFU `0x13`) is ever sent**, so the swapper is never started.
 
+> **[STALE - CORRECTED 2026-09-01, ND5000UC standoff 189.] The half of this sentence about
+> `3START` is NO LONGER TRUE on the octobus lane.** Decoding a `place-domain` run in order (not
+> counting it) gives:
+>
+>     CACHE(12B) -> PHYSWR(31B) x13 over 0x96..0xC4 -> 3START(23B) -> 3RMICV -> 3MONCO(24B)
+>     -> 3RMICV x~108 to the end of the run
+>
+> So `3START` **IS** sent, immediately after the 13-word block below, the swapper **runs**, and it
+> takes **one** monitor call - genuinely forwarded, not canned (`posted=2 seen=1 taken=1`, so the
+> `Seen > Taken` gap is absent). What survives unchanged is the "waits forever with nothing but
+> watchdogs" half.
+>
+> **Why this correction is a banner rather than an edit:** the true half and the false half sit in
+> ONE sentence, so the accurate "watchdogs forever" lends its credibility to the inaccurate "never
+> sends 3START". A reader today would hunt for a missing `3START`, find it present, and lose time
+> deciding which half to disbelieve. The observation was correct when written; the lane moved.
+>
+> Also answered below: **`0x96..0xC4` is written immediately before `3START`** - it is the
+> start-swapper verify block, and the 13 writes complete and pass.
+>
+> Current state: the swapper starts, runs, parks after one monitor call, and a `3SWMESS` node sits
+> unconsumed at `SWPPING(6)` while `5ACTSWAPPER` has run twice. See standoff sections 185-189 in
+> ND5000UC: docs/OCTOBUS-SWAPPER-STANDOFF-2026-08-28.md
+
 ## OPEN - the next question, and do NOT guess it
 
 **What is ND-500 physical `0x96..0xC4`?** 13 consecutive 32-bit words that SINTRAN writes and

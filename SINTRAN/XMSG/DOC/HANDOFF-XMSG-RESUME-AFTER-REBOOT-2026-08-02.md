@@ -20,7 +20,7 @@ The `RetroCore.ini` files tell you the ports: `tcp start <telnet>`,
 essentials: connect, **send ESC first** (a fresh connection shows only a RetroCore banner; ESC
 produces the SINTRAN banner and `ENTER`), log in, then answer prompts **one field at a time** —
 do not pass comma-separated arguments. Only one connection at a time; reconnecting mid-program
-wedges the line and ESC is what recovers it.
+hangs the line and ESC is what recovers it.
 
 For the XMSG machines specifically, the transport is set in the ini:
 `device add ETH 0 --net=udp` (multicast 239.3.9.4:3094, **not capturable on the same host**),

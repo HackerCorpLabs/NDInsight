@@ -1,0 +1,777 @@
+     1          % =========================================================================
+     2          % CHATLIB - the chat wire format, in ONE place, separately compiled.
+     3          %
+     4          % WHY THIS EXISTS, and it is not tidiness.
+     5          %
+     6          % 1. THE PROTOCOL WAS DECLARED TWICE. The client names 24 message kinds and
+     7          %    the server 35, with TWENTY in both. They agree today only because
+     8          %    somebody keeps checking; nothing makes them agree. A kind that drifts
+     9          %    does not fail loudly - an unhandled kind is SILENT, which is the worst
+    10          %    failure this product has. Declared here and IMPORTed by both, a mismatch
+    11          %    becomes a LINK error, and LIST-ENTRIES-UNDEFINED already runs in every
+    12          %    link we do.
+    13          %
+    14          % 2. IT MAKES SMALL TEST PROGRAMS POSSIBLE, which is the bigger prize. The
+    15          %    whole client is 6400 lines and takes about TWENTY MINUTES to compile, so
+    16          %    every one-line change has been tested by building the entire product and
+    17          %    driving two live machines. A program that links this library and checks
+    18          %    the codec builds in EIGHT SECONDS - measured with SPLITTEST - and needs
+    19          %    no XMSG, no server and nobody typing. See CHATTEST.PLNC.
+    20          %
+    21          % THE WIRE SHAPE, taken from the client's buildOwn and the server's
+    22          % buildFromSlot, which independently built the same thing:
+    23          %
+    24          %   byte 0            kind
+    25          %   byte 1            name length
+    26          %   bytes 2..         the name
+    27          %   next two bytes    text length, HIGH byte then LOW
+    28          %   then              the text
+    29          %
+    30          % The length is two bytes and the high one has always been zero in practice,
+    31          % because a message never approaches 256 characters. It is written and read as
+    32          % two bytes anyway - the format says two, and a reader that assumed one would
+    33          % be wrong the first time somebody sent a long line.
+    34          %
+    35          % NAMES ARE UNIQUE IN SEVEN CHARACTERS ACROSS A BRF BOUNDARY, so everything
+    36          % exported here is six or seven long and distinct within that. cmEnc, cmKind,
+    37          % cmNmLen, cmTxAt, cmTxLen.
+    38          % =========================================================================
+    39          % AN ADDRESS ON THIS MACHINE IS 16 BITS. THAT IS THE WHOLE STORY HERE.
+    40          %
+    41          % ADDR(buf(0)) FORCE INTEGER4 draws
+    42          %     *** WARNING - ILLEGAL DATA-ELEMENT TO BE CONVERTED
+    43          % and so does forcing to any 32-bit alias of INTEGER4. The reason is a width
+    44          % mismatch, not the name: the product's own working calls force to
+    45          % XMUSERADDRESS, and XMP-B02:IMPT declares
+    46          %
+    47          %     TYPE XMUSERADDRESS = INTEGER          % NB: NEW MC68000 compiler!!
+    48          %
+    49          % INTEGER - SIXTEEN BITS. The line above it in that file reads
+    50          %
+    51          %     %        modify XMUSERADDRESS = INTEGER4                      %
+    52          %
+    53          % which is a COMMENT telling you to widen it FOR THE MC68000. Reading that
+    54          % commented instruction as the declaration is what produced a 32-bit force, a
+    55          % warning on every ADDR line, and two meaningless numbers that reproduced
+    56          % perfectly across builds because the adjacent word was stable.
+    57          %
+    58          % This library deliberately does not include XMP-B02:DEFS, because it links into
+    59          % the test program which has no XMSG at all, so it declares its own of the same
+    60          % width. TYPE outside a MODULE is a compiler-level thing, globally available and
+    61          % not linked (manual 8.7 p.223), so it costs the test build nothing.
+    62          TYPE xrAddr = INTEGER
+    63          MODULE chatlib
+    64          
+    65              EXPORT cmEnc
+    66              EXPORT cmEncAt
+    67              EXPORT cmEncTo
+    68              EXPORT trHLen
+    69              EXPORT trOrig
+    70              EXPORT trHops
+    71              EXPORT trId
+    72              EXPORT trStrip
+    73              EXPORT xrClamp
+    74              EXPORT xrAddrOf
+    75              EXPORT trEnc
+    76              EXPORT cmKind
+    77              EXPORT cmNmLen
+    78              EXPORT cmTxAt
+    79              EXPORT cmTxLen
+    80              EXPORT cmLenN
+    81              EXPORT cmSane
+    82              EXPORT hsSec
+    83              EXPORT hsMin
+    84              EXPORT hsHour
+    85              EXPORT hsDay
+    86              EXPORT hsMon
+    87              EXPORT hsYear
+    88          
+    89              % ---- THE MESSAGE KINDS ----------------------------------------------
+    90              %
+    91              % ALL TWENTY that the client and the server BOTH declared. They agreed
+    92              % only because somebody kept checking; nothing made them agree, and an
+    93              % unhandled kind is SILENT - the worst failure this product has. Declared
+    94              % here and IMPORTed by both, a drift becomes a LINK error instead, and
+    95              % LIST-ENTRIES-UNDEFINED already runs in every link.
+    96              %
+    97              % THE NUMBERS ARE THE WIRE AND MAY NEVER BE RENUMBERED. A machine running
+    98              % an older build is on the other end of the trunk and will read whatever
+    99              % it is sent. CHATTST asserts every one of these values for that reason -
+   100              % a test that only checks a round trip would happily agree with a renumber.
+   101              %
+   102              % TWO NAMES CHANGED, and only because they could not cross a BRF boundary:
+   103              % names are unique in SEVEN characters there, so kRename/kRenamed both
+   104              % read KRENAME and kDirect/kDirected both read KDIRECT. The SECOND of each
+   105              % pair was renamed - kRenamed became kRenOk, kDirected became kDirGot -
+   106              % which is two renames rather than four.
+   107              EXPORT kJoin
+   108              EXPORT kWelcome
+   109              EXPORT kReject
+   110              EXPORT kSay
+   111              EXPORT kSaid
+   112              EXPORT kLeave
+   113              EXPORT kJoined
+   114              EXPORT kLeft
+   115              EXPORT kRename
+   116              EXPORT kRenOk
+   117              EXPORT kWho
+   118              EXPORT kMap
+   119              EXPORT kRooms
+   120              EXPORT kTopic
+   121              EXPORT kAllWho
+   122              EXPORT kHist
+   123              EXPORT kDirect
+   124              EXPORT kDirGot
+   125              EXPORT kDirSent
+   126              EXPORT kDirBad
+   127          
+   128              % THE TRUNK KINDS ARE EXPORTED HERE, WITH THE REST, AND NOT BESIDE THEIR
+   129              % OWN DECLARATIONS FURTHER DOWN - WHERE THEY READ BETTER AND DO NOT WORK.
+   130              %
+   131              % EXPORT obeys the same rule as IMPORT: it belongs in the block BEFORE any
+   132              % ordinary declaration. Ten of them sat under their own comment after the
+   133              % client kinds were declared, and every one drew
+   134              %
+   135              %     131  *** ERROR   - MISPLACED STATEMENT "EXPORT"
+   136              %
+   137              % MEASURED 2026-08-27, and the reason it survived a whole build cycle is
+   138              % worth more than the fix: the linker reported NO undefined entries, the
+   139              % test program ran, and all 139 checks PASSED - including the ones that
+   140              % read kTrkRly back as 52. A compile with ten errors linked and ran and
+   141              % said 'codec is good'. Only the LISTING said otherwise.
+   142              EXPORT kTrkHello
+   143              EXPORT kTrkWho
+   144              EXPORT kTrkMbrs
+   145              EXPORT kTrkSaid
+   146              EXPORT kTrkRly
+   147              EXPORT kTrkRlId
+   148              EXPORT kTrkDir
+   149              EXPORT kTrkDBad
+   150              EXPORT trkAsk
+   151              EXPORT trkAnswer
+   152              EXPORT maxHops
+   153          
+   154              INTEGER : kJoin     := 1     % a client asking to come in
+   155              INTEGER : kWelcome  := 2     % you are in, and this is your name
+   156              INTEGER : kReject   := 3     % you are not, and this is why
+   157              INTEGER : kSay      := 4     % a client speaking
+   158              INTEGER : kSaid     := 5     % the room being told, SPEAKER INCLUDED
+   159              INTEGER : kLeave    := 6     % a client going
+   160              INTEGER : kJoined   := 7     % somebody arrived - everyone EXCEPT them
+   161              INTEGER : kLeft     := 8     % somebody went - everyone EXCEPT them
+   162              INTEGER : kRename   := 9     % change my nickname
+   163              INTEGER : kRenOk    := 10    % it changed - everyone, ASKER INCLUDED
+   164              INTEGER : kWho      := 11    % who is in this room
+   165              INTEGER : kMap      := 12    % the machines and their trunks
+   166              INTEGER : kRooms    := 13    % what rooms exist
+   167              INTEGER : kTopic    := 14    % the room topic, asked or set
+   168              INTEGER : kAllWho   := 15    % everybody, every room
+   169              INTEGER : kHist     := 16    % a replayed line, MARKED as history
+   170              INTEGER : kDirect   := 17    % a private message going out
+   171              INTEGER : kDirGot   := 18    % a private message arriving
+   172              INTEGER : kDirSent  := 19    % it reached them
+   173              INTEGER : kDirBad   := 20    % it did not, and this is why
+   174          
+   175              % ---- THE TRUNK KINDS, SERVER TO SERVER ------------------------------
+   176              %
+   177              % 48 and up, left clear of the admin block so a future admin verb cannot
+   178              % collide with a trunk one. Only the SERVER speaks these - a client never
+   179              % sees one - so they live here for the FORMAT's sake rather than to remove
+   180              % a duplicate declaration: the relay header below is the most intricate
+   181              % framing in the product and it had no test of any kind.
+   182              %
+   183              % TWO NAMES CHANGED, and it is the seven-character rule again: kTrkRelay and
+   184              % kTrkRelId BOTH read KTRKREL across a BRF boundary, so exporting both would
+   185              % silently resolve every import to whichever the linker met first. They are
+   186              % kTrkRly and kTrkRlId here - KTRKRLY and KTRKRLI, distinct. THE WIRE
+   187              % NUMBERS, 52 AND 53, ARE UNCHANGED.
+   188          
+   189              % ONE KIND, BOTH DIRECTIONS, and the TEXT'S FIRST BYTE says which way: 0 is
+   190              % "I am here, are you?" and 1 is "I am here, and I am answering you".
+   191              % Without that byte two servers answering each other's HELLO would say hello
+   192              % for ever. An ANSWER is never answered.
+   193              INTEGER : kTrkHello := 48
+   194              INTEGER : trkAsk    := 0
+   195              INTEGER : trkAnswer := 1
+   196          
+   197              % "Tell me who is on you" and the answer. TWO kinds, unlike the hello: the
+   198              % ask is empty and the answer is a list, so one kind would force a receiver
+   199              % to judge by length.
+   200              INTEGER : kTrkWho   := 49
+   201              INTEGER : kTrkMbrs  := 50
+   202          
+   203              % Somebody spoke on another machine. NAME = the speaker as their own machine
+   204              % knows them; TEXT = "ROOM/what they said". The RECEIVER adds the "@Dnnn",
+   205              % because only it knows which system the letter came from - taken from the
+   206              % magic, not from anything the sender claimed. A speaker cannot forge the
+   207              % machine they are on. NOT relayed onward: that is kTrkRly.
+   208              INTEGER : kTrkSaid  := 51
+   209          
+   210              % A line being RELAYED onward: kTrkSaid with THREE bytes in front - the
+   211              % origin system big-endian, then how many hops it may still take.
+   212              INTEGER : kTrkRly   := 52
+   213          
+   214              % A relayed line that also carries the number its ORIGIN gave it: two more
+   215              % bytes after the hop count. THE ID MUST COME FROM THE ORIGIN - a machine
+   216              % with two peers sends one line to both, and if each relay stamped its own
+   217              % number a machine further out would see two names for one line and show it
+   218              % twice, which is the very thing it exists to stop.
+   219              INTEGER : kTrkRlId  := 53
+   220          
+   221              % A private message crossing a trunk. SAME six-byte header as kTrkRlId; what
+   222              % differs is only what the text holds - TARGET/message rather than
+   223              % ROOM/message.
+   224              INTEGER : kTrkDir   := 54
+   225          
+   226              % A private message that could NOT be delivered at the far end, travelling
+   227              % BACK to the machine the sender is on. SAME six-byte header again, but read
+   228              % it the other way round: the origin is where the SENDER sits, which is what
+   229              % routes this home, and the lineId is the one the FAILED message carried, so
+   230              % the sender's own server can say which message it was.
+   231              %
+   232              % The text is TARGET/reason - the same shape kDirBad already uses locally,
+   233              % which is the whole point: the receiving server hands it to the code it
+   234              % already has and no client changes at all.
+   235              %
+   236              % Named kTrkDBad and not kTrkDirBad. Names collide at SEVEN characters across
+   237              % a BRF, where kTrkDirBad would read KTRKDIR and be folded into kTrkDir by a
+   238              % linker that does not call it a duplicate - it just resolves every import to
+   239              % whichever it met first. kTrkDBa is clear of every other exported name.
+   240              INTEGER : kTrkDBad  := 55
+   241          
+   242              % How far a line may travel from the machine it was typed on. The count is
+   243              % what makes a loop terminate, not the topology.
+   244              INTEGER : maxHops   := 3
+   245          
+   246              % The relay header's own routines are further down, AFTER the chat-frame
+   247              % encoders they build on. PLANC is single-pass: a routine used above its
+   248              % declaration draws ILLEGAL SYNTAX at the CALL, which reads like a
+   249              % punctuation problem and sends you to the wrong line entirely.
+   250          
+   251              % ---- ENCODE, THE ONE THAT DOES THE WORK -----------------------------
+   252              %
+   253              % Writes a chat frame into buf STARTING AT dstAt, reading its text from src
+   254              % starting at srcAt. Answers the position just past what it wrote.
+   255              %
+   256              % WHY A DESTINATION OFFSET EXISTS. A relayed line is a chat frame with a
+   257              % relay header in front of it, so something has to write a frame that does
+   258              % not start at zero. The obvious way is to hand the encoder a subarray -
+   259              % cmEncAt(buf(hlen : bufMax - 1), ...) - and THAT IS THE ONE FORM THIS
+   260              % PROJECT KNOWS IS BROKEN: a subarray with both bounds computed compiled
+   261              % clean, ran, and wrote NOTHING AT ALL. An offset costs one addition and
+   262              % cannot fail that way.
+   263              %
+   264              % cmEnc and cmEncAt are both this routine with the offsets fixed, so there
+   265              % is exactly ONE piece of code that knows the frame layout.
+   266              %
+   267              % buf, name and src must be THREE DIFFERENT ARRAYS. Passing two subarrays of
+   268              % one array to a single routine corrupts both, compiles clean, and has cost
+   269              % this project a day.
+   270              %
+   271              % bufMax is the size of the WHOLE buffer, not what is left after dstAt.
+   272              ROUTINE VOID, INTEGER (BYTES, INTEGER, BYTES, INTEGER, BYTES, &
+   273                      INTEGER, INTEGER, INTEGER) : &
+   274                      cmBody(buf, dstAt, name, nameLen, src, srcAt, srcLen, bufMax)
+   275                  INTEGER : i
+   276                  INTEGER : at
+   277                  INTEGER : nl
+   278                  INTEGER : tl
+   279                  INTEGER : room
+   280          
+   281                  % What is actually available from dstAt onwards. Everything below is
+   282                  % clamped against THIS, not against bufMax, or an offset frame would be
+   283                  % allowed to run off the end by exactly dstAt bytes.
+   284                  %
+   285                  % THREE, not four: the kind byte is NOT part of the body.
+   286                  bufMax - dstAt =: room
+   287                  IF room < 3 THEN
+   288                      dstAt RETURN
+   289                  ENDIF
+   290          
+   291                  nameLen =: nl
+   292                  IF nl < 0 THEN
+   293                      0 =: nl
+   294                  ENDIF
+   295                  IF nl > 255 THEN
+   296                      255 =: nl
+   297                  ENDIF
+   298          
+   299                  % THE NAME MUST FIT TOO, and for a long time it did not - the clamp
+   300                  % below reduced only the TEXT, so a 255-byte name wrote past the end
+   301                  % while the text clamped to nothing. A name needs room for its own
+   302                  % length byte and the 2-byte text length, so the most that fits is
+   303                  % room - 3.
+   304                  IF nl > room - 3 THEN
+   305                      room - 3 =: nl
+   306                  ENDIF
+   307          
+   308                  srcLen =: tl
+   309                  IF tl < 0 THEN
+   310                      0 =: tl
+   311                  ENDIF
+   312                  IF 3 + nl + tl > room THEN
+   313                      room - 3 - nl =: tl
+   314                      IF tl < 0 THEN
+   315                          0 =: tl
+   316                      ENDIF
+   317                  ENDIF
+   318          
+   319                  nl =: buf(dstAt)
+   320                  dstAt + 1 =: at
+   321          
+   322                  % SUBSCRIPT FROM ZERO. A PLANC string literal starts at index 0, and
+   323                  % writing name(i) inside a 1:n loop skips the first character and reads
+   324                  % one byte past the end - which is how a nickname went out as ONNY
+   325                  % instead of RONNY, with nothing reporting it.
+   326                  IF nl > 0 THEN
+   327                      FOR i IN 1:nl DO
+   328                          name(i - 1) =: buf(at)
+   329                          at + 1 =: at
+   330                      ENDFOR
+   331                  ENDIF
+   332          
+   333                  tl / 256 =: buf(at)
+   334                  tl MOD 256 =: buf(at + 1)
+   335                  at + 2 =: at
+   336          
+   337                  IF tl > 0 THEN
+   338                      FOR i IN 1:tl DO
+   339                          src(srcAt + i - 1) =: buf(at)
+   340                          at + 1 =: at
+   341                      ENDFOR
+   342                  ENDIF
+   343          
+   344                  at RETURN
+   345              ENDROUTINE
+   346          
+   347              % ---- A WHOLE FRAME: the kind byte, then the body --------------------
+   348              %
+   349              % Answers the position just past what it wrote.
+   350              %
+   351              % THE SPLIT BETWEEN THIS AND cmBody IS THE WIRE FORMAT, not tidiness. An
+   352              % ordinary message is kind + body. A RELAYED one is kind + relay header +
+   353              % body - THE KIND IS NOT REPEATED in front of the body, which is exactly
+   354              % what the server's own kind-53 builder has always done:
+   355              %
+   356              %     kTrkRelId =: outBuf(0)          the kind
+   357              %     ...origin, hops, id...          bytes 1..5
+   358              %     memberLen(slot) =: outBuf(6)    the NAME LENGTH - no second kind byte
+   359              %
+   360              % MEASURED 2026-08-27: writing a whole frame after the relay header put a
+   361              % kind byte where the name length belongs, and trStrip then answered 53 as
+   362              % the name length. Four tests caught it in thirty seconds, which is the
+   363              % entire argument for this file existing.
+   364              ROUTINE VOID, INTEGER (BYTES, INTEGER, INTEGER, BYTES, INTEGER, BYTES, &
+   365                      INTEGER, INTEGER, INTEGER) : &
+   366                      cmEncTo(buf, dstAt, kind, name, nameLen, src, srcAt, srcLen, bufMax)
+   367                  IF bufMax - dstAt < 4 THEN
+   368                      dstAt RETURN
+   369                  ENDIF
+   370                  kind =: buf(dstAt)
+   371                  cmBody(buf, dstAt + 1, name, nameLen, src, srcAt, srcLen, bufMax) RETURN
+   372              ENDROUTINE
+   373          
+   374              % ---- THE RELAY HEADER -----------------------------------------------
+   375              %
+   376              % Three shapes share one buffer, and telling them apart is the whole job:
+   377              %
+   378              %   any other kind     0 kind | 1 nameLen | 2.. name | len | text
+   379              %   kTrkRly    (52)    0 kind | 1-2 origin | 3 hops              | BODY
+   380              %   kTrkRlId   (53)    0 kind | 1-2 origin | 3 hops | 4-5 lineId | BODY
+   381              %   kTrkDir    (54)    the same six as kTrkRlId
+   382              %   kTrkDBad   (55)    the same six again - a refusal traveling home
+   383              %
+   384              % BODY is nameLen | name | text length | text - the frame WITHOUT its kind
+   385              % byte, because the kind is already at byte 0 and is not repeated.
+   386              %
+   387              % The origin is BIG-ENDIAN, high byte first, like every other two-byte field
+   388              % in this protocol.
+   389              %
+   390              % THIS WAS PARSED BY HAND IN TWO PLACES with the length tests written out
+   391              % twice, and it is the most intricate framing the product has. A truncated
+   392              % relay header read as a chat frame produces a PLAUSIBLE-LOOKING message out
+   393              % of rubbish - the origin's high byte lands where the name length belongs -
+   394              % which is why the tests below matter more than the ones on the chat frame.
+   395          
+   396              % How many bytes of relay header this kind carries. 0 for anything that is
+   397              % not a relayed line, so a caller can ask about ANY kind and act on the
+   398              % answer without a special case.
+   399              % A HISTORY LINE IS NOT A RELAY, AND IT STILL HAS A HEADER. The seven
+   400              % bytes are the ND calendar - see hsSec and friends below - and they sit
+   401              % exactly where a relay header sits, so trStrip removes them with no new
+   402              % code and the frame underneath is an ordinary chat message again.
+   403              %
+   404              % THE TWO CAN NEVER BOTH BE PRESENT. History is local to one machine and
+   405              % deliberately does not cross a trunk, so no kind needs both headers and
+   406              % this routine never has to add them together.
+   407              ROUTINE VOID, INTEGER (INTEGER) : trHLen(kind)
+   408                  IF kind = kHist THEN
+   409                      8 RETURN
+   410                  ENDIF
+   411                  IF kind = kTrkRly THEN
+   412                      4 RETURN
+   413                  ENDIF
+   414                  IF kind = kTrkRlId THEN
+   415                      6 RETURN
+   416                  ENDIF
+   417                  IF kind = kTrkDir THEN
+   418                      6 RETURN
+   419                  ENDIF
+   420                  IF kind = kTrkDBad THEN
+   421                      6 RETURN
+   422                  ENDIF
+   423                  0 RETURN
+   424              ENDROUTINE
+   425          
+   426              % The machine the line was TYPED on - not the one that passed it along.
+   427              ROUTINE VOID, INTEGER (BYTES) : trOrig(buf)
+   428                  buf(1) * 256 + buf(2) RETURN
+   429              ENDROUTINE
+   430          
+   431              % How many more hops this line may take.
+   432              ROUTINE VOID, INTEGER (BYTES) : trHops(buf)
+   433                  buf(3) RETURN
+   434              ENDROUTINE
+   435          
+   436              % The number the ORIGIN gave this line. Only on kinds 53 and 54.
+   437              %
+   438              % A peer that sent a high byte over 127 overflows a signed 16-bit INTEGER
+   439              % and lands here NEGATIVE. Ugly and harmless: this number is only ever
+   440              % compared for equality, never used as a size or an index, so a negative one
+   441              % still names the line perfectly well.
+   442              ROUTINE VOID, INTEGER (BYTES) : trId(buf)
+   443                  buf(4) * 256 + buf(5) RETURN
+   444              ENDROUTINE
+   445          
+   446              % ---- WHEN A REPLAYED LINE WAS SAID -----------------------------------
+   447              %
+   448              % Only on kHist, and only in the seven bytes trHLen accounts for. Read
+   449              % them BEFORE trStrip, exactly like the relay fields: afterwards they are
+   450              % gone and buf(1) is the name length again.
+   451              %
+   452              % THE ND'S OWN CALENDAR, kept as the machine gives it - no epoch, no text.
+   453              % Second first and the year last, big-endian like every other two-byte
+   454              % field here, which is also the order MN113 fills its array.
+   455              %
+   456              % A YEAR OF ZERO MEANS THE TIME WAS NEVER RECORDED - the line came out of
+   457              % a history block written before there was anywhere to put one. Say so on
+   458              % the screen; do not invent a moment. The year is the test and not the
+   459              % whole value, because midnight exactly is a real time and must not read
+   460              % as unknown.
+   461              ROUTINE VOID, INTEGER (BYTES) : hsSec(buf)
+   462                  buf(1) RETURN
+   463              ENDROUTINE
+   464          
+   465              ROUTINE VOID, INTEGER (BYTES) : hsMin(buf)
+   466                  buf(2) RETURN
+   467              ENDROUTINE
+   468          
+   469              ROUTINE VOID, INTEGER (BYTES) : hsHour(buf)
+   470                  buf(3) RETURN
+   471              ENDROUTINE
+   472          
+   473              ROUTINE VOID, INTEGER (BYTES) : hsDay(buf)
+   474                  buf(4) RETURN
+   475              ENDROUTINE
+   476          
+   477              ROUTINE VOID, INTEGER (BYTES) : hsMon(buf)
+   478                  buf(5) RETURN
+   479              ENDROUTINE
+   480          
+   481              % The FULL year - 1998, not 98. Halving it into one byte was a real defect
+   482              % once: a three-digit value indexed past the end of a ten-byte literal and
+   483              % printed a blank where a digit belonged.
+   484              ROUTINE VOID, INTEGER (BYTES) : hsYear(buf)
+   485                  buf(6) * 256 + buf(7) RETURN
+   486              ENDROUTINE
+   487          
+   488              % TAKE THE RELAY HEADER OFF, leaving an ordinary chat frame in place.
+   489              %
+   490              % Slides everything after the header down so that buf(1) is the name length
+   491              % again, and answers the NEW length. The kind byte is left alone, so the
+   492              % caller still knows what it was reading.
+   493              %
+   494              % Answers -1 if the message is too short to hold the header it claims -
+   495              % which is the case that would otherwise build a whole message out of
+   496              % rubbish. Read the origin, hops and id BEFORE calling this: they are gone
+   497              % afterwards.
+   498              %
+   499              % A kind with no relay header answers the length unchanged and touches
+   500              % nothing, so a receive loop can call it unconditionally.
+   501              ROUTINE VOID, INTEGER (BYTES, INTEGER, INTEGER) : trStrip(buf, arrived, kind)
+   502                  INTEGER : i
+   503                  INTEGER : hlen
+   504                  INTEGER : gone
+   505          
+   506                  trHLen(kind) =: hlen
+   507                  IF hlen = 0 THEN
+   508                      arrived RETURN
+   509                  ENDIF
+   510          
+   511                  % STRICTLY GREATER, not "at least". A message exactly the length of its
+   512                  % own header carries no chat frame at all, and sliding zero bytes would
+   513                  % leave the old name length in place.
+   514                  IF arrived <= hlen THEN
+   515                      -1 RETURN
+   516                  ENDIF
+   517          
+   518                  % The kind byte stays at 0, so what disappears is hlen - 1 bytes.
+   519                  hlen - 1 =: gone
+   520                  FOR i IN 1:arrived - hlen DO
+   521                      buf(i + gone) =: buf(i)
+   522                  ENDFOR
+   523          
+   524                  arrived - gone RETURN
+   525              ENDROUTINE
+   526          
+   527              % PUT A RELAY HEADER ON, in front of a chat frame this routine also writes.
+   528              %
+   529              % Answers the total length, or -1 if the buffer cannot hold even the header
+   530              % and an empty frame.
+   531              %
+   532              % lineId is ignored for kind 52, which has no room for it - passing one is
+   533              % not an error, because a caller that relays both kinds should not have to
+   534              % branch just to call this.
+   535              %
+   536              % buf, name and src must be THREE DIFFERENT ARRAYS, as for cmEnc.
+   537              ROUTINE VOID, INTEGER (BYTES, INTEGER, INTEGER, INTEGER, INTEGER, BYTES, &
+   538                      INTEGER, BYTES, INTEGER, INTEGER, INTEGER) : &
+   539                      trEnc(buf, kind, origin, hops, lineId, name, nameLen, &
+   540                            src, srcAt, srcLen, bufMax)
+   541                  INTEGER : hlen
+   542                  INTEGER : body
+   543          
+   544                  trHLen(kind) =: hlen
+   545                  IF hlen = 0 THEN
+   546                      -1 RETURN
+   547                  ENDIF
+   548                  IF bufMax < hlen + 4 THEN
+   549                      -1 RETURN
+   550                  ENDIF
+   551          
+   552                  kind =: buf(0)
+   553                  origin / 256 =: buf(1)
+   554                  origin MOD 256 =: buf(2)
+   555                  hops =: buf(3)
+   556                  IF hlen = 6 THEN
+   557                      lineId / 256 =: buf(4)
+   558                      lineId MOD 256 =: buf(5)
+   559                  ENDIF
+   560          
+   561                  % THE BODY GOES STRAIGHT AFTER THE HEADER, with NO second kind byte -
+   562                  % byte hlen is the name length. That is what the server has always put
+   563                  % on the wire, and getting it wrong here produced a message whose name
+   564                  % length read as 53.
+   565                  %
+   566                  % Written at an OFFSET rather than by handing an encoder a subarray:
+   567                  % buf(hlen : bufMax - 1) has both bounds computed, and this project has
+   568                  % a measured case of exactly that form compiling clean, running, and
+   569                  % writing NOTHING AT ALL.
+   570                  cmBody(buf, hlen, name, nameLen, src, srcAt, srcLen, bufMax) =: body
+   571          
+   572                  body RETURN
+   573              ENDROUTINE
+   574          
+   575              % ---- ENCODE, from the start of a name and a text --------------------
+   576              %
+   577              % The ordinary case: a whole name and a whole text, both read from the
+   578              % beginning of their arrays. Answers the total length written into buf.
+   579              %
+   580              % ONE LINE, because it is cmEncTo with BOTH offsets at zero. There is exactly
+   581              % one routine in this product that knows the frame layout, which is the
+   582              % entire argument for the library - three copies of it agreed only because
+   583              % somebody kept checking.
+   584              %
+   585              % buf, name and text must be THREE DIFFERENT ARRAYS - see cmEncTo.
+   586              ROUTINE VOID, INTEGER (BYTES, INTEGER, BYTES, INTEGER, BYTES, INTEGER, &
+   587                      INTEGER) : cmEnc(buf, kind, name, nameLen, text, textLen, bufMax)
+   588                  cmEncTo(buf, 0, kind, name, nameLen, text, 0, textLen, bufMax) RETURN
+   589              ENDROUTINE
+   590          
+   591              % ---- ENCODE, WITH THE TEXT AT AN OFFSET -----------------------------
+   592              %
+   593              % The same message, but the text is read from `src` starting at `srcAt`
+   594              % rather than from the beginning of an array. The server's text sits inside
+   595              % its receive buffer at an offset, so this is the shape it needs.
+   596              %
+   597              % IT IS NOT A SUBARRAY, and that is the whole point. The obvious call would
+   598              % be cmEnc(..., inBuf(textAt : textAt + textLength - 1), ...), which is a
+   599              % subarray with BOTH bounds computed - and this project has one measured case
+   600              % of exactly that form compiling clean, running, and WRITING NOTHING AT ALL.
+   601              % An offset costs one addition and cannot fail that way.
+   602              %
+   603              % ONE LINE, because it is cmEncTo with the DESTINATION offset at zero. Every
+   604              % rule about clamping, subscripting from zero and the two-byte length lives
+   605              % there and is stated once.
+   606              %
+   607              % buf, name and src must be THREE DIFFERENT ARRAYS - see cmEncTo.
+   608              ROUTINE VOID, INTEGER (BYTES, INTEGER, BYTES, INTEGER, BYTES, INTEGER, &
+   609                      INTEGER, INTEGER) : &
+   610                      cmEncAt(buf, kind, name, nameLen, src, srcAt, srcLen, bufMax)
+   611                  cmEncTo(buf, 0, kind, name, nameLen, src, srcAt, srcLen, bufMax) RETURN
+   612              ENDROUTINE
+   613          
+   614              % ---- DECODE ---------------------------------------------------------
+   615              %
+   616              % Four small readers rather than one routine handing back a record: PLANC
+   617              % has no multiple return, and a record would have to be declared in both
+   618              % programs - which is the duplication this library exists to remove.
+   619          
+   620              ROUTINE VOID, INTEGER (BYTES) : cmKind(buf)
+   621                  buf(0) RETURN
+   622              ENDROUTINE
+   623          
+   624              ROUTINE VOID, INTEGER (BYTES) : cmNmLen(buf)
+   625                  buf(1) RETURN
+   626              ENDROUTINE
+   627          
+   628              % Where the text starts. The name length decides it, so a corrupt length
+   629              % moves the text - which is why every caller clamps before using this.
+   630              ROUTINE VOID, INTEGER (BYTES) : cmTxAt(buf)
+   631                  buf(1) + 4 RETURN
+   632              ENDROUTINE
+   633          
+   634              % HIGH BYTE TIMES 256 PLUS LOW. Reading only the low byte would work for
+   635              % every message this product has ever sent and would be wrong for the
+   636              % first one that did not.
+   637              %
+   638              % IT READS TWO BYTES THE CALLER MAY NOT HAVE. The pair sits at
+   639              % buf(1) + 2, and buf(1) is ONE BYTE off a wire - it can say 255, which
+   640              % points at buf(257) in a 256-byte buffer. The callers' guard
+   641              % (2 + nameLength + 1 > readLength) permits nameLength + 3 = readLength, so
+   642              % a 256-byte message with a 253-byte name still reads one past the end.
+   643              % Narrow, and a READ rather than a write, but it is exactly the kind of
+   644              % thing that is impossible to see in PLANC.
+   645              %
+   646              % cmLenN is the safe form: it is told how many bytes ARRIVED and answers
+   647              % -1 if the length field is not wholly inside them. cmTxLen is kept as it
+   648              % was so no existing caller changes behaviour without being edited.
+   649              ROUTINE VOID, INTEGER (BYTES) : cmTxLen(buf)
+   650                  INTEGER : at
+   651                  buf(1) + 2 =: at
+   652                  buf(at) * 256 + buf(at + 1) RETURN
+   653              ENDROUTINE
+   654          
+   655              % The same reading, bounded by what actually arrived.
+   656              %
+   657              % Answers -1 when the message is too short to hold the field, which is a
+   658              % value no real length can take - so a caller that ignores it gets an
+   659              % obviously wrong answer rather than a plausible one built out of whatever
+   660              % the previous, longer message left in the buffer.
+   661              ROUTINE VOID, INTEGER (BYTES, INTEGER) : cmLenN(buf, arrived)
+   662                  INTEGER : at
+   663          
+   664                  % Two bytes for kind and name length must be there before buf(1) means
+   665                  % anything at all. Nothing in either program checked even this.
+   666                  IF arrived < 2 THEN
+   667                      -1 RETURN
+   668                  ENDIF
+   669          
+   670                  buf(1) + 2 =: at
+   671          
+   672                  % Both bytes of the pair must be inside the message: the last one is at
+   673                  % at + 1, so the message needs at + 2 bytes.
+   674                  IF at + 2 > arrived THEN
+   675                      -1 RETURN
+   676                  ENDIF
+   677          
+   678                  buf(at) * 256 + buf(at + 1) RETURN
+   679              ENDROUTINE
+   680          
+   681              % Is this buffer a message at all? Answers FALSE for anything too short to
+   682              % hold the fixed part of a header, or whose name and length fields do not
+   683              % fit inside what arrived.
+   684              %
+   685              % WHY IT EXISTS: neither program checked that TWO bytes had arrived before
+   686              % reading buf(0) and buf(1). A zero-length or one-byte delivery decoded
+   687              % stale bytes left by the previous message and acted on them.
+   688              ROUTINE VOID, BOOLEAN (BYTES, INTEGER) : cmSane(buf, arrived)
+   689                  IF arrived < 4 THEN
+   690                      FALSE RETURN
+   691                  ENDIF
+   692                  IF buf(1) + 4 > arrived THEN
+   693                      FALSE RETURN
+   694                  ENDIF
+   695                  TRUE RETURN
+   696              ENDROUTINE
+   697          
+   698              % -----------------------------------------------------------------------
+   699              % HOW MANY BYTES IS IT SAFE TO READ INTO THIS BUFFER?
+   700              %
+   701              % want is the SENDER'S message size, handed back by XMSG - never a size
+   702              % this program chose. PLANC checks no array bounds, so handing it straight
+   703              % to XMPFREA lets whoever is at the other end write past the end of the
+   704              % buffer. That happens BEFORE a single field is parsed, so none of the
+   705              % careful field checks in this library can save it.
+   706              %
+   707              % BOTH PROGRAMS DID THIS BY HAND, and both compared against a hand-kept
+   708              % constant sitting beside the declaration:
+   709              %
+   710              %     INTEGER : inBufSize := 256
+   711              %     BYTES : inBuf(0:255)
+   712              %
+   713              % Two facts that have to agree, written in two places, checked by nobody.
+   714              % Widen the array and forget the constant and the clamp quietly keeps the
+   715              % old smaller value; SHRINK the array and forget it and the clamp lets a
+   716              % write past the end. MAXINDEX asks the array itself, so the size cannot
+   717              % drift from the declaration - the same fix as the eighteen hand-counted
+   718              % string lengths in TESTUI.
+   719              %
+   720              % AND IT CLAMPS THE LOW END, WHICH NEITHER PROGRAM DID. I have not measured
+   721              % XMSG returning a negative length and I am not claiming it can. What is in
+   722              % the guide is that on a RETURNED message (XMTRE) the length field carries
+   723              % an error status instead of a length - so the field is not always a length
+   724              % at all, and CHATSV keeps its own copy in receiveStat for exactly that
+   725              % reason. One compare removes the question rather than reasoning about it.
+   726              % -----------------------------------------------------------------------
+   727              ROUTINE VOID, INTEGER (INTEGER, BYTES) : xrClamp(want, buf)
+   728                  INTEGER : room
+   729          
+   730                  % The array's own declared size, asked of the array. MAXINDEX gives the
+   731                  % upper BOUND, so a (0:255) buffer answers 255 and holds 256 bytes.
+   732                  MAXINDEX(buf, 1) + 1 =: room
+   733          
+   734                  IF want < 0 THEN
+   735                      0 RETURN
+   736                  ENDIF
+   737                  IF want > room THEN
+   738                      room RETURN
+   739                  ENDIF
+   740                  want RETURN
+   741              ENDROUTINE
+   742          
+   743              % -----------------------------------------------------------------------
+   744              % THE ADDRESS OF A BUFFER THIS ROUTINE WAS HANDED.
+   745              %
+   746              % This exists to ANSWER A QUESTION, and the answer decides whether the XMSG
+   747              % transport can move into a library at all.
+   748              %
+   749              % Every ADDR in this product is taken of a MODULE-LEVEL array - inBuf,
+   750              % outBuf, letterBuf - because every XMSG call sits in the same module as its
+   751              % buffer:
+   752              %
+   753              %     xmpfrea(0, 0, ADDR(inBuf(0)) FORCE XMUSERADDRESS, 0, want, got)
+   754              %
+   755              % A shared transport routine cannot do that. It is HANDED the buffer, so it
+   756              % must take the address of a PARAMETER, and NOTHING IN THIS PRODUCT HAS EVER
+   757              % DONE THAT. PLANC passes arrays by reference, so it should give the caller's
+   758              % own array - but "should" is how a wrong address gets written to, and a
+   759              % wrong address handed to XMPFREA is a write to memory nobody owns. PLANC
+   760              % checks no array bounds and would report nothing at all.
+   761              %
+   762              % So it is measured rather than assumed, by a test that needs no XMSG: ask
+   763              % this routine for the address, take ADDR of the same array at the call site,
+   764              % and compare. Equal means a parameter address is the caller's array and the
+   765              % transport can safely be shared. See CHATTST.
+   766              %
+   767              % xrAddr rather than XMUSERADDRESS: that type lives in the XMSG include, which
+   768              % this library deliberately does not pull in. It is the SAME WIDTH - 16-bit
+   769              % INTEGER - and the width is the part that matters; see the note above the
+   770              % MODULE for what a 32-bit force costs.
+   771              % -----------------------------------------------------------------------
+   772              ROUTINE VOID, xrAddr (BYTES) : xrAddrOf(buf)
+   773                  ADDR(buf(0)) FORCE xrAddr RETURN
+   774              ENDROUTINE
+   775          
+   776          ENDMODULE
+   777          

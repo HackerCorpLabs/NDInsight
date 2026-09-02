@@ -286,10 +286,10 @@ namespace NDInsight.Sintran.Xmsg.Live
         /// <para>
         /// The spec's state table (section 8) carries "notify up" as a SEPARATE action from the
         /// state transition, and the two do not coincide. Entering CONNECTED from SABM_SENT by
-        /// receiving the PEER's SABM is written <c>send UA; reset -&gt; CONNECTED</c> with **no
-        /// notify up**; only <c>rx UA</c> in SABM_SENT is <c>reset; notify up -&gt; CONNECTED</c>.
+        /// receiving the PEER's SABM is written <c>send UA; reset -> CONNECTED</c> with NO
+        /// notify up; only <c>rx UA</c> in SABM_SENT is <c>reset; notify up -> CONNECTED</c>.
         /// Section 3.1 says the same thing in prose: the link is up when BOTH directions have
-        /// completed a SABM -&gt; UA exchange.
+        /// completed a SABM -> UA exchange.
         /// </para>
         /// <para><b>Why it matters, measured 2026-08-19</b></para>
         /// <para>

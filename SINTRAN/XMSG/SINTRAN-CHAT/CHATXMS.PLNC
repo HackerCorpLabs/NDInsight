@@ -1,0 +1,207 @@
+% =========================================================================
+% CHATXMS - the XMSG kernel calls, in ONE place, separately compiled.
+%
+% WHY THIS EXISTS. CHATLIB carries the wire codec and stays deliberately free
+% of XMSG, so CHATTST can link it alone for a 17-second, XMSG-free,
+% machine-free test loop. The moment a kernel call enters that library, the
+% fast loop is gone. So the kernel calls go here instead: CHAT and CHATSV
+% link BOTH CHATLIB and CHATXMS; CHATTST links CHATLIB only, unchanged.
+%
+% Design written up and decided BEFORE this file existed - see
+% DOC/CHATXMS-INTERFACE-DESIGN.md, 2026-08-28. That file has the three call
+% shapes read off the sources and the reasoning for each routine below;
+% comments here are kept short on purpose rather than repeating it.
+%
+% NAMES ARE UNIQUE IN SEVEN CHARACTERS ACROSS A BRF BOUNDARY. Every export
+% here starts "xs" and none share the same first seven - xsSendM, xsSendN,
+% xsRecv, xsOpenP, xsOpenC, xsOpenF, xsInfoC are all distinct at seven.
+% =========================================================================
+MODULE chatxms
+
+    EXPORT xsSendM
+    EXPORT xsSendN
+    EXPORT xsRecv
+    EXPORT xsOpenP
+    EXPORT xsOpenC
+    EXPORT xsOpenF
+    EXPORT xsInfoC
+
+    $INCLUDE XMP-B02:DEFS
+    $INCLUDE XMP-B02:IMPT
+
+    IMPORT (ROUTINE VOID, INTEGER (INTEGER, BYTES) : xrClamp)
+    IMPORT (ROUTINE VOID, xrAddr (BYTES) : xrAddrOf)
+
+    % -----------------------------------------------------------------------
+    % SHAPE A - SEND BY MAGIC, straight to a port already known.
+    %
+    % Always XMPSEND, never XMPFSND. XMPFSND takes no message parameter and
+    % acts on whatever message the port currently holds - a call that can be
+    % got wrong by anything that runs between XMPFGET and it. XMPSEND names
+    % the message it sends and cannot be confused this way. See todo 5.7 in
+    % the plan: the client used XMPFSND at its one call site; this routine
+    % gives it no way to do that again.
+    %
+    % No release on any path: a failed GET has nothing to release, a failed
+    % WRI releases before returning, and XMPSEND consumes the message on
+    % send regardless of status - matching what CHATSV's sendTo already did
+    % before this routine existed.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER4, BYTES, INTEGER, INTEGER) : &
+            xsSendM(port, magic, buf, length, flags)
+        XMMSGIDENTIFIER : ident
+        INTEGER : wLen, st
+
+        xmpfget(0, length, ident) =: st
+        IF st >< XMOK THEN
+            st RETURN
+        ENDIF
+
+        xmpfwri(0, 0, xrAddrOf(buf) FORCE XMUSERADDRESS, 0, length, wLen) &
+            =: st
+        IF st >< XMOK THEN
+            xmpfrel(0, ident)
+            st RETURN
+        ENDIF
+
+        xmpsend(flags, ident, port, magic) =: st
+        st RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % SHAPE B - SEND BY NAME, through XROUT, when only a name is known.
+    %
+    % Two writes into the SAME reserved message: the XROUT letter first, then
+    % the caller's own bytes starting where the letter finished - wLen is an
+    % OUT of the first write and an IN of the second, a running offset.
+    %
+    % letterBuf is LOCAL, not module-level. CHATXMS is one linked module in
+    % both CHAT and CHATSV, so a module-level buffer here would be ONE buffer
+    % shared by every caller in the program - the client's join and (were it
+    % linked into the same program) a trunk hello could clobber each other
+    % mid-build. A routine-local array is stack-allocated per call and has no
+    % such sharing, so this needs no parameter for it at all.
+    %
+    % 123 is XSLET's own literal in both existing call sites (CHAT.PLNC 1947,
+    % CHATSV.PLNC 4006) - fixed, not a caller choice, so it is hardcoded here
+    % rather than becoming an eighth parameter nobody would ever vary.
+    %
+    % sysName and prtName MUST be handed a subarray, not a whole declared
+    % array - see xmpblet's own note in the design doc: a BYTES argument
+    % carries its own length, so the whole array would ask XROUT for a name
+    % with leftovers on the end.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER (INTEGER, BYTES, BYTES, BYTES, INTEGER) : &
+            xsSendN(port, sysName, prtName, buf, length)
+        BYTES : letterBuf(0:63)
+        XMMSGIDENTIFIER : ident
+        INTEGER : offSet, uLength, wLen, st
+
+        xmpblet(letterBuf, 64, offSet, 123, sysName, prtName) =: st
+        IF st >< XMOK THEN
+            st RETURN
+        ENDIF
+
+        xmpfget(0, 200, ident) =: st
+        IF st >< XMOK THEN
+            st RETURN
+        ENDIF
+
+        offSet =: uLength
+        xmpfwri(0, 0, xrAddrOf(letterBuf) FORCE XMUSERADDRESS, &
+            0, uLength, wLen) =: st
+
+        xmpfwri(0, wLen, xrAddrOf(buf) FORCE XMUSERADDRESS, &
+            0, length, offSet) =: st
+
+        xmprout(0, ident, port) =: st
+        st RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % SHAPE C - RECEIVE.
+    %
+    % Fetch, meta, clamp, read, release - in that order, released on every
+    % exit path including the ones the four callers currently rewire this
+    % from used to miss. An EMPTY port (XMXENTM) returns immediately after
+    % the fetch; nothing else runs, matching every existing poll site.
+    %
+    % THE CLAMP IS THE POINT OF SHARING THIS. xrClamp asks buf its own
+    % declared size via MAXINDEX - not a hand-kept "bufMax" passed in from
+    % outside, which is exactly the shape that drifted before. Both existing
+    % receive sites (CHAT.PLNC and CHATSV.PLNC) currently do the OPPOSITE:
+    % they WIDEN a size variable to match whatever a peer claims, rather
+    % than capping the read at the buffer's real size. xrClamp fixes that
+    % as a consequence of going through one place instead of two.
+    %
+    % kind and magic are handed back even on a status this routine does not
+    % itself judge - XMTRE (a returned, undeliverable message) is a valid
+    % receive that the CALLER must still see and act on; deciding that here
+    % would take a decision away from code that already makes it correctly.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER, BYTES, INTEGER WRITE, &
+            INTEGER4 WRITE, INTEGER WRITE) : &
+            xsRecv(port, flags, buf, kind, magic, got)
+        XMMSGIDENTIFIER : ident
+        INTEGER : remotePortHash, nBytes, readAmount, readLength, st
+
+        0 =: kind
+        0 =: magic
+        0 =: got
+
+        xmpfrcv(flags, port, kind, remotePortHash, ident, nBytes) =: st
+        IF st = XMXENTM THEN
+            st RETURN
+        ENDIF
+
+        IF st >< XMOK AND (st < XMTNO OR st > XMTPS) THEN
+            st RETURN
+        ENDIF
+
+        nBytes =: got
+
+        xmpfmst(0, ident, kind, magic, nBytes) =: st
+
+        xrClamp(nBytes, buf) =: readAmount
+        xmpfrea(0, 0, xrAddrOf(buf) FORCE XMUSERADDRESS, &
+            0, readAmount, readLength) =: st
+
+        xmpfrel(0, ident) =: st
+        st RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % OPEN A PORT BY NAME - xmpopnm. Two call sites, admin and trunk, both
+    % identical shape: name in, port out.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER (BYTES, INTEGER WRITE) : xsOpenP(name, port)
+        xmpopnm(0, name, port) RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % OPEN A CONNECTION PORT - xmpopcn. One call site, the room service.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER (BYTES, BOOLEAN, INTEGER, INTEGER WRITE) : &
+            xsOpenC(name, unique, seats, port)
+        xmpopcn(0, name, unique, seats, port) RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % OPEN THE CLIENT'S OWN PORT - xmpfopn. One call site.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER (INTEGER WRITE) : xsOpenF(port)
+        xmpfopn(0, port) RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % PORT INFO - xmpinfc(0, port, 1, 0). Three identical call sites in
+    % CHATSV; the trailing two arguments are not exposed as parameters
+    % because nowhere asks for anything else - see the design doc's own
+    % note on this. A fourth site needing different arguments gets its own
+    % routine rather than two parameters nobody else would read.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER (INTEGER) : xsInfoC(port)
+        xmpinfc(0, port, 1, 0) RETURN
+    ENDROUTINE
+
+ENDMODULE

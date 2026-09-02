@@ -61,7 +61,7 @@ shape were all wrong, and two small instruments settled it each time.
 relying on the emulated `ALIVE`/`CMSYSPAR` replies changes behaviour by attaching the real card.
 
 **A budget of 0 parks the card**, and that is the default when one is attached without a budget. A
-wedged-looking card is easier to spot than one silently eating host time.
+hung-looking card is easier to spot than one silently eating host time.
 
 **`AccpMachine.Run` counts INSTRUCTIONS, not clock cycles.** I named the budget "cycles" first; it
 read as a timing figure it is not.

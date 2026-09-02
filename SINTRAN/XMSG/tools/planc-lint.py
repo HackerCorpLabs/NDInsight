@@ -18,6 +18,7 @@ import json
 import os
 import re
 import sys
+import tempfile
 
 
 # ---------------------------------------------------------------------------
@@ -34,6 +35,27 @@ import sys
 # file is missing, because a linter that dies on a missing side-file is worse
 # than one that checks less.
 # ---------------------------------------------------------------------------
+# Helpers that take a literal AND its length. The number must equal the literal's
+# length, and nothing but this check can say so.
+#
+# EMPTY IS THE GOAL, not an accident: every helper that used to be here now asks
+# the string its own length instead. It stays as a list rather than being deleted
+# because the next helper written in this shape belongs in it, and a named list is
+# where somebody will look.
+LITERAL_LENGTH_HELPERS = ()
+
+# Helpers that USED to take a length and no longer do. Passing one is the old
+# shape returning.
+DERIVES_ITS_OWN_LENGTH = (
+    'buildAdmText',
+    'putWord',
+    'logLine',
+    'cmdIs',
+    'tryCmd',
+    'showIfMatch',
+)
+
+
 def load_xmp_api():
     here = os.path.dirname(os.path.abspath(__file__))
     for rel in (os.path.join('..', '..', '..', 'Developer', 'Languages', 'Application',
@@ -144,6 +166,116 @@ def check(path):
             stripped = line.strip()
             if stripped and not stripped.startswith('%'):
                 yield i + 1, line, stripped
+
+    # ---- WHAT COUNTS AS A TYPE, INCLUDING THE ONES THIS FILE INVENTS ---------
+    #
+    # PLANC lets a source name its own type - TYPE xrAddr = INTEGER4 - and
+    # XMP-B02:IMPT does exactly that for XMMSGIDENTIFIER and XMUSERADDRESS. A
+    # variable declared with such a name is a perfectly ordinary declaration.
+    #
+    # MEASURED 2026-08-27: the checks below knew only the built-in type names,
+    # so the moment a source declared TYPE xrAddr = INTEGER4 and used it, the
+    # linter called the type AND every variable declared with it undeclared -
+    # six invented problems in a file that was correct. A linter that cries wolf
+    # gets switched off, which costs far more than the check ever saves.
+    #
+    # Built ONCE here and used by every check that recognises a declaration, so
+    # a new type is added in one place rather than in four regexes that had
+    # already drifted apart from each other.
+    own_types = re.findall(r'^\s*TYPE\s+([A-Za-z_]\w*)\s*=', text, re.M)
+    TYPEALT = '|'.join(['INTEGER4', 'INTEGER', 'BYTES', 'BYTE', 'BOOLEAN',
+                        'REAL', 'LABEL', 'POINTER']
+                       + [re.escape(t) for t in own_types])
+
+    # ---- ADDR FORCED TO A 32-BIT TYPE ---------------------------------------
+    #
+    # AN ADDRESS ON THIS MACHINE IS SIXTEEN BITS. Forcing ADDR to a 32-bit type
+    # draws
+    #
+    #     *** WARNING - ILLEGAL DATA-ELEMENT TO BE CONVERTED
+    #
+    # which is a WARNING, so the build carries on and the value that comes out
+    # is the 16-bit address with a word of ADJACENT MEMORY on top of it.
+    #
+    # MEASURED 2026-08-27, and it cost two compile cycles and two published
+    # conclusions that both had to be withdrawn. The junk was STABLE - the same
+    # two numbers came back across separate builds - which read as a reliable
+    # measurement and was nothing of the kind.
+    #
+    # The product's own working calls force to XMUSERADDRESS, and XMP-B02:IMPT
+    # declares it "TYPE XMUSERADDRESS = INTEGER". The line above that one is a
+    # COMMENT reading "modify XMUSERADDRESS = INTEGER4" - an instruction to
+    # widen it FOR THE MC68000 - and reading that commented instruction as the
+    # declaration is exactly how the mistake was made.
+    #
+    # Only INTEGER4 and REAL8 are flagged: those are the 32-bit and 64-bit
+    # built-ins a person actually reaches for when they think "an address is
+    # big". A named type cannot be judged from one line, so it is left alone -
+    # narrow beats clever.
+    for number, line, stripped in code_lines():
+        m = re.search(r'ADDR\s*\(.*\)\s*FORCE\s+(INTEGER4|REAL8)', stripped)
+        if m:
+            out.append('%s:%d  ADDR forced to %s - an address on this machine is a 16-bit '
+                       'INTEGER, and PLANC answers *** WARNING - ILLEGAL DATA-ELEMENT TO BE '
+                       'CONVERTED. That is a WARNING, so the build continues and the value '
+                       'carries a word of adjacent memory above the address. Force to INTEGER, '
+                       'or to XMUSERADDRESS which is declared as one.'
+                       % (path, number, m.group(1)))
+
+    # ---- AN IMPORT OR EXPORT AFTER AN ORDINARY DECLARATION -------------------
+    #
+    # Every IMPORT and every EXPORT must sit in the block at the top of the
+    # module, before any ordinary declaration. One that comes later draws
+    #
+    #     *** ERROR   - MISPLACED STATEMENT "IMPORT"
+    #     *** ERROR   - MISPLACED STATEMENT "EXPORT"
+    #
+    # MEASURED 2026-08-27: replacing ten constant declarations with IMPORTs
+    # WHERE THEY STOOD - each beside the comment explaining that kind, which
+    # read perfectly well - produced ten of these in one compile. Four minutes
+    # to be told something this check answers instantly.
+    #
+    # EXPORT WAS ADDED TO THIS CHECK 2026-08-27, AFTER IT HAPPENED AGAIN - and
+    # the second time is the one worth reading. Ten trunk constants were exported
+    # from CHATLIB beside their own declarations, well below the main EXPORT
+    # block, and every one drew this error. What makes it a linter check rather
+    # than a note is what the machine then did with them:
+    #
+    #   the linker reported NO undefined entries
+    #   the test program linked, loaded and RAN
+    #   all 139 checks PASSED, including ones reading those very constants back
+    #   the last line on the screen was "codec is good"
+    #
+    # A compile with ten errors produced a program that passed its own test
+    # suite. Only the LISTING said anything was wrong. That is the whole reason
+    # this project gates on the listing and not on the screen - and the reason a
+    # check costing a second belongs in front of a compile costing minutes.
+    #
+    # The comment can stay where it is; only the IMPORT or EXPORT has to move.
+    #
+    # Module level only: an IMPORT inside a ROUTINE is a different thing and is
+    # not what this is about, so anything indented past the module's own level
+    # is left alone.
+    first_decl = None
+    for number, line, stripped in code_lines():
+        if re.match(r'^(?:' + TYPEALT + r')\b'
+                    r'(?:\s+ARRAY)?\s*:', stripped) and line.startswith('    ') \
+                and not line.startswith('        '):
+            if first_decl is None:
+                first_decl = number
+        word = None
+        if stripped.startswith('IMPORT'):
+            word = 'IMPORT'
+        elif stripped.startswith('EXPORT'):
+            word = 'EXPORT'
+        if word is not None and line.startswith('    ') \
+                and not line.startswith('        '):
+            if first_decl is not None:
+                out.append('%s:%d  %s comes after the declaration at line %d - PLANC '
+                           'answers *** ERROR - MISPLACED STATEMENT "%s". Every %s '
+                           'belongs in the block at the top of the module; the comment '
+                           'explaining it can stay where it is.'
+                           % (path, number, word, first_decl, word, word))
 
     # ---- A LITERAL AND A HAND-COUNTED LENGTH BESIDE IT ------------------------
     #
@@ -297,6 +429,55 @@ def check(path):
                        '"%s" across a BRF boundary. The linker will not complain; it '
                        'will resolve every import to ONE of them. Rename all but one.'
                        % (found[0][0], names, short))
+
+    # ---- BANNED JARGON IN A COMMENT ------------------------------------------
+    #
+    # Ronny's rule, and it is absolute: plain words a normal person understands.
+    # "wedge"/"wedged" is banned by name and so are the other old-Unix ones. Say
+    # hung, stuck, crashed, hangs.
+    #
+    # It is a linter check because writing it down did not stop it. The word had
+    # to be swept out of 13 files at once once before, and out of 37 places
+    # across this repo on 2026-08-28 - including a comment in CHATSV.PLNC and
+    # three commit messages written the same day, by which time it had been a
+    # named rule for eighteen days.
+    BANNED_WORDS = ('wedge', 'wedged', 'wedges', 'hosed', 'borked', 'clobbered', 'munged')
+    for number, line in enumerate(lines, 1):
+        stripped = line.strip()
+        if not stripped.startswith('%'):
+            continue
+        low = stripped.lower()
+        for bad in BANNED_WORDS:
+            if re.search(r'\b' + bad + r'\b', low):
+                out.append('%s:%d  "%s" is banned jargon - say hung, stuck or crashed'
+                           % (path, number, bad))
+                break
+
+    # ---- an IMPORTed ARRAY must carry its BOUNDS ------------------------------
+    #
+    # MEASURED on D100 2026-08-28, five at once on the first build of a module
+    # split out of CHAT.PLNC:
+    #
+    #     IMPORT (BYTES : inBuf)      ->  *** ERROR - ARRAY BOUNDS MISSING "INBUF"
+    #     IMPORT (BYTES : inBuf(0:255))   compiles
+    #
+    # A scalar needs none - IMPORT (INTEGER : lenMyName) is right - so this only
+    # looks at BYTES and at anything declared ARRAY. IMPORT still allocates
+    # nothing either way; the bounds only describe the shape, and they must match
+    # the declaration in the module that owns the storage.
+    #
+    # Worth a check rather than a note because the compile that produced these
+    # five ALSO printed "1050 LINES COMPILED. 0 DIAGNOSTICS." one line further
+    # down, at EXIT, and the MODE file it ran inside went on to report
+    # "Built CHAT:PROG".
+    for number, line, stripped in code_lines():
+        m = re.match(r'^IMPORT\s*\(\s*((?:BYTES|BYTE)\b|[A-Z0-9]+\s+ARRAY\b)'
+                     r'[^:]*:\s*([A-Za-z_]\w*)\s*\)', stripped)
+        if m:
+            out.append('%s:%d  IMPORT of "%s" gives no ARRAY BOUNDS - the compiler answers '
+                       'ARRAY BOUNDS MISSING and names it. Write the bounds the owning '
+                       'module declared, for example IMPORT (BYTES : %s(0:255))'
+                       % (path, number, m.group(2), m.group(2)))
 
     # ---- assignment written the wrong way round -------------------------------
     # PLANC stores with "expression =: variable". Writing "variable := expression"
@@ -529,7 +710,7 @@ def check(path):
             library.add(m.group(1).upper())
         if any(s.upper().startswith('$INCLUDE XMP-B02:DEFS') for _, _, s in code_lines()):
             for n, _, stripped in code_lines():
-                m = re.match(r'(?:INTEGER4|INTEGER|BYTES|BOOLEAN)'
+                m = re.match(r'(?:' + TYPEALT + r')'
                              r'(?:\s+RANGE\s*\([^)]*\))?\s*:\s*([A-Za-z_]\w*)', stripped)
                 if m and m.group(1).upper() in library:
                     out.append('%s:%d  "%s" is already defined by XMP-B02:DEFS - redeclaring '
@@ -545,7 +726,7 @@ def check(path):
     # listing is the tell: it prints the TRUNCATED names (BUILDRENAM, REASONNICK).
     declared_names = set()
     for _, _, stripped in code_lines():
-        m = re.match(r'(?:INTEGER4|INTEGER|BYTES|BOOLEAN)(?:\s+ARRAY)?'
+        m = re.match(r'(?:' + TYPEALT + r')(?:\s+ARRAY)?'
                      r'(?:\s+RANGE\s*\([^)]*\))?\s*:\s*([A-Za-z_]\w*)', stripped)
         if m:
             declared_names.add(m.group(1))
@@ -608,13 +789,32 @@ def check(path):
     # and an earlier version of this rule missed it, reporting a perfectly good
     # variable as undeclared. A lint rule that cries wolf is worse than none.
     declared = set()
-    for m in re.finditer(r'^\s*(?:INTEGER4|INTEGER|BOOLEAN|BYTES|BYTE|REAL|LABEL|POINTER)'
+    for m in re.finditer(r'^\s*(?:' + TYPEALT + r')'
                          r'(?:\s+ARRAY)*(?:\s+RANGE\s*\([^)]*\))?\s*:\s*([^%\n]+)', text, re.M):
         for name in re.findall(r'[A-Za-z_]\w*', m.group(1)):
             declared.add(name.upper())
+    # a TYPE this file declares is a name like any other
+    for name in own_types:
+        declared.add(name.upper())
+
     # routine names, parameters and IMPORTed routines are declarations too
+    # JOIN "&" CONTINUATIONS FIRST, or a routine whose header is split over two lines is
+    # invisible here and its name is never recorded as declared.
+    #
+    # PLANC continues a line with a trailing "&", and a header with several parameters very
+    # often uses it:
+    #
+    #     ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER, INTEGER) : &
+    #             uiSaid(nameAt, nameLen, txtAt, txtLen)
+    #
+    # The pattern below stops at the newline, so the name never matched. MEASURED in CHAT.PLNC
+    # on 2026-08-28: putInWin and uiSaid are both declared this way, and an analysis built on
+    # the same per-line assumption reported the file as having 70 routines when it has 75 -
+    # then left both of them out of a module split's import list, which would have failed the
+    # build twenty minutes later.
+    joined_text = re.sub(r'&[ \t]*\r?\n[ \t]*', ' ', text)
     for m in re.finditer(r'^\s*(?:ROUTINE|PROGRAM|MODULE)\b[^:\n]*:\s*(\w+)\s*(\(([^)]*)\))?',
-                         text, re.M):
+                         joined_text, re.M):
         declared.add(m.group(1).upper())
         if m.group(3):
             for name in re.findall(r'[A-Za-z_]\w*', m.group(3)):
@@ -627,6 +827,39 @@ def check(path):
     # is reported as a typo.
     for m in re.finditer(r'^\s*\$INCLUDE\s+(\S+)', text, re.M | re.I):
         declared |= include_names(path, m.group(1))
+
+    # ---- TWO ROUTINES (OR A ROUTINE AND A PROGRAM) SHARING ONE NAME -----------
+    #
+    # PLANC's single pass treats a second "ROUTINE ... : sameName" as a
+    # redeclaration of the first, and the compiler answers ONE clean error at
+    # the header - IDENTIFIER ALREADY SPECIFIED/DECLARED - but then loses its
+    # place: everything inside that second routine's own header line reads as
+    # top-level statements, MISPLACED STATEMENT and ILLEGAL DATA TYPE, one per
+    # line, until the ENDROUTINE closes it. MEASURED on D100 2026-08-31: a
+    # second buildMembers (a new admin listing) collided with an existing one
+    # (a trunk "who is on you" answer) and the single duplicate declaration
+    # cost 215 diagnostics across the whole rest of the compile - once the
+    # symbol table lost its footing, unrelated routines two thousand lines
+    # away started reporting bogus ILLEGAL SYNTAX on their own, perfectly
+    # good, parameter names.
+    #
+    # Single-line headers only, like the other checks in this file - a header
+    # continued with a trailing "&" is rare and narrow beats clever.
+    routine_line = {}
+    for n, _, stripped in code_lines():
+        m = re.match(r'^(?:ROUTINE|PROGRAM)\b[^:]*:\s*([A-Za-z_]\w*)', stripped)
+        if not m:
+            continue
+        name = m.group(1).upper()
+        if name in routine_line:
+            out.append('%s:%d  "%s" is declared again here - it is ALREADY a ROUTINE or '
+                       'PROGRAM at line %d. PLANC answers one clean error at the header and '
+                       'then loses its place for the rest of the compile, so this single '
+                       'collision can print hundreds of unrelated diagnostics elsewhere in '
+                       'the file. Rename one of the two.'
+                       % (path, n, m.group(1), routine_line[name]))
+        else:
+            routine_line[name] = n
 
     seen_undeclared = set()
     for n, _, stripped in code_lines():
@@ -748,15 +981,20 @@ def check(path):
         tainted = set()
         for _, text_line in joined:
             for m in re.finditer(r'([^=]*?)=:\s*([A-Za-z_]\w*)\s*$', text_line):
-                if re.search(r'\bXFWTF\b|\bXFWAK\b', m.group(1), re.I):
+                if re.search(r'\bXFWTF\b', m.group(1), re.I):
                     tainted.add(m.group(2).upper())
         for m in re.finditer(r'INTEGER\s*:\s*(\w+)\s*:=\s*([^%\n]*)', text, re.I):
-            if re.search(r'\bXFWTF\b|\bXFWAK\b', m.group(2), re.I):
+            if re.search(r'\bXFWTF\b', m.group(2), re.I):
                 tainted.add(m.group(1).upper())
 
-        def flags_wait_or_wake(arg):
-            """Does this flags argument ask to wait, or arm a wake-up?"""
-            if re.search(r'\bXFWTF\b|\bXFWAK\b', arg, re.I):
+        def flags_blocking(arg):
+            """Does this flags argument make the receive BLOCK?
+
+            XFWTF ONLY. XFWAK was lumped in here and that was wrong - see the
+            note on the multi-port check below. A blocking receive parks the
+            task on one port; arming a doorbell does not.
+            """
+            if re.search(r'\bXFWTF\b', arg, re.I):
                 return True
             bare = arg.strip().upper()
             return bare in tainted
@@ -784,12 +1022,31 @@ def check(path):
                                  % '|'.join(RECEIVE_ROUTINES), text_line, re.I):
                 flags_arg, port_arg = m.group(2).strip(), m.group(3)
                 recv_ports.setdefault(port_arg.upper(), n)
-                if flags_wait_or_wake(flags_arg):
+                if flags_blocking(flags_arg):
                     flag_lines.append(n)
+        # NARROWED 2026-08-28, and the reason is worth keeping.
+        #
+        # This check used to refuse XFWAK as well as XFWTF, on the strength of a
+        # comment in CHATSV.PLNC saying XFWAK "HUNG THE SERVER" on 2026-08-21.
+        # Carved from git history that day it does not hold:
+        #
+        #   - XFWAK appears ZERO times in the version before the outage;
+        #   - it first entered CHATSV.PLNC on 2026-08-25, FOUR DAYS AFTER it;
+        #   - that build had ONE xmpfrcv, on myPort, with 2**XFWTF - the
+        #     blocking flag - and no admin receive at all.
+        #
+        # So the outage is explained by the BLOCKING receive, which is what the
+        # rest of this check is about, and the doorbell was blamed for something
+        # it was not present for. A non-blocking XFWAK parks nothing.
+        #
+        # STILL UNEXPLAINED: the LIST-PORTS capture from that day shows WAK 1 on
+        # the admin port, and the committed source has neither an admin receive
+        # nor XFWAK. Either the running build was uncommitted or something else
+        # sets that bit. Worth re-checking live before trusting the doorbell.
         if len(recv_ports) > 1 and flag_lines:
             where = ', '.join(str(x) for x in sorted(set(flag_lines)))
             ports = ', '.join(sorted(recv_ports))
-            out.append('%s:%d  receives on %d DIFFERENT ports (%s) with XFWTF or XFWAK set '
+            out.append('%s:%d  receives on %d DIFFERENT ports (%s) with XFWTF set '
                        '(line(s) %s) - XFRCV waits on ONE port, so the task parks on one while '
                        'a message sits on the other. Poll both with flags 0 and sleep'
                        % (path, min(recv_ports.values()), len(recv_ports), ports, where))
@@ -1012,6 +1269,14 @@ def check(path):
         INTEGER INTEGER1 INTEGER2 INTEGER4 BYTE BYTES BOOLEAN REAL REAL4 REAL6
         REAL8 POINTER LABEL ENUMERATION VOID
         """.split())
+
+    # AND THE TYPES THIS FILE DECLARES FOR ITSELF. "TYPE xrAddr = INTEGER4" is a
+    # perfectly ordinary type once written, and "xrAddr : addrA, addrB" is a
+    # perfectly ordinary declaration - but a checker that knows only the builtin
+    # names and the XMSG XM* family calls the type undeclared AND both variables
+    # undeclared with it. Measured 2026-08-27: four invented problems in a file
+    # that was correct.
+    builtin_types |= set(t.upper() for t in own_types)
     decl_re = re.compile(
         r'^\s*([A-Za-z][A-Za-z0-9_]*)'          # the base type
         r'((?:\s+(?:ARRAY|RANGE|PACKED|POINTER))*'
@@ -1112,6 +1377,20 @@ def check(path):
         if _m:
             import_names |= include_names(path, _m.group(1))
 
+    # Names defined by $CONSTANT - PLANC's compile-time constants, the other
+    # half of its $IF conditional compilation (appendix A 0.9). A $IF line
+    # naming one is a DIRECTIVE, not code, so the name is visible everywhere
+    # and the line itself must never be read as a use inside a routine.
+    # Added 2026-09-01 when the DBGUI instrument switch drew a false
+    # undeclared-name finding.
+    for _n, _code in joined:
+        _m = re.match(r'^\$CONSTANT\s+(.+)$', _code.strip(), re.IGNORECASE)
+        if _m:
+            for _item in _m.group(1).split(','):
+                _nm = re.match(r'\s*([A-Za-z][A-Za-z0-9_]*)', _item)
+                if _nm:
+                    import_names.add(_nm.group(1).upper())
+
     # (name, first_line, last_line, params, locals)
     routines = []
     cur = None
@@ -1201,7 +1480,11 @@ def check(path):
                 if isinstance(nm3, str):
                     xmp_names.add(nm3.upper())
 
-    visible_everywhere = module_names | routine_names | import_names | xmp_names | kw
+    # A type this file declares is visible everywhere in it, exactly like a
+    # builtin type name - it is used as the return type of a routine and as the
+    # base of a declaration, and neither is a place a variable could be.
+    visible_everywhere = (module_names | routine_names | import_names | xmp_names
+                          | kw | set(t.upper() for t in own_types))
 
     # ---- TWO NAMES THAT ARE THE SAME IN THEIR FIRST TEN CHARACTERS ------------
     #
@@ -1322,27 +1605,51 @@ def check(path):
                            'mis-parses the rest of the routine. Rename the '
                            'parameter.' % (path, r['start'], r['name'], nm5))
 
-    # ---- putWord's HAND-COUNTED LENGTH ----------------------------------------
+    # ---- A HAND-COUNTED LENGTH BESIDE A LITERAL -------------------------------
     #
-    # putWord(text, textLen, at) is this project's own helper and it takes the
-    # length beside the literal - exactly the trap that 'ALnn' already has, and
-    # for the same reason: nothing checks it, a wrong number builds clean, and
-    # the only symptom is a sentence cut short or trailing rubbish on somebody
-    # else's screen.
+    # These are this project's own helpers, and each one USED to take the length
+    # beside the literal - exactly the trap that 'ALnn' has, and for the same
+    # reason: nothing checked it, a wrong number built clean, and the only
+    # symptom was a sentence cut short or trailing rubbish on somebody's screen.
+    # A count too SMALL truncates; too LARGE reads past the end of the literal,
+    # and PLANC checks no array bounds, so it prints whatever sits after it.
     #
-    # A count that is too SMALL truncates. Too LARGE reads past the end of the
-    # literal, and PLANC checks no array bounds, so it prints whatever happens
-    # to sit after it in memory.
-    for n, line, _ in code_lines():
-        for m in re.finditer(r"putWord\s*\(\s*'((?:[^']|'')*)'\s*,\s*(\d+)", line):
-            literal = m.group(1).replace("''", "'")
-            said = int(m.group(2))
-            if len(literal) != said:
-                out.append('%s:%d  putWord says %d but the literal is %d character(s) - '
-                           '%s. Too small cuts the sentence short; too large reads past '
-                           'the end of the literal and prints whatever is stored after it'
-                           % (path, n, said, len(literal),
-                              'too small' if said < len(literal) else 'too large'))
+    # ON 2026-08-31 THE PARAMETER WAS REMOVED FROM ALL OF THEM. Each helper now
+    # asks the string itself with MAXINDEX(text, 1) + 1, which deleted 93
+    # hand-typed numbers across the chat sources - 18 buildAdmText, 29 putWord,
+    # 19 logLine, 14 cmdIs, 15 tryCmd and 12 showIfMatch - none of which could
+    # ever be checked by anything but a human counting characters.
+    #
+    # So this rule now has TWO jobs, and the second is the lasting one:
+    #
+    #   1. if a helper still takes a length, the number must match the literal;
+    #   2. if a helper no longer takes one, passing a number is the OLD shape
+    #      coming back - say so by name, because the compiler's own complaint
+    #      about the parameter list does not mention MAXINDEX or why the
+    #      parameter went away.
+    #
+    # NAMED, not spelled out at the call site: the point of the whole exercise
+    # is that a fact lives in exactly one place.
+    for helper in LITERAL_LENGTH_HELPERS:
+        for n, line, _ in code_lines():
+            for m in re.finditer(helper + r"\s*\(\s*'((?:[^']|'')*)'\s*,\s*(\d+)", line):
+                literal = m.group(1).replace("''", "'")
+                said = int(m.group(2))
+                if len(literal) != said:
+                    out.append('%s:%d  %s says %d but the literal is %d character(s) - '
+                               '%s. Too small cuts the sentence short; too large reads past '
+                               'the end of the literal and prints whatever is stored after it'
+                               % (path, n, helper, said, len(literal),
+                                  'too small' if said < len(literal) else 'too large'))
+
+    for helper in DERIVES_ITS_OWN_LENGTH:
+        for n, line, _ in code_lines():
+            for m in re.finditer(helper + r"\s*\(\s*'((?:[^']|'')*)'\s*,\s*(\d+)", line):
+                out.append('%s:%d  %s does not take a length any more - it asks the '
+                           'string with MAXINDEX(text, 1) + 1. Drop the %s. A number '
+                           'beside the literal is the old shape, and it was removed '
+                           'because nothing could ever check it'
+                           % (path, n, helper, m.group(2)))
 
     # ---- EVERY IMPORT BELONGS ABOVE THE FIRST ROUTINE -------------------------
     #
@@ -1664,6 +1971,168 @@ def check(path):
                 'type for, which looks like a bracket fault and is not'
                 % (path, n, found.group('name'), len(types), len(names)))
 
+    # ---- A CALL WITH THE WRONG NUMBER OF ARGUMENTS, OR AN OBVIOUS WRONG TYPE --
+    #
+    # Written for the CHATXMS split, 2026-08-31: 35 call sites moving onto seven
+    # new routines is exactly the shape of mistake that compiles as a confusing
+    # error pointing at the wrong token - PLANC's own EXPECTS ")" / ILLEGAL DATA
+    # TYPE messages name the SYMPTOM position, not which argument is missing or
+    # which type is wrong, the same family of trap as the ONE-TYPE-PER-PARAMETER
+    # check above.
+    #
+    # Signatures come from what THIS FILE can see: its own local ROUTINE/PROGRAM
+    # headers, and its own IMPORT blocks - which is exactly where a cross-module
+    # routine like xsSendM or xsRecv is declared at the call site. It does NOT
+    # know the signature of a routine reached only through a $INCLUDE (XMPFGET
+    # and friends live in XMP-B02:IMPT, a file on the machine, not in this repo)
+    # - calls to those are not checked here and that is a real limit, not an
+    # oversight to silently paper over.
+    #
+    # THE TYPE CHECK IS DELIBERATELY NARROW. It only judges an argument that IS
+    # a literal - a quoted string, a bare integer, TRUE/FALSE - against the
+    # parameter's declared type. A variable or an expression (ADDR(...), a
+    # subarray, another call) is left alone, because this file does not track
+    # variable types well enough to judge those without guessing, and a linter
+    # that guesses wrong teaches people to ignore it.
+    def arg_parts(text):
+        """Comma-separated arguments, respecting nested parens and quotes.
+
+        Empty input is ZERO arguments, not one empty one - name() must count as
+        a zero-parameter call, not a one-parameter call with nothing in it.
+        """
+        text = text.strip()
+        if not text:
+            return []
+        pieces, current, depth, in_str = [], '', 0, False
+        for ch in text:
+            if in_str:
+                current += ch
+                if ch == "'":
+                    in_str = False
+            elif ch == "'":
+                in_str = True
+                current += ch
+            elif ch == '(':
+                depth += 1
+                current += ch
+            elif ch == ')':
+                depth -= 1
+                current += ch
+            elif ch == ',' and depth == 0:
+                pieces.append(current)
+                current = ''
+            else:
+                current += ch
+        pieces.append(current)
+        return [p.strip() for p in pieces]
+
+    def call_args_span(s, open_paren_at):
+        """The text between a call's matching parens, or None if unbalanced."""
+        depth, in_str, i = 0, False, open_paren_at
+        start = open_paren_at + 1
+        while i < len(s):
+            ch = s[i]
+            if in_str:
+                if ch == "'":
+                    in_str = False
+            elif ch == "'":
+                in_str = True
+            elif ch == '(':
+                depth += 1
+            elif ch == ')':
+                depth -= 1
+                if depth == 0:
+                    return s[start:i]
+            i += 1
+        return None
+
+    def base_type_word(spec):
+        m = re.match(r'\s*([A-Za-z_]\w*)', spec)
+        return m.group(1).upper() if m else spec.strip().upper()
+
+    def type_category(base):
+        if base in ('INTEGER', 'INTEGER2', 'INTEGER4'):
+            return 'INTEGER'
+        if base in ('BYTES', 'BYTE'):
+            return 'BYTES'
+        if base == 'BOOLEAN':
+            return 'BOOLEAN'
+        return base
+
+    def literal_category(arg):
+        s = arg.strip()
+        if len(s) >= 2 and s[0] == "'" and s[-1] == "'":
+            return 'BYTES'
+        if re.fullmatch(r'-?\d+', s):
+            return 'INTEGER'
+        if s.upper() in ('TRUE', 'FALSE'):
+            return 'BOOLEAN'
+        return None
+
+    sigs = {}   # NAME (upper) -> (list of base type words, "where declared" text)
+
+    for n, logical in joined:
+        found = routine_header.search(mask_strings(logical))
+        if found is None:
+            continue
+        types_list = arg_parts(found.group('types'))
+        names_list = arg_parts(found.group('names'))
+        if types_list and names_list and len(types_list) == len(names_list):
+            sigs[found.group('name').upper()] = (
+                [base_type_word(t) for t in types_list],
+                'the ROUTINE declared at line %d' % n)
+
+    import_tuple_re = re.compile(
+        r'\(\s*ROUTINE\s+[A-Za-z0-9_]+\s*,\s*[A-Za-z0-9_]+\s*'
+        r'\(([^()]*)\)\s*:\s*([A-Za-z_]\w*)\s*\)', re.IGNORECASE)
+    for n, logical in joined:
+        if not re.match(r'^\s*IMPORT\b', logical, re.IGNORECASE):
+            continue
+        for m in import_tuple_re.finditer(mask_strings(logical)):
+            types_list = arg_parts(m.group(1))
+            key = m.group(2).upper()
+            if key not in sigs:
+                sigs[key] = ([base_type_word(t) for t in types_list],
+                             'the IMPORT at line %d' % n)
+
+    call_re = re.compile(r'\b([A-Za-z][A-Za-z0-9_]*)\s*\(')
+    for n, logical in joined:
+        if re.match(r'^\s*(ROUTINE|PROGRAM|IMPORT|EXPORT)\b', logical,
+                    re.IGNORECASE):
+            continue
+        masked_line = mask_strings(logical)
+        for m in call_re.finditer(masked_line):
+            key = m.group(1).upper()
+            if key not in sigs:
+                continue
+            expected_types, origin = sigs[key]
+            args_text = call_args_span(logical, m.end() - 1)
+            if args_text is None:
+                continue
+            args = arg_parts(args_text)
+            if len(args) != len(expected_types):
+                out.append(
+                    '%s:%d  "%s(...)" is called with %d argument(s) but %s '
+                    'declares %d parameter(s) - PLANC answers EXPECTS ")" or '
+                    'ILLEGAL DATA TYPE at this call, which names the wrong '
+                    'token, not the missing or extra argument'
+                    % (path, n, m.group(1), len(args), origin,
+                       len(expected_types)))
+                continue
+            for idx, (arg, base) in enumerate(zip(args, expected_types)):
+                cat = type_category(base)
+                if cat not in ('INTEGER', 'BYTES', 'BOOLEAN'):
+                    continue
+                lit = literal_category(arg)
+                if lit is None or lit == cat:
+                    continue
+                out.append(
+                    '%s:%d  "%s" argument %d ("%s") is a %s literal but '
+                    'parameter %d of %s is declared %s - PLANC checks this '
+                    'and answers ILLEGAL DATA TYPE at the call'
+                    % (path, n, m.group(1), idx + 1, arg.strip(), lit,
+                       idx + 1, origin, base))
+
     # ---- two names that become ONE after truncation ---------------------------
     # ND-60.117.5 keeps TEN characters of an identifier and PLANC does not warn:
     # it TRUNCATES and carries on. relayOnward compiled quite happily as
@@ -1770,12 +2239,227 @@ def check(path):
                    'file as rewritten, with every old and new line looking identical, '
                    'burying a real change completely' % (path, stray_cr))
 
+    # ---- A SUBARRAY PAINTED WITH A WIDTH OF 0 --------------------------------
+    #
+    # bytdis takes (row, column, WIDTH, text, attributes). A width of 0 means
+    # "use the string's own length", which is right for a LITERAL and WRONG for a
+    # SUBARRAY of a bigger buffer.
+    #
+    # MEASURED on D100 2026-08-25, in TESTUI's paintRun. The text was a subarray
+    # of a 700-byte buffer and the width was left at 0; the painted line ran clean
+    # off the right-hand side and wiped the scroll window's border at column 76 AND
+    # the main window's at 78 - which a write of seventy characters starting at
+    # column 5 cannot reach. Note what that also says: bytdis does NOT stop at the
+    # viewport edge although VTWRIT does, so viewport clipping must never be
+    # assumed for PLANC-SCREEN-H.
+    #
+    # Passing the exact width removes it. This check is narrow on purpose: only a
+    # literal 0 width with a subarray argument, which is the shape that was
+    # measured to break. A width held in a variable is somebody's decision.
+    for number, line, stripped in code_lines():
+        for m in re.finditer(r'\bbytdis\s*\(', stripped, re.IGNORECASE):
+            depth = 0
+            args = []
+            current = ''
+            for ch in stripped[m.end() - 1:]:
+                if ch == '(':
+                    depth += 1
+                    if depth == 1:
+                        continue
+                elif ch == ')':
+                    depth -= 1
+                    if depth == 0:
+                        args.append(current)
+                        break
+                if depth == 1 and ch == ',':
+                    args.append(current)
+                    current = ''
+                else:
+                    current += ch
+            if len(args) < 4:
+                continue
+            width = args[2].strip()
+            text = args[3].strip()
+            # A subarray is name(lo : hi) - the colon is what makes it one.
+            if width == '0' and '(' in text and ':' in text.split('(', 1)[1]:
+                out.append('%s:%d  bytdis is given a SUBARRAY %s with a width of 0. '
+                           'Width 0 means the STRING SAYS ITS OWN LENGTH, which is right '
+                           'for a literal and wrong for a subarray - MEASURED on D100, the '
+                           'line ran off the right-hand side and wiped two window '
+                           'borders. bytdis does NOT stop at the viewport edge even '
+                           'though VTWRIT does. Pass the exact width.'
+                           % (path, number, text[:40]))
+
     if eol_crlf and eol_bare:
         out.append('%s  MIXED LINE ENDINGS - %d CRLF and %d bare LF. The compiler does '
                    'NOT report this: it answers 0 DIAGNOSTICS and builds a program that '
                    'misbehaves. Normalise the whole file to CRLF' % (path, eol_crlf, eol_bare))
 
     return out
+
+
+def _arity_check_proves_itself():
+    """End-to-end: does the call-arity/type check actually catch a bad call?
+
+    Every probe in self_test() below tests a REGEX IN ISOLATION - it proves a
+    pattern still matches sample text, not that check() end-to-end still
+    reports the right thing for it. That gap is real: a pattern can match
+    perfectly and still feed a broken comparison, an off-by-one, or a
+    mis-wired condition a few lines later, and none of the regex probes would
+    notice.
+
+    So this writes a small, real PLANC source with THREE calls to two
+    declared routines: one with the WRONG NUMBER of arguments, one with an
+    OBVIOUSLY WRONG literal type, and one that matches its signature exactly.
+    It runs check() on that source for real and demands the two bad calls are
+    reported and the good one draws nothing - a NEGATIVE test, same shape as
+    the manual probe used to prove this check when it was written
+    (2026-08-31), now kept permanently instead of being thrown away after.
+    """
+    src = (
+        "MODULE aritycheck\n"
+        "    IMPORT (ROUTINE VOID, INTEGER (INTEGER, BYTES) : xrClamp)\n"
+        "\n"
+        "    ROUTINE VOID, INTEGER (INTEGER, INTEGER4, BYTES, INTEGER, INTEGER) : &\n"
+        "            xsSendM(port, magic, buf, length, flags)\n"
+        "        0 RETURN\n"
+        "    ENDROUTINE\n"
+        "\n"
+        "    PROGRAM : mainUi\n"
+        "        INTEGER : st\n"
+        "        INTEGER : n\n"
+        "        BYTES : buf(0:9)\n"
+        "\n"
+        "        % BAD - one argument short.\n"
+        "        xsSendM(1, 2, buf, 3) =: st\n"
+        "        % BAD - a string literal where xrClamp wants an INTEGER.\n"
+        "        xrClamp('oops', buf) =: n\n"
+        "        % GOOD - matches xsSendM's declared signature exactly.\n"
+        "        xsSendM(1, 2, buf, 3, 0) =: st\n"
+        "    ENDROUTINE\n"
+        "ENDMODULE\n"
+    )
+    problems = []
+    fd, path = tempfile.mkstemp(suffix='.PLNC')
+    try:
+        with os.fdopen(fd, 'w', encoding='utf-8') as f:
+            f.write(src)
+        findings = check(path)
+    finally:
+        os.remove(path)
+
+    caught_arity = any('4 argument(s)' in f and 'xsSendM' in f for f in findings)
+    caught_type = any('BYTES literal' in f and 'xrClamp' in f for f in findings)
+
+    if not caught_arity:
+        problems.append(
+            'the end-to-end arity probe did NOT catch xsSendM being called '
+            'with 4 arguments where it declares 5 - the call-arity check is '
+            'silently broken. findings were: %r' % findings)
+    if not caught_type:
+        problems.append(
+            "the end-to-end arity probe did NOT catch xrClamp('oops', buf) - "
+            'a string literal where the routine declares INTEGER - the '
+            'literal-type check is silently broken. findings were: %r'
+            % findings)
+    if caught_arity and caught_type and len(findings) != 2:
+        problems.append(
+            'the end-to-end arity probe expected EXACTLY 2 findings (the two '
+            'bad calls) but got %d - the correctly-shaped third call '
+            '(xsSendM with all 5 arguments) is drawing a FALSE POSITIVE. '
+            'findings were: %r' % (len(findings), findings))
+
+    return problems
+
+
+def _arity_check_proves_itself_on_mixed_types():
+    """A second end-to-end negative test, on a routine with FOUR parameters of
+    THREE different types (BYTES, BOOLEAN, INTEGER, INTEGER) - the first probe
+    above only ever gets one type category wrong at a time, in a routine with
+    two type categories total. That leaves real gaps this one closes:
+
+     - BOOLEAN was never exercised as an expected type at all.
+     - Every earlier bad call had exactly ONE wrong argument. A call with
+       SEVERAL wrong arguments at once must report EACH ONE separately, by
+       its own argument number - not stop at the first, and not merge them
+       into one vague line that only names the call.
+     - A correct call sitting in the SAME routine, SAME file, right next to
+       three bad ones must still draw nothing, proving position in the file
+       is not what the check is keying on.
+
+    Modelled on the real xsOpenC in CHATXMS.PLNC (BYTES, BOOLEAN, INTEGER,
+    INTEGER WRITE), declared fresh here so this probe does not depend on that
+    file existing or being unchanged.
+    """
+    src = (
+        "MODULE mixedtypes\n"
+        "    ROUTINE VOID, INTEGER (BYTES, BOOLEAN, INTEGER, INTEGER) : &\n"
+        "            xsOpenC(name, unique, seats, extra)\n"
+        "        0 RETURN\n"
+        "    ENDROUTINE\n"
+        "\n"
+        "    PROGRAM : mainUi\n"
+        "        INTEGER : st\n"
+        "\n"
+        "        % BAD - one argument wrong: position 1 (INTEGER, wants BYTES).\n"
+        "        xsOpenC(5, TRUE, 10, 1) =: st\n"
+        "        % BAD - one argument wrong: position 2 (INTEGER, wants BOOLEAN).\n"
+        "        xsOpenC('A', 1, 10, 1) =: st\n"
+        "        % BAD - THREE arguments wrong at once: 1, 2 and 3.\n"
+        "        xsOpenC(5, 1, 'ten', 1) =: st\n"
+        "        % GOOD - matches the declared signature exactly.\n"
+        "        xsOpenC('A', TRUE, 10, 1) =: st\n"
+        "    ENDROUTINE\n"
+        "ENDMODULE\n"
+    )
+    problems = []
+    fd, path = tempfile.mkstemp(suffix='.PLNC')
+    try:
+        with os.fdopen(fd, 'w', encoding='utf-8') as f:
+            f.write(src)
+        findings = check(path)
+    finally:
+        os.remove(path)
+
+    def has(text_bits):
+        return [f for f in findings if all(bit in f for bit in text_bits)]
+
+    # These two are UNIQUELY shaped - nothing else in this source could
+    # produce them - so each is real, independent evidence on its own.
+    checks = [
+        (['argument 2', 'INTEGER literal', 'declared BOOLEAN'],
+         "position 2 of the SECOND call: an INTEGER literal (1) where "
+         "xsOpenC declares BOOLEAN"),
+        (['argument 3', 'BYTES literal', 'declared INTEGER'],
+         "position 3 of the THIRD call: a BYTES literal ('ten') where "
+         "xsOpenC declares INTEGER"),
+    ]
+    for bits, what in checks:
+        if not has(bits):
+            problems.append(
+                'the mixed-type probe did NOT catch %s - findings were: %r'
+                % (what, findings))
+
+    # The first call's mismatch (argument 1, INTEGER literal, declared BYTES)
+    # and the third call's arguments 1 and 2 are IDENTICAL IN SHAPE to each
+    # other - the third call repeats the same two mistakes the first two
+    # calls each make once. There is no way to tell from the finding text
+    # alone which CALL produced which, so the count below is what actually
+    # proves the third call's three violations were each reported and not
+    # just the first one found - not another substring check that could not
+    # tell the difference either.
+    if len(findings) != 5:
+        problems.append(
+            'the mixed-type probe expected EXACTLY 5 findings (1 from the '
+            'first bad call + 1 from the second + 3 from the third, which '
+            'gets three arguments wrong at once) but got %d - either a real '
+            'violation is going unreported (the third call reporting fewer '
+            'than 3 would mean it stops after the first bad argument instead '
+            'of checking all of them), or the correctly-shaped fourth call '
+            'is drawing a FALSE POSITIVE. findings were: %r'
+            % (len(findings), findings))
+
+    return problems
 
 
 def self_test():
@@ -1816,10 +2500,38 @@ def self_test():
          'PROGRAM : mainUi', 'program header'),
         (re.compile(r'^\s*ENDROUTINE', re.IGNORECASE),
          'ENDROUTINE', 'routine end'),
+        # The cross-file export check is only as good as this one pattern. If it
+        # dies, several modules can export the same seven characters and nothing
+        # anywhere will say so - see cross_file_exports.
+        (re.compile(r'^EXPORT\s+(\w+)\s*$'),
+         'EXPORT cmEncAt', 'export statement'),
+        # The subarray-width check hangs off this one word. If it dies, a paint
+        # that runs off the edge and wipes a window border goes unreported.
+        (re.compile(r'\bbytdis\s*\(', re.IGNORECASE),
+         "bytdis(row, 3, 0, buf(a : b), '')", 'bytdis call'),
+        # The duplicate-routine-name check hangs off this pattern. If it dies,
+        # a second ROUTINE reusing a name already used elsewhere in the file
+        # goes unreported, and the 215-diagnostic cascade it caused on
+        # CHATSV.PLNC 2026-08-31 can happen again with nothing to catch it.
+        (re.compile(r'^(?:ROUTINE|PROGRAM)\b[^:]*:\s*([A-Za-z_]\w*)'),
+         'ROUTINE VOID, INTEGER : buildMembers', 'routine/program name'),
+        # The call-arity/type check hangs off both of these. If either dies, a
+        # call to a known routine with the wrong number of arguments, or an
+        # obviously wrong literal type, goes unreported.
+        (re.compile(r'\(\s*ROUTINE\s+[A-Za-z0-9_]+\s*,\s*[A-Za-z0-9_]+\s*'
+                    r'\(([^()]*)\)\s*:\s*([A-Za-z_]\w*)\s*\)', re.IGNORECASE),
+         "(ROUTINE VOID, INTEGER (INTEGER, BYTES) : xrClamp)",
+         'IMPORT tuple'),
+        (re.compile(r'\b([A-Za-z][A-Za-z0-9_]*)\s*\('),
+         'xsSendM(port, magic, buf, length, flags)', 'call site'),
     ]
     for pattern, sample, what in probes:
         if not pattern.match(sample):
             problems.append('the %s pattern does not match %r' % (what, sample))
+
+    problems.extend(_arity_check_proves_itself())
+    problems.extend(_arity_check_proves_itself_on_mixed_types())
+    problems.extend(_cross_check_proves_itself())
 
     if problems:
         print('planc-lint IS BROKEN AND WOULD REPORT "clean" WRONGLY:',
@@ -1828,6 +2540,494 @@ def self_test():
             print('  - ' + p, file=sys.stderr)
         return False
     return True
+
+
+def exports_of(path):
+    """Every name this source EXPORTs, as (name, line number).
+
+    Used for the cross-file check below. Kept separate from check() because it
+    answers a question about a SET of sources, not about one.
+    """
+    found = []
+    text = io.open(path, encoding='utf-8', errors='replace').read()
+    for number, line in enumerate(text.split('\n'), 1):
+        stripped = strip_comment(line).strip()
+        m = re.match(r'^EXPORT\s+(\w+)\s*$', stripped)
+        if m:
+            found.append((m.group(1), number))
+    return found
+
+
+def cross_file_exports(paths):
+    """Two modules exporting names that agree in seven characters.
+
+    check() already catches this WITHIN one source. It cannot catch it BETWEEN
+    two, and between two is where it actually bites: the collision only exists
+    once both BRFs are handed to the same linker, so neither file is wrong on
+    its own and neither compile says anything.
+
+    This matters much more than it used to. While the client and the server were
+    each one big module, the only exports in the link came from CHATLIB. Splitting
+    a 6500-line source into separately compiled modules multiplies the exported
+    surface, and every new name is a chance to collide with one that already
+    exists - silently, because the linker does not report a duplicate. It
+    resolves every import to whichever entry it met first.
+
+    Give this the WHOLE set that will be linked together, not one file:
+
+        python tools/planc-lint.py SINTRAN-CHAT/CHAT*.PLNC
+    """
+    out = []
+    if len(paths) < 2:
+        return out
+
+    seen = {}
+    for path in paths:
+        for name, number in exports_of(path):
+            seen.setdefault(name[:7].upper(), []).append((path, name, number))
+
+    for short, found in sorted(seen.items()):
+        # Only a collision when it spans more than one FILE - the same-file case
+        # is check()'s job, and reporting it twice would train people to skim.
+        files = set(f for f, _, _ in found)
+        if len(found) > 1 and len(files) > 1:
+            where = ', '.join('%s (%s line %d)' % (n, os.path.basename(f), ln)
+                              for f, n, ln in found)
+            out.append('EXPORTS COLLIDE ACROSS FILES at seven characters - %s all read '
+                       '"%s" to the linker. It will NOT report a duplicate; it will '
+                       'resolve every import to one of them. Rename all but one.'
+                       % (where, short))
+    return out
+
+
+def _logical_lines(path):
+    """(line number, logical line) pairs with & continuations rebuilt and
+    comments stripped - the same joining check() does, standalone so the
+    cross-file checks can share it."""
+    text = io.open(path, encoding='utf-8', errors='replace').read()
+    joined = []
+    buffer_text = ''
+    buffer_line = 0
+    for i, raw in enumerate(text.split('\n')):
+        body = strip_comment(raw).rstrip()
+        if not body.strip():
+            continue
+        if not buffer_text:
+            buffer_line = i + 1
+        if body.endswith('&'):
+            buffer_text += body[:-1]
+            continue
+        buffer_text += body
+        joined.append((buffer_line, buffer_text))
+        buffer_text = ''
+    if buffer_text:
+        joined.append((buffer_line, buffer_text))
+    return joined
+
+
+_DATA_TYPE_WORDS = (
+    'INTEGER', 'INTEGER1', 'INTEGER2', 'INTEGER4', 'BYTE', 'BYTES',
+    'BOOLEAN', 'REAL', 'REAL8', 'LABEL', 'XMMSGIDENTIFIER', 'XMUSERADDRESS')
+
+
+def _norm_type(spec):
+    """One parameter or declaration type, normalised for comparison.
+
+    Collapses whitespace, uppercases, and folds INTEGER2 onto INTEGER -
+    on the ND-100 plain INTEGER IS sixteen bits, so the two spellings are
+    the same calling convention and must not be reported as a mismatch.
+    READ is the default access and is dropped; WRITE is KEPT, because a
+    scalar WRITE parameter travels by address and a plain one by value -
+    that difference IS a real calling-convention fault.
+    """
+    words = [w.upper() for w in spec.split()]
+    words = [('INTEGER' if w == 'INTEGER2' else w) for w in words]
+    words = [w for w in words if w != 'READ']
+    return ' '.join(words)
+
+
+_ROUTINE_SIG_RE = re.compile(
+    r'^\s*ROUTINE\s+(?:STANDARD\s+|REFERENCE\s+|SPECIAL\s+|INLINE\s+)?'
+    r'(?P<intype>[A-Za-z_]\w*(?:\s+POINTER)?)\s*,\s*'
+    r'(?P<outtype>[A-Za-z_]\w*(?:\s+POINTER)?)\s*'
+    r'(?:\((?P<types>[^()]*)\))?\s*:\s*'
+    r'(?P<name>[A-Za-z_]\w*)\s*[(?]?', re.IGNORECASE)
+
+_IMPORT_ROUTINE_RE = re.compile(
+    r'\(\s*ROUTINE\s+(?:STANDARD\s+|REFERENCE\s+|SPECIAL\s+|INLINE\s+)?'
+    r'(?P<intype>[A-Za-z_]\w*(?:\s+POINTER)?)\s*,\s*'
+    r'(?P<outtype>[A-Za-z_]\w*(?:\s+POINTER)?)\s*'
+    r'(?:\((?P<types>[^()]*)\))?\s*:\s*'
+    r'(?P<name>[A-Za-z_]\w*)\s*\)', re.IGNORECASE)
+
+_IMPORT_DATA_RE = re.compile(
+    r'\(\s*(?P<type>(?:' + '|'.join(_DATA_TYPE_WORDS) + r')'
+    r'(?:\s+(?:ARRAY|PACKED|POINTER|READ|WRITE))*)\s*:\s*'
+    r'(?P<names>[^()]*(?:\([^()]*\)[^()]*)*)\)', re.IGNORECASE)
+
+
+def _split_toplevel_commas(text):
+    pieces, current, depth = [], '', 0
+    for ch in text:
+        if ch == '(':
+            depth += 1
+        elif ch == ')':
+            depth -= 1
+        if ch == ',' and depth == 0:
+            pieces.append(current)
+            current = ''
+        else:
+            current += ch
+    if current.strip():
+        pieces.append(current)
+    return [p.strip() for p in pieces]
+
+
+def _routine_sig_tuple(m):
+    types = m.group('types')
+    params = [] if types is None else [
+        _norm_type(t) for t in _split_toplevel_commas(types) if t.strip()]
+    return (_norm_type(m.group('intype')), _norm_type(m.group('outtype')),
+            tuple(params))
+
+
+def interface_of(path):
+    """What one source EXPORTs, DEFINES and IMPORTs, for the cross-file check.
+
+    defs maps NAME -> list of ('ROUTINE', sig-tuple, line) and
+    ('DATA', (normalised type, bounds text or None), line). Every declaration
+    of a name is kept, because CHAT.PLNC declares module data BETWEEN routines
+    and a local can share a module name - a mismatch is only reported when NO
+    declaration in the exporting file agrees, which cannot false-positive.
+    """
+    exports = dict()
+    defs = {}
+    imp_routines = []
+    imp_data = []
+    for n, logical in _logical_lines(path):
+        masked = mask_strings(logical)
+        stripped = masked.strip()
+
+        em = re.match(r'^EXPORT\s+(\w+)\s*$', stripped)
+        if em:
+            exports.setdefault(em.group(1).upper(), (em.group(1), n))
+            continue
+
+        if re.match(r'^IMPORT\b', stripped, re.IGNORECASE):
+            for m in _IMPORT_ROUTINE_RE.finditer(masked):
+                imp_routines.append((m.group('name').upper(),
+                                     _routine_sig_tuple(m), n))
+            for m in _IMPORT_DATA_RE.finditer(masked):
+                if re.match(r'\s*ROUTINE\b', m.group(0)[1:], re.IGNORECASE):
+                    continue
+                base = _norm_type(m.group('type'))
+                for item in _split_toplevel_commas(m.group('names')):
+                    nm = re.match(r'([A-Za-z_]\w*)\s*(\(([^()]*)\))?', item)
+                    if nm:
+                        bounds = nm.group(3)
+                        bounds = bounds.replace(' ', '') if bounds else None
+                        imp_data.append((nm.group(1).upper(),
+                                         (base, bounds), n))
+            continue
+
+        rm = _ROUTINE_SIG_RE.match(stripped)
+        if rm:
+            name = rm.group('name').rstrip('?')
+            defs.setdefault(name.upper(), []).append(
+                ('ROUTINE', _routine_sig_tuple(rm), n))
+            continue
+
+        pm = re.match(r'^PROGRAM\s*:\s*([A-Za-z_]\w*)', stripped,
+                      re.IGNORECASE)
+        if pm:
+            defs.setdefault(pm.group(1).upper(), []).append(
+                ('ROUTINE', ('VOID', 'VOID', ()), n))
+            continue
+
+        dm = re.match(
+            r'^(?P<type>(?:' + '|'.join(_DATA_TYPE_WORDS) + r')'
+            r'(?:\s+RANGE\s*\([^)]*\))?'
+            r'(?:\s+(?:ARRAY|PACKED|POINTER|READ|WRITE))*)\s*:\s*'
+            r'(?P<names>.+)$', stripped, re.IGNORECASE)
+        if dm:
+            base = _norm_type(re.sub(r'\s+RANGE\s*\([^)]*\)', '',
+                                     dm.group('type'), flags=re.IGNORECASE))
+            for item in _split_toplevel_commas(dm.group('names')):
+                item = item.split(':=')[0].strip()
+                nm = re.match(r'([A-Za-z_]\w*)\s*(\(([^()]*)\))?\s*$', item)
+                if nm:
+                    bounds = nm.group(3)
+                    bounds = bounds.replace(' ', '') if bounds else None
+                    defs.setdefault(nm.group(1).upper(), []).append(
+                        ('DATA', (base, bounds), n))
+            continue
+
+        cm = re.match(r'^CONSTANT\s+(.+)$', stripped, re.IGNORECASE)
+        if cm:
+            for item in _split_toplevel_commas(cm.group(1)):
+                nm = re.match(r'([A-Za-z_]\w*)', item.strip())
+                if nm:
+                    defs.setdefault(nm.group(1).upper(), []).append(
+                        ('CONSTANT', None, n))
+
+    return exports, defs, imp_routines, imp_data
+
+
+def _sig_text(sig):
+    intype, outtype, params = sig
+    inner = ' (' + ', '.join(params) + ')' if params else ''
+    return 'ROUTINE %s, %s%s' % (intype, outtype, inner)
+
+
+def cross_file_interfaces(paths):
+    """EXPORT with no definition, and IMPORTs that disagree with the exporter.
+
+    ND-60.117.5 section 8.3: correspondence between an EXPORT and an IMPORT
+    'is only checked when both modules are nested in one compilation.
+    Separately compiled modules are NOT checked' - so a routine deleted from
+    CHAT.PLNC while its EXPORT and CHATARR's IMPORT stay behind, or an IMPORT
+    whose signature has drifted from the real header, compiles clean in BOTH
+    files, links (an undefined entry does not fail a BRF link), runs, and
+    lies. Written 2026-09-01, the night a definitionless-looking uiSaid cost
+    an hour of fright during the repeat-first-message hunt - the compiler had
+    no opinion and the linker would have had none either.
+
+    Only names exported by a file IN THE GIVEN SET are judged: an import of
+    XMPFGET or MON50 resolves against a library this repo does not hold, and
+    guessing about those would teach people to ignore the linter.
+    """
+    out = []
+    if len(paths) < 2:
+        interfaces = {}
+    else:
+        interfaces = {p: interface_of(p) for p in paths}
+
+    exporter_of = {}
+    for p, (exports, defs, _ir, _id) in interfaces.items():
+        for key, (name, line) in exports.items():
+            exporter_of.setdefault(key, (p, name, line, defs))
+
+    # 1. An EXPORT whose name is DEFINED NOWHERE in its own module.
+    for p, (exports, defs, _ir, _id) in sorted(interfaces.items()):
+        for key, (name, line) in sorted(exports.items()):
+            if key not in defs:
+                out.append(
+                    '%s:%d  EXPORT %s but nothing in this file DEFINES it - no '
+                    'routine, no declaration, no constant. The compiler accepts '
+                    'it, the BRF link leaves the entry undefined WITHOUT failing '
+                    'the build, and every caller jumps into rubbish at run time. '
+                    'Either the definition was deleted with its export left '
+                    'behind, or the name is misspelled.'
+                    % (p, line, name))
+
+    # 2. An IMPORT that disagrees with the exporting module's definition.
+    for p, (_exports, _defs, imp_routines, imp_data) in sorted(
+            interfaces.items()):
+        for name, sig, line in imp_routines:
+            hit = exporter_of.get(name)
+            if hit is None:
+                continue
+            src, real_name, _eline, src_defs = hit
+            if src == p:
+                continue
+            entries = src_defs.get(name, [])
+            routine_sigs = [e for e in entries if e[0] == 'ROUTINE']
+            if not entries:
+                continue          # dangling export, already reported above
+            if not routine_sigs:
+                out.append(
+                    '%s:%d  IMPORTs %s as a ROUTINE but %s defines it as DATA. '
+                    'Separately compiled modules are never checked against each '
+                    'other (ND-60.117.5 8.3) - this links clean and every call '
+                    'executes the variable as code.'
+                    % (p, line, real_name, os.path.basename(src)))
+                continue
+            if not any(e[1] == sig for e in routine_sigs):
+                have = _sig_text(routine_sigs[0][1])
+                out.append(
+                    '%s:%d  IMPORT of %s declares "%s" but %s line %d defines '
+                    '"%s". Separately compiled modules are NEVER checked against '
+                    'each other (ND-60.117.5 8.3) - a drifted IMPORT compiles '
+                    'clean in both files, links, and the callee reads arguments '
+                    'that were never passed.'
+                    % (p, line, real_name, _sig_text(sig),
+                       os.path.basename(src), routine_sigs[0][2], have))
+        for name, (base, bounds), line in imp_data:
+            hit = exporter_of.get(name)
+            if hit is None:
+                continue
+            src, real_name, _eline, src_defs = hit
+            if src == p:
+                continue
+            entries = src_defs.get(name, [])
+            data_defs = [e for e in entries if e[0] == 'DATA']
+            if not entries:
+                continue
+            if not data_defs:
+                if any(e[0] == 'ROUTINE' for e in entries):
+                    out.append(
+                        '%s:%d  IMPORTs %s as DATA but %s defines it as a '
+                        'ROUTINE. This links clean and every read of the '
+                        '"variable" reads machine code.'
+                        % (p, line, real_name, os.path.basename(src)))
+                continue
+
+            def data_matches(d):
+                dbase, dbounds = d[1]
+                if dbase != base:
+                    return False
+                if bounds is None or dbounds is None:
+                    return True
+                literal = re.fullmatch(r'[-0-9:]+', bounds) and \
+                    re.fullmatch(r'[-0-9:]+', dbounds)
+                if not literal:
+                    return True   # constant-named bounds cannot be evaluated
+                return bounds == dbounds
+
+            if not any(data_matches(d) for d in data_defs):
+                dbase, dbounds = data_defs[0][1]
+                have = dbase + ('(%s)' % dbounds if dbounds else '')
+                want = base + ('(%s)' % bounds if bounds else '')
+                out.append(
+                    '%s:%d  IMPORT of %s declares "%s" but %s line %d declares '
+                    '"%s". The two are never checked against each other across '
+                    'separate compilations - a size or bounds drift here means '
+                    'MAXINDEX lies to every user of the import, silently.'
+                    % (p, line, real_name, want,
+                       os.path.basename(src), data_defs[0][2], have))
+    return out
+
+
+def _cross_check_proves_itself():
+    """End-to-end negative test for cross_file_interfaces: two small sources
+    with one dangling EXPORT, one drifted routine IMPORT, one drifted data
+    IMPORT - and one routine plus one variable imported CORRECTLY, which must
+    draw nothing. Same discipline as the arity probes: a check must be shown
+    to FAIL on a bad input and PASS on a good one, or it proves nothing.
+    """
+    src_a = (
+        "MODULE parta\n"
+        "    EXPORT goodRtn\n"
+        "    EXPORT goodVar\n"
+        "    EXPORT driftRtn\n"
+        "    EXPORT driftVar\n"
+        "    EXPORT ghostRtn\n"
+        "\n"
+        "    INTEGER : goodVar := 0\n"
+        "    INTEGER4 : driftVar\n"
+        "\n"
+        "    ROUTINE VOID, INTEGER (INTEGER, BYTES) : goodRtn(a, b)\n"
+        "        0 RETURN\n"
+        "    ENDROUTINE\n"
+        "\n"
+        "    ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER) : &\n"
+        "            driftRtn(a, b, c)\n"
+        "    ENDROUTINE\n"
+        "ENDMODULE\n"
+    )
+    src_b = (
+        "MODULE partb\n"
+        "    IMPORT (ROUTINE VOID, INTEGER (INTEGER, BYTES) : goodRtn)\n"
+        "    IMPORT (INTEGER : goodVar)\n"
+        "    IMPORT (ROUTINE VOID, VOID (INTEGER, INTEGER) : driftRtn)\n"
+        "    IMPORT (INTEGER : driftVar)\n"
+        "    IMPORT (ROUTINE VOID, VOID : ghostRtn)\n"
+        "ENDMODULE\n"
+    )
+    problems = []
+    fd_a, path_a = tempfile.mkstemp(suffix='.PLNC')
+    fd_b, path_b = tempfile.mkstemp(suffix='.PLNC')
+    try:
+        with os.fdopen(fd_a, 'w', encoding='utf-8') as f:
+            f.write(src_a)
+        with os.fdopen(fd_b, 'w', encoding='utf-8') as f:
+            f.write(src_b)
+        findings = cross_file_interfaces([path_a, path_b])
+    finally:
+        os.remove(path_a)
+        os.remove(path_b)
+
+    if not any('ghostRtn' in f and 'DEFINES' in f for f in findings):
+        problems.append('the cross-interface probe did NOT catch the EXPORT '
+                        'of ghostRtn, which nothing defines. findings: %r'
+                        % findings)
+    if not any('driftRtn' in f for f in findings):
+        problems.append('the cross-interface probe did NOT catch driftRtn '
+                        'imported with 2 parameters against a 3-parameter '
+                        'definition. findings: %r' % findings)
+    if not any('driftVar' in f for f in findings):
+        problems.append('the cross-interface probe did NOT catch driftVar '
+                        'imported INTEGER against an INTEGER4 declaration. '
+                        'findings: %r' % findings)
+    for f in findings:
+        if 'goodRtn' in f or 'goodVar' in f:
+            problems.append('the cross-interface probe FALSE-POSITIVES on a '
+                            'correct import: %s' % f)
+    return problems
+
+
+def check_mode_file(path):
+    """A .MODE build file: check the ONE thing that has silently cost a listing.
+
+    TWO `COMPILE`s INSIDE ONE PLANC SESSION make the second listing UNPULLABLE.
+    The compiler writes it at the file position the first one left, so it comes
+    out sparse - the real listing behind a hole the size of the first one - and
+    the FA server refuses to read the unwritten blocks with SINTRAN error 18.
+    It can then never be gated, which in this project is the whole point of a
+    build.
+
+    MEASURED on D100 2026-08-31, twice, and the arithmetic is exact:
+
+        CHAT:LIST 430140  CHATARR:LIST 495270   difference 65130
+        CHAT:LIST 405685  CHATARR:LIST 469782   difference 64097
+
+    against a standalone CHATARR listing of 64960 bytes. NOTHING ELSE LOOKS
+    WRONG: both compiles say 0 DIAGNOSTICS, the linker resolves everything and
+    the first listing gates clean.
+
+    CHATTS:MODE already EXITs and re-enters between its two compiles and has
+    never had the fault - which is why CHATLIB:LIST and CHATTST:LIST always
+    pulled and CHATARR:LIST never did. That is the control this check is built
+    on, so it is a rule with a known-good case as well as a known-bad one.
+    """
+    out = []
+    try:
+        text = io.open(path, encoding='utf-8', errors='replace').read()
+    except OSError as exc:
+        return ['%s  cannot be read: %s' % (path, exc)]
+
+    open_session = False
+    compiles_here = 0
+    first_line = 0
+    for number, raw in enumerate(text.split(chr(10)), 1):
+        line = raw.strip()
+        upper = line.upper()
+        # A comment line in a MODE file starts @cc - never treat one as a command.
+        if upper.startswith('@CC'):
+            continue
+        if upper.startswith('@PLANC-100') or upper.startswith('PLANC-100'):
+            open_session = True
+            compiles_here = 0
+            continue
+        if upper.startswith('EXIT'):
+            open_session = False
+            compiles_here = 0
+            continue
+        if upper.startswith('COMPILE '):
+            if open_session:
+                compiles_here += 1
+                if compiles_here == 1:
+                    first_line = number
+                elif compiles_here == 2:
+                    out.append('%s:%d  a SECOND COMPILE in the same PLANC session (the first is '
+                               'on line %d). The second listing is written at the file position '
+                               'the first one left, so it comes out SPARSE and the FA server '
+                               'refuses to read it - SINTRAN error 18, and it can NEVER be gated. '
+                               'Both compiles still say 0 DIAGNOSTICS, so nothing else shows it. '
+                               'Put EXIT and a fresh @PLANC-100-F00 between them, the way '
+                               'CHATTS:MODE already does.'
+                               % (path, number, first_line))
+    return out
 
 
 def main(argv):
@@ -1839,13 +3039,28 @@ def main(argv):
 
     total = 0
     for path in argv[1:]:
-        problems = check(path)
+        # A MODE file is a BUILD file, not PLANC source - running the language
+        # checks over one invents hundreds of undeclared names. It gets its own
+        # short check instead.
+        if path.upper().endswith('.MODE'):
+            problems = check_mode_file(path)
+        else:
+            problems = check(path)
         total += len(problems)
         if problems:
             for p in problems:
                 print(p)
         else:
             print('%s: clean' % path)
+
+    # Only meaningful when several sources were given, and then it is the whole
+    # point: these are the faults that no single-file check can see.
+    plnc_paths = [a for a in argv[1:] if not a.upper().endswith('.MODE')]
+    crossed = cross_file_exports(plnc_paths)
+    crossed += cross_file_interfaces(plnc_paths)
+    total += len(crossed)
+    for p in crossed:
+        print(p)
 
     if total:
         print('\n%d problem(s). Every one of these has cost a build cycle on D100.' % total)

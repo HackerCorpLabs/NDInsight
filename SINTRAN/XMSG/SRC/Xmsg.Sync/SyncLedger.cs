@@ -101,6 +101,13 @@ namespace NDInsight.Sintran.Xmsg.Sync
             get { return _revision; }
         }
 
+        /// <summary>
+        /// Gets how many transfer entries the ledger holds.
+        /// </summary>
+        /// <remarks>
+        /// Transfer entries only. A path known to be on the machine but never carried by us has no
+        /// entry and is not counted here - see <see cref="CopyRemoteOnlyPaths"/>.
+        /// </remarks>
         public int Count
         {
             get { return _entries.Count; }
@@ -284,27 +291,6 @@ namespace NDInsight.Sintran.Xmsg.Sync
         }
 
         /// <summary>
-        /// Gets whether the file is believed to be on the far machine.
-        /// </summary>
-        /// <param name="path">
-        /// The path to ask about.
-        /// </param>
-        /// <returns>
-        /// <see langword="true"/> when we carried it there, or the machine has told us it is there.
-        /// </returns>
-        /// <exception cref="ArgumentNullException">
-        /// Thrown when <paramref name="path"/> is null.
-        /// </exception>
-        /// <remarks>
-        /// <para><b>This is the question the planner actually has</b></para>
-        /// It must choose between CREATE and OVERWRITE, and SINTRAN refuses a create of a file that
-        /// already exists. <see cref="HasCarried"/> was standing in for this and answers a narrower
-        /// question - it is only ever true for files WE moved. A file somebody else put there, or
-        /// one that outlived a deleted ledger, was invisible, so the planner chose create and the
-        /// machine refused it. MEASURED 2026-08-18: before the refusal was read at all that was
-        /// recorded as success and the file was silently never sent; after, it retried for ever.
-        /// </remarks>
-        /// <summary>
         /// Lists the paths known to be on the machine that we never carried ourselves.
         /// </summary>
         /// <returns>
@@ -335,6 +321,27 @@ namespace NDInsight.Sintran.Xmsg.Sync
             return only.ToArray();
         }
 
+        /// <summary>
+        /// Gets whether the file is believed to be on the far machine.
+        /// </summary>
+        /// <param name="path">
+        /// The path to ask about.
+        /// </param>
+        /// <returns>
+        /// <see langword="true"/> when we carried it there, or the machine has told us it is there.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="path"/> is null.
+        /// </exception>
+        /// <remarks>
+        /// <para><b>This is the question the planner actually has</b></para>
+        /// It must choose between CREATE and OVERWRITE, and SINTRAN refuses a create of a file that
+        /// already exists. <see cref="HasCarried"/> was standing in for this and answers a narrower
+        /// question - it is only ever true for files WE moved. A file somebody else put there, or
+        /// one that outlived a deleted ledger, was invisible, so the planner chose create and the
+        /// machine refused it. MEASURED 2026-08-18: before the refusal was read at all that was
+        /// recorded as success and the file was silently never sent; after, it retried for ever.
+        /// </remarks>
         public bool KnownToExistRemotely(string path)
         {
             if (path == null)

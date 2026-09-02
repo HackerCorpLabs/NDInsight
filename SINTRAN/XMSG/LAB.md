@@ -91,6 +91,27 @@ controller 1. Backup `RetroCore.ini.bak-2026-08-08`, originals commented in plac
 dials 10362, which is now controller 2 and has no SINTRAN link — D102 currently has no working
 line.** Restore the commented lines to give it back.
 
+## 2b. COMPILE ON D100 ONLY — D102 and D103 have NO PLANC [2026-09-02]
+
+The chat product is BUILT on D100 and DISTRIBUTED to D102/D103 as BINARIES. The other two
+machines have no usable PLANC compiler — running `@MODE CHATCC:MODE,,` there feeds the compile
+commands into nothing. The deploy is three `COPY-FILE`s from the destination machine, then an
+RT-load:
+
+```
+on D102 / D103 (destination FIRST; quote only a name that does not exist yet):
+  COPY-FILE CHAT:PROG,D100(SYSTEM).CHAT:PROG        the client binary
+  COPY-FILE CHATSV:BRF,D100(SYSTEM).CHATSV:BRF      what rt-load.ps1 loads
+  COPY-FILE CHATLIB:BRF,D100(SYSTEM).CHATLIB:BRF    loaded beside it on the segment
+then  tools\rt-load.ps1 -Port 9102|9003 -Segment <fresh> -AndStart
+on D102 also: DELETE-REENTRANT NDCHAT + DUMP-PROGRAM-REENTRANT NDCHAT,CHAT:PROG
+              (the reentrant is a FROZEN copy — it never sees a new CHAT:PROG on its own)
+```
+
+Verify by byte count on each machine (`FILE-STATISTICS`; the copy prints nothing on success).
+D102 is Ethernet (fast); D103 is HDLC via D100 (~3.4KB/s — a 294KB source took 100s).
+`LIST-REENTRANT` on D102 shows a `PLANC-100` row, but that is NOT a working compiler here.
+
 ## 3. Bringing XMSG up — and the rule that unblocked everything
 
 ```
@@ -144,7 +165,7 @@ Ethernet arrangement and advertises node 103 as "via 100", which makes D100 repo
 `*Loop suspected*`.
 
 **Order matters: start the relay's listener BEFORE the machine that dials it.** Stop a relay and the
-dialling machine may wedge in a TCP self-connection (see the `Sysid` check above).
+dialling machine may hang in a TCP self-connection (see the `Sysid` check above).
 
 Proven working 2026-08-08: `A: *->19999->103`, 10 datagrams relayed both directions, 0 dropped —
 `DOC/captures/TRANSIT-PROVEN-2026-08-08/`.

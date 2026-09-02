@@ -1,0 +1,870 @@
+     1          % =========================================================================
+     2          % CHATTEST - checks CHATLIB's codec, and prints PASS or FAIL for each case.
+     3          %
+     4          % THIS IS WHAT THE LIBRARY IS FOR. The client is 6400 lines and takes about
+     5          % twenty minutes to compile, so until now every change to the wire format was
+     6          % tested by building the whole product and driving two live machines. This
+     7          % program links CHATLIB, builds in seconds, needs no XMSG, no server and
+     8          % nobody typing - and it fails LOUDLY, on screen, with the numbers.
+     9          %
+    10          % HOW TO READ IT: every line starts PASS or FAIL, and the last line is a
+    11          % count. A single FAIL means the codec is wrong; do not go near a build of the
+    12          % real product until this is clean.
+    13          %
+    14          % ADDING A CASE is one call to `check`. Keep them small and keep the expected
+    15          % value a LITERAL - a test that computes its expectation the same way the code
+    16          % does will agree with a bug.
+    17          % =========================================================================
+    18          % The same address type CHATLIB declares - see the note there. An address on this
+    19          % machine is a 16-bit INTEGER; forcing ADDR to anything 32-bit draws
+    20          % *** WARNING - ILLEGAL DATA-ELEMENT TO BE CONVERTED, and that warning is what
+    21          % invalidated the first TWO versions of the ADDR probe below.
+    22          TYPE xrAddr = INTEGER
+    23          
+    24          MODULE chattest
+    25          
+    26              IMPORT (ROUTINE VOID, INTEGER (BYTES, INTEGER, BYTES, INTEGER, BYTES, &
+    27                      INTEGER, INTEGER) : cmEnc)
+    28              IMPORT (ROUTINE VOID, INTEGER (BYTES, INTEGER, BYTES, INTEGER, BYTES, &
+    29                      INTEGER, INTEGER, INTEGER) : cmEncAt)
+    30              IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmKind)
+    31              IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmNmLen)
+    32              IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmTxAt)
+    33              IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmTxLen)
+    34              IMPORT (ROUTINE VOID, INTEGER (BYTES, INTEGER) : cmLenN)
+    35              IMPORT (ROUTINE VOID, BOOLEAN (BYTES, INTEGER) : cmSane)
+    36          
+    37              % The relay header - the most intricate framing in the product, and until
+    38              % now the only one with no test at all.
+    39              IMPORT (ROUTINE VOID, INTEGER (INTEGER) : trHLen)
+    40              IMPORT (ROUTINE VOID, INTEGER (BYTES) : hsSec)
+    41              IMPORT (ROUTINE VOID, INTEGER (BYTES) : hsMin)
+    42              IMPORT (ROUTINE VOID, INTEGER (BYTES) : hsHour)
+    43              IMPORT (ROUTINE VOID, INTEGER (BYTES) : hsDay)
+    44              IMPORT (ROUTINE VOID, INTEGER (BYTES) : hsMon)
+    45              IMPORT (ROUTINE VOID, INTEGER (BYTES) : hsYear)
+    46              IMPORT (ROUTINE VOID, INTEGER (BYTES) : trOrig)
+    47              IMPORT (ROUTINE VOID, INTEGER (BYTES) : trHops)
+    48              IMPORT (ROUTINE VOID, INTEGER (BYTES) : trId)
+    49              IMPORT (ROUTINE VOID, INTEGER (BYTES, INTEGER, INTEGER) : trStrip)
+    50              IMPORT (ROUTINE VOID, INTEGER (INTEGER, BYTES) : xrClamp)
+    51              IMPORT (ROUTINE VOID, xrAddr (BYTES) : xrAddrOf)
+    52              IMPORT (ROUTINE VOID, INTEGER (BYTES, INTEGER, INTEGER, INTEGER, INTEGER, &
+    53                      BYTES, INTEGER, BYTES, INTEGER, INTEGER, INTEGER) : trEnc)
+    54              IMPORT (INTEGER : kTrkSaid)
+    55              IMPORT (INTEGER : kTrkRly)
+    56              IMPORT (INTEGER : kTrkRlId)
+    57              IMPORT (INTEGER : kTrkDir)
+    58              IMPORT (INTEGER : kTrkDBad)
+    59              IMPORT (INTEGER : maxHops)
+    60              IMPORT (INTEGER : kJoin)
+    61              IMPORT (INTEGER : kWelcome)
+    62              IMPORT (INTEGER : kReject)
+    63              IMPORT (INTEGER : kSay)
+    64              IMPORT (INTEGER : kSaid)
+    65              IMPORT (INTEGER : kLeave)
+    66              IMPORT (INTEGER : kJoined)
+    67              IMPORT (INTEGER : kLeft)
+    68              IMPORT (INTEGER : kRename)
+    69              IMPORT (INTEGER : kRenOk)
+    70              IMPORT (INTEGER : kWho)
+    71              IMPORT (INTEGER : kMap)
+    72              IMPORT (INTEGER : kRooms)
+    73              IMPORT (INTEGER : kTopic)
+    74              IMPORT (INTEGER : kAllWho)
+    75              IMPORT (INTEGER : kHist)
+    76              IMPORT (INTEGER : kDirect)
+    77              IMPORT (INTEGER : kDirGot)
+    78              IMPORT (INTEGER : kDirSent)
+    79              IMPORT (INTEGER : kDirBad)
+    80          
+    81              INTEGER ARRAY : stack(0:1000)
+    82          
+    83              % The buffer under test, and the two inputs. THREE SEPARATE ARRAYS - see
+    84              % the note on cmEnc about passing two subarrays of one array.
+    85              BYTES : buf(0:255)
+    86              BYTES : nm(0:15)
+    87              BYTES : tx(0:63)
+    88          
+    89              % A buffer and a source that can genuinely hold a 300-byte text, so the
+    90              % two-byte-length case can be proved WITHOUT writing past the end of
+    91              % anything. See the note at that test for what it used to do instead.
+    92              BYTES : bigBuf(0:511)
+    93              BYTES : bigTx(0:319)
+    94          
+    95              % A name long enough to overflow a 256-byte buffer on its own. cmEnc clamps
+    96              % the TEXT against the buffer but did not clamp the NAME, so a 255-byte name
+    97              % wrote three bytes past a 256-byte buffer while the text was clamped to
+    98              % nothing. Nothing in this file ever passed a name longer than five bytes.
+    99              BYTES : hugeNm(0:255)
+   100              xrAddr : addrA, addrB       % for the ADDR-of-a-parameter checks
+   101          
+   102              INTEGER : passed
+   103              INTEGER : failed
+   104          
+   105              % One check. Prints the name, then PASS, or FAIL with both numbers - a
+   106              % failure that does not say what it got is a failure you have to reproduce
+   107              % by hand.
+   108              ROUTINE VOID, VOID (BYTES, INTEGER, INTEGER) : check(what, got, want)
+   109                  IF got = want THEN
+   110                      passed + 1 =: passed
+   111                      OUTPUT(1, 'AL', 'PASS ')
+   112                      OUTPUT(1, 'AL', what)
+   113                      OUTPUT(1, 'AL', '$')
+   114                      RETURN
+   115                  ENDIF
+   116          
+   117                  failed + 1 =: failed
+   118                  OUTPUT(1, 'AL', 'FAIL ')
+   119                  OUTPUT(1, 'AL', what)
+   120                  OUTPUT(1, 'AL', '  got ')
+   121                  OUTPUT(1, 'I', got)
+   122                  OUTPUT(1, 'AL', '  want ')
+   123                  OUTPUT(1, 'I', want)
+   124                  OUTPUT(1, 'AL', '$')
+   125              ENDROUTINE
+   126          
+   127              % The same check for a BOOLEAN answer. PLANC will not pass a BOOLEAN where
+   128              % an INTEGER is declared, so cmSane needs its own - and printing "got 1
+   129              % want 0" would be less use than TRUE and FALSE anyway.
+   130              ROUTINE VOID, VOID (BYTES, BOOLEAN, BOOLEAN) : checkB(what, got, want)
+   131                  IF got = want THEN
+   132                      passed + 1 =: passed
+   133                      OUTPUT(1, 'AL', 'PASS ')
+   134                      OUTPUT(1, 'AL', what)
+   135                      OUTPUT(1, 'AL', '$')
+   136                      RETURN
+   137                  ENDIF
+   138          
+   139                  failed + 1 =: failed
+   140                  OUTPUT(1, 'AL', 'FAIL ')
+   141                  OUTPUT(1, 'AL', what)
+   142                  IF got THEN
+   143                      OUTPUT(1, 'AL', '  got TRUE want FALSE')
+   144                  ELSE
+   145                      OUTPUT(1, 'AL', '  got FALSE want TRUE')
+   146                  ENDIF
+   147                  OUTPUT(1, 'AL', '$')
+   148              ENDROUTINE
+   149          
+   150              % ---- CAN A ROUTINE ASK ITS ARRAY PARAMETER HOW BIG IT IS? --------------
+   151              %
+   152              % THIS DECIDES THE SHAPE OF THE WHOLE LIBRARY, so it is asked of the machine
+   153              % rather than assumed.
+   154              %
+   155              % cmEnc is told a buffer size by its caller and has to believe it. A caller
+   156              % that passes the wrong number gets a silent overflow, because PLANC checks
+   157              % no array bound - and one of the tests in this very file did exactly that,
+   158              % claiming 512 for a 256-byte buffer.
+   159              %
+   160              % Three BYTES declared FROM A LITERAL, which is a different shape from an
+   161              % array with explicit bounds. 'HELP' is 4, 'DROP-MEMBER' is 11 and
+   162              % 'RESTART-TRUNK' is 13 - all three are real CHAT-MON keywords, so if the
+   163              % bounds of this shape ever change these tests fail before a menu does.
+   164              BYTES : litShort := 'HELP'
+   165              BYTES : litVerb  := 'DROP-MEMBER'
+   166              BYTES : litLong  := 'RESTART-TRUNK'
+   167          
+   168              % If MAXINDEX works on a PARAMETER, the library can ask each array its own
+   169              % size and stop trusting the caller at all. ND-60.117.5 3.17 says MAXINDEX
+   170              % returns the DECLARED UPPER BOUND, and page 249 says it is NOT available on
+   171              % array parameters in a STANDARD routine - which implies it IS in an ordinary
+   172              % one. "Implies" is not a measurement, so these three checks measure it.
+   173              ROUTINE VOID, INTEGER (BYTES) : askSize(a)
+   174                  MAXINDEX(a, 1) RETURN
+   175              ENDROUTINE
+   176          
+   177              PROGRAM : ctmain
+   178                  INTEGER : i
+   179                  INTEGER : len
+   180                  INTEGER : at
+   181          
+   182                  INISTACK stack
+   183          
+   184                  0 =: passed
+   185                  0 =: failed
+   186          
+   187                  OUTPUT(1, 'AL', 'CHATLIB codec checks$')
+   188          
+   189                  % ---- a plain room line ------------------------------------------
+   190                  'RONNY' =: nm
+   191                  'hello' =: tx
+   192                  cmEnc(buf, kSay, nm, 5, tx, 5, 256) =: len
+   193          
+   194                  % 2 header + 5 name + 2 length + 5 text
+   195                  check('length of a 5+5 message', len, 14)
+   196                  check('kind survives           ', cmKind(buf), kSay)
+   197                  check('name length survives    ', cmNmLen(buf), 5)
+   198                  check('text length survives    ', cmTxLen(buf), 5)
+   199                  check('text starts after name  ', cmTxAt(buf), 9)
+   200          
+   201                  % THE BYTES THEMSELVES, not just the accessors. An encoder and a
+   202                  % decoder that are wrong the same way agree with each other.
+   203                  check('byte 0 is the kind      ', buf(0), kSay)
+   204                  check('byte 1 is the name len  ', buf(1), 5)
+   205                  check('name first byte is R    ', buf(2), 82)
+   206                  check('name last byte is Y     ', buf(6), 89)
+   207                  check('length high byte is 0   ', buf(7), 0)
+   208                  check('length low byte is 5    ', buf(8), 5)
+   209                  check('text first byte is h    ', buf(9), 104)
+   210          
+   211                  % ---- an empty text ----------------------------------------------
+   212                  'BOB' =: nm
+   213                  cmEnc(buf, kSay, nm, 3, tx, 0, 256) =: len
+   214                  check('empty text length       ', len, 7)
+   215                  check('empty text reads 0      ', cmTxLen(buf), 0)
+   216                  check('empty text name intact  ', cmNmLen(buf), 3)
+   217          
+   218                  % ---- an empty name ----------------------------------------------
+   219                  'hi' =: tx
+   220                  cmEnc(buf, kDirect, nm, 0, tx, 2, 256) =: len
+   221                  check('no name, length         ', len, 6)
+   222                  check('no name, kind           ', cmKind(buf), kDirect)
+   223                  check('no name, text length    ', cmTxLen(buf), 2)
+   224                  check('no name, text at 4      ', cmTxAt(buf), 4)
+   225          
+   226                  % ---- THE CLAMP. A text longer than the buffer must be CUT, not
+   227                  %      written past the end. PLANC checks no bound, so without the
+   228                  %      clamp this would quietly corrupt whatever follows buf.
+   229                  'RONNY' =: nm
+   230                  cmEnc(buf, kSay, nm, 5, tx, 300, 20) =: len
+   231                  check('clamped to buffer       ', len, 20)
+   232                  check('clamped text length     ', cmTxLen(buf), 11)
+   233          
+   234                  % ---- a two-byte length is really two bytes -----------------------
+   235                  % 300 does not fit in one byte. If cmTxLen only read the low byte it
+   236                  % would answer 44 here, which is the whole point of the case.
+   237                  %
+   238                  % THIS TEST USED TO CORRUPT MEMORY AND PASS. It read
+   239                  %
+   240                  %     cmEnc(buf, kSay, nm, 5, tx, 300, 512)
+   241                  %
+   242                  % telling cmEnc the buffer was 512 bytes when buf is 256, with a
+   243                  % 300-byte text. Nothing clamped, so it wrote buf(9)..buf(308) - FIFTY
+   244                  % THREE BYTES past the end - while reading tx(0)..tx(299), which is 236
+   245                  % past the end of a 64-byte array. The three checks below still passed,
+   246                  % because buf(7) and buf(8) are in bounds, and the run printed
+   247                  % "codec is good".
+   248                  %
+   249                  % That is the exact trap this file exists to catch, sitting inside the
+   250                  % file itself: PLANC checks no array bound, so an overflow is invisible
+   251                  % unless a test is written to see it.
+   252                  %
+   253                  % The case is kept because the two-byte length still needs proving. It
+   254                  % now uses a buffer that can HOLD 300 bytes and a source that HAS 300
+   255                  % bytes, so the numbers below mean what they say.
+   256                  FOR i IN 0:299 DO
+   257                      65 + (i MOD 26) =: bigTx(i)
+   258                  ENDFOR
+   259                  cmEnc(bigBuf, kSay, nm, 5, bigTx, 300, 512) =: len
+   260                  check('long text total length  ', len, 309)
+   261                  check('long text length        ', cmTxLen(bigBuf), 300)
+   262                  check('long text high byte     ', bigBuf(7), 1)
+   263                  check('long text low byte      ', bigBuf(8), 44)
+   264                  % The LAST text byte really arrived - a length that says 300 while only
+   265                  % some of it was copied would pass every check above.
+   266                  check('long text last byte     ', bigBuf(8 + 300), 65 + (299 MOD 26))
+   267          
+   268                  % ---- THE OFFSET ENCODER ------------------------------------------
+   269                  %
+   270                  % cmEncAt reads the text from a POSITION inside another buffer, which
+   271                  % is what the server needs - its text arrives inside the receive buffer
+   272                  % rather than at the start of an array.
+   273                  %
+   274                  % THE OFFSET IS THE WHOLE POINT, so the test uses a NON-ZERO one. At
+   275                  % offset 0 this routine and cmEnc are indistinguishable, and a test
+   276                  % that only tried 0 would pass against a version that ignored srcAt
+   277                  % completely.
+   278                  'RONNYhello there' =: tx
+   279                  cmEnc(buf, kSay, nm, 5, tx, 5, 256) =: len
+   280                  cmEncAt(buf, kSay, nm, 5, tx, 5, 11, 256) =: at
+   281          
+   282                  check('offset encoder length   ', at, 20)
+   283                  check('offset encoder kind     ', cmKind(buf), kSay)
+   284                  check('offset encoder name len ', cmNmLen(buf), 5)
+   285                  check('offset encoder text len ', cmTxLen(buf), 11)
+   286          
+   287                  % The text must be what sat at offset 5, not what sat at 0. 'h' is 104
+   288                  % and 'R' is 82 - if srcAt were ignored this reads 82 and fails.
+   289                  cmTxAt(buf) =: at
+   290                  check('offset encoder skipped 5', buf(at), 104)
+   291                  check('offset encoder last byte', buf(at + 10), 101)
+   292          
+   293                  % ---- DECODE A MESSAGE WE DID NOT ENCODE --------------------------
+   294                  %
+   295                  % EVERY TEST ABOVE READS BACK WHAT cmEnc WROTE, and that is a weaker
+   296                  % check than it looks: an encoder and a decoder that are wrong in the
+   297                  % same way agree with each other perfectly. These build the buffer BY
+   298                  % HAND, byte by byte, exactly as the SERVER puts one on the wire, and
+   299                  % then ask the readers what they see.
+   300                  %
+   301                  %   kind 5, name length 3, 'BOB', length 0 and 7, 'hey you'
+   302                  5 =: buf(0)
+   303                  3 =: buf(1)
+   304                  66 =: buf(2)
+   305                  79 =: buf(3)
+   306                  66 =: buf(4)
+   307                  0 =: buf(5)
+   308                  7 =: buf(6)
+   309                  104 =: buf(7)
+   310                  101 =: buf(8)
+   311                  121 =: buf(9)
+   312                  32 =: buf(10)
+   313                  121 =: buf(11)
+   314                  111 =: buf(12)
+   315                  117 =: buf(13)
+   316          
+   317                  check('hand-built kind         ', cmKind(buf), 5)
+   318                  check('hand-built name length  ', cmNmLen(buf), 3)
+   319                  check('hand-built text length  ', cmTxLen(buf), 7)
+   320                  check('hand-built text starts  ', cmTxAt(buf), 7)
+   321          
+   322                  % AND THE TEXT REALLY IS THERE, at the offset the reader gave. An
+   323                  % offset that is right by accident still points at the wrong byte.
+   324                  cmTxAt(buf) =: at
+   325                  check('hand-built text byte 0  ', buf(at), 104)
+   326                  check('hand-built text byte 6  ', buf(at + 6), 117)
+   327          
+   328                  % A NAME OF ZERO LENGTH, hand built. The text then starts at 4, and
+   329                  % this is the case a reader that assumes a name is present gets wrong.
+   330                  9 =: buf(0)
+   331                  0 =: buf(1)
+   332                  0 =: buf(2)
+   333                  2 =: buf(3)
+   334                  104 =: buf(4)
+   335                  105 =: buf(5)
+   336                  check('hand-built empty name   ', cmNmLen(buf), 0)
+   337                  check('hand-built empty at 4   ', cmTxAt(buf), 4)
+   338                  check('hand-built empty length ', cmTxLen(buf), 2)
+   339          
+   340                  % A SIXTEEN-CHARACTER NAME - the longest a nickname may be. The text
+   341                  % offset must move with it, and 4 + 16 is the first case where a
+   342                  % reader with a hard-coded offset still looks plausible.
+   343                  5 =: buf(0)
+   344                  16 =: buf(1)
+   345                  0 =: buf(18)
+   346                  1 =: buf(19)
+   347                  88 =: buf(20)
+   348                  check('hand-built long name    ', cmNmLen(buf), 16)
+   349                  check('hand-built long name at ', cmTxAt(buf), 20)
+   350                  check('hand-built long name len', cmTxLen(buf), 1)
+   351                  cmTxAt(buf) =: at
+   352                  check('hand-built long name txt', buf(at), 88)
+   353          
+   354                  % ---- THE BOUNDED READERS -----------------------------------------
+   355                  %
+   356                  % cmLenN and cmSane are what a receive loop should use: they are told
+   357                  % how many bytes ARRIVED and refuse to read outside them. Every case
+   358                  % here is one that the unbounded readers answer WRONGLY but plausibly.
+   359                  'RONNY' =: nm
+   360                  'hello' =: tx
+   361                  cmEnc(buf, kSay, nm, 5, tx, 5, 256) =: len          % len is 14
+   362          
+   363                  check('bounded len, full msg   ', cmLenN(buf, len), 5)
+   364                  checkB('sane, full message      ', cmSane(buf, len), TRUE)
+   365          
+   366                  % One byte short of the length field: the pair sits at 7 and 8, so 8
+   367                  % bytes is not enough. The UNBOUNDED reader answers 5 here by reading a
+   368                  % byte that did not arrive.
+   369                  check('bounded len, truncated  ', cmLenN(buf, 8), -1)
+   370                  checkB('sane, truncated header  ', cmSane(buf, 8), FALSE)
+   371          
+   372                  % Exactly enough for the field, and no text. A message may legally
+   373                  % carry no text, so this must be ACCEPTED, not refused.
+   374                  check('bounded len, header only', cmLenN(buf, 9), 5)
+   375                  checkB('sane, header only       ', cmSane(buf, 9), TRUE)
+   376          
+   377                  % Nothing arrived at all. buf still holds the last message, so an
+   378                  % unguarded reader happily decodes it and the caller acts on a message
+   379                  % nobody sent. This is the case neither program checked.
+   380                  check('bounded len, empty      ', cmLenN(buf, 0), -1)
+   381                  checkB('sane, empty             ', cmSane(buf, 0), FALSE)
+   382                  checkB('sane, one byte          ', cmSane(buf, 1), FALSE)
+   383          
+   384                  % A name length that points beyond what arrived - the corrupt-length
+   385                  % case. buf(1) says 5, so a 6-byte message cannot hold the header.
+   386                  checkB('sane, name past end     ', cmSane(buf, 6), FALSE)
+   387          
+   388                  % ---- THE NAME MUST BE CLAMPED TOO --------------------------------
+   389                  %
+   390                  % cmEnc clamped the TEXT against bufMax and never the NAME. With a
+   391                  % 255-byte name and a 256-byte buffer the text clamped to nothing, and
+   392                  % then the name loop wrote buf(2)..buf(256) and the two length bytes
+   393                  % landed at buf(257) and buf(258) - THREE BYTES PAST THE END, silently.
+   394                  %
+   395                  % Not reachable from the wire today: the client sends its own nickname
+   396                  % and the server drops a join whose name is longer than 16. But that
+   397                  % safety lives in the CALLERS, which is the exact duplication this
+   398                  % library exists to remove - so it is enforced here and tested here.
+   399                  %
+   400                  % A message can never be longer than the buffer it was written into.
+   401                  % That single check is the one that would have caught the overflow.
+   402                  % The clamp has ONE right answer, so it is checked exactly rather than
+   403                  % as "small enough": a name must leave room for the 2-byte header and
+   404                  % the 2-byte length, so the most that fits a 256-byte buffer is 252,
+   405                  % and the total written is then exactly 256.
+   406                  FOR i IN 0:255 DO
+   407                      88 =: hugeNm(i)
+   408                  ENDFOR
+   409                  cmEnc(buf, kSay, hugeNm, 255, tx, 5, 256) =: len
+   410                  check('huge name clamped to 252', cmNmLen(buf), 252)
+   411                  check('huge name total is 256  ', len, 256)
+   412                  check('huge name text at 256   ', cmTxAt(buf), 256)
+   413          
+   414                  % The same for the offset encoder, which had the identical hole.
+   415                  cmEncAt(buf, kSay, hugeNm, 255, tx, 0, 5, 256) =: len
+   416                  check('cmEncAt name clamped    ', cmNmLen(buf), 252)
+   417                  check('cmEncAt total is 256    ', len, 256)
+   418          
+   419                  % And a name that fits exactly must NOT be clamped - a fix that just
+   420                  % refused every long name would pass the three checks above.
+   421                  cmEnc(buf, kSay, hugeNm, 16, tx, 5, 256) =: len
+   422                  check('a 16-byte name survives ', cmNmLen(buf), 16)
+   423                  % 2 header + 16 name + 2 length + 5 text ('hello', set above) = 25.
+   424                  check('16-byte name total len  ', len, 25)
+   425          
+   426                  % ---- DOES MAXINDEX WORK ON A PARAMETER? --------------------------
+   427                  %
+   428                  % If all three pass, the library can bound itself and no caller can lie
+   429                  % to it about a size. If the subarray case fails, it can still bound
+   430                  % itself for whole arrays, which is how every current caller passes them.
+   431                  check('MAXINDEX on a parameter ', askSize(buf), 255)
+   432                  check('MAXINDEX sees a SMALLER ', askSize(nm), 15)
+   433                  check('MAXINDEX on a SUBARRAY  ', askSize(tx(0:9)), 9)
+   434          
+   435                  % ---- AND ON A BYTES DECLARED FROM A LITERAL? ----------------------
+   436                  %
+   437                  % THIS IS THE CASE THE WHOLE PRODUCT NOW LEANS ON. On 2026-08-31 the
+   438                  % length parameter was removed from six helpers - putWord, logLine,
+   439                  % buildAdmText, cmdIs, tryCmd and showIfMatch - and 93 hand-typed
+   440                  % numbers went with it. Each now does MAXINDEX(text, 1) + 1 instead.
+   441                  %
+   442                  % Two of those, tryCmd and showIfMatch in CHAT-MON, are handed a
+   443                  % MODULE-LEVEL BYTES declared from a literal rather than a literal at
+   444                  % the call site. R115 measured MAXINDEX on array parameters and on a
+   445                  % subarray; it did NOT measure this. The bounds SHOULD be 0:len-1, so
+   446                  % MAXINDEX + 1 should be the length - but "should" is not measured, and
+   447                  % if it is wrong the symptom is a menu where a command quietly stops
+   448                  % matching, which reads as a logic bug and not as an array question.
+   449                  %
+   450                  % Three lengths on purpose: a short word, one that is not a round
+   451                  % number, and one long enough to cross a byte boundary in a way a
+   452                  % single case could not distinguish.
+   453                  check('MAXINDEX on a literal   ', askSize(litShort) + 1, 4)
+   454                  check('MAXINDEX literal, longer', askSize(litVerb) + 1, 11)
+   455                  check('MAXINDEX literal, 13 chr', askSize(litLong) + 1, 13)
+   456          
+   457                  % ---- THE DECODERS AGAINST THE ARITHMETIC THEY REPLACE -------------
+   458                  %
+   459                  % WHY THIS GROUP EXISTS. The client and the server each parse the header
+   460                  % by hand, in three places between them:
+   461                  %
+   462                  %       2 + nameLength =: textAt
+   463                  %       inBuf(textAt) * 256 + inBuf(textAt + 1) =: textLength
+   464                  %       textAt + 2 =: textAt
+   465                  %
+   466                  % Replacing that with cmTxAt and cmTxLen is only safe if the library
+   467                  % computes the SAME numbers for every name length, not just for the one
+   468                  % five-character nickname the tests above happen to use. A name length is
+   469                  % a byte off a wire and can be anything from 0 to 255, so the two forms
+   470                  % are compared across the whole range here rather than at one point.
+   471                  %
+   472                  % A ZERO-LENGTH NAME IS IN THE RANGE ON PURPOSE. It is the shortest legal
+   473                  % header and the one an off-by-one lands on first.
+   474                  %
+   475                  % THE UPPER BOUND IS THE BUFFER, NOT 255. A header with name length n puts
+   476                  % its two length bytes at n+2 and n+3, so n = 255 would write THREE BYTES
+   477                  % PAST THE END of buf(0:255) - and PLANC checks no array bounds, so it
+   478                  % would corrupt whatever sits after it and still print PASS. Asked with
+   479                  % MAXINDEX rather than written as a literal, so resizing buf cannot leave
+   480                  % a stale number here. (MAXINDEX gives the DECLARED UPPER BOUND, 255.)
+   481                  MAXINDEX(buf, 1) - 3 =: at
+   482                  FOR i IN 0:at DO
+   483                      % Build a header by hand - NOT with cmEnc. An encoder and a decoder
+   484                      % that are wrong the same way agree with each other perfectly, which
+   485                      % is the whole failure this group is here to catch.
+   486                      kSaid =: buf(0)
+   487                      i =: buf(1)
+   488                      % The name bytes themselves do not matter to the arithmetic, and
+   489                      % filling 255 of them for each of 256 rounds is work for nothing.
+   490                      % What matters is the two length bytes landing where the header says.
+   491                      1 =: buf(2 + i)              % text length HIGH byte
+   492                      44 =: buf(2 + i + 1)         % text length LOW byte - so 300, over 255
+   493          
+   494                      % cmTxAt must equal the hand-rolled 2 + nameLength + 2.
+   495                      IF cmTxAt(buf) >< 2 + i + 2 THEN
+   496                          check('cmTxAt matches by hand  ', cmTxAt(buf), 2 + i + 2)
+   497                      ENDIF
+   498          
+   499                      % cmTxLen must equal the hand-rolled high * 256 + low. 300 is chosen
+   500                      % because a decoder that read ONLY the low byte would answer 44 and
+   501                      % pass every other test in this file - no message the product has
+   502                      % ever sent reached 256 characters.
+   503                      IF cmTxLen(buf) >< 300 THEN
+   504                          check('cmTxLen matches by hand ', cmTxLen(buf), 300)
+   505                      ENDIF
+   506                  ENDFOR
+   507          
+   508                  % A FAILING ROUND REPORTS ITSELF ABOVE, one line per bad length. This
+   509                  % one line is what proves the loop RAN - a check that only speaks up on
+   510                  % failure is indistinguishable from a loop that never executed. It prints
+   511                  % the COUNT it covered, so a bound that silently shrinks is visible.
+   512                  check('header lengths agreed   ', at + 1, 253)
+   513          
+   514                  % ---- THE RELAY HEADER --------------------------------------------
+   515                  %
+   516                  % Three shapes share one buffer:
+   517                  %
+   518                  %   kTrkSaid  (51)   an ordinary chat frame, no relay header
+   519                  %   kTrkRly   (52)   kind | origin high,low | hops | chat frame
+   520                  %   kTrkRlId  (53)   kind | origin high,low | hops | id high,low | frame
+   521                  %   kTrkDir   (54)   the same six as kTrkRlId
+   522                  %
+   523                  % This was parsed by hand in two places and never tested. A truncated
+   524                  % relay header read as a chat frame builds a PLAUSIBLE message out of
+   525                  % rubbish - the origin's high byte lands where the name length belongs -
+   526                  % so the short cases below matter more than the happy ones.
+   527          
+   528                  check('trHLen of a plain kind  ', trHLen(kTrkSaid), 0)
+   529                  check('trHLen of a say         ', trHLen(kSay), 0)
+   530                  check('trHLen of kTrkRly       ', trHLen(kTrkRly), 4)
+   531                  check('trHLen of kTrkRlId      ', trHLen(kTrkRlId), 6)
+   532                  check('trHLen of kTrkDir       ', trHLen(kTrkDir), 6)
+   533                  % A REFUSAL COMING HOME CARRIES THE SAME SIX BYTES. Miss this and
+   534                  % trHLen answers 0, the header is read as a name length and a name,
+   535                  % and the person is shown rubbish instead of being told their
+   536                  % message was dropped - which is worse than the silence this kind
+   537                  % exists to end.
+   538                  check('trHLen of kTrkDBad      ', trHLen(kTrkDBad), 6)
+   539                  check('kTrkDBad is 55          ', kTrkDBad, 55)
+   540          
+   541                  % ---- A HISTORY LINE CARRIES WHEN IT WAS SAID --------------------
+   542                  %
+   543                  % EIGHT, NOT SEVEN: trHLen counts the KIND byte too, the same way it
+   544                  % does for the relay kinds - kTrkRly carries three fields and answers
+   545                  % four. Off by one here leaves the name length one byte out and builds
+   546                  % a whole message out of rubbish.
+   547                  check('trHLen of kHist         ', trHLen(kHist), 8)
+   548          
+   549                  % The ND calendar, laid out as histReplay writes it and as the golden
+   550                  % bytes in ChatMessageGoldenBytesTests pin it:
+   551                  %   1 second  2 minute  3 hour  4 day  5 month  6..7 year, HIGH first
+   552                  %
+   553                  % 27 August 1998 at 13:24:05 - the SAME instant the C# test uses, so
+   554                  % the two sides are pinned to one example rather than two that can
+   555                  % drift apart without either failing.
+   556                  kHist =: buf(0)
+   557                  5 =: buf(1)
+   558                  24 =: buf(2)
+   559                  13 =: buf(3)
+   560                  27 =: buf(4)
+   561                  8 =: buf(5)
+   562                  7 =: buf(6)
+   563                  206 =: buf(7)
+   564                  check('hsSec                   ', hsSec(buf), 5)
+   565                  check('hsMin                   ', hsMin(buf), 24)
+   566                  check('hsHour                  ', hsHour(buf), 13)
+   567                  check('hsDay                   ', hsDay(buf), 27)
+   568                  check('hsMon                   ', hsMon(buf), 8)
+   569          
+   570                  % THE FULL YEAR, 1998 and not 98. 7 * 256 + 206 is 1998; reading it as
+   571                  % one byte answers 206, which looks like data and is not a year.
+   572                  check('hsYear is the FULL year ', hsYear(buf), 1998)
+   573          
+   574                  % A BLOCK WRITTEN BEFORE THE TIME EXISTED SENDS ALL ZEROS, and the
+   575                  % YEAR is what says so - not the whole value. Midnight exactly is a
+   576                  % real time whose hour, minute and second are all zero, and it must
+   577                  % never be mistaken for an absent one.
+   578                  0 =: buf(1)
+   579                  0 =: buf(2)
+   580                  0 =: buf(3)
+   581                  0 =: buf(6)
+   582                  0 =: buf(7)
+   583                  check('an unrecorded year is 0 ', hsYear(buf), 0)
+   584                  check('midnight hour is still 0', hsHour(buf), 0)
+   585          
+   586                  % ---- a kind 52, built BY HAND so the encoder cannot agree with a bug
+   587                  % Origin 258 is 1*256 + 2, which catches a reader that took only one
+   588                  % byte or swapped them: a low-byte-only reader answers 2, a swapped one
+   589                  % answers 513.
+   590                  kTrkRly =: buf(0)
+   591                  1 =: buf(1)
+   592                  2 =: buf(2)
+   593                  3 =: buf(3)
+   594                  % ... and from byte 4, an ordinary frame: name 'ANNA', text 'hi'
+   595                  4 =: buf(4)
+   596                  65 =: buf(5)
+   597                  78 =: buf(6)
+   598                  78 =: buf(7)
+   599                  65 =: buf(8)
+   600                  0 =: buf(9)
+   601                  2 =: buf(10)
+   602                  104 =: buf(11)
+   603                  105 =: buf(12)
+   604          
+   605                  check('relay origin is 258     ', trOrig(buf), 258)
+   606                  check('relay hops is 3         ', trHops(buf), 3)
+   607          
+   608                  % 13 bytes in, 3 taken off the front, so 10 out - and byte 1 must now be
+   609                  % the NAME LENGTH, which is what the rest of the decoder assumes.
+   610                  trStrip(buf, 13, kTrkRly) =: len
+   611                  check('kind 52 strips to 10    ', len, 10)
+   612                  check('after strip, kind kept  ', cmKind(buf), kTrkRly)
+   613                  check('after strip, name len 4 ', cmNmLen(buf), 4)
+   614                  check('after strip, text len 2 ', cmTxLen(buf), 2)
+   615                  check('after strip, text at 8  ', cmTxAt(buf), 8)
+   616                  check('after strip, first is A ', buf(2), 65)
+   617                  check('after strip, text is h  ', buf(8), 104)
+   618          
+   619                  % ---- a kind 53, two bytes longer, id 300 to catch a one-byte reader
+   620                  kTrkRlId =: buf(0)
+   621                  1 =: buf(1)
+   622                  2 =: buf(2)
+   623                  3 =: buf(3)
+   624                  1 =: buf(4)
+   625                  44 =: buf(5)
+   626                  4 =: buf(6)
+   627                  65 =: buf(7)
+   628                  78 =: buf(8)
+   629                  78 =: buf(9)
+   630                  65 =: buf(10)
+   631                  0 =: buf(11)
+   632                  2 =: buf(12)
+   633                  104 =: buf(13)
+   634                  105 =: buf(14)
+   635          
+   636                  check('relay id is 300         ', trId(buf), 300)
+   637                  check('kind 53 origin still 258', trOrig(buf), 258)
+   638                  trStrip(buf, 15, kTrkRlId) =: len
+   639                  check('kind 53 strips to 10    ', len, 10)
+   640                  check('kind 53 name len 4      ', cmNmLen(buf), 4)
+   641                  check('kind 53 text is h       ', buf(8), 104)
+   642          
+   643                  % ---- THE SHORT ONES, which are the reason this exists --------------
+   644                  %
+   645                  % A message exactly the length of its own header carries no frame, and
+   646                  % sliding zero bytes would leave the OLD name length in place - so these
+   647                  % must be refused, not merely survived.
+   648                  kTrkRly =: buf(0)
+   649                  check('kind 52 at 4 is refused ', trStrip(buf, 4, kTrkRly), -1)
+   650                  check('kind 52 at 3 is refused ', trStrip(buf, 3, kTrkRly), -1)
+   651                  check('kind 52 at 5 is allowed ', trStrip(buf, 5, kTrkRly), 2)
+   652                  kTrkRlId =: buf(0)
+   653                  check('kind 53 at 6 is refused ', trStrip(buf, 6, kTrkRlId), -1)
+   654                  % SIX IS THE POINT: a message long enough for a kind 52 header can still
+   655                  % be too short for a kind 53 one, and that is the case a single shared
+   656                  % length test would have got wrong.
+   657                  check('kind 53 at 5 is refused ', trStrip(buf, 5, kTrkRlId), -1)
+   658                  check('kind 53 at 7 is allowed ', trStrip(buf, 7, kTrkRlId), 2)
+   659          
+   660                  % A kind with no relay header must pass through untouched, so a receive
+   661                  % loop can call trStrip on everything without a special case.
+   662                  check('a plain kind is untouched', trStrip(buf, 14, kSay), 14)
+   663          
+   664                  % ---- BUILD ONE AND TAKE IT APART AGAIN -----------------------------
+   665                  %
+   666                  % The round trip is the LAST check, not the first: an encoder and a
+   667                  % decoder that are wrong the same way agree with each other perfectly,
+   668                  % which is why every field above was asserted against a literal.
+   669                  'ANNA' =: nm
+   670                  'hello' =: tx
+   671                  trEnc(bigBuf, kTrkRlId, 258, maxHops, 300, nm, 4, tx, 0, 5, 512) =: len
+   672                  % 6 header + 1 name length + 4 name + 2 text length + 5 text = 18.
+   673                  % There is NO second kind byte in front of the body - the kind is at
+   674                  % byte 0 and is not repeated, which is what the hand-built cases above
+   675                  % prove and what a first version of trEnc got wrong.
+   676                  check('trEnc total length      ', len, 18)
+   677                  check('trEnc origin            ', trOrig(bigBuf), 258)
+   678                  check('trEnc hops              ', trHops(bigBuf), maxHops)
+   679                  check('trEnc id                ', trId(bigBuf), 300)
+   680                  check('trEnc kind              ', cmKind(bigBuf), kTrkRlId)
+   681          
+   682                  trStrip(bigBuf, len, kTrkRlId) =: len
+   683                  % 18 in, 5 bytes of header taken off the front, 13 out.
+   684                  check('trEnc strips to 13      ', len, 13)
+   685                  check('trEnc name survives     ', cmNmLen(bigBuf), 4)
+   686                  check('trEnc text survives     ', cmTxLen(bigBuf), 5)
+   687                  check('trEnc name first byte A ', bigBuf(2), 65)
+   688                  check('trEnc text first byte h ', bigBuf(8), 104)
+   689          
+   690                  % A kind that carries no relay header cannot be built as one.
+   691                  check('trEnc refuses a say     ', &
+   692                        trEnc(bigBuf, kSay, 258, 3, 300, nm, 4, tx, 0, 5, 512), -1)
+   693          
+   694                  % ---- THE WIRE NUMBERS THEMSELVES ---------------------------------
+   695                  %
+   696                  % EVERY KIND, ASSERTED AGAINST A LITERAL. This is the half a round-trip
+   697                  % test cannot do: encoding and decoding with the same wrong number
+   698                  % agrees with itself perfectly, and a machine running an older build on
+   699                  % the far end of a trunk does not. These numbers are the WIRE and may
+   700                  % never be renumbered - if one of these fails, somebody has changed a
+   701                  % number and every other machine still expects the old one.
+   702                  check('kJoin is 1              ', kJoin, 1)
+   703                  check('kWelcome is 2           ', kWelcome, 2)
+   704                  check('kReject is 3            ', kReject, 3)
+   705                  check('kSay is 4               ', kSay, 4)
+   706                  check('kSaid is 5              ', kSaid, 5)
+   707                  check('kLeave is 6             ', kLeave, 6)
+   708                  check('kJoined is 7            ', kJoined, 7)
+   709                  check('kLeft is 8              ', kLeft, 8)
+   710                  check('kRename is 9            ', kRename, 9)
+   711                  check('kRenOk is 10            ', kRenOk, 10)
+   712                  check('kWho is 11              ', kWho, 11)
+   713                  check('kMap is 12              ', kMap, 12)
+   714                  check('kRooms is 13            ', kRooms, 13)
+   715                  check('kTopic is 14            ', kTopic, 14)
+   716                  check('kAllWho is 15           ', kAllWho, 15)
+   717                  check('kHist is 16             ', kHist, 16)
+   718                  check('kDirect is 17           ', kDirect, 17)
+   719                  check('kDirGot is 18           ', kDirGot, 18)
+   720                  check('kDirSent is 19          ', kDirSent, 19)
+   721                  check('kDirBad is 20           ', kDirBad, 20)
+   722          
+   723                  % THE TRUNK NUMBERS TOO. These cross a wire between MACHINES, one of
+   724                  % which may be running an older build, so they are exactly as fixed as
+   725                  % the client ones. kTrkRly and kTrkRlId are the PLANC names for what the
+   726                  % registry calls TrunkRelay and TrunkRelayId - renamed because both read
+   727                  % KTRKREL at seven characters, with the wire numbers untouched.
+   728                  check('kTrkSaid is 51          ', kTrkSaid, 51)
+   729                  check('kTrkRly is 52           ', kTrkRly, 52)
+   730                  check('kTrkRlId is 53          ', kTrkRlId, 53)
+   731                  check('kTrkDir is 54           ', kTrkDir, 54)
+   732                  check('maxHops is 3            ', maxHops, 3)
+   733          
+   734                  % ---- xrClamp: the read length that keeps XMPFREA inside the buffer --
+   735                  %
+   736                  % THIS IS THE ONE ROUTINE HERE THAT STOPS A WRITE OVERFLOW rather than
+   737                  % a wrong answer, so it is tested against FOUR DIFFERENT BUFFERS. That
+   738                  % is the whole point: if MAXINDEX did not really ask each array, every
+   739                  % one of these would answer the same and the differing sizes below
+   740                  % would fail. It is the same proof as the array-parameter probe above,
+   741                  % applied to the routine that matters most.
+   742                  check('clamp 10 into nm(16)    ', xrClamp(10, nm), 10)
+   743                  check('clamp 99 into nm(16)    ', xrClamp(99, nm), 16)
+   744                  check('clamp 99 into tx(64)    ', xrClamp(99, tx), 64)
+   745                  check('clamp 99 into buf(256)  ', xrClamp(99, buf), 99)
+   746                  check('clamp 999 into buf(256) ', xrClamp(999, buf), 256)
+   747                  check('clamp 999 into bigBuf   ', xrClamp(999, bigBuf), 512)
+   748          
+   749                  % EXACTLY FULL IS ALLOWED, one past it is not. A buffer declared
+   750                  % (0:255) holds 256 bytes, so 256 is a legal read and 257 is not -
+   751                  % the off-by-one that a hand-written "IF want > inBufSize" gets right
+   752                  % only because the constant happens to say 256 and not 255.
+   753                  check('clamp 256 into buf(256) ', xrClamp(256, buf), 256)
+   754                  check('clamp 257 into buf(256) ', xrClamp(257, buf), 256)
+   755          
+   756                  % THE LOW END, which neither program clamped. A returned message
+   757                  % carries an error status where the length belongs, so this field is
+   758                  % not always a length - see the comment on the routine.
+   759                  check('clamp 0 into buf        ', xrClamp(0, buf), 0)
+   760                  check('clamp -1 into buf       ', xrClamp(-1, buf), 0)
+   761                  check('clamp -32000 into buf   ', xrClamp(-32000, buf), 0)
+   762          
+   763                  % ---- ADDR OF A PARAMETER *IS* THE CALLER'S ARRAY. ANSWERED. ---------
+   764                  %
+   765                  % ASKED because the XMSG transport was about to move into a shared
+   766                  % library, and a shared routine has to take ADDR of a PARAMETER - which
+   767                  % nothing in this product had ever done. Every other ADDR here is taken
+   768                  % of a MODULE-LEVEL array, in the same module as the call.
+   769                  %
+   770                  % THE ANSWER IS YES, measured on D100 2026-08-27:
+   771                  %
+   772                  %     ADDR param  1001        ADDR here  1001
+   773                  %
+   774                  % Identical, for all three arrays. So a routine may take the address of
+   775                  % a buffer it was handed and give it to XMPFREA or XMPFWRI.
+   776                  %
+   777                  % IT TOOK THREE GOES, AND THE TWO WRONG ONES ARE THE LESSON.
+   778                  %
+   779                  % Attempt 1 forced both addresses to a bare INTEGER4 and got
+   780                  % 3473663 against 65791 - different in both halves. They reproduced
+   781                  % EXACTLY across two separate builds, which read as reliability, and
+   782                  % the conclusion written down was "a parameter address is not the
+   783                  % caller's array, the transport cannot be shared". Wrong.
+   784                  %
+   785                  % Attempt 2 assumed the trouble was the bare type and switched to a
+   786                  % NAMED one, TYPE xrAddr = INTEGER4. Same two numbers, same warning.
+   787                  % Also wrong, and wrong for the same unexamined reason.
+   788                  %
+   789                  % What both had was a WIDTH mismatch, and the pulled listing said so
+   790                  % every time - a WARNING, not an error, on the call site as well as
+   791                  % inside the routine:
+   792                  %
+   793                  %     715/CTMAIN  *** WARNING - ILLEGAL DATA-ELEMENT TO BE CONVERTED
+   794                  %
+   795                  % AN ADDRESS ON THIS MACHINE IS SIXTEEN BITS. XMP-B02:IMPT declares
+   796                  %
+   797                  %     TYPE XMUSERADDRESS = INTEGER          % NB: NEW MC68000 compiler!!
+   798                  %
+   799                  % and the line ABOVE it, which is where the mistake came from, is a
+   800                  % COMMENT reading "modify XMUSERADDRESS = INTEGER4" - an instruction to
+   801                  % widen it FOR THE MC68000. Taking that commented instruction for the
+   802                  % declaration is what produced a 32-bit force. The extra word was
+   803                  % adjacent memory, which is why the junk was stable enough to look like
+   804                  % a measurement.
+   805                  %
+   806                  % THREE THINGS WORTH KEEPING:
+   807                  %
+   808                  %   a WARNING can invalidate a result as thoroughly as an ERROR - which
+   809                  %   is why the gate prints warnings and not only errors;
+   810                  %
+   811                  %   reproducible is not the same as correct;
+   812                  %
+   813                  %   read the DECLARATION, not the first line that matches the name. A
+   814                  %   commented-out instruction sat one line above the real one.
+   815                  xrAddrOf(buf) =: addrA
+   816                  ADDR(buf(0)) FORCE xrAddr =: addrB
+   817          
+   818                  % PRINT THEM BOTH BEFORE JUDGING. The check below failed on its first
+   819                  % run, and there are two quite different reasons it could:
+   820                  %
+   821                  %   the parameter address really is not the caller's array - in which
+   822                  %   case the transport cannot be shared in this shape at all; or
+   823                  %
+   824                  %   ADDR gives a POINTER and FORCE INTEGER4 reads a word of whatever
+   825                  %   sits next to it, so the comparison is measuring garbage in the high
+   826                  %   half while the address itself is perfectly fine.
+   827                  %
+   828                  % The working product forces ADDR to XMUSERADDRESS, which XMP-B02:IMPT
+   829                  % declares as INTEGER4, so the idiom itself is sound. Printing the
+   830                  % numbers says which of the two this is; reasoning about it does not.
+   831                  OUTPUT(1, 'AL', 'ADDR param  ')
+   832                  OUTPUT(1, 'I', addrA)
+   833                  OUTPUT(1, 'AL', '   ADDR here  ')
+   834                  OUTPUT(1, 'I', addrB)
+   835                  OUTPUT(1, 'AL', '$')
+   836          
+   837                  checkB('param addr = here buf   ', addrA = addrB, TRUE)
+   838          
+   839                  xrAddrOf(nm) =: addrA
+   840                  ADDR(nm(0)) FORCE xrAddr =: addrB
+   841                  checkB('param addr = here nm    ', addrA = addrB, TRUE)
+   842          
+   843                  xrAddrOf(bigBuf) =: addrA
+   844                  ADDR(bigBuf(0)) FORCE xrAddr =: addrB
+   845                  checkB('param addr = here bigBuf', addrA = addrB, TRUE)
+   846          
+   847                  % Three separate arrays cannot share a start address, so these catch a
+   848                  % routine that ignores its parameter and hands back one fixed thing.
+   849                  % They PASSED even under the illegal conversion, which is exactly why
+   850                  % they were never evidence that the rest of the probe was sound.
+   851                  checkB('buf and nm differ       ', xrAddrOf(buf) = xrAddrOf(nm), FALSE)
+   852                  checkB('nm and bigBuf differ    ', xrAddrOf(nm) = xrAddrOf(bigBuf), FALSE)
+   853          
+   854                  % ---- the count ---------------------------------------------------
+   855                  OUTPUT(1, 'AL', '$')
+   856                  OUTPUT(1, 'AL', 'passed ')
+   857                  OUTPUT(1, 'I', passed)
+   858                  OUTPUT(1, 'AL', '   failed ')
+   859                  OUTPUT(1, 'I', failed)
+   860                  OUTPUT(1, 'AL', '$')
+   861          
+   862                  IF failed > 0 THEN
+   863                      OUTPUT(1, 'AL', '*** THE CODEC IS WRONG - do not build the product$')
+   864                  ELSE
+   865                      OUTPUT(1, 'AL', 'codec is good$')
+   866                  ENDIF
+   867              ENDROUTINE
+   868          
+   869          ENDMODULE
+   870          

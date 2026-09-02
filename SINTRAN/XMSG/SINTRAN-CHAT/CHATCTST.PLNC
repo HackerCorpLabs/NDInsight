@@ -1,0 +1,192 @@
+% =========================================================================
+% CHATCTST - checks the ROOM CACHE (addSaid, cacheAdd, slotAt) in isolation.
+%
+% WHY THIS EXISTS. 2026-09-01: every arrival was rendering as a repeat of
+% the FIRST line ever added to the cache, on a LIVE machine, over a link
+% that stalls, times out and needs waking - an hour to learn what this
+% program answers in seconds. Links CHAT.PLNC (for the cache machinery
+% alone: addSaid, cache, cacheCount, slotAt, winTotal) and CHATLIB (for the
+% clock call MN113 pulls in through CHAT.PLNC). Needs no XMSG, no server,
+% no screen and nobody typing.
+%
+% HOW TO READ IT: every line starts PASS or FAIL, and the last line is a
+% count. A single FAIL means the CACHE is wrong - the bug is not on the wire
+% and not in the renderer, it is in how a line gets STORED.
+% =========================================================================
+MODULE chatctst
+
+    IMPORT (ROUTINE VOID, VOID (BYTES, BYTES) : addSaid)
+    IMPORT (INTEGER ARRAY : winTotal(0:4))
+    IMPORT (BYTES : cache(0:23099))
+    IMPORT (INTEGER : cacheCount)
+    IMPORT (ROUTINE VOID, INTEGER (INTEGER) : slotAt)
+    IMPORT (INTEGER : curWin)
+    IMPORT (ROUTINE VOID, INTEGER (INTEGER) : wantForRow)
+    IMPORT (INTEGER : viewFrom)
+
+    % THE OTHER HALF - a message coming off the WIRE, not built by hand.
+    % showArrived is the real entry point drainPort calls for every arrival;
+    % calling it directly, over a synthetic buffer built by CHATLIB's OWN
+    % proven encoder, exercises the exact parse path a live kSaid message
+    % takes without needing XMSG, a server or a second machine.
+    IMPORT (ROUTINE VOID, VOID : showArrived)
+    IMPORT (BYTES : inBuf(0:255))
+    IMPORT (INTEGER : readLength)
+    IMPORT (BOOLEAN : screenOn)
+    IMPORT (ROUTINE VOID, INTEGER (BYTES, INTEGER, BYTES, INTEGER, BYTES, &
+            INTEGER, INTEGER) : cmEnc)
+    IMPORT (INTEGER : kSaid)
+
+    CONSTANT lineWide=77
+    CONSTANT offText=20
+
+    INTEGER ARRAY : stack(0:1000)
+
+    INTEGER : passed := 0
+    INTEGER : failed := 0
+
+    ROUTINE VOID, VOID (BYTES, INTEGER, INTEGER) : check(what, got, want)
+        IF got = want THEN
+            passed + 1 =: passed
+            OUTPUT(1, 'AL', 'PASS ')
+            OUTPUT(1, 'AL', what)
+            OUTPUT(1, 'AL', '$')
+            RETURN
+        ENDIF
+        failed + 1 =: failed
+        OUTPUT(1, 'AL', 'FAIL ')
+        OUTPUT(1, 'AL', what)
+        OUTPUT(1, 'AL', '  got ')
+        OUTPUT(1, 'I', got)
+        OUTPUT(1, 'AL', '  want ')
+        OUTPUT(1, 'I', want)
+        OUTPUT(1, 'AL', '$')
+    ENDROUTINE
+
+    % Is the byte at cache slot `slot`, column offText+col, the given
+    % character? Answers 1 for yes, 0 for no - check() above wants INTEGER.
+    ROUTINE VOID, INTEGER (INTEGER, INTEGER, BYTES) : atCol(slot, col, ch)
+        INTEGER : base
+        slotAt(slot) =: base
+        base * lineWide =: base
+        IF cache(base + offText + col) = ch(0) THEN
+            1 RETURN
+        ENDIF
+        0 RETURN
+    ENDROUTINE
+
+    PROGRAM : chatCacheTest
+        BYTES : who1(0:2)
+        BYTES : who2(0:2)
+        BYTES : who3(0:2)
+        BYTES : msg1(0:2)
+        BYTES : msg2(0:2)
+        BYTES : msg3(0:2)
+        BYTES : spkA(0:2)
+        BYTES : spkB(0:2)
+        BYTES : spkC(0:2)
+        BYTES : txtA(0:2)
+        BYTES : txtB(0:2)
+        BYTES : txtC(0:2)
+
+        INISTACK stack
+
+        'AAA' =: who1
+        'BBB' =: who2
+        'CCC' =: who3
+        'one' =: msg1
+        'two' =: msg2
+        'six' =: msg3
+        'DDD' =: spkA
+        'EEE' =: spkB
+        'FFF' =: spkC
+        'ten' =: txtA
+        'fun' =: txtB
+        'win' =: txtC
+
+        OUTPUT(1, 'AL', 'CHATCTST - the room cache, in isolation$')
+
+        check('cacheCount starts empty', cacheCount, 0)
+
+        addSaid(who1, msg1)
+        check('after first add   ', cacheCount, 1)
+
+        addSaid(who2, msg2)
+        check('after second add  ', cacheCount, 2)
+
+        addSaid(who3, msg3)
+        check('after third add   ', cacheCount, 3)
+
+        % THE POINT OF THIS PROGRAM. Three lines went in with three
+        % DIFFERENT texts. If slot 0 still reads o (from "one") after
+        % three real ADDs, the cache is not storing per-line content and
+        % everything downstream is chasing a ghost.
+        check('slot 0 starts with o (one)', atCol(0, 0, 'o'), 1)
+        check('slot 1 starts with t (two)', atCol(1, 0, 't'), 1)
+        check('slot 2 starts with s (six)', atCol(2, 0, 's'), 1)
+
+        % AND THE CONVERSE - slot 0 must NOT show slot 2's text. This is
+        % the exact shape of the bug reported live: every row read back as
+        % the FIRST line, so this check is the one that would have caught
+        % it before a single byte went to D100.
+        check('slot 0 is not slot 2s text', atCol(0, 0, 's'), 0)
+        check('slot 2 is not slot 0s text', atCol(2, 0, 'o'), 0)
+
+        check('winTotal counted all three', winTotal(1), 3)
+
+        % THIS IS THE OTHER HALF OF THE LIVE BUG: paintChat's OWN choice of
+        % which line goes on which row. With three real lines held and
+        % nobody paged back (viewFrom stays 0 the whole test), row 0 must
+        % want line 0, row 1 line 1, row 2 line 2 - and every row after that
+        % must want NOTHING, because there is nothing more to show yet.
+        check('row 0 wants line 0     ', wantForRow(0), 0)
+        check('row 1 wants line 1     ', wantForRow(1), 1)
+        check('row 2 wants line 2     ', wantForRow(2), 2)
+        check('row 3 wants nothing yet', wantForRow(3), 0 - 1)
+        check('row 16 wants nothing yet', wantForRow(16), 0 - 1)
+
+        % ---- THE WIRE HALF - a message built by CHATLIB's OWN encoder,   --
+        % ---- delivered through the REAL entry point drainPort calls.    --
+        %
+        % cmEnc is already proven right by CHATTST; what has never been
+        % proven is that three DIFFERENT encoded arrivals, fed to
+        % showArrived one after another the way drainPort really does it,
+        % land as three DIFFERENT lines - or whether, as reported live,
+        % every one of them reads back as the first.
+        TRUE =: screenOn
+
+        cmEnc(inBuf, kSaid, spkA, 3, txtA, 3, 256) =: readLength
+        showArrived
+        check('after wire msg 1  ', cacheCount, 4)
+
+        cmEnc(inBuf, kSaid, spkB, 3, txtB, 3, 256) =: readLength
+        showArrived
+        check('after wire msg 2  ', cacheCount, 5)
+
+        cmEnc(inBuf, kSaid, spkC, 3, txtC, 3, 256) =: readLength
+        showArrived
+        check('after wire msg 3  ', cacheCount, 6)
+
+        % THE POINT. If every wire arrival reads back as msg 1's text here,
+        % this is the SAME bug reported live and it is NOT in the cache or
+        % the paint math - both already proved clean above - it is in
+        % showArrived itself or in trStrip/drainPort ahead of it.
+        check('wire slot 3 is ten (not fun/win)', atCol(3, 0, 't'), 1)
+        check('wire slot 4 is fun (not ten/win)', atCol(4, 0, 'f'), 1)
+        check('wire slot 5 is win (not ten/fun)', atCol(5, 0, 'w'), 1)
+        check('wire slot 3 is not slot 5s text ', atCol(3, 0, 'w'), 0)
+        check('wire slot 5 is not slot 3s text ', atCol(5, 0, 't'), 0)
+
+        OUTPUT(1, 'AL', '$')
+        OUTPUT(1, 'AL', 'passed ')
+        OUTPUT(1, 'I', passed)
+        OUTPUT(1, 'AL', '  failed ')
+        OUTPUT(1, 'I', failed)
+        OUTPUT(1, 'AL', '$')
+        IF failed = 0 THEN
+            OUTPUT(1, 'AL', 'cache is good$')
+        ELSE
+            OUTPUT(1, 'AL', 'CACHE IS BROKEN - see above$')
+        ENDIF
+    ENDROUTINE
+ENDMODULE

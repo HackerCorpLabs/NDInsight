@@ -1,6 +1,6 @@
 # The control-store gate - the exact emulator answer (byte-verified)
 
-This closes the investigation that started when Ronny's emulator wedged: `@ND-500` -> `VERSION` /
+This closes the investigation that started when Ronny's emulator hung: `@ND-500` -> `VERSION` /
 `LOAD-SWAPPER` -> "Loading Control Store" -> loop/fail (no `CONTROL-STORE:DATA` microcode present).
 
 ## The gate condition (VERIFIED)
@@ -15,7 +15,7 @@ The SINTRAN ND-500 driver reads the interface **STATUS** register (`RSTA5`, IOX 
 The driver takes this as "the control store is not loaded" and the operation returns `ECSLOAD`
 (`2032B`). The `nd-500-mon:prog` gateway (`146244`) then auto-loads the control store and retries - so
 ANY `MON 60` triggers a control-store load when the microcode is not resident (this is why even
-`VERSION` wedged). With no `CONTROL-STORE:DATA` file, the load fails and it loops.
+`VERSION` hung). With no `CONTROL-STORE:DATA` file, the load fails and it loops.
 
 ## THE EMULATOR FIX
 To make the monitor believe the control store IS loaded and the ND-500 is ready, the emulated

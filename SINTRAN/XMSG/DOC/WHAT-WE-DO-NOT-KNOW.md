@@ -11,24 +11,77 @@ interesting it is.
 
 ---
 
-## OPEN 2026-08-25: does chat dedup actually work? It is deployed and UNPROVED
+## CLOSED 2026-08-27: may a routine take ADDR of a buffer it was HANDED? YES
+
+**Answer: yes.** `ADDR` of a `BYTES` parameter is the caller's own array, so a shared routine may
+take the address of a buffer it was handed and give it to `XMPFREA` or `XMPFWRI`. Measured on D100
+with `CHATTST`, three different arrays:
+
+```
+ADDR param  1001        ADDR here  1001
+```
+
+**AN ADDRESS ON THIS MACHINE IS SIXTEEN BITS, and getting that wrong is what made the question look
+hard.** `XMP-B02:IMPT` declares
+
+```
+TYPE XMUSERADDRESS = INTEGER          % NB: NEW MC68000 compiler!!
+```
+
+and the line immediately ABOVE it is a COMMENT reading `modify XMUSERADDRESS = INTEGER4` - an
+instruction to widen it *for the MC68000*. Reading that commented instruction as the declaration
+produced a 32-bit force of a 16-bit value.
+
+**Two wrong answers were published and withdrawn before the right one.** Both forced the address to
+a 32-bit type and got `3473663` against `65791`; both reproduced EXACTLY across separate builds,
+which read as reliability. The extra word was adjacent memory, stable enough to pass for a
+measurement. The pulled listing said so the whole time - a WARNING, not an error, on the call site
+as much as inside the routine:
+
+```
+715/CTMAIN  *** WARNING - ILLEGAL DATA-ELEMENT TO BE CONVERTED
+```
+
+**What to carry away:** a warning can invalidate a result as thoroughly as an error, which is why
+the gate prints warnings; reproducible is not the same as correct; and read the DECLARATION rather
+than the first line that matches the name.
+
+---
+
+## CLOSED 2026-08-26: chat dedup WORKS. The third trunk settled it.
 
 Kind 53 carries the line number the origin stamped; the server remembers the last 64 `(origin, id)`
 pairs and drops a repeat without showing it or passing it on. Built, compiled clean, RT-loaded on
 D100, D102 and D103, and both relay directions re-tested afterwards. `STATUS` reports a `dupe` count.
 
-**Every machine reports `dupe 0`, and that is the only honest reading - it will stay 0.**
-D100/D102/D103 are a **CHAIN**: exactly one path between any two of them, so no line can arrive
-twice and there is nothing to catch. What has been shown is that the mechanism is in place and does
-no harm. **It has NOT been shown to work.**
+**It sat UNPROVED for weeks, and the reason is worth keeping.** D100/D102/D103 were a **CHAIN**:
+exactly one path between any two of them, so no line could arrive twice and there was nothing to
+catch. Every machine reported `dupe 0` - which is exactly what a completely broken dedup would also
+print on a chain. `relay N dupe 0` was evidence of reachability and of nothing else.
 
-**The measurement that would settle it:** add a third trunk, D102-D103, making a triangle. Then a
-line typed on any machine reaches the other two by two routes. Expected: every user still sees each
-line exactly ONCE, and the `dupe` count climbs on the machines that now have two paths. If lines
-double, dedup is broken; if `dupe` stays 0 while lines double, the ids are not travelling.
+**`START-TRUNK 103` on D102 made the triangle and settled it in one line.** MEASURED on D102,
+2026-08-26. Before a line was typed on D103:
 
-**Do not read `relay N dupe 0` as evidence of anything but reachability.** It is exactly what a
-completely broken dedup would also print on a chain.
+```
+SEATS 0/16 ... empty 422 bounce 1 relay 0 dupe 0 refuse 0
+```
+
+after:
+
+```
+SEATS 0/16 ... empty 426 bounce 2 relay 1 dupe 1 refuse 0
+```
+
+and the client showed `SYSTEM@SKOGEN: now there is a triangle and this should arrive once`
+**exactly once**.
+
+**`dupe 1` IS THE EVIDENCE, not the single line on the screen.** One copy on screen is also what a
+machine that only ever received ONE copy would show. The counter is what says a second copy arrived
+by the other path, was recognised, and was thrown away. That is the whole reason the counter exists
+and the reason it is worth printing in `STATUS`.
+
+**The third trunk is now in all three boot files**, so the triangle survives a reboot and the
+measurement can be repeated at any time.
 
 Two limits that are deliberate, both with unit tests so they are not mistaken for defects later:
 

@@ -197,7 +197,7 @@ Two changes, both Ronny's, now in `restart-xmsg-cosmos.ps1`:
     crash it has no use for.
  2. **`ABORT ENNS0` first, then wait 10 seconds.** `ABORT` is a SINTRAN command at the `@` prompt,
     NOT an X-C command - it belongs beside the COSMOS mode file's own `@ABORT FSART`. If a previous
-    `START-NET-SERVER` took XMSG down with it, the RT program is left wedged and starting it again
+    `START-NET-SERVER` took XMSG down with it, the RT program is left hung and starting it again
     just repeats the crash. The abort is not complete when the prompt returns, hence the wait.
 
 Skipping ENNS0 gave a completely clean configuration run: `DEF-REMOTE,,D103 103` `Ok`,

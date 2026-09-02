@@ -1,8 +1,15 @@
 # NDCHAT - what the product actually does
 
-**Status: current as of 2026-08-25**, derived from `SINTRAN-CHAT/CHATSV.PLNC` and
+**Status: current as of 2026-09-02**, derived from `SINTRAN-CHAT/CHATSV.PLNC` and
 `SINTRAN-CHAT/CHAT.PLNC` and checked against the three live machines. Where something is designed
 but not built it says so; where something has never been proved it says that too.
+
+**Manuals** (written 2026-09-02, from the source and the live lab): the
+[user manual](manuals/CHAT-USER-MANUAL.md), the [admin manual](manuals/CHAT-ADMIN-MANUAL.md) and
+the [build and deploy manual](manuals/CHAT-BUILD-AND-DEPLOY-MANUAL.md), and
+[CHAT-ARCHITECTURE.md](manuals/CHAT-ARCHITECTURE.md) for how it is built, its limits and its
+measured performance. This page stays the
+description of what the server does and sends; the manuals are how to use it.
 
 **This describes the SINTRAN product** - the PLANC server `CHATSER` and the PLANC client `CHAT`
 running on real ND-100s. It is NOT about the C# chat library, which is a separate thing with its
@@ -51,6 +58,8 @@ Typed at the client. Matched on a prefix by `cmdIs`, so `/j` works for `/join`.
 | `/map` | how the machines are wired |
 | `/topic <text>` | set the room's topic; everyone is told |
 | `/tell <name> <text>` | a message to ONE person - `RONNY`, or `D102!RONNY` for another machine. Section 6. |
+| `/w <n>`, `/window <n>` | go to window n. A bare `/w` (or Ctrl-W) goes to the next one. Windows need a screen terminal. Section 6 |
+| `/close` | close the private-conversation window being looked at. Window 1, the room, cannot be closed |
 | `/leave` | leave the room |
 | `/exit` | leave and exit the client. `/quit` still works but is not listed |
 
@@ -363,10 +372,24 @@ On the D102 - D100 - D103 chain that means D100 reaches both ends and each end r
 Routing onward by the target's machine is the next step and needs a way to carry a refusal back,
 which no kind does yet.
 
-### Designed, NOT built
+### Windows - BUILT (this section said "designed, not built" until 2026-09-02)
 
-**Multiple windows.** One room at a time. The bar in the full-screen mockup is drawn but inert, and
-its `=KARI` entries now have a protocol behind them even though no window does.
+One room at a time still, but private conversations open in their own windows beside it: window
+1 is always the room, a `/tell` to or from a person gets a window of its own (one per person),
+the bar on the bottom row shows `[1 LOBBY]  2=KARI  3=OLAV*` with `*` marking unread lines,
+and `/w <n>`, `/w`, Ctrl-W and `/close` move between and close them. A room line always lands in
+window 1 whatever is being looked at; a private message lands in its person's window, or in the
+room marked `*(D102!KARI)` when every window is taken. The rectangle of an open panel is kept at
+module level so the room is CLIPPED behind it, not frozen. See the user manual, section 6.
+
+**Remote join/leave and the count.** A peer's member table used to be replaced in silence; since
+2026-09-01 the server snapshots it, replaces it, and announces the difference as ordinary
+`kJoined`/`kLeft`, so `n here` follows people on other machines. A peer that goes down has its
+members announced as left; a keepalive on an idle trunk stops it flapping down/up every minute.
+
+**History, verified live 2026-09-02:** three lines said, `/quit`, rejoin - all three replayed, and
+`STATUS` read `LOBBY 200/3`. The only history failure seen since is environmental: a history file
+locked open by an aborted server, which reads as `held 0` in `STATUS`.
 
 ### Known limits
 

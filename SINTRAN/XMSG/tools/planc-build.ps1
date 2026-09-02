@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Carries a PLANC source to D100, compiles it there, brings the LISTING back, and reads it.
 
@@ -89,7 +89,21 @@ param(
 
     # WHICH TRANSPORT REACHES D100. Without this the runner picks the Ethernet path and every
     # transfer times out with nothing arriving - see the pull below.
-    [string] $Config = 'E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\topology-d19999-hdlc-server.json',
+    # THE ETHERNET TOPOLOGY, because that is what D19999 IS.
+    #
+    # This defaulted to topology-d19999-hdlc-server.json, which was right on 2026-08-21 and is
+    # not right now - the lab moved D19999 onto the Ethernet segment and the daemon has used
+    # topology-d19999.json (hub 127.0.0.1:5010) ever since.
+    #
+    # MEASURED 2026-08-29: with the HDLC default and no daemon running, the one-shot fallback
+    # dialled 10362, sent SABM ten times, got no answer, and gave up after four minutes with
+    # "N2 (10) exhausted in state SabmSent". Nothing was ever going to answer on that port. The
+    # runner's own guard is what kept it harmless - it refuses to re-establish because, in its
+    # words, a SABM kills the peer's XMSG gateway - so the cost was four wasted minutes and a
+    # burst of SABMs aimed at a machine running the product.
+    #
+    # A default that cannot work is worse than no default: it fails slowly and blames the link.
+    [string] $Config = 'E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\SRC\Xmsg.Live.Runner\topology-d19999.json',
 
     [switch] $PullOnly,
     [switch] $PushOnly
@@ -165,9 +179,33 @@ if (-not $PullOnly) {
     }
     if ($runner) {
         $cmd = $runner[0].CommandLine
-        if ($cmd -match '--sync\s+(\S+)') {
-            $daemonDir = (Resolve-Path (Join-Path (Split-Path $PSScriptRoot -Parent) $Matches[1]) -ErrorAction SilentlyContinue)
+        if ($cmd -match '--sync\s+(?:"([^"]+)"|(\S+))') {
+            # THE DAEMON'S --sync MAY BE ABSOLUTE OR RELATIVE, and this guard used to
+            # assume relative: it did Join-Path <repo root> <value>, which turns an
+            # absolute 'E:\...\sync-relay' into a path that cannot exist. Resolve-Path
+            # then answered $null, the test below is guarded on $daemonDir, and the
+            # WHOLE CHECK WAS SKIPPED IN SILENCE - which is how a push landed in
+            # sync-out on 2026-08-28 while the daemon watched sync-relay. Exactly the
+            # failure this guard exists to catch, hidden by the guard's own null test.
+            $rawSync = if ($Matches[1]) { $Matches[1] } else { $Matches[2] }
+            if ([System.IO.Path]::IsPathRooted($rawSync)) {
+                $daemonPath = $rawSync
+            } else {
+                $daemonPath = Join-Path (Split-Path $PSScriptRoot -Parent) $rawSync
+            }
+            $daemonDir = (Resolve-Path $daemonPath -ErrorAction SilentlyContinue)
             $wantDir   = (Resolve-Path $WatchDir -ErrorAction SilentlyContinue)
+
+            # AND IF IT STILL WILL NOT RESOLVE, SAY SO AND STOP. Carrying on would
+            # stage into a folder nobody is watching and the compile would build the
+            # OLD source and report a clean build - the one outcome with no symptom.
+            if (-not $daemonDir) {
+                Write-Host ''
+                Write-Host "The running daemon's --sync is '$rawSync' and that folder cannot be resolved." -ForegroundColor Red
+                Write-Host '  Refusing to stage: nothing would be carried and the build would silently' -ForegroundColor Yellow
+                Write-Host '  compile the OLD source. Check the daemon command line.' -ForegroundColor Yellow
+                exit 4
+            }
             if ($daemonDir -and $wantDir -and ($daemonDir.Path -ne $wantDir.Path)) {
                 Write-Host ''
                 Write-Host "The running daemon watches $($daemonDir.Path)" -ForegroundColor Red
@@ -217,7 +255,129 @@ if (-not $PullOnly) {
 
 if ($PushOnly) { exit 0 }
 
+# ---- IS WHAT WE STAGED STILL WHAT THE REPO SAYS? --------------------------------------------
+#
+# MEASURED 2026-08-29, and it very nearly produced a green build of the wrong program. A
+# CHATSV.PLNC from the PREVIOUS DAY was still sitting in the daemon's sync folder. The daemon
+# restarted, re-scanned, and carried that file to D100 before anything compared it to anything.
+# It was 6541 bytes short - the source without the change being tested. Had the compile run in
+# that window it would have reported 0 DIAGNOSTICS, this gate would have passed, and a change
+# that was never on the machine would have been "proved" on it.
+#
+# THE REPO COPY IS THE MASTER. A file in the sync folder is a COPY, and a copy that has drifted
+# is indistinguishable from a good one on the machine - the byte count matches what was sent, and
+# what was sent was wrong.
+#
+# The comparison allows for the daemon staging as CRLF: a staged file is correct when it is the
+# repo file with every newline expanded, so its size is the repo size plus the line count. That
+# is exact, not a tolerance.
+function Test-StagedFreshness {
+    # $IsLive says whether this folder is the one a RUNNING daemon is watching. A stale file in
+    # the live folder is an emergency and stops the gate; a stale file in a folder nobody is
+    # watching is a loaded gun and only warns - but it DOES warn, because the documented start
+    # command in the nd-build-loop skill names 'sync-out', so the next daemon started that way
+    # would ship those files within five seconds.
+    param([string] $SyncDir, [string] $MasterDir, [bool] $IsLive)
+    if (-not (Test-Path $SyncDir) -or -not (Test-Path $MasterDir)) { return }
+    $stale = @()
+    foreach ($f in Get-ChildItem -Path $SyncDir -File -ErrorAction SilentlyContinue) {
+        $master = Join-Path $MasterDir $f.Name
+        if (-not (Test-Path $master)) { continue }
+        $mi    = Get-Item $master
+        $lines = [System.IO.File]::ReadAllText($master).Split("`n").Length - 1
+        if ($f.Length -ne $mi.Length -and $f.Length -ne ($mi.Length + $lines)) {
+            $stale += [pscustomobject]@{ Name = $f.Name; Staged = $f.Length; Master = $mi.Length; Expect = $mi.Length + $lines }
+        }
+    }
+    if ($stale.Count -gt 0) {
+        $colour = if ($IsLive) { 'Red' } else { 'Yellow' }
+        $what   = if ($IsLive) { 'THE LIVE SYNC FOLDER - a running daemon may ALREADY have carried these' }
+                  else         { 'a sync folder nobody is watching right now' }
+        Write-Host ''
+        Write-Host ("STALE FILES IN {0}:" -f $what) -ForegroundColor $colour
+        Write-Host ("  {0}" -f $SyncDir) -ForegroundColor $colour
+        foreach ($x in $stale) {
+            Write-Host ("    {0}  staged {1}  but the repo master is {2} (CRLF {3})" -f $x.Name, $x.Staged, $x.Master, $x.Expect) -ForegroundColor $colour
+        }
+        Write-Host '  The repo copy is the master. Re-stage before trusting any build, or the' -ForegroundColor Yellow
+        Write-Host '  compile builds a source nobody is looking at and reports it clean.' -ForegroundColor Yellow
+        if ($IsLive) { exit 6 }
+    }
+}
+
+# EVERY LISTING ON DISK, AGAINST THE SOURCE IT CAME FROM.
+#
+# A listing in the listings folder is evidence about the last PULL, not about the machine, and
+# nothing on it says which. MEASURED 2026-08-29: CHATLIB.LIST had been pulled at 01:20 and the
+# CHATLIB source changed at 10:53 the same day. Grepping that listing for the new names found
+# NONE of them, which reads exactly like a library that was never rebuilt - the machine's copy
+# was fine the whole time and had simply never been pulled again. It cost most of a check and
+# nearly produced a wrong entry in the plan.
+#
+# So say it out loud, every run, for every listing - not only the one being fetched. This is a
+# warning and never an exit code: an old listing is not a build failure, it is a file that
+# cannot answer the question you are about to ask it.
+function Show-ListingAges {
+    param([string] $Dir, [string] $SourceDir)
+
+    if (-not (Test-Path $Dir)) { return }
+
+    $stale = @()
+    $items = Get-ChildItem -Path $Dir -Filter '*.LIST' -File -ErrorAction SilentlyContinue
+    for ($i = 0; $i -lt $items.Count; $i++) {
+        $listing = $items[$i]
+        # CHATLIB.LIST came from CHATLIB.PLNC. A listing with no matching source - a one-off like
+        # CHATSV-16seat.LIST - is skipped rather than guessed at.
+        $src = Join-Path $SourceDir ($listing.BaseName + '.PLNC')
+        if (-not (Test-Path $src)) { continue }
+
+        $srcTime = (Get-Item $src).LastWriteTime
+        if ($listing.LastWriteTime -lt $srcTime) {
+            $stale += ("    {0}  pulled {1}, but {2}.PLNC changed {3}" -f `
+                $listing.Name, $listing.LastWriteTime.ToString('yyyy-MM-dd HH:mm'),
+                $listing.BaseName, $srcTime.ToString('yyyy-MM-dd HH:mm'))
+        }
+    }
+
+    if ($stale.Count -gt 0) {
+        Write-Host ""
+        Write-Host "LISTINGS OLDER THAN THEIR SOURCE - these cannot tell you what the machine built:"
+        for ($i = 0; $i -lt $stale.Count; $i++) { Write-Host $stale[$i] }
+        Write-Host "  The machine's copy may be perfectly current; it is the PULL that is old."
+        Write-Host "  Re-pull before reading one of these to answer a question."
+        Write-Host ""
+    }
+}
+
 if ($PullOnly) {
+    Show-ListingAges -Dir $ListingDir -SourceDir (Join-Path (Split-Path $PSScriptRoot -Parent) 'SINTRAN-CHAT')
+
+    # BEFORE ANYTHING ELSE: the gate exists to answer "is the thing on the machine good?", and
+    # that question is meaningless if the thing on the machine came from a stale copy. Checked
+    # here because this runs before EVERY deploy, and a check that is easy to skip gets skipped.
+    $syncNow = $WatchDir
+    $runnerNow = Get-Process -Name 'Xmsg.Live.Runner' -ErrorAction SilentlyContinue
+    if ($runnerNow) {
+        $cl = (Get-CimInstance Win32_Process -Filter "ProcessId=$($runnerNow[0].Id)" -ErrorAction SilentlyContinue).CommandLine
+        if ($cl -match '--sync\s+(?:"([^"]+)"|(\S+))') {
+            $rs = if ($Matches[1]) { $Matches[1] } else { $Matches[2] }
+            if (-not [System.IO.Path]::IsPathRooted($rs)) { $rs = Join-Path (Split-Path $PSScriptRoot -Parent) $rs }
+            $rp = Resolve-Path $rs -ErrorAction SilentlyContinue
+            if ($rp) { $syncNow = $rp.Path }
+        }
+    }
+    $masterDir = Join-Path (Split-Path $PSScriptRoot -Parent) 'SINTRAN-CHAT'
+    $liveDir   = if ($runnerNow -and $syncNow) { (Resolve-Path $syncNow -ErrorAction SilentlyContinue).Path } else { $null }
+
+    # EVERY candidate folder, not just the live one. Which folder is "the" sync folder has already
+    # changed once in this project's history and cost a silent build of the old source.
+    foreach ($cand in @('sync-out','sync-relay','watch')) {
+        $dir = Join-Path (Split-Path $PSScriptRoot -Parent) $cand
+        $rp  = (Resolve-Path $dir -ErrorAction SilentlyContinue)
+        if (-not $rp) { continue }
+        Test-StagedFreshness -SyncDir $rp.Path -MasterDir $masterDir -IsLive ($liveDir -eq $rp.Path)
+    }
+
     # A RUNNING DAEMON IS NOW THE GOOD CASE, NOT THE OBSTACLE.
     #
     # This used to call Stop-Daemon unconditionally, because the only way to fetch was a one-shot

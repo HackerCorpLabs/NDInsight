@@ -106,7 +106,7 @@ throughput cost and that BOTH systems must be version L.
 
 ## 4. Standing traps (all learned the hard way)
 
- - **One terminal connection.** Reconnecting mid-program wedges the line.
+ - **One terminal connection.** Reconnecting mid-program hangs the line.
  - **The console logs out after a few minutes idle.** A retroterm session left sitting is no longer
    logged in even though the TCP session survives. Read the screen before assuming; log in with a
    SINGLE send of `SYSTEM\r\r`.

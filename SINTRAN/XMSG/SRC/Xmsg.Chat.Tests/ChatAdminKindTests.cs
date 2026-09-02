@@ -98,7 +98,13 @@ namespace NDInsight.Sintran.Xmsg.Chat.Tests
             // for dedup. Three catches for one assertion; do not be tempted to delete it as
             // busywork just because updating it is a chore on every new kind - that chore IS the
             // check.
-            Assert.Equal((byte)ChatMessageKind.TrunkDirect, ChatMessageKinds.Highest);
+            //
+            // A FOURTH on 2026-08-30, when TrunkDirectBad (55) went into the registry. The
+            // registry test failed first and the bound was moved with it, so this one failed
+            // second - which is the order that shows the two checks are guarding different
+            // things: one that the enum matches the registry, this one that the DECODER can
+            // reach the top of the enum.
+            Assert.Equal((byte)ChatMessageKind.TrunkDirectBad, ChatMessageKinds.Highest);
             Assert.True(ChatMessageKinds.Highest >= ChatMessageKinds.LowestAdmin);
         }
 

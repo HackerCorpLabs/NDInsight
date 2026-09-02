@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     RT-load a PLANC program onto a fresh segment and set its description, in one command.
 
@@ -65,13 +65,47 @@
     Loaded AFTER the program, in order. The linker wants the program first and then what
     satisfies it, which is the opposite of the compiler's order.
 
+    AND THE OTHER THING AN RT-LOAD DESTROYS: THE MACHINE'S NAME AND ITS TRUNKS.
+
+    A fresh segment is a fresh server, and the server keeps NEITHER of those on disk. It comes up
+    with no name - so it calls itself D100 instead of FJELL - and with an EMPTY peer table, so
+    every trunk is gone. Both look completely healthy: the server is in the time queue, clients
+    join, and a room works perfectly until somebody tries to reach the machine next door.
+
+    That is five lines to be typed on each of three machines after every single build, and
+    forgetting one is nearly invisible. So this script types them, from the table below, keyed by
+    the terminal port it was given. See -ChatName, -Trunks and -NoChatSetup.
+
+.PARAMETER ChatName
+    What this machine calls itself - the SET-NAME argument. Left empty it comes from the table
+    keyed by -Port. Only used with -AndStart.
+
+.PARAMETER Trunks
+    The system numbers to START-TRUNK to. Left empty they come from the same table.
+
+.PARAMETER NoChatSetup
+    Skip the CHAT-MON block entirely. For loading something that is not the chat server, or when
+    the trunks are already up and must not be disturbed - see the START-TRUNK warning below.
+
+.PARAMETER ChatSetupOnly
+    Run ONLY the CHAT-MON block: no loader, no segment, nothing loaded. This is the retry when the
+    load went in cleanly but CHAT-MON lost the race with the server claiming its admin port.
+
 .EXAMPLE
     .\rt-load.ps1 -Port 9010 -Segment 2528
     Load CHATSV onto segment 2528 and point CHATSER at it.
+
+.EXAMPLE
+    .\rt-load.ps1 -Port 9102 -ChatSetupOnly
+    Just put VIDDA's name and its two trunks back.
 #>
 param(
     [Parameter(Mandatory = $true)][int]$Port,
-    [Parameter(Mandatory = $true)][int]$Segment,
+
+    # NOT mandatory any more, because -ChatSetupOnly loads nothing and needs no segment. It is
+    # still required for a load, and the check below says so in one line rather than letting the
+    # loader be handed a segment 0.
+    [int]$Segment = 0,
 
     [string]$Program   = "CHATSV",
     [string]$RtName    = "CHATSER",
@@ -92,8 +126,70 @@ param(
     [string]$RemoteHost = "127.0.0.1",
 
     # Start it once the description is set, and report what LIST-RT-DESCRIPTION says.
-    [switch]$AndStart
+    [switch]$AndStart,
+
+    # The machine's own name and its peers. Empty means "look them up by -Port" - see the table.
+    [string]$ChatName = "",
+    [int[]]$Trunks    = @(),
+
+    [switch]$NoChatSetup,
+    [switch]$ChatSetupOnly,
+
+    # Print what WOULD be typed, and the prompt each line waits for, then stop. Opens no socket
+    # and touches no machine.
+    #
+    # This exists because the step list is the whole script, and until now the only way to see it
+    # was to run it against a live D100. Every trap in the header above is a step list that was
+    # wrong, and one of them cost a reboot. A line that can be read on Windows in a second is a
+    # line that gets read.
+    [switch]$ShowSteps
 )
+
+# WHICH MACHINE IS THIS, WHAT IS IT CALLED, AND WHO DOES IT TRUNK TO.
+#
+# Keyed by TERMINAL PORT, because that is the one thing the caller always passes and the one
+# thing that cannot be wrong: the port IS the machine.
+#
+#   port 9010 -> D100, FJELL      port 9102 -> D102, VIDDA      port 9003 -> D103, SKOGEN
+#
+# Ports read from lab-topology.json (verified 2026-08-08 against all three RetroCore.ini files);
+# names and trunk lists read from boot/README.md, which records what was installed in each
+# machine's own boot mode file on 2026-08-26.
+#
+# EVERY MACHINE TRUNKS TO BOTH OTHERS, not just to its neighbour. A machine learns names only
+# from its DIRECT peers, so on a chain the far end stays a number; and dedup - the same line
+# arriving twice by two routes and being shown once - cannot be exercised at all without the
+# triangle. D100 had no START-TRUNK 103 for weeks because of exactly this.
+$chatMachines = @{
+    9010 = @{ Name = "FJELL";  System = 100; Trunks = @(102, 103) }
+    9102 = @{ Name = "VIDDA";  System = 102; Trunks = @(100, 103) }
+    9003 = @{ Name = "SKOGEN"; System = 103; Trunks = @(100, 102) }
+}
+
+# The CHAT-MON block runs on -AndStart (a fresh server has no name and no peers) or on its own
+# with -ChatSetupOnly. It is skipped for anything that is not the chat server, because CHAT-MON
+# talks to CHATSER's admin port and nothing else has one.
+$doChatSetup = (-not $NoChatSetup) -and ($AndStart -or $ChatSetupOnly) -and ($RtName -eq "CHATSER")
+
+if ($doChatSetup) {
+    if ($ChatName -eq "" -or $Trunks.Count -eq 0) {
+        $known = $chatMachines[$Port]
+        if ($null -eq $known) {
+            # NAME THE PORT AND STOP. Guessing a name here would set the WRONG name on a real
+            # machine, and a wrong name is worse than none: a peer that has learned it will keep
+            # using it, and direct messages then fail against a name nobody answers to.
+            throw ("port $Port is not in this script's machine table, so its chat name and trunks " +
+                   "are not known. Pass -ChatName and -Trunks, or -NoChatSetup, or add the machine " +
+                   "to the table at the top of rt-load.ps1.")
+        }
+        if ($ChatName -eq "")     { $ChatName = $known.Name }
+        if ($Trunks.Count -eq 0)  { $Trunks   = $known.Trunks }
+    }
+}
+
+if (-not $ChatSetupOnly -and $Segment -le 0) {
+    throw "-Segment is required unless -ChatSetupOnly is given."
+}
 
 $ndterm = Join-Path $PSScriptRoot "ndterm.ps1"
 if (-not (Test-Path $ndterm)) {
@@ -125,7 +221,49 @@ function Add-Step([string]$line, [string]$expect) {
     $waits.Add($expect)
 }
 
+# The whole loader block is skipped by -ChatSetupOnly, which loads nothing and only puts the name
+# and the trunks back. Its closing brace is marked below.
+if (-not $ChatSetupOnly) {
+
+# ---- STOP THE SERVER BEFORE LOADING OVER IT ---------------------------------------------
+#
+# MEASURED ON D100, 2026-08-29, and it cost two load attempts. If CHATSER is RUNNING, the
+# CHANGE-RT-DESCRIPTION below answers
+#
+#     RT-PROGRAM IS ACTIVE
+#
+# and then does NOTHING. Every step after it still reports success, EXIT-LOADER and RT CHATSER
+# both look normal, and the machine goes on running the OLD segment with the OLD start address.
+# The script had no ABORT step at all, so the only thing that revealed it was reading the start
+# address afterwards and seeing it unchanged.
+#
+# A load that silently does nothing is the worst failure this script can have - it is exactly
+# the "green build of the wrong thing" that the whole build loop exists to prevent, one stage
+# later. So: abort first, and make it explicit rather than hoping the program happens to be
+# passive.
+#
+# ABORT on an already-passive program is harmless - it is how the machine says "stay stopped".
+# And an aborted RT server cannot simply be RT'd again; it needs the fresh segment this script
+# is about to give it, so there is nothing to put back on the failure path.
+Add-Step "ABORT $RtName" "@"
+Add-Step "LIST-RT-DESCRIPTION $RtName" "@"
+
 Add-Step "RT-LOADER" "*"
+
+# RELEASE THE SEGMENT BEFORE ALLOCATING IT.
+#
+# NEW-SEGMENT does NOT reopen an existing segment for rewriting. ND-60.051.8 page 47 is explicit:
+# "Allocate a segment to be used in the current load operation. The <segment> must be an available
+# FREE segment number." So on every rebuild after the first, the number we want is the one the
+# server we are replacing is still sitting on, and NEW-SEGMENT answers PARAMETER NO. 1 IS ILLEGAL.
+# Every LOAD after it then says ILLEGAL LOAD SEGMENT, END-LOAD is accepted, CHANGE-RT-DESCRIPTION
+# is accepted, the program STARTS - and it starts on the OLD code, with the start address
+# unchanged. MEASURED on D100 2026-08-30: a completely healthy-looking load of nothing.
+#
+# RELEASE-SEGMENT (same manual, Segment Operations) frees the entry. It refuses if an RT program
+# is CURRENTLY USING the segment, which is why the ABORT above must come first - and it is safe
+# to run when the segment does not exist yet, which is the first-ever load.
+Add-Step "RELEASE-SEGMENT $Segment" "*"
 
 # TRAILING COMMAS ARE LOAD-BEARING - see TRAP 3 above.
 Add-Step "NEW-SEGMENT $Segment,$Ring,,," "*"
@@ -159,13 +297,74 @@ Add-Step ""           "ALTERNATIVE PAGE TABLE:"
 Add-Step ""           "*"
 Add-Step "EXIT-LOADER" "@"
 
+}   # end of the loader block - skipped by -ChatSetupOnly
+
 if ($AndStart) {
     Add-Step "RT $RtName" "@"
     Add-Step "LIST-RT-DESCRIPTION $RtName" "@"
 }
 
+# THE MACHINE'S NAME AND ITS TRUNKS, which the load has just destroyed.
+#
+# SET-NAME FIRST, then the trunks: the name travels on the trunk Hello, so a trunk started before
+# the name is set introduces this machine by its number and the peer remembers that until the next
+# hello. Setting the name first costs nothing and removes the window.
+#
+# The prompt is "C-M: " - CHAT-MON prints it before every line it reads - so every step here waits
+# for "C-M:" and only EXIT waits for the SINTRAN "@" back.
+#
+# THE RACE THIS CANNOT SOLVE, and it is written in the boot file too: "@RT CHATSER" returns when
+# the RT program has been STARTED, not when it has claimed its admin port, and CHAT-MON talks to
+# that port. How long the server needs has never been measured. If CHAT-MON gets there first this
+# block fails, loudly, and the fix is one command - re-run with -ChatSetupOnly.
+if ($doChatSetup) {
+    Add-Step "CHAT-MON" "C-M:"
+
+    # SET-NAME with an argument answers "this machine is now FJELL"; with none it CLEARS the name.
+    # An empty -ChatName never reaches here - the table lookup above throws first - so this cannot
+    # silently clear a name it failed to look up.
+    Add-Step "SET-NAME $ChatName" "C-M:"
+
+    # START-TRUNK only REGISTERS the peer. It does not have to reach it, and the server dials and
+    # re-dials on its own clock, so running this while the other machine is down is fine.
+    #
+    # BUT: against a trunk that is ALREADY UP it answers "trunk added" and knocks that trunk DOWN
+    # for about a minute before it heals itself. Harmless right after a load, where nothing is up
+    # - which is the only place this block runs by default. Do NOT reach for -ChatSetupOnly on a
+    # healthy machine just to check something.
+    foreach ($sys in $Trunks) { Add-Step "START-TRUNK $sys" "C-M:" }
+
+    # Whatever happened, the log says so. A trunk that did not register is then VISIBLE instead of
+    # silent, which is the whole reason this line is here and not left to be typed later.
+    Add-Step "LIST-TRUNKS" "C-M:"
+    Add-Step "EXIT" "@"
+}
+
 Write-Host ""
-Write-Host "=== RT-load $Program onto segment $Segment as $RtName ===" -ForegroundColor Cyan
+if ($ChatSetupOnly) {
+    Write-Host "=== $ChatName on port $Port - name and trunks only, nothing loaded ===" -ForegroundColor Cyan
+} else {
+    Write-Host "=== RT-load $Program onto segment $Segment as $RtName ===" -ForegroundColor Cyan
+}
+if ($doChatSetup) {
+    Write-Host "    then SET-NAME $ChatName and trunks to $($Trunks -join ', ')" -ForegroundColor Cyan
+}
+
+if ($ShowSteps) {
+    Write-Host ""
+    Write-Host "    line sent                        waits for" -ForegroundColor DarkGray
+    Write-Host "    -------------------------------  ---------" -ForegroundColor DarkGray
+    for ($i = 0; $i -lt $steps.Count; $i++) {
+        # A blank step is a bare CR answering a prompt with its default - shown as (CR) so it is
+        # not mistaken for a missing line.
+        $shown = $steps[$i]
+        if ($shown -eq "") { $shown = "(CR)" }
+        Write-Host ("    {0,-31}  {1}" -f $shown, $waits[$i])
+    }
+    Write-Host ""
+    Write-Host "$($steps.Count) steps. Nothing was sent - remove -ShowSteps to run it." -ForegroundColor Yellow
+    exit 0
+}
 
 $out = & $ndterm -Port $Port -User $User -Password $Password -RemoteHost $RemoteHost `
     -Steps $steps.ToArray() -StepWaits $waits.ToArray() -SettleMs 1200 2>&1 | Tee-Object -Variable teed
@@ -176,12 +375,45 @@ Write-Host ""
 # CHECK, DO NOT HOPE. Each of these has been the actual outcome of a run at some point today.
 $bad = @()
 if ($text -match 'ILLEGAL PARAMETER TYPE')   { $bad += 'ILLEGAL PARAMETER TYPE - a prompt was answered with a command' }
-if ($text -match 'PARAMETER NO\.\s*\d+ IS ILLEGAL') { $bad += 'PARAMETER NO. n IS ILLEGAL - NEW-SEGMENT ate the next line' }
+# PARAMETER NO. n IS ILLEGAL has TWO quite different causes and the message used to name only
+# one of them, which sent the 2026-08-29 run looking for a missing comma that was not missing.
+#
+#  - after NEW-SEGMENT it is almost always THE SEGMENT NUMBER, and there are TWO ways to get it
+#    wrong. The number may be OUT OF RANGE - segment numbers here are OCTAL, so a decimal-looking
+#    2601 is refused outright. Or, far more often on a rebuild, the number is perfectly legal and
+#    simply NOT FREE: NEW-SEGMENT allocates a free segment and never reopens an existing one
+#    (ND-60.051.8 p.47), so the segment the old server is sitting on is refused every time. That
+#    is what RELEASE-SEGMENT above is for. Ask the machine which case it is - LIST-SEGMENT <n>
+#    prints length 0 and no permission flags for a free segment, and real values plus OK for a
+#    live one.
+#  - anywhere else it is usually a dropped trailing comma, which lets the next line be eaten
+#    as an answer to the prompt this one left open.
+if ($text -match 'PARAMETER NO\.\s*\d+ IS ILLEGAL') {
+    if ($text -match 'NEW-SEGMENT[^\r\n]*\r?\n\s*\r?\n?\s*PARAMETER NO') {
+        $bad += ("PARAMETER NO. n IS ILLEGAL right after NEW-SEGMENT - segment $Segment was REFUSED. " +
+                 "NEW-SEGMENT allocates a FREE segment; it does not reopen an existing one " +
+                 "(ND-60.051.8 p.47). So the usual cause is that segment $Segment is still OCCUPIED - " +
+                 "very often by the very server being replaced - and RELEASE-SEGMENT did not clear it. " +
+                 "The other cause is a number out of range; segment numbers here are OCTAL. " +
+                 "Ask the machine which it is: LIST-SEGMENT $Segment prints length 0 and no permission " +
+                 "flags when free, and real values plus OK when occupied.")
+    }
+    else {
+        $bad += 'PARAMETER NO. n IS ILLEGAL - a trailing comma was dropped and the next line was eaten as an answer'
+    }
+}
 if ($text -match 'NOT ALLOWED NOW')          { $bad += 'THIS COMMAND IS NOT ALLOWED NOW - END-LOAD came too late' }
 if ($text -match 'NO SUCH COMMAND')          { $bad += 'NO SUCH COMMAND - a SINTRAN command was typed inside the loader' }
 if ($text -match 'UNDEFINED')                { $bad += 'UNDEFINED entries - a library is missing from -Libraries' }
 if ($text -match 'NO SUCH FILE NAME')        { $bad += 'NO SUCH FILE NAME - a LOAD went in while the loader was still busy, or a library name is wrong' }
 if ($text -match 'NEGLECTING REFERENCES')    { $bad += 'NEGLECTING REFERENCES - END-LOAD found unresolved references; the load is INCOMPLETE' }
+
+# THE SILENT ONE. CHANGE-RT-DESCRIPTION refuses to touch a RUNNING program and says so ONCE, then
+# every following step reports success and the machine keeps the OLD segment. Measured on D100
+# 2026-08-29: the run ended "loaded onto segment 2601" while LIST-RT-DESCRIPTION still read
+# segment 132B and start address 34617B - nothing had been loaded at all. The ABORT step near the
+# top is the fix; this line is what proves the fix held on every future run.
+if ($text -match 'RT-PROGRAM IS ACTIVE')     { $bad += 'RT-PROGRAM IS ACTIVE - the descriptor was NOT changed, the OLD segment is still in use, and NOTHING was loaded. Abort the program first.' }
 
 # A step that never saw its prompt is the most important failure of all, because everything typed
 # after it goes somewhere unintended. ndterm stops on it; this names it.
@@ -224,6 +456,89 @@ if ($AndStart) {
         Write-Host "      3. it was loaded BEFORE the last XMSG restart - that is what this script fixes" -ForegroundColor Yellow
         exit 1
     }
+}
+
+# DID THE NAME AND THE TRUNKS ACTUALLY TAKE? CHECK THE SERVER'S OWN WORDS, NOT THAT WE TYPED IT.
+#
+# Every reply here is built by CHATSV and its exact text is in the source:
+#
+#   SET-NAME <n>   -> "this machine is now <n>"   (buildNameReply, CHATSV.PLNC)
+#                     "this machine has no name - it answers to D<number>" when it was cleared
+#   START-TRUNK    -> "trunk added"               (buildAdmText, CHATSV.PLNC)
+#   LIST-TRUNKS    -> "<sys> <name> <state>" per peer, or nothing at all when there are none
+#
+# So a missing "this machine is now" is not a cosmetic gap - it means CHAT-MON never got an answer
+# out of the admin port, and NOTHING in this block took, trunks included.
+if ($doChatSetup) {
+    $chatBad = @()
+
+    if ($text -notmatch [regex]::Escape("this machine is now $ChatName")) {
+        $chatBad += "SET-NAME $ChatName was not confirmed - the server never answered 'this machine is now $ChatName'"
+    }
+
+    # One "trunk added" per trunk asked for. Fewer means one of them did not register, and which
+    # one is then answered by LIST-TRUNKS below rather than guessed at here.
+    $added = ([regex]::Matches($text, 'trunk added')).Count
+    if ($added -lt $Trunks.Count) {
+        $chatBad += "$added of $($Trunks.Count) trunks answered 'trunk added'"
+    }
+
+    # The LIST-TRUNKS answer, lifted out between its own echo and the next prompt, so the run's
+    # log records the peer table the machine actually has - not the one that was asked for.
+    # SKIP THE REST OF THE ECHOED COMMAND LINE FIRST - "[^\r\n]*\r?\n".
+    #
+    # Without it this matched from the word LIST-TRUNKS inside ndterm's own step
+    # echo and captured the single "]" that ends it, so the run printed
+    # "LIST-TRUNKS: ]" while the real answer sat on the next line. Measured on
+    # D100 2026-08-28, the first time this ran against a live server.
+    $lt = [regex]::Match($text, '(?s)LIST-TRUNKS[^\r\n]*\r?\n(.*?)C-M:')
+    $trunkLines = ""
+    if ($lt.Success) { $trunkLines = $lt.Groups[1].Value.Trim() }
+
+    if ($chatBad.Count -gt 0) {
+        Write-Host "--- transcript ---" -ForegroundColor DarkGray
+        Write-Host $text
+        Write-Host "--- end transcript ---" -ForegroundColor DarkGray
+        Write-Host ""
+        Write-Host "*** THE NAME AND TRUNKS DID NOT GO IN ***" -ForegroundColor Red
+        foreach ($b in $chatBad) { Write-Host "    $b" -ForegroundColor Red }
+        Write-Host ""
+        Write-Host "    The LOAD itself was clean - $RtName is running on segment $Segment." -ForegroundColor Yellow
+        Write-Host "    The usual cause is the race: @RT $RtName returns before the server has" -ForegroundColor Yellow
+        Write-Host "    claimed its admin port, and CHAT-MON got there first. Retry with:" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "        .\rt-load.ps1 -Port $Port -ChatSetupOnly" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "    Until that comes back clean this machine has NO name and NO trunks:" -ForegroundColor Yellow
+        Write-Host "    it will call itself D<number> and nothing will cross to the other machines." -ForegroundColor Yellow
+        exit 1
+    }
+
+    Write-Host "$ChatName - name set, $added trunk(s) registered." -ForegroundColor Green
+    if ($trunkLines -ne "") {
+        Write-Host "    LIST-TRUNKS: $trunkLines" -ForegroundColor Green
+    } else {
+        # Not a failure on its own - a trunk registers before it is reachable, and LIST-TRUNKS can
+        # legitimately be terse. Said out loud rather than hidden, because an empty peer table is
+        # exactly what this whole block exists to prevent.
+        Write-Host "    LIST-TRUNKS printed nothing that could be read back." -ForegroundColor Yellow
+    }
+}
+
+if ($ChatSetupOnly) {
+    exit 0
+}
+
+if ($AndStart) {
+    # D.6 - AN RT-LOAD ORPHANS EVERY JOINED CLIENT. A fresh segment is a fresh server with an
+    # EMPTY member table; a client that was joined before this load keeps its old serverMagic and
+    # LOOKS COMPLETELY NORMAL - the tell is the missing echo of your own line, not an error. Said
+    # here because it is easy to forget and invisible until somebody's message goes nowhere.
+    Write-Host ""
+    Write-Host "*** RESTART EVERY CLIENT THAT WAS JOINED BEFORE THIS LOAD ***" -ForegroundColor Yellow
+    Write-Host "    An orphaned client shows a normal screen and a normal prompt. The tell is a" -ForegroundColor Yellow
+    Write-Host "    missing echo of your own line - X-C LIST-NAMES will also show free seats" -ForegroundColor Yellow
+    Write-Host "    where somebody believes they are seated." -ForegroundColor Yellow
 }
 
 Write-Host "loaded onto segment $Segment." -ForegroundColor Green

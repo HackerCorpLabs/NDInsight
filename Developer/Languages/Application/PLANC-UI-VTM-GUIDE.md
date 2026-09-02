@@ -162,10 +162,16 @@ IMPORT (ROUTINE VOID,VOID(INTEGER,INTEGER,INTEGER,INTEGER):fullbar)
 IMPORT (ROUTINE VOID,VOID(INTEGER,INTEGER,INTEGER,INTEGER):sparsebar)
 ```
 
-Same four-`INTEGER` shape as `frame` minus the trailing `BYTES` — consistent with a
-`(row, column, height, width)` box with no title, filled solid (`fullbar`) or with a sparse/
-dashed fill (`sparsebar`). Likely used for progress-bar-style or highlight-bar UI elements, not
-confirmed further.
+Same four-`INTEGER` shape as `frame` minus the trailing `BYTES`: `(row, column, height, width)`.
+
+**MEASURED on D103, 2026-08-31 - `fullbar` PAINTS ASCII HYPHENS.** `fullbar(row, 2, 1, width)`
+draws a row of `-`, not a solid block and not a rule in the VT100 graphic set. `frame` on the same
+screen in the same routine paints the graphic set (`lqqq...k` down the sides and corners), so a
+`fullbar` separator inside a `frame` box does NOT match the box it sits in. That is a real visual
+mismatch and there is no library verb for a graphic-set rule - matching them means emitting the
+escape by hand.
+
+`sparsebar` is presumably the dashed counterpart; that one is still unmeasured.
 
 ### 3.3 Field display and edit: the `dis`/`acc` pairs
 

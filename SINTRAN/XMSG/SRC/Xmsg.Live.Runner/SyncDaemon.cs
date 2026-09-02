@@ -119,9 +119,9 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
         /// How often the folder is read.
         /// </param>
         /// <param name="pullFolder">
-        /// Where fetch requests are dropped, or null to push only. A file named
-        /// <c>&lt;something&gt;.req</c> whose single line is a remote filespec fetches that file to
-        /// <c>&lt;something&gt;</c> beside it.
+        /// Where fetch requests are dropped, or null to push only. A file whose name ends
+        /// <c>.req</c>, and whose single line is a remote filespec, fetches that file to a file
+        /// beside it carrying the same name with the <c>.req</c> removed.
         /// </param>
         /// <exception cref="ArgumentNullException">
         /// Thrown when any reference argument other than <paramref name="pullFolder"/> is null.

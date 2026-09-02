@@ -1,0 +1,81 @@
+NDCHAT floppy images, built 2026-09-02 13:57
+git: ce97d772 on xmsg-chat
+
+NDCHAT-INSTALL-2026-09-02.img  1261568 bytes  (ndtool floppy12, volume NDCHAT)
+  SYSTEM/CHAT:PROG               108544 bytes  binary
+  SYSTEM/CHAT-MON:PROG            18432 bytes  binary
+  SYSTEM/CHATSV:BRF               35303 bytes  binary
+  SYSTEM/CHATLIB:BRF               2220 bytes  binary
+  SYSTEM/CHATRT:MODE               2098 bytes  text, CRLF, even parity
+  SYSTEM/CHATBOOT:MODE             1200 bytes  text, CRLF, even parity
+  SYSTEM/README:TEXT               2479 bytes  text, CRLF, even parity
+
+  ndtool -t NDCHAT-INSTALL-2026-09-02.img:
+    Volume: NDCHAT
+    
+    USER: SYSTEM
+      [0000]  (not set)  (SYSTEM)CHAT:PROG;1                      108544 bytes     53 pages
+      [0001]  (not set)  (SYSTEM)CHAT-MON:PROG;1                   18432 bytes      9 pages
+      [0002]  (not set)  (SYSTEM)CHATSV:BRF;1                      35303 bytes     18 pages
+      [0003]  (not set)  (SYSTEM)CHATLIB:BRF;1                      2220 bytes      2 pages
+      [0004]  (not set)  (SYSTEM)CHATRT:MODE;1                      2098 bytes      2 pages
+      [0005]  (not set)  (SYSTEM)CHATBOOT:MODE;1                    1200 bytes      1 pages
+      [0006]  (not set)  (SYSTEM)README:TEXT;1                      2479 bytes      2 pages
+
+NDCHAT-SOURCE-2026-09-02.img  1261568 bytes  (ndtool floppy12, volume NDCHATSRC)
+  SYSTEM/CHAT:PLNC               294334 bytes  text, CRLF, even parity
+  SYSTEM/CHATARR:PLNC             48375 bytes  text, CRLF, even parity
+  SYSTEM/CHATCC:MODE               9233 bytes  text, CRLF, even parity
+  SYSTEM/CHATCTST:PLNC             7769 bytes  text, CRLF, even parity
+  SYSTEM/CHATKT:MODE               1594 bytes  text, CRLF, even parity
+  SYSTEM/CHATKT:PLNC              11370 bytes  text, CRLF, even parity
+  SYSTEM/CHATLIB:PLNC             34084 bytes  text, CRLF, even parity
+  SYSTEM/CHATMON:MODE              5442 bytes  text, CRLF, even parity
+  SYSTEM/CHATMON:PLNC             49934 bytes  text, CRLF, even parity
+  SYSTEM/CHATSV:MODE               6606 bytes  text, CRLF, even parity
+  SYSTEM/CHATSV:PLNC             363414 bytes  text, CRLF, even parity
+  SYSTEM/CHATTS:MODE               2087 bytes  text, CRLF, even parity
+  SYSTEM/CHATTST:PLNC             42433 bytes  text, CRLF, even parity
+  SYSTEM/CHATUI:MODE               2061 bytes  text, CRLF, even parity
+  SYSTEM/CHATUI:PLNC              47264 bytes  text, CRLF, even parity
+  SYSTEM/CHATVT:MODE               1669 bytes  text, CRLF, even parity
+  SYSTEM/CHATVT:PLNC              12269 bytes  text, CRLF, even parity
+  SYSTEM/CHATXMS:PLNC              9196 bytes  text, CRLF, even parity
+  SYSTEM/KEYPROB:MODE               444 bytes  text, CRLF, even parity
+  SYSTEM/KEYPROB:PLNC              7547 bytes  text, CRLF, even parity
+  SYSTEM/SCREEN:SYMB                926 bytes  text, CRLF, even parity
+  SYSTEM/XMSG-PL-IMPORT:INCL       7088 bytes  text, CRLF, even parity
+  SYSTEM/XMSG-PL-VALUES-L:INCL    21422 bytes  text, CRLF, even parity
+  SYSTEM/README:TEXT               1766 bytes  text, CRLF, even parity
+
+  ndtool -t NDCHAT-SOURCE-2026-09-02.img:
+    Volume: NDCHATSRC
+    
+    USER: SYSTEM
+      [0000]  (not set)  (SYSTEM)CHAT:PLNC;1                      294334 bytes    144 pages
+      [0001]  (not set)  (SYSTEM)CHATARR:PLNC;1                    48375 bytes     24 pages
+      [0002]  (not set)  (SYSTEM)CHATCC:MODE;1                      9233 bytes      5 pages
+      [0003]  (not set)  (SYSTEM)CHATCTST:PLNC;1                    7769 bytes      4 pages
+      [0004]  (not set)  (SYSTEM)CHATKT:MODE;1                      1594 bytes      1 pages
+      [0005]  (not set)  (SYSTEM)CHATKT:PLNC;1                     11370 bytes      6 pages
+      [0006]  (not set)  (SYSTEM)CHATLIB:PLNC;1                    34084 bytes     17 pages
+      [0007]  (not set)  (SYSTEM)CHATMON:MODE;1                     5442 bytes      3 pages
+      [0010]  (not set)  (SYSTEM)CHATMON:PLNC;1                    49934 bytes     25 pages
+      [0011]  (not set)  (SYSTEM)CHATSV:MODE;1                      6606 bytes      4 pages
+      [0012]  (not set)  (SYSTEM)CHATSV:PLNC;1                    363414 bytes    178 pages
+      [0013]  (not set)  (SYSTEM)CHATTS:MODE;1                      2087 bytes      2 pages
+      [0014]  (not set)  (SYSTEM)CHATTST:PLNC;1                    42433 bytes     21 pages
+      [0015]  (not set)  (SYSTEM)CHATUI:MODE;1                      2061 bytes      2 pages
+      [0016]  (not set)  (SYSTEM)CHATUI:PLNC;1                     47264 bytes     24 pages
+      [0017]  (not set)  (SYSTEM)CHATVT:MODE;1                      1669 bytes      1 pages
+      [0020]  (not set)  (SYSTEM)CHATVT:PLNC;1                     12269 bytes      6 pages
+      [0021]  (not set)  (SYSTEM)CHATXMS:PLNC;1                     9196 bytes      5 pages
+      [0022]  (not set)  (SYSTEM)KEYPROB:MODE;1                      444 bytes      1 pages
+      [0023]  (not set)  (SYSTEM)KEYPROB:PLNC;1                     7547 bytes      4 pages
+      [0024]  (not set)  (SYSTEM)SCREEN:SYMB;1                       926 bytes      1 pages
+      [0025]  (not set)  (SYSTEM)XMSG-PL-IMPORT:INCL;1              7088 bytes      4 pages
+      [0026]  (not set)  (SYSTEM)XMSG-PL-VALUES-L:INCL;1           21422 bytes     11 pages
+      [0027]  (not set)  (SYSTEM)README:TEXT;1                      1766 bytes      1 pages
+
+Binaries were pulled off D100 through the sync daemon; every file was extracted again
+from the finished image and compared byte for byte with what was put in.

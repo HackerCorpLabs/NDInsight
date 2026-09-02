@@ -22,7 +22,7 @@ namespace NDInsight.Sintran.Xmsg.Servers.Fa
     /// <para><b>The rule that governs every path in here: ALWAYS ANSWER A REQUEST.</b></para>
     /// <para>
     /// On 2026-08-02 a node accepted the link and then said nothing to an FA request, and the calling
-    /// SINTRAN machine's terminal wedged - ESC did not abort it. So an operation we cannot do is
+    /// SINTRAN machine's terminal hung - ESC did not abort it. So an operation we cannot do is
     /// answered with an <see cref="FaServerStatus"/> refusal, a body that will not parse is answered
     /// with <see cref="FaServerStatus.BadRequest"/>, and a request from an endpoint we have no
     /// session for opens one rather than being dropped. There is deliberately no path from "a request

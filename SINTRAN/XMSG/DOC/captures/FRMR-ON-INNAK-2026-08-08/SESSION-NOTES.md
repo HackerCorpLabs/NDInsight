@@ -6,7 +6,7 @@ started BEFORE the machines were touched. Decoded with the project dissector
 `SINTRAN/Devices/HDLC/WireShark/hdlc_tcp.lua` (`-Y hdlc_lapb`).
 
 **Setup:** D100 and D103 both rebuilt with the section 2.5 sequence, XMSG restarted on D100 first to
-clear the wedged XROUT. Relay: `topology-d19999-relay.json`, listening 10366 for D103, dialling
+clear the hung XROUT. Relay: `topology-d19999-relay.json`, listening 10366 for D103, dialling
 10364 for D100.
 
 ## The finding: the Frame Reject is OURS

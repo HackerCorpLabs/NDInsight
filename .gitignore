@@ -36,6 +36,9 @@ SINTRAN/XMSG/SRC/Xmsg.Live.Runner/served-files/
 SINTRAN/XMSG/tools/*.log
 SINTRAN/XMSG/tools/*.err
 SINTRAN/XMSG/sync*.log
+# The daemon's STDERR beside its stdout. tools/*.err was already ignored but the
+# ones in the XMSG folder were not, so every run left sync-relay.err untracked.
+SINTRAN/XMSG/sync*.err
 SINTRAN/XMSG/SRC/**/xmsg-runner.log
 SINTRAN/XMSG/SRC/**/push*.log
 SINTRAN/XMSG/sync-testui/
@@ -46,3 +49,10 @@ SINTRAN/XMSG/sync-testui/
 # is required: .gitignore alone does nothing to a file git already tracks.
 SINTRAN/XMSG/DOC/captures/XMSG-DEGRADE-2026-08-24/after-fix.pcap
 
+
+# Live hub captures - written while the hub runs, tens of MB, never source
+SINTRAN/XMSG/DOC/captures/*.pcap
+
+# Python bytecode
+__pycache__/
+*.pyc

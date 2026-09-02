@@ -1,0 +1,1054 @@
+     1          % ===========================================================================
+     2          % CHATARR - what the client does when a message ARRIVES.
+     3          %
+     4          % Split out of CHAT.PLNC on 2026-08-28. It is the same code, moved, so that a
+     5          % change to it costs one short compile instead of twenty minutes on a 6586-line
+     6          % source. Nothing here was rewritten.
+     7          %
+     8          % WHY THIS SUBJECT AND NOT ANOTHER. It is the largest single thing in the
+     9          % client - 918 lines across three routines - and it touches the fewest names it
+    10          % does not own: 45 cross the boundary and NOT ONE PAIR of them agrees in its
+    11          % first seven characters, which is all a BRF entry carries. Two exports that do
+    12          % agree are ONE name to the linker and it does not warn; it resolves every
+    13          % import to whichever it met first.
+    14          %
+    15          % HOW THE HALVES FIT
+    16          %
+    17          %   CHAT     owns the state and the drawing, and EXPORTs them.
+    18          %   CHATARR  IMPORTs those, and EXPORTs the single entry point showArrived.
+    19          %
+    20          % The forms below are the ones proved on D100 by SPLITA/SPLITB on 2026-08-26 -
+    21          % a scalar, a BYTES ARRAY and a routine all cross a BRF boundary and refer to
+    22          % ONE copy of the data, not two. That test exists because the manual's own
+    23          % example only covers the scalar.
+    24          %
+    25          % THE ORDER OF THE LINK MATTERS: the program first, then what satisfies it.
+    26          % CHATARR is loaded after CHAT and before the libraries.
+    27          % ===========================================================================
+    28          MODULE chatarr
+    29          
+    30              % ---- the one thing this module hands back ------------------------------
+    31              EXPORT showArrived
+    32          
+    33              % ---- message kinds and accessors, from CHATLIB -------------------------
+    34              % Repeated verbatim from CHAT.PLNC. These are not new crossings: CHATLIB
+    35              % already exports them and both modules simply name them.
+    36              IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmKind)
+    37              IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmNmLen)
+    38              IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmTxAt)
+    39              IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmTxLen)
+    40              IMPORT (INTEGER : kWelcome)
+    41              IMPORT (INTEGER : kReject)
+    42              IMPORT (INTEGER : kSaid)
+    43              IMPORT (INTEGER : kJoined)
+    44              IMPORT (INTEGER : kLeft)
+    45              IMPORT (INTEGER : kRenOk)
+    46              IMPORT (INTEGER : kWho)
+    47              IMPORT (INTEGER : kMap)
+    48              IMPORT (INTEGER : kRooms)
+    49              IMPORT (INTEGER : kTopic)
+    50              IMPORT (INTEGER : kAllWho)
+    51              IMPORT (INTEGER : kHist)
+    52              IMPORT (INTEGER : kDirGot)
+    53              IMPORT (INTEGER : kDirSent)
+    54              IMPORT (INTEGER : kDirBad)
+    55          
+    56              % ---- state that lives in CHAT ------------------------------------------
+    57              % AN IMPORTED ARRAY MUST CARRY ITS BOUNDS. Without them the compiler says
+    58              % ARRAY BOUNDS MISSING and names the array - five of these on the first
+    59              % build of this file. The bounds must match the declaration in CHAT.PLNC;
+    60              % IMPORT still allocates nothing, it only describes the shape.
+    61              % IMPORT allocates nothing. The storage is CHAT's; this only names it, so
+    62              % a write here is seen there and the other way round.
+    63              IMPORT (BOOLEAN : askedTopic)
+    64              IMPORT (BOOLEAN : askedWho)
+    65              IMPORT (INTEGER : cacheCount)
+    66              IMPORT (INTEGER : curWin)
+    67              IMPORT (BOOLEAN : firstWelcome)
+    68              IMPORT (INTEGER4 : hereCount)
+    69              IMPORT (BYTES : inBuf(0:255))
+    70              IMPORT (BOOLEAN : joined)
+    71              IMPORT (INTEGER : lenMyMach)
+    72              IMPORT (INTEGER : lenMyName)
+    73              IMPORT (INTEGER : maxNameLen)
+    74              IMPORT (BYTES : myMachine(0:15))
+    75              IMPORT (BYTES : myName(0:15))
+    76              IMPORT (BYTES : oneChar(0:0))
+    77              IMPORT (INTEGER : readLength)
+    78              IMPORT (BOOLEAN : screenOn)
+    79              IMPORT (INTEGER4 : senderMagic)
+    80              IMPORT (INTEGER4 : serverMagic)
+    81              IMPORT (BOOLEAN : userChoseNick)
+    82              IMPORT (INTEGER ARRAY : winUnread(0:4))
+    83          
+    84              % ---- routines that live in CHAT ----------------------------------------
+    85              IMPORT (ROUTINE VOID, INTEGER (INTEGER, INTEGER) : buildOwn)
+    86              IMPORT (ROUTINE VOID, VOID : cacheClear)
+    87              IMPORT (ROUTINE VOID, INTEGER (INTEGER, INTEGER) : countNames)
+    88              IMPORT (ROUTINE VOID, VOID : drawAll)
+    89              IMPORT (ROUTINE VOID, VOID : drawPanel)
+    90              IMPORT (ROUTINE VOID, VOID : flush)
+    91              IMPORT (ROUTINE VOID, VOID (BYTES) : panelAdd)
+    92              IMPORT (ROUTINE VOID, VOID (BYTES, INTEGER, INTEGER) : panelAnswer)
+    93              IMPORT (ROUTINE VOID, VOID : panelClear)
+    94              IMPORT (ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER, INTEGER, INTEGER) : putInWin)
+    95              IMPORT (ROUTINE VOID, VOID (INTEGER) : putSentInWin)
+    96              IMPORT (ROUTINE VOID, VOID (INTEGER) : sendToServer)
+    97              IMPORT (ROUTINE VOID, VOID : showMyName)
+    98              IMPORT (ROUTINE VOID, VOID : showRoom)
+    99              IMPORT (ROUTINE VOID, VOID : uiClear)
+   100              IMPORT (ROUTINE VOID, VOID (INTEGER, INTEGER) : uiFrom)
+   101              IMPORT (ROUTINE VOID, VOID : uiNotice)
+   102              IMPORT (ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER, INTEGER) : uiSaid)
+   103              IMPORT (ROUTINE VOID, VOID (BYTES, INTEGER) : uiWho2)
+   104              IMPORT (ROUTINE VOID, VOID (BYTES) : uiWord)
+   105              IMPORT (ROUTINE VOID, INTEGER (INTEGER, INTEGER) : winFor)
+   106              IMPORT (ROUTINE VOID, VOID : winSave)
+   107              IMPORT (ROUTINE VOID, VOID (INTEGER) : winUse)
+   108              IMPORT (ROUTINE VOID, VOID : writeCnfg)
+   109          
+   110              % THE INNER HALF. Everything it renders goes into whatever window is
+   111              % current, which is exactly what it did before windows existed - it is the
+   112              % wrapper below that decides which window that is.
+   113              ROUTINE VOID, BOOLEAN : uiArrivedInner
+   114                  % Which conversation window a private message belongs in. Zero means
+   115                  % there was no room for one - see winFor.
+   116                  INTEGER : dirWin
+   117                  INTEGER : kind
+   118                  INTEGER : nameLength
+   119                  INTEGER : textLength
+   120                  INTEGER : textAt
+   121          
+   122                  IF NOT screenOn THEN
+   123                      FALSE RETURN
+   124                  ENDIF
+   125          
+   126                  cmKind(inBuf) =: kind
+   127                  cmNmLen(inBuf) =: nameLength
+   128          
+   129                  % THE SAME LENGTH GUARD THE LINE RENDERER USES, and for the same
+   130                  % reason: nameLength is one byte and can say 255, which would read
+   131                  % past the end of a message that never held that much.
+   132                  %
+   133                  % IT STAYS AHEAD OF cmTxLen ON PURPOSE. cmTxLen reads the two bytes at
+   134                  % nameLength + 2, so calling it before this guard would do exactly the
+   135                  % over-read the guard exists to prevent - the library clamps what it
+   136                  % WRITES, and cannot know how many bytes actually arrived.
+   137                  IF 2 + nameLength + 1 > readLength THEN
+   138                      TRUE RETURN
+   139                  ENDIF
+   140                  cmTxLen(inBuf) =: textLength
+   141                  cmTxAt(inBuf) =: textAt
+   142          
+   143                  % ---- somebody spoke -------------------------------------------
+   144                  % A ZERO-LENGTH FIELD WOULD MAKE A REVERSED SUBARRAY - inBuf(2:1) -
+   145                  % and PLANC checks no bounds, so it would be handed whatever that
+   146                  % happens to mean. Both are built as a notice instead, which is also
+   147                  % the more useful thing to show.
+   148                  IF kind = kSaid THEN
+   149                      uiSaid(2, nameLength, textAt, textLength)
+   150                      TRUE RETURN
+   151                  ENDIF
+   152          
+   153                  % REPLAYED HISTORY is drawn exactly like live traffic here, and that
+   154                  % is a deliberate difference from the line renderer, which marks it
+   155                  % with a bar. On a screen the lines above the newest ARE the past, so
+   156                  % the mark says nothing the position does not.
+   157                  IF kind = kHist THEN
+   158                      uiSaid(2, nameLength, textAt, textLength)
+   159                      TRUE RETURN
+   160                  ENDIF
+   161          
+   162                  % ---- a direct message, and it stays marked ---------------------
+   163                  %
+   164                  % The stars are not decoration. A reply typed as an ordinary line goes
+   165                  % to the whole room, so a private message that looks like room traffic
+   166                  % is a privacy failure caused entirely by the display.
+   167                  % A PRIVATE MESSAGE GETS ITS OWN WINDOW, one per person.
+   168                  %
+   169                  % It used to go in the room's buffer marked with stars. That worked,
+   170                  % but it put one person's private conversation in the middle of
+   171                  % everybody else's traffic, where it scrolls away behind lines that
+   172                  % have nothing to do with it - and the stars had to carry the whole
+   173                  % weight of saying "this one is not what it looks like".
+   174                  %
+   175                  % IF EVERY WINDOW IS TAKEN IT GOES IN THE ROOM, exactly as before.
+   176                  % winFor answers zero for that, and the old path is still right there
+   177                  % as the fallback rather than being an error case somebody has to
+   178                  % have thought about.
+   179                  IF kind = kDirGot THEN
+   180                      winFor(2, nameLength) =: dirWin
+   181                      IF dirWin > 0 THEN
+   182                          putInWin(dirWin, 2, nameLength, textAt, textLength)
+   183                      ELSE
+   184                          uiClear
+   185                          uiWord('*(')
+   186                          uiFrom(2, nameLength)
+   187                          uiWord(') ')
+   188                          uiFrom(textAt, textLength)
+   189                          uiNotice
+   190                      ENDIF
+   191                      TRUE RETURN
+   192                  ENDIF
+   193          
+   194                  % YOUR OWN HALF OF THE CONVERSATION, in the same window as their half.
+   195                  % Without this a window would hold one side of a conversation, which
+   196                  % reads as a series of unanswered messages.
+   197                  %
+   198                  % The server sends this WITHOUT the text - it only confirms who it
+   199                  % went to - so what is shown is the line as it was typed, which the
+   200                  % send path kept for exactly this.
+   201                  IF kind = kDirSent THEN
+   202                      winFor(2, nameLength) =: dirWin
+   203                      IF dirWin > 0 THEN
+   204                          putSentInWin(dirWin)
+   205                      ELSE
+   206                          uiClear
+   207                          uiWord('sent to ')
+   208                          uiFrom(2, nameLength)
+   209                          uiNotice
+   210                      ENDIF
+   211                      TRUE RETURN
+   212                  ENDIF
+   213          
+   214                  IF kind = kDirBad THEN
+   215                      uiClear
+   216                      uiWord('NOT sent to ')
+   217                      uiFrom(2, nameLength)
+   218                      uiWord(': ')
+   219                      uiFrom(textAt, textLength)
+   220                      uiNotice
+   221                      TRUE RETURN
+   222                  ENDIF
+   223          
+   224                  % ---- who came and went -----------------------------------------
+   225                  IF kind = kJoined THEN
+   226                      % ONE MORE, WITHOUT ASKING. Asking the server on every arrival
+   227                      % would put a letter on the wire for every join in the room, and
+   228                      % the next /who corrects any drift anyway.
+   229                      hereCount + 1 =: hereCount
+   230                      uiClear
+   231                      uiFrom(2, nameLength)
+   232                      uiWord(' has joined')
+   233                      uiNotice
+   234                      TRUE RETURN
+   235                  ENDIF
+   236          
+   237                  IF kind = kLeft THEN
+   238                      % ONE FEWER, AND NEVER BELOW ZERO. A leave can arrive for somebody
+   239                      % this client never saw join - it joined after them - and counting
+   240                      % down past zero would show a negative in the status line.
+   241                      IF hereCount > 0 THEN
+   242                          hereCount - 1 =: hereCount
+   243                      ENDIF
+   244                      uiClear
+   245                      uiFrom(2, nameLength)
+   246                      uiWord(' has left')
+   247                      uiNotice
+   248                      TRUE RETURN
+   249                  ENDIF
+   250          
+   251                  % A RENAME CARRIES THE NEW NAME IN THE NAME FIELD and the old one as
+   252                  % the text - the order that is easiest to get backwards, which is why
+   253                  % the C# golden test pins it.
+   254                  IF kind = kRenOk THEN
+   255                      uiClear
+   256                      uiFrom(textAt, textLength)
+   257                      uiWord(' is now ')
+   258                      uiFrom(2, nameLength)
+   259                      uiNotice
+   260                      TRUE RETURN
+   261                  ENDIF
+   262          
+   263                  % ---- the room itself -------------------------------------------
+   264                  %
+   265                  % The TOPIC answer names the ROOM in the name field where a nickname
+   266                  % normally sits, so the name is not printed as a speaker here.
+   267                  IF kind = kTopic THEN
+   268                      % ONE KIND, TWO MEANINGS, and only this client knows which it is
+   269                      % looking at. An ASKED-FOR topic is an answer to a question nobody
+   270                      % else heard; a topic somebody SET is news for the whole room. The
+   271                      % wire cannot tell them apart - the server sends the same kind - so
+   272                      % the flag set when /topic was typed with no argument is what
+   273                      % decides, and it is cleared whichever way this goes.
+   274                      IF askedTopic THEN
+   275                          FALSE =: askedTopic
+   276                          IF textLength > 0 THEN
+   277                              panelAnswer('the topic', textAt, textLength)
+   278                          ELSE
+   279                              panelClear
+   280                              panelAdd('the topic')
+   281                              panelAdd(' ')
+   282                              panelAdd('  none set')
+   283                              drawPanel
+   284                          ENDIF
+   285                          TRUE RETURN
+   286                      ENDIF
+   287          
+   288                      uiClear
+   289                      uiWord('topic: ')
+   290                      IF textLength > 0 THEN
+   291                          uiFrom(textAt, textLength)
+   292                      ELSE
+   293                          uiWord('none set')
+   294                      ENDIF
+   295                      uiNotice
+   296                      TRUE RETURN
+   297                  ENDIF
+   298          
+   299                  % ---- answers to a question, all one shape ----------------------
+   300                  %
+   301                  % who / everybody / rooms / map are readable text built by the server
+   302                  % and are not parsed by anything here. They wrap across rows exactly
+   303                  % as a long sentence does.
+   304                  IF kind = kWho THEN
+   305                      % THE COUNT IS TAKEN FROM THE ANSWER, not kept by this client.
+   306                      % Whatever the server says is right, and it is right again every
+   307                      % time somebody asks - so a count that has drifted repairs itself
+   308                      % rather than needing to be got right for ever.
+   309                      countNames(textAt, textLength) =: hereCount
+   310          
+   311                      % THE ONE THIS CLIENT ASKED FOR GOES IN A PANEL; the one it asked
+   312                      % for ITSELF on the way in does not. Without that test the screen
+   313                      % would open a window over the room the moment you joined, which
+   314                      % nobody asked for and which would have to be dismissed before the
+   315                      % first line could be read.
+   316                      IF askedWho THEN
+   317                          FALSE =: askedWho
+   318                          panelAnswer('who is here', textAt, textLength)
+   319                      ENDIF
+   320                      TRUE RETURN
+   321                  ENDIF
+   322          
+   323                  IF kind = kAllWho THEN
+   324                      FALSE =: askedWho
+   325                      panelAnswer('everybody, every room', textAt, textLength)
+   326                      TRUE RETURN
+   327                  ENDIF
+   328          
+   329                  IF kind = kRooms THEN
+   330                      panelAnswer('rooms', textAt, textLength)
+   331                      TRUE RETURN
+   332                  ENDIF
+   333          
+   334                  IF kind = kMap THEN
+   335                      panelAnswer('the machines', textAt, textLength)
+   336                      TRUE RETURN
+   337                  ENDIF
+   338          
+   339                  IF kind = kReject THEN
+   340                      uiClear
+   341                      uiWord('refused: ')
+   342                      uiFrom(textAt, textLength)
+   343                      uiNotice
+   344                      TRUE RETURN
+   345                  ENDIF
+   346          
+   347                  % kWelcome is NOT taken here. It sets serverMagic, joined and the
+   348                  % machine name, and all of that lives in showArrived - so it falls
+   349                  % through on purpose and the line renderer's own branch runs. Its
+   350                  % printing goes to a screen that is about to be drawn over, which
+   351                  % costs nothing.
+   352                  %
+   353                  % ANY OTHER KIND ALSO FALLS THROUGH, which is the right default: an
+   354                  % unknown kind reaching the line renderer prints something a person
+   355                  % can report, and reaching this one would vanish in silence.
+   356                  FALSE RETURN
+   357              ENDROUTINE
+   358          
+   359              % =====================================================================
+   360              % WHICH WINDOW AN ARRIVING MESSAGE BELONGS IN
+   361              %
+   362              % A ROOM LINE ALWAYS GOES IN WINDOW 1, whatever is on screen. Without
+   363              % this, reading a private conversation would quietly fill THAT window with
+   364              % the room's traffic - the room would appear to have moved, and going back
+   365              % to it would show a gap where the lines should be.
+   366              %
+   367              % A private message places itself, because only the handler knows whose
+   368              % conversation it is; those two kinds are left alone here.
+   369              %
+   370              % THE UNREAD COUNT IS THE DIFFERENCE IN LINES, not one per message. A long
+   371              % line becomes several cache lines, and a reader who sees "3" and finds one
+   372              % sentence learns not to trust the number.
+   373              % =====================================================================
+   374              ROUTINE VOID, BOOLEAN : uiArrived
+   375                  INTEGER : prev
+   376                  INTEGER : before
+   377                  INTEGER : grew
+   378                  INTEGER : what
+   379                  BOOLEAN : handled
+   380          
+   381                  % READ FROM inBuf, not passed in. The inner routine reads its own kind
+   382                  % the same way from the same byte, so there is no second copy that
+   383                  % could disagree with it.
+   384                  cmKind(inBuf) =: what
+   385                  curWin =: prev
+   386          
+   387                  IF what = kDirGot OR what = kDirSent THEN
+   388                      uiArrivedInner =: handled
+   389                      handled RETURN
+   390                  ENDIF
+   391          
+   392                  IF prev = 1 THEN
+   393                      uiArrivedInner =: handled
+   394                      handled RETURN
+   395                  ENDIF
+   396          
+   397                  % Somebody is reading a conversation. Step into the room, put the line
+   398                  % where it belongs, and step straight back out.
+   399                  winSave
+   400                  winUse(1)
+   401                  cacheCount =: before
+   402                  uiArrivedInner =: handled
+   403                  cacheCount - before =: grew
+   404                  winSave
+   405                  winUse(prev)
+   406          
+   407                  IF grew > 0 THEN
+   408                      winUnread(1) + grew =: winUnread(1)
+   409                  ENDIF
+   410                  handled RETURN
+   411              ENDROUTINE
+   412          
+   413          
+   414              ROUTINE VOID, VOID : showArrived
+   415                  INTEGER : kind, nameLength, textLength, textAt, i
+   416                  % Only the screen path uses this - the /who it asks for on the way in.
+   417                  INTEGER : length
+   418                  % Only used by the kRenOk branch: is this rename about US?
+   419                  BOOLEAN : sameAsOurs
+   420                  INTEGER : newLen
+   421          
+   422                  % ON A SCREEN TERMINAL THE RENDERER TAKES IT FIRST.
+   423                  %
+   424                  % uiArrived answers FALSE when it has not dealt with the message -
+   425                  % which is every kind on a printing terminal, and the welcome and any
+   426                  % unknown kind on a screen one - and then everything below runs exactly
+   427                  % as it always has. THE LINE RENDERER IS NOT TOUCHED BY THIS, which is
+   428                  % what makes it safe: it stays the reference for what should be shown
+   429                  % and the fallback for a terminal that cannot address its cursor.
+   430                  IF uiArrived THEN
+   431                      RETURN
+   432                  ENDIF
+   433          
+   434                  cmKind(inBuf) =: kind
+   435                  cmNmLen(inBuf) =: nameLength
+   436          
+   437                  % THE JOIN IS ONE STEP, and a two-step handshake used to live here.
+   438                  %
+   439                  % It was added on the reading that "sending the join through XROUT does
+   440                  % not put the nickname in front of the server" - that the server's
+   441                  % connection port is handed a bare 4-byte connect, so a kHello reply was
+   442                  % needed before the nickname could be sent. That reading was WRONG, and
+   443                  % it was wrong because the SERVER was reading the wrong bytes: a letter
+   444                  % arrives with its XSLET header still attached, and the server was
+   445                  % parsing the header's serial number as a message kind.
+   446                  %
+   447                  % The nickname was in the first letter the whole time. sendJoin writes it
+   448                  % after the header and the Programmer Guide is explicit that XROUT
+   449                  % forwards it untouched. The server's WELCOME is the answer that hands
+   450                  % over the magic number, which is all this side ever needed. See the
+   451                  % header skip in CHATSV.PLNC for the layout and the manual reference.
+   452                  %
+   453                  % Nothing replaces this block: the welcome below already sets
+   454                  % serverMagic, and always did.
+   455          
+   456                  % ---- TRUST NOTHING THAT ARRIVED, ON THIS SIDE TOO ------------------
+   457                  % The server checks exactly these three things before it reads a name or
+   458                  % a text; this side did not, and the reasoning is identical. inBuf holds
+   459                  % 256 bytes and PLANC checks no array bound:
+   460                  %
+   461                  %   nameLength is ONE BYTE, so it can say 255. The name loop would then
+   462                  %   read inBuf(2)..inBuf(256) - past the end - and textAt would already
+   463                  %   be 257 before any text was touched.
+   464                  %
+   465                  %   textLength is TWO BYTES, so it can say 65535, and the text loop
+   466                  %   would walk tens of thousands of bytes off the end of the array.
+   467                  %
+   468                  %   A SHORT message is the quieter half: without testing against
+   469                  %   readLength the loops print whatever the previous, longer message
+   470                  %   left behind in inBuf.
+   471                  %
+   472                  % "The server would never send that" is not a reason. A truncated
+   473                  % message does it by accident, and a client that only survives a
+   474                  % well-behaved peer is not one worth writing.
+   475                  % Both tests are against readLength, which the read below clamps to the
+   476                  % size of inBuf - so a field that fits the MESSAGE also fits the ARRAY.
+   477                  IF 2 + nameLength + 1 > readLength THEN
+   478                      RETURN
+   479                  ENDIF
+   480          
+   481                  % READ ONLY AFTER THE GUARD ABOVE - cmTxLen fetches the two bytes at
+   482                  % nameLength + 2, which is the over-read that guard prevents.
+   483                  cmTxLen(inBuf) =: textLength
+   484                  cmTxAt(inBuf) =: textAt
+   485          
+   486                  IF textAt + textLength > readLength THEN
+   487                      RETURN
+   488                  ENDIF
+   489          
+   490                  % The WELCOME is what reveals the server's address: everything after it
+   491                  % goes straight there.
+   492                  IF kind = kWelcome THEN
+   493                      senderMagic =: serverMagic
+   494                      TRUE =: joined
+   495          
+   496                      % THE WELCOME'S TEXT IS THE MACHINE THIS CLIENT IS ON. It was
+   497                      % always empty before, so a server that has not been upgraded
+   498                      % simply leaves this empty and the screen shows the name alone.
+   499                      IF textLength > 0 THEN
+   500                          textLength =: lenMyMach
+   501                          IF lenMyMach > 16 THEN
+   502                              16 =: lenMyMach
+   503                          ENDIF
+   504                          FOR i IN 1:lenMyMach DO
+   505                              inBuf(textAt + i - 1) =: myMachine(i - 1)
+   506                          ENDFOR
+   507          
+   508                          % REDRAW THE WHOLE FRAME, because the corner is painted by
+   509                          % drawAll and drawAll ran before this arrived - the join is
+   510                          % sent first and the welcome answers it. Without this the
+   511                          % corner says TESTER for the rest of the session on a machine
+   512                          % that has a perfectly good name.
+   513                          %
+   514                          % Once per session, so the cost does not matter.
+   515                          IF screenOn THEN
+   516                              drawAll
+   517                              flush
+   518                          ENDIF
+   519                      ENDIF
+   520          
+   521                      % ASK WHO IS HERE, ONCE, so the status line starts out TRUE.
+   522                      %
+   523                      % The welcome is the first moment there is a seat to ask from. Only
+   524                      % on a screen: the line renderer has no status line to fill, and an
+   525                      % unasked-for /who answer printed at a user who did not type one
+   526                      % would be noise.
+   527                      IF screenOn THEN
+   528                          buildOwn(kWho, 0) =: length
+   529                          sendToServer(length)
+   530                      ENDIF
+   531          
+   532                      % SAY WHO YOU ARE, ONCE, AND ONLY NOW THAT IT IS TRUE. The server
+   533                      % has accepted the name, so this is a fact rather than a hope - see
+   534                      % the note in setupName for what printing it early looked like.
+   535                      % ON A SCREEN THIS GOES IN THE ROOM, NOT TO THE CURSOR.
+   536                      %
+   537                      % MEASURED on D100 2026-08-26: printed with OUTPUT while the frame
+   538                      % was already up, it landed ON THE INPUT ROW -
+   539                      %
+   540                      %     > you are TESTER on FJELL  (/nick to change)
+   541                      %
+   542                      % because OUTPUT writes wherever the cursor happens to be, and the
+   543                      % cursor is parked on the input line by drawInput. It used to be
+   544                      % harmless: the welcome arrived before the first paint and was
+   545                      % simply drawn over. It is not harmless now that the welcome also
+   546                      % triggers a repaint.
+   547                      %
+   548                      % The corner already says TESTER@FJELL, so this is only the
+   549                      % sentence - and a sentence belongs with the other sentences.
+   550                      IF screenOn THEN
+   551                          IF firstWelcome THEN
+   552                              FALSE =: firstWelcome
+   553                              uiClear
+   554                              uiWord('you are ')
+   555                              uiWho2(myName, lenMyName)
+   556                              IF lenMyMach > 0 THEN
+   557                                  uiWord(' on ')
+   558                                  uiWho2(myMachine, lenMyMach)
+   559                              ENDIF
+   560                              uiNotice
+   561                          ELSE
+   562                              % A LATER WELCOME IS A ROOM CHANGE, and the lines above
+   563                              % belong to the room just left. Keeping them would put one
+   564                              % room's conversation under another room's name in the
+   565                              % status line and the bar - which is worse than losing
+   566                              % them, because it is not visibly wrong.
+   567                              %
+   568                              % They ARE lost, and that is the honest cost of one buffer
+   569                              % for one window. A buffer per window is what fixes it, and
+   570                              % that is the next phase rather than something to fake now.
+   571                              cacheClear
+   572          
+   573                              % AND PAINT THE EMPTY ROOM AT ONCE.
+   574                              %
+   575                              % MEASURED on D100 2026-08-26: without this, the FIRST
+   576                              % line said in the new room was drawn into VTM's buffer
+   577                              % and stayed there - invisible - until the next terminal
+   578                              % READ flushed it. One keystroke, any keystroke, made it
+   579                              % appear. So it looked like the say had been lost, or the
+   580                              % client had gone deaf after a join, when in fact the
+   581                              % renderer had already done its work and nobody had asked
+   582                              % VTM to show it.
+   583                              %
+   584                              % A room change is rare, so a whole repaint here costs
+   585                              % nothing and leaves the screen in a state that agrees
+   586                              % with the buffer before the first new line arrives.
+   587                              drawAll
+   588                              flush
+   589                          ENDIF
+   590                      ELSE
+   591                          OUTPUT(1, 'AL8', 'you are ')
+   592                          showMyName
+   593          
+   594                          % AND WHICH MACHINE, when the server said. Without it the fact
+   595                          % would be invisible on a printing terminal - a feature you
+   596                          % cannot see is a feature you cannot test.
+   597                          IF lenMyMach > 0 THEN
+   598                              OUTPUT(1, 'AL', ' on ')
+   599                              FOR i IN 1:lenMyMach DO
+   600                                  myMachine(i - 1) =: oneChar(0)
+   601                                  OUTPUT(1, 'AL1', oneChar)
+   602                              ENDFOR
+   603                          ENDIF
+   604          
+   605                          OUTPUT(1, 'AL20', '  (/nick to change)$')
+   606                      ENDIF
+   607          
+   608                      % RETURN, LIKE EVERY OTHER CASE IN THIS CHAIN.
+   609                      %
+   610                      % This branch had no RETURN, so after printing the welcome it walked
+   611                      % on through every remaining test and fell into the printer at the
+   612                      % bottom - which printed the sender's name and the welcome's empty
+   613                      % text as
+   614                      %
+   615                      %     SYSTEM:
+   616                      %
+   617                      % That bare line was read as screen noise for two sittings, and the
+   618                      % kJoined/kLeft branches were added on the theory that it was an
+   619                      % arrival notice. It was not: it was THIS message, arriving once and
+   620                      % being printed twice.
+   621                      %
+   622                      % IT WAS THE "unknown message kind: 2" DIAGNOSTIC THAT EXPOSED IT, on
+   623                      % the first run after that diagnostic was added - kind 2 is kWelcome,
+   624                      % a kind which plainly HAS a case, and a handled kind reaching the
+   625                      % bottom of the chain can only mean the case did not stop. Making the
+   626                      % silent path loud paid for itself immediately.
+   627                      RETURN
+   628                  ENDIF
+   629          
+   630                  % ---- OUR OWN NAME CHANGES ONLY WHEN THE ROOM SAYS SO ---------------
+   631                  % A comment in handleCommand has promised this for as long as /nick has
+   632                  % existed - "our own name changes only when the room says so, with
+   633                  % kRenOk" - and nothing implemented it. The name in myName therefore
+   634                  % stayed at the old one after a successful rename, so the next thing
+   635                  % this client SENT went out under a name the room no longer knew.
+   636                  %
+   637                  % A Renamed carries the NEW name in the name field and the OLD one as
+   638                  % its text, which is exactly what is needed to tell whether it is about
+   639                  % us: compare the OLD name with what we currently believe we are called.
+   640                  % Everybody in the room gets every Renamed, so without that test this
+   641                  % client would take somebody else's new name for itself.
+   642                  %
+   643                  % This is also the ONLY place CHAT:CNFG is written. Saving when /nick is
+   644                  % SENT would remember a name the server may be about to refuse - it
+   645                  % refuses an empty one, and one already taken - so the save waits for
+   646                  % the room's confirmation. A refused rename changes nothing, on screen
+   647                  % or on disk.
+   648                  IF kind = kRenOk THEN
+   649                      IF textLength = lenMyName THEN
+   650                          TRUE =: sameAsOurs
+   651                          FOR i IN 1:textLength DO
+   652                              IF inBuf(textAt + i - 1) >< myName(i - 1) THEN
+   653                                  FALSE =: sameAsOurs
+   654                              ENDIF
+   655                          ENDFOR
+   656          
+   657                          IF sameAsOurs THEN
+   658                              % Bounded by the buffer, not by what arrived. A server that
+   659                              % sent a longer name than we can hold would otherwise write
+   660                              % past the end of myName - and the room's own limit and
+   661                              % this buffer are both sixteen, so a name that does not fit
+   662                              % here is one the room should never have accepted.
+   663                              nameLength =: newLen
+   664                              IF newLen > maxNameLen THEN
+   665                                  maxNameLen =: newLen
+   666                              ENDIF
+   667                              FOR i IN 1:newLen DO
+   668                                  inBuf(2 + i - 1) =: myName(i - 1)
+   669                              ENDFOR
+   670                              newLen =: lenMyName
+   671          
+   672                              writeCnfg
+   673                          ENDIF
+   674                      ENDIF
+   675          
+   676                      % RETURN, for the same reason kWelcome now does. This branch had none
+   677                      % either, so a rename would have printed nothing of its own and then
+   678                      % fallen through to the bottom of the chain to be rendered as speech.
+   679                      % Two of the seven cases were missing it; a check that every branch
+   680                      % ends in RETURN is worth running whenever a case is added.
+   681                      RETURN
+   682                  ENDIF
+   683          
+   684                  % A BYTE HANDED TO 'AL1' PRINTS AS A NUMBER, NOT A CHARACTER.
+   685                  %
+   686                  % MEASURED on D100 2026-08-18, the first run in which the join actually
+   687                  % completed: the welcome arrived, was received and released correctly,
+   688                  % and printed as
+   689                  %
+   690                  %     8279787889: 7269767679
+   691                  %
+   692                  % which is 82 79 78 78 89 = RONNY and 72 69 76 76 79 = HELLO, each byte
+   693                  % rendered as its decimal value. The message was perfect; only the
+   694                  % printing was wrong, and it looked alarming enough to be mistaken for
+   695                  % a decode fault.
+   696                  %
+   697                  % 'ALn' formats a STRING. inBuf(x) is a BYTE, so it takes the integer
+   698                  % path. Copying the byte into a one-character BYTES first gives 'AL1'
+   699                  % the string it is asking for. This uses nothing new - BYTES arrays,
+   700                  % assignment and OUTPUT with ALn on a BYTES all appear above and all
+   701                  % compile.
+   702                  % THE /who ANSWER IS NOT A LINE SOMEBODY SAID, so it does not get the
+   703                  % "$NAME: text" shape below. Its name field is empty on purpose - the
+   704                  % room is answering, not a member - and the generic printer would open
+   705                  % with a bare colon. Printed here and returned.
+   706                  IF kind = kWho THEN
+   707                      OUTPUT(1, 'AL10', '$CHAT: in ')
+   708                      showRoom
+   709                      OUTPUT(1, 'AL2', ': ')
+   710                      FOR i IN 1:textLength DO
+   711                          inBuf(textAt + i - 1) =: oneChar(0)
+   712                          OUTPUT(1, 'AL1', oneChar)
+   713                      ENDFOR
+   714                      OUTPUT(1, 'AL1', '$')
+   715                      RETURN
+   716                  ENDIF
+   717          
+   718                  % THE TOPIC. Its NAME field carries the ROOM, not a person - it is the
+   719                  % one message that is about a place - so it cannot use the speech
+   720                  % printer either, and it must not print the room as if somebody with
+   721                  % that name had spoken.
+   722                  %
+   723                  % An EMPTY text is not a blank topic, it is NO topic. Saying so in
+   724                  % words beats printing "topic:" followed by nothing, which reads like
+   725                  % something that failed to arrive.
+   726                  IF kind = kTopic THEN
+   727                      OUTPUT(1, 'AL13', '$CHAT: topic ')
+   728                      % 2, not a nameAt local - showArrived has no such variable and the
+   729                      % name field starts at index 2 in every message. Writing nameAt here
+   730                      % drew "2465 (1805)/SHOWARRIVE *** ERROR - ILLEGAL SYNTAX", which is
+   731                      % the compiler naming an undeclared identifier rather than a syntax
+   732                      % problem. Compare the kReject branch below, which has always used
+   733                      % inBuf(2 + i - 1).
+   734                      FOR i IN 1:nameLength DO
+   735                          inBuf(2 + i - 1) =: oneChar(0)
+   736                          OUTPUT(1, 'AL1', oneChar)
+   737                      ENDFOR
+   738                      IF textLength = 0 THEN
+   739                          OUTPUT(1, 'AL18', ' has no topic yet$')
+   740                          RETURN
+   741                      ENDIF
+   742                      OUTPUT(1, 'AL2', ': ')
+   743                      FOR i IN 1:textLength DO
+   744                          inBuf(textAt + i - 1) =: oneChar(0)
+   745                          OUTPUT(1, 'AL1', oneChar)
+   746                      ENDFOR
+   747                      OUTPUT(1, 'AL1', '$')
+   748                      RETURN
+   749                  ENDIF
+   750          
+   751                  % THE ROOM LIST. Empty name, like /who - the server is answering, not
+   752                  % a member. The text is already "LOBBY(2) GENERAL(1)".
+   753                  % /who WHEN YOU ARE IN NO ROOM - every room and the people in each.
+   754                  %
+   755                  % A SEPARATE KIND FROM kWho, and the branch above shows exactly why: it
+   756                  % prints "CHAT: in (LOBBY): ..." using the room THIS CLIENT thinks it is
+   757                  % in. Printing every room's people under that label would state
+   758                  % something false - the same defect /who itself had until it learned to
+   759                  % compare rooms. So this one carries no room label at all.
+   760                  %
+   761                  % NOTHING IS PARSED. The server sends it ready to read - rooms separated
+   762                  % by two spaces, people by one - and a format nobody parses cannot be
+   763                  % parsed wrongly.
+   764                  %
+   765                  % AN EMPTY TEXT IS A REAL ANSWER: nobody is anywhere. Said in words,
+   766                  % because a bare "CHAT: everyone " reads like something that failed to
+   767                  % arrive - the same reason kTopic spells out an absent topic.
+   768                  IF kind = kAllWho THEN
+   769                      IF textLength = 0 THEN
+   770                          OUTPUT(1, 'AL29', '$CHAT: nobody is in any room$')
+   771                          RETURN
+   772                      ENDIF
+   773                      OUTPUT(1, 'AL16', '$CHAT: everyone ')
+   774                      FOR i IN 1:textLength DO
+   775                          inBuf(textAt + i - 1) =: oneChar(0)
+   776                          OUTPUT(1, 'AL1', oneChar)
+   777                      ENDFOR
+   778                      OUTPUT(1, 'AL1', '$')
+   779                      RETURN
+   780                  ENDIF
+   781          
+   782                  % REPLAYED HISTORY, and it is MARKED so it cannot be mistaken for
+   783                  % somebody talking now.
+   784                  %
+   785                  % This is the whole reason the server sends a distinct kind instead of
+   786                  % replaying kSaid. Printed like speech but with a leading marker, so a
+   787                  % transcript reads:
+   788                  %
+   789                  %     | OLAV: what did you think of it
+   790                  %     | ANNA: not much
+   791                  %     OLAV joined
+   792                  %     ANNA: hello again
+   793                  %
+   794                  % - everything before the join visibly older than everything after.
+   795                  IF kind = kHist THEN
+   796                      OUTPUT(1, 'AL3', '$| ')
+   797                      FOR i IN 1:nameLength DO
+   798                          inBuf(2 + i - 1) =: oneChar(0)
+   799                          OUTPUT(1, 'AL1', oneChar)
+   800                      ENDFOR
+   801                      OUTPUT(1, 'AL2', ': ')
+   802                      FOR i IN 1:textLength DO
+   803                          inBuf(textAt + i - 1) =: oneChar(0)
+   804                          OUTPUT(1, 'AL1', oneChar)
+   805                      ENDFOR
+   806                      OUTPUT(1, 'AL1', '$')
+   807                      RETURN
+   808                  ENDIF
+   809          
+   810                  % /map's answer. Printed as it stands, like the rooms list and the
+   811                  % all-rooms /who: the server sends it ready to read and the client
+   812                  % parses nothing.
+   813                  IF kind = kMap THEN
+   814                      OUTPUT(1, 'AL11', '$CHAT: map ')
+   815                      FOR i IN 1:textLength DO
+   816                          inBuf(textAt + i - 1) =: oneChar(0)
+   817                          OUTPUT(1, 'AL1', oneChar)
+   818                      ENDFOR
+   819                      OUTPUT(1, 'AL1', '$')
+   820                      RETURN
+   821                  ENDIF
+   822          
+   823                  IF kind = kRooms THEN
+   824                      OUTPUT(1, 'AL13', '$CHAT: rooms ')
+   825                      FOR i IN 1:textLength DO
+   826                          inBuf(textAt + i - 1) =: oneChar(0)
+   827                          OUTPUT(1, 'AL1', oneChar)
+   828                      ENDFOR
+   829                      OUTPUT(1, 'AL1', '$')
+   830                      RETURN
+   831                  ENDIF
+   832          
+   833                  % A REFUSAL IS NOT SPEECH, AND MUST NOT BE PRINTED AS SPEECH.
+   834                  %
+   835                  % kReject carries the name that was REFUSED and the reason for it. There
+   836                  % was no case for it here, so it fell through to the "<name>: <text>"
+   837                  % printer below and came out as
+   838                  %
+   839                  %     OLAV: that nickname is taken
+   840                  %
+   841                  % which reads as OLAV saying those words in the room. He did not: the
+   842                  % server said them ABOUT him. The name belongs where it is the SUBJECT,
+   843                  % not in the slot reserved for whoever spoke, and the message has to say
+   844                  % what to do next - a refusal the user cannot act on is just a wall.
+   845                  IF kind = kReject THEN
+   846                      % TWO REFUSALS ARRIVE HERE AND THEY MEAN DIFFERENT THINGS.
+   847                      %
+   848                      % If the user has NOT chosen a name this session, we joined under the
+   849                      % name SINTRAN gave us - so "taken" means the SAME SINTRAN USER is
+   850                      % already in the room from ANOTHER TERMINAL. That is worth saying in
+   851                      % those words, because "that nickname is taken" sends someone hunting
+   852                      % for a stranger who has stolen their name, when in fact it is their
+   853                      % own second window.
+   854                      %
+   855                      % DECIDED 2026-08-22: refuse the second instance and say so plainly.
+   856                      % Not auto-suffixed to SYSTEM-2, and not two sessions sharing one
+   857                      % identity - both of those make identity per-INSTANCE, which the
+   858                      % trunk would then have to keep distinct across machines.
+   859                      %
+   860                      % The user is NOT thrown out: /nick still works, so a second window
+   861                      % can join under a name of its own if that is what was wanted.
+   862                      IF NOT userChoseNick THEN
+   863                          OUTPUT(1, 'AL1', '$')
+   864                          FOR i IN 1:nameLength DO
+   865                              inBuf(2 + i - 1) =: oneChar(0)
+   866                              OUTPUT(1, 'AL1', oneChar)
+   867                          ENDFOR
+   868                          OUTPUT(1, 'AL37', ' is already in the room from another$')
+   869                          OUTPUT(1, 'AL39', 'terminal - use /nick <name> to join as$')
+   870                          OUTPUT(1, 'AL14', 'somebody else$')
+   871                          RETURN
+   872                      ENDIF
+   873          
+   874                      OUTPUT(1, 'AL1', '$')
+   875                      OUTPUT(1, 'AL15', 'cannot join as ')
+   876                      FOR i IN 1:nameLength DO
+   877                          inBuf(2 + i - 1) =: oneChar(0)
+   878                          OUTPUT(1, 'AL1', oneChar)
+   879                      ENDFOR
+   880                      OUTPUT(1, 'AL3', ' - ')
+   881                      FOR i IN 1:textLength DO
+   882                          inBuf(textAt + i - 1) =: oneChar(0)
+   883                          OUTPUT(1, 'AL1', oneChar)
+   884                      ENDFOR
+   885                      OUTPUT(1, 'AL1', '$')
+   886                      OUTPUT(1, 'AL33', 'use /nick <name> to pick another$')
+   887                      RETURN
+   888                  ENDIF
+   889          
+   890                  % ---- ARRIVALS AND DEPARTURES ARE EVENTS, NOT SPEECH -------------------
+   891                  %
+   892                  % These two had NO case at all and fell through to the "<name>: <text>"
+   893                  % printer below, exactly as kReject once did. A join carries no text, so
+   894                  % it came out as a bare
+   895                  %
+   896                  %     SYSTEM:
+   897                  %
+   898                  % which reads as somebody typing a colon and nothing else - screen noise
+   899                  % rather than a bug, which is why it sat there unnoticed. It was seen on
+   900                  % 2026-08-22 straight after a /nick and dismissed twice before the
+   901                  % dispatch chain was actually read.
+   902                  %
+   903                  % THE NAME IS THE SUBJECT HERE, not the speaker, so it goes in front of a
+   904                  % verb and never in front of a colon.
+   905                  IF kind = kJoined THEN
+   906                      OUTPUT(1, 'AL1', '$')
+   907                      FOR i IN 1:nameLength DO
+   908                          inBuf(2 + i - 1) =: oneChar(0)
+   909                          OUTPUT(1, 'AL1', oneChar)
+   910                      ENDFOR
+   911                      OUTPUT(1, 'AL8', ' joined$')
+   912                      RETURN
+   913                  ENDIF
+   914          
+   915                  IF kind = kLeft THEN
+   916                      OUTPUT(1, 'AL1', '$')
+   917                      FOR i IN 1:nameLength DO
+   918                          inBuf(2 + i - 1) =: oneChar(0)
+   919                          OUTPUT(1, 'AL1', oneChar)
+   920                      ENDFOR
+   921                      OUTPUT(1, 'AL6', ' left$')
+   922                      RETURN
+   923                  ENDIF
+   924          
+   925                  % ---- SPEECH, AND ONLY SPEECH ------------------------------------------
+   926                  %
+   927                  % THE TEST IS EXPLICIT NOW, and that is the whole point. This used to be a
+   928                  % bare fall-through that printed WHATEVER was left as "<name>: <text>", so
+   929                  % every kind nobody had written a case for arrived here and was rendered
+   930                  % as a person talking. Three separate bugs came out of that one habit:
+   931                  % kReject as "OLAV: that nickname is taken", kJoined as a bare "SYSTEM:",
+   932                  % and - the same blindness one layer up - writeCnfg hung off kRenOk
+   933                  % while the server answers kWelcome, so /nick was confirmed and never
+   934                  % saved.
+   935                  %
+   936                  % A KIND NOBODY HANDLES MUST BE LOUD. It produces no error from the
+   937                  % compiler and none at run time, so the only way it ever gets noticed is
+   938                  % if the program says so itself. tools/planc-lint.py now flags a kind that
+   939                  % is declared and never used again, which would have caught all three
+   940                  % before they reached the machine.
+   941                  % A DIRECT MESSAGE, ADDRESSED TO ME PERSONALLY.
+   942                  %
+   943                  % MARKED SO IT CANNOT BE MISTAKEN FOR ROOM TRAFFIC, and that is not
+   944                  % decoration: a reply typed as an ordinary line would go to the whole
+   945                  % room, which is a privacy failure caused entirely by the display.
+   946                  % The stars say it was private, and the name is printed QUALIFIED -
+   947                  % D102!KARI - because that is exactly what has to be typed back.
+   948                  IF kind = kDirGot THEN
+   949                      OUTPUT(1, 'AL1', '$')
+   950                      OUTPUT(1, 'AL2', '*(')
+   951                      FOR i IN 1:nameLength DO
+   952                          inBuf(2 + i - 1) =: oneChar(0)
+   953                          OUTPUT(1, 'AL1', oneChar)
+   954                      ENDFOR
+   955                      OUTPUT(1, 'AL2', ') ')
+   956                      FOR i IN 1:textLength DO
+   957                          inBuf(textAt + i - 1) =: oneChar(0)
+   958                          OUTPUT(1, 'AL1', oneChar)
+   959                      ENDFOR
+   960                      OUTPUT(1, 'AL1', '$')
+   961                      RETURN
+   962                  ENDIF
+   963          
+   964                  % DELIVERED, AND HERE IS WHO TO.
+   965                  %
+   966                  % Shown on EVERY direct message and not only the ambiguous ones. The
+   967                  % server refuses an ambiguous name outright, which protects you when
+   968                  % the collision is visible; this protects you when it is not - a second
+   969                  % RONNY who logged in a moment ago, a machine that just went down. One
+   970                  % line is a cheap price for a wrong delivery being visible at once
+   971                  % rather than days later.
+   972                  IF kind = kDirSent THEN
+   973                      OUTPUT(1, 'AL1', '$')
+   974                      OUTPUT(1, 'AL', 'sent to: ')
+   975                      FOR i IN 1:nameLength DO
+   976                          inBuf(2 + i - 1) =: oneChar(0)
+   977                          OUTPUT(1, 'AL1', oneChar)
+   978                      ENDFOR
+   979                      OUTPUT(1, 'AL1', '$')
+   980                      RETURN
+   981                  ENDIF
+   982          
+   983                  % NOT DELIVERED, AND HERE IS WHY.
+   984                  %
+   985                  % The reason is printed as it arrived. For a name that means more than
+   986                  % one person it is the CANDIDATE LIST, which is what makes the refusal
+   987                  % usable: the sender retypes one of them straight off the screen.
+   988                  IF kind = kDirBad THEN
+   989                      OUTPUT(1, 'AL1', '$')
+   990                      OUTPUT(1, 'AL', 'not sent to ')
+   991                      FOR i IN 1:nameLength DO
+   992                          inBuf(2 + i - 1) =: oneChar(0)
+   993                          OUTPUT(1, 'AL1', oneChar)
+   994                      ENDFOR
+   995                      OUTPUT(1, 'AL2', ': ')
+   996                      FOR i IN 1:textLength DO
+   997                          inBuf(textAt + i - 1) =: oneChar(0)
+   998                          OUTPUT(1, 'AL1', oneChar)
+   999                      ENDFOR
+  1000                      OUTPUT(1, 'AL1', '$')
+  1001                      RETURN
+  1002                  ENDIF
+  1003          
+  1004                  IF kind = kSaid THEN
+  1005                      OUTPUT(1, 'AL1', '$')
+  1006                      FOR i IN 1:nameLength DO
+  1007                          inBuf(2 + i - 1) =: oneChar(0)
+  1008                          OUTPUT(1, 'AL1', oneChar)
+  1009                      ENDFOR
+  1010                      OUTPUT(1, 'AL2', ': ')
+  1011                      FOR i IN 1:textLength DO
+  1012                          inBuf(textAt + i - 1) =: oneChar(0)
+  1013                          OUTPUT(1, 'AL1', oneChar)
+  1014                      ENDFOR
+  1015                      OUTPUT(1, 'AL1', '$')
+  1016                      RETURN
+  1017                  ENDIF
+  1018          
+  1019                  OUTPUT(1, 'AL1', '$')
+  1020                  OUTPUT(1, 'AL23', 'unknown message kind: $')
+  1021                  OUTPUT(1, 'I6', kind)
+  1022                  OUTPUT(1, 'AL1', '$')
+  1023          
+  1024                  % AND THE FIRST BYTES, BECAUSE THE NUMBER ALONE CANNOT SETTLE IT.
+  1025                  %
+  1026                  % MEASURED 2026-08-22: kind 123 arrives on EVERY start-up, and the
+  1027                  % welcome line that should be there is MISSING - so 123 IS the welcome,
+  1028                  % mis-read, not an extra message. The same welcome parses correctly when
+  1029                  % it arrives LATER (on the /nick path), and both paths call the same
+  1030                  % drainPort. So the difference is ordinal: the FIRST message on the port
+  1031                  % is read differently from every one after it.
+  1032                  %
+  1033                  % 123 is 0x7B, '{' - a printable character sitting where a kind belongs,
+  1034                  % which is what a BODY byte looks like when every field has been shifted
+  1035                  % by an unskipped header. CHATSV carries a comment about exactly this
+  1036                  % class of fault on the SERVER side ("serial number instead of kJoin,
+  1037                  % which is how the missing header skip..."), so this may be its twin.
+  1038                  %
+  1039                  % These six bytes decide it. If they read as text or as the tail of a
+  1040                  % letter header, the shift is confirmed and the fix is a header skip on
+  1041                  % the first receive. If they look like a sane message that simply has an
+  1042                  % unexpected kind, the answer is somewhere else entirely.
+  1043                  %
+  1044                  % TEMPORARY. Delete once the question is answered - a dump nobody can
+  1045                  % turn off is noise, which is the mistake the status line already made.
+  1046                  OUTPUT(1, 'AL12', 'first six: $')
+  1047                  FOR i IN 0:5 DO
+  1048                      OUTPUT(1, 'I5', inBuf(i))
+  1049                  ENDFOR
+  1050                  OUTPUT(1, 'AL1', '$')
+  1051              ENDROUTINE
+  1052          
+  1053          ENDMODULE
+  1054          

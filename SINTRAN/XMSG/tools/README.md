@@ -5,6 +5,7 @@ Scripts for driving a running SINTRAN machine headless over its RetroCore termin
 | Script | What it does |
 | --- | --- |
 | `lab-status.ps1` | **Start here.** Read-only snapshot of the whole lab: which machines are up, how each HDLC line is wired right now, whether our relay is running, and which .NET hosts are ours versus another repo's. |
+| `start-relay.ps1` | **Starts the sync daemon - and refuses to start a second one.** One daemon is enough; two on node 19999 make every push time out and look like a dead file server. Always writes `sync-relay.log`, archiving the previous run beside it, so the 19 hand-numbered `sync-relay*.log` files never happen again. |
 | `ndterm.ps1` | Drives one SINTRAN terminal session: ESC, login, commands one prompt at a time, logout. |
 | `run-all-tests.ps1` | Builds and runs every test project. **A project that produces no result counts as a FAILURE**, not a skip - see the note below. |
 | `restart-xmsg-cosmos.ps1` | Restarts XMSG and COSMOS and puts the machine back on the Ethernet segment. |
@@ -286,8 +287,8 @@ Server 1 started.     No of FACs attached: 30
 Rules the hard way:
 
 - **ESC first.** A fresh connection shows only the RetroCore banner; ESC produces the SINTRAN
-  banner and the `ENTER` prompt. ESC also recovers a wedged line.
-- **One connection per interaction.** Reconnecting while a program is running wedges the terminal.
+  banner and the `ENTER` prompt. ESC also recovers a hung line.
+- **One connection per interaction.** Reconnecting while a program is running hangs the terminal.
 - **Commands prompt field by field.** Send the command, then answer each prompt - do not pass
   comma-separated arguments at the `@` prompt. A blank step sends a bare CR, which accepts a
   default (`OUTPUT FILE:` -> terminal).

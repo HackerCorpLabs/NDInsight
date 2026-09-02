@@ -36,16 +36,55 @@
 % exported here is six or seven long and distinct within that. cmEnc, cmKind,
 % cmNmLen, cmTxAt, cmTxLen.
 % =========================================================================
+% AN ADDRESS ON THIS MACHINE IS 16 BITS. THAT IS THE WHOLE STORY HERE.
+%
+% ADDR(buf(0)) FORCE INTEGER4 draws
+%     *** WARNING - ILLEGAL DATA-ELEMENT TO BE CONVERTED
+% and so does forcing to any 32-bit alias of INTEGER4. The reason is a width
+% mismatch, not the name: the product's own working calls force to
+% XMUSERADDRESS, and XMP-B02:IMPT declares
+%
+%     TYPE XMUSERADDRESS = INTEGER          % NB: NEW MC68000 compiler!!
+%
+% INTEGER - SIXTEEN BITS. The line above it in that file reads
+%
+%     %        modify XMUSERADDRESS = INTEGER4                      %
+%
+% which is a COMMENT telling you to widen it FOR THE MC68000. Reading that
+% commented instruction as the declaration is what produced a 32-bit force, a
+% warning on every ADDR line, and two meaningless numbers that reproduced
+% perfectly across builds because the adjacent word was stable.
+%
+% This library deliberately does not include XMP-B02:DEFS, because it links into
+% the test program which has no XMSG at all, so it declares its own of the same
+% width. TYPE outside a MODULE is a compiler-level thing, globally available and
+% not linked (manual 8.7 p.223), so it costs the test build nothing.
+TYPE xrAddr = INTEGER
 MODULE chatlib
 
     EXPORT cmEnc
     EXPORT cmEncAt
+    EXPORT cmEncTo
+    EXPORT trHLen
+    EXPORT trOrig
+    EXPORT trHops
+    EXPORT trId
+    EXPORT trStrip
+    EXPORT xrClamp
+    EXPORT xrAddrOf
+    EXPORT trEnc
     EXPORT cmKind
     EXPORT cmNmLen
     EXPORT cmTxAt
     EXPORT cmTxLen
     EXPORT cmLenN
     EXPORT cmSane
+    EXPORT hsSec
+    EXPORT hsMin
+    EXPORT hsHour
+    EXPORT hsDay
+    EXPORT hsMon
+    EXPORT hsYear
 
     % ---- THE MESSAGE KINDS ----------------------------------------------
     %
@@ -86,6 +125,32 @@ MODULE chatlib
     EXPORT kDirSent
     EXPORT kDirBad
 
+    % THE TRUNK KINDS ARE EXPORTED HERE, WITH THE REST, AND NOT BESIDE THEIR
+    % OWN DECLARATIONS FURTHER DOWN - WHERE THEY READ BETTER AND DO NOT WORK.
+    %
+    % EXPORT obeys the same rule as IMPORT: it belongs in the block BEFORE any
+    % ordinary declaration. Ten of them sat under their own comment after the
+    % client kinds were declared, and every one drew
+    %
+    %     131  *** ERROR   - MISPLACED STATEMENT "EXPORT"
+    %
+    % MEASURED 2026-08-27, and the reason it survived a whole build cycle is
+    % worth more than the fix: the linker reported NO undefined entries, the
+    % test program ran, and all 139 checks PASSED - including the ones that
+    % read kTrkRly back as 52. A compile with ten errors linked and ran and
+    % said 'codec is good'. Only the LISTING said otherwise.
+    EXPORT kTrkHello
+    EXPORT kTrkWho
+    EXPORT kTrkMbrs
+    EXPORT kTrkSaid
+    EXPORT kTrkRly
+    EXPORT kTrkRlId
+    EXPORT kTrkDir
+    EXPORT kTrkDBad
+    EXPORT trkAsk
+    EXPORT trkAnswer
+    EXPORT maxHops
+
     INTEGER : kJoin     := 1     % a client asking to come in
     INTEGER : kWelcome  := 2     % you are in, and this is your name
     INTEGER : kReject   := 3     % you are not, and this is why
@@ -107,24 +172,121 @@ MODULE chatlib
     INTEGER : kDirSent  := 19    % it reached them
     INTEGER : kDirBad   := 20    % it did not, and this is why
 
-    % ---- ENCODE ---------------------------------------------------------
+    % ---- THE TRUNK KINDS, SERVER TO SERVER ------------------------------
     %
-    % Answers the total length written into buf.
+    % 48 and up, left clear of the admin block so a future admin verb cannot
+    % collide with a trunk one. Only the SERVER speaks these - a client never
+    % sees one - so they live here for the FORMAT's sake rather than to remove
+    % a duplicate declaration: the relay header below is the most intricate
+    % framing in the product and it had no test of any kind.
     %
-    % THE THREE ARRAYS MUST BE THREE DIFFERENT ARRAYS. Passing two subarrays
-    % of ONE array to a single routine corrupts both, compiles clean and has
-    % cost this project a day - so buf, name and text are separate by
-    % contract. A caller that wants to encode out of one buffer must copy
-    % first.
+    % TWO NAMES CHANGED, and it is the seven-character rule again: kTrkRelay and
+    % kTrkRelId BOTH read KTRKREL across a BRF boundary, so exporting both would
+    % silently resolve every import to whichever the linker met first. They are
+    % kTrkRly and kTrkRlId here - KTRKRLY and KTRKRLI, distinct. THE WIRE
+    % NUMBERS, 52 AND 53, ARE UNCHANGED.
+
+    % ONE KIND, BOTH DIRECTIONS, and the TEXT'S FIRST BYTE says which way: 0 is
+    % "I am here, are you?" and 1 is "I am here, and I am answering you".
+    % Without that byte two servers answering each other's HELLO would say hello
+    % for ever. An ANSWER is never answered.
+    INTEGER : kTrkHello := 48
+    INTEGER : trkAsk    := 0
+    INTEGER : trkAnswer := 1
+
+    % "Tell me who is on you" and the answer. TWO kinds, unlike the hello: the
+    % ask is empty and the answer is a list, so one kind would force a receiver
+    % to judge by length.
+    INTEGER : kTrkWho   := 49
+    INTEGER : kTrkMbrs  := 50
+
+    % Somebody spoke on another machine. NAME = the speaker as their own machine
+    % knows them; TEXT = "ROOM/what they said". The RECEIVER adds the "@Dnnn",
+    % because only it knows which system the letter came from - taken from the
+    % magic, not from anything the sender claimed. A speaker cannot forge the
+    % machine they are on. NOT relayed onward: that is kTrkRly.
+    INTEGER : kTrkSaid  := 51
+
+    % A line being RELAYED onward: kTrkSaid with THREE bytes in front - the
+    % origin system big-endian, then how many hops it may still take.
+    INTEGER : kTrkRly   := 52
+
+    % A relayed line that also carries the number its ORIGIN gave it: two more
+    % bytes after the hop count. THE ID MUST COME FROM THE ORIGIN - a machine
+    % with two peers sends one line to both, and if each relay stamped its own
+    % number a machine further out would see two names for one line and show it
+    % twice, which is the very thing it exists to stop.
+    INTEGER : kTrkRlId  := 53
+
+    % A private message crossing a trunk. SAME six-byte header as kTrkRlId; what
+    % differs is only what the text holds - TARGET/message rather than
+    % ROOM/message.
+    INTEGER : kTrkDir   := 54
+
+    % A private message that could NOT be delivered at the far end, travelling
+    % BACK to the machine the sender is on. SAME six-byte header again, but read
+    % it the other way round: the origin is where the SENDER sits, which is what
+    % routes this home, and the lineId is the one the FAILED message carried, so
+    % the sender's own server can say which message it was.
     %
-    % CLAMPED against the caller's own buffer size, because PLANC checks no
-    % array bound and a length that arrived from a wire is not to be trusted.
-    ROUTINE VOID, INTEGER (BYTES, INTEGER, BYTES, INTEGER, BYTES, INTEGER, &
-            INTEGER) : cmEnc(buf, kind, name, nameLen, text, textLen, bufMax)
+    % The text is TARGET/reason - the same shape kDirBad already uses locally,
+    % which is the whole point: the receiving server hands it to the code it
+    % already has and no client changes at all.
+    %
+    % Named kTrkDBad and not kTrkDirBad. Names collide at SEVEN characters across
+    % a BRF, where kTrkDirBad would read KTRKDIR and be folded into kTrkDir by a
+    % linker that does not call it a duplicate - it just resolves every import to
+    % whichever it met first. kTrkDBa is clear of every other exported name.
+    INTEGER : kTrkDBad  := 55
+
+    % How far a line may travel from the machine it was typed on. The count is
+    % what makes a loop terminate, not the topology.
+    INTEGER : maxHops   := 3
+
+    % The relay header's own routines are further down, AFTER the chat-frame
+    % encoders they build on. PLANC is single-pass: a routine used above its
+    % declaration draws ILLEGAL SYNTAX at the CALL, which reads like a
+    % punctuation problem and sends you to the wrong line entirely.
+
+    % ---- ENCODE, THE ONE THAT DOES THE WORK -----------------------------
+    %
+    % Writes a chat frame into buf STARTING AT dstAt, reading its text from src
+    % starting at srcAt. Answers the position just past what it wrote.
+    %
+    % WHY A DESTINATION OFFSET EXISTS. A relayed line is a chat frame with a
+    % relay header in front of it, so something has to write a frame that does
+    % not start at zero. The obvious way is to hand the encoder a subarray -
+    % cmEncAt(buf(hlen : bufMax - 1), ...) - and THAT IS THE ONE FORM THIS
+    % PROJECT KNOWS IS BROKEN: a subarray with both bounds computed compiled
+    % clean, ran, and wrote NOTHING AT ALL. An offset costs one addition and
+    % cannot fail that way.
+    %
+    % cmEnc and cmEncAt are both this routine with the offsets fixed, so there
+    % is exactly ONE piece of code that knows the frame layout.
+    %
+    % buf, name and src must be THREE DIFFERENT ARRAYS. Passing two subarrays of
+    % one array to a single routine corrupts both, compiles clean, and has cost
+    % this project a day.
+    %
+    % bufMax is the size of the WHOLE buffer, not what is left after dstAt.
+    ROUTINE VOID, INTEGER (BYTES, INTEGER, BYTES, INTEGER, BYTES, &
+            INTEGER, INTEGER, INTEGER) : &
+            cmBody(buf, dstAt, name, nameLen, src, srcAt, srcLen, bufMax)
         INTEGER : i
         INTEGER : at
         INTEGER : nl
         INTEGER : tl
+        INTEGER : room
+
+        % What is actually available from dstAt onwards. Everything below is
+        % clamped against THIS, not against bufMax, or an offset frame would be
+        % allowed to run off the end by exactly dstAt bytes.
+        %
+        % THREE, not four: the kind byte is NOT part of the body.
+        bufMax - dstAt =: room
+        IF room < 3 THEN
+            dstAt RETURN
+        ENDIF
 
         nameLen =: nl
         IF nl < 0 THEN
@@ -134,130 +296,33 @@ MODULE chatlib
             255 =: nl
         ENDIF
 
-        % THE NAME MUST FIT THE BUFFER TOO, and for a long time it did not.
-        %
-        % The clamp below reduced only the TEXT. With a 255-byte name and a
-        % 256-byte buffer the text clamped to nothing, and then the name loop
-        % wrote buf(2)..buf(256) and the two length bytes landed at buf(257)
-        % and buf(258) - THREE BYTES PAST THE END of a 256-byte array, in
-        % silence, because PLANC checks no array bound.
-        %
-        % It was never reachable from the wire: the client sends its own
-        % nickname and the server drops any join with a name longer than 16.
-        % But that made the safety a property of the CALLERS, and a library
-        % whose guarantee lives in its callers is not providing one. It is
-        % enforced here now, so no future caller can reintroduce it.
-        %
-        % A name needs room for the 2-byte header and the 2-byte text length,
-        % so the most that can ever fit is bufMax - 4.
-        IF nl > bufMax - 4 THEN
-            bufMax - 4 =: nl
-            IF nl < 0 THEN
-                0 =: nl
-            ENDIF
-        ENDIF
-
-        textLen =: tl
-        IF tl < 0 THEN
-            0 =: tl
-        ENDIF
-
-        % Everything must fit: 2 for kind and name length, the name, 2 for the
-        % text length, then the text.
-        IF 4 + nl + tl > bufMax THEN
-            bufMax - 4 - nl =: tl
-            IF tl < 0 THEN
-                0 =: tl
-            ENDIF
-        ENDIF
-
-        kind =: buf(0)
-        nl =: buf(1)
-        2 =: at
-
-        % SUBSCRIPT FROM ZERO. A PLANC string literal starts at index 0, and
-        % writing name(i) inside a 1:n loop skips the first character and reads
-        % one byte past the end. That is exactly how a nickname went out as
-        % ONNY instead of RONNY, with nothing reporting it.
-        IF nl > 0 THEN
-            FOR i IN 1:nl DO
-                name(i - 1) =: buf(at)
-                at + 1 =: at
-            ENDFOR
-        ENDIF
-
-        tl / 256 =: buf(at)
-        tl MOD 256 =: buf(at + 1)
-        at + 2 =: at
-
-        IF tl > 0 THEN
-            FOR i IN 1:tl DO
-                text(i - 1) =: buf(at)
-                at + 1 =: at
-            ENDFOR
-        ENDIF
-
-        at RETURN
-    ENDROUTINE
-
-    % ---- ENCODE, WITH THE TEXT AT AN OFFSET -----------------------------
-    %
-    % The same message, but the text is read from `src` starting at `srcAt`
-    % rather than from the beginning of an array.
-    %
-    % WHY THIS EXISTS RATHER THAN A SUBARRAY. The server's text sits inside its
-    % receive buffer at an offset, so the obvious call would be
-    % cmEnc(..., inBuf(textAt : textAt + textLength - 1), ...). That is a
-    % subarray with BOTH bounds computed, and this project has one measured
-    % case of exactly that form compiling clean, running, and WRITING NOTHING
-    % AT ALL - see the note on drawBar in CHAT.PLNC. Until that is understood,
-    % the form is avoided rather than trusted.
-    %
-    % The alternative was copying the text into a flat buffer first, which is
-    % more work per message and more code than the hand-written encoder it
-    % would replace. An offset costs nothing.
-    %
-    % src, name and buf must still be THREE DIFFERENT ARRAYS.
-    ROUTINE VOID, INTEGER (BYTES, INTEGER, BYTES, INTEGER, BYTES, INTEGER, &
-            INTEGER, INTEGER) : &
-            cmEncAt(buf, kind, name, nameLen, src, srcAt, srcLen, bufMax)
-        INTEGER : i
-        INTEGER : at
-        INTEGER : nl
-        INTEGER : tl
-
-        nameLen =: nl
-        IF nl < 0 THEN
-            0 =: nl
-        ENDIF
-        IF nl > 255 THEN
-            255 =: nl
-        ENDIF
-
-        % SAME CLAMP AS cmEnc, and it was missing here for the same reason.
-        % See the long note there.
-        IF nl > bufMax - 4 THEN
-            bufMax - 4 =: nl
-            IF nl < 0 THEN
-                0 =: nl
-            ENDIF
+        % THE NAME MUST FIT TOO, and for a long time it did not - the clamp
+        % below reduced only the TEXT, so a 255-byte name wrote past the end
+        % while the text clamped to nothing. A name needs room for its own
+        % length byte and the 2-byte text length, so the most that fits is
+        % room - 3.
+        IF nl > room - 3 THEN
+            room - 3 =: nl
         ENDIF
 
         srcLen =: tl
         IF tl < 0 THEN
             0 =: tl
         ENDIF
-        IF 4 + nl + tl > bufMax THEN
-            bufMax - 4 - nl =: tl
+        IF 3 + nl + tl > room THEN
+            room - 3 - nl =: tl
             IF tl < 0 THEN
                 0 =: tl
             ENDIF
         ENDIF
 
-        kind =: buf(0)
-        nl =: buf(1)
-        2 =: at
+        nl =: buf(dstAt)
+        dstAt + 1 =: at
 
+        % SUBSCRIPT FROM ZERO. A PLANC string literal starts at index 0, and
+        % writing name(i) inside a 1:n loop skips the first character and reads
+        % one byte past the end - which is how a nickname went out as ONNY
+        % instead of RONNY, with nothing reporting it.
         IF nl > 0 THEN
             FOR i IN 1:nl DO
                 name(i - 1) =: buf(at)
@@ -269,8 +334,6 @@ MODULE chatlib
         tl MOD 256 =: buf(at + 1)
         at + 2 =: at
 
-        % THE ONLY DIFFERENCE FROM cmEnc: the text is read from srcAt, and the
-        % source subscripts from srcAt + i - 1 rather than from i - 1.
         IF tl > 0 THEN
             FOR i IN 1:tl DO
                 src(srcAt + i - 1) =: buf(at)
@@ -279,6 +342,273 @@ MODULE chatlib
         ENDIF
 
         at RETURN
+    ENDROUTINE
+
+    % ---- A WHOLE FRAME: the kind byte, then the body --------------------
+    %
+    % Answers the position just past what it wrote.
+    %
+    % THE SPLIT BETWEEN THIS AND cmBody IS THE WIRE FORMAT, not tidiness. An
+    % ordinary message is kind + body. A RELAYED one is kind + relay header +
+    % body - THE KIND IS NOT REPEATED in front of the body, which is exactly
+    % what the server's own kind-53 builder has always done:
+    %
+    %     kTrkRelId =: outBuf(0)          the kind
+    %     ...origin, hops, id...          bytes 1..5
+    %     memberLen(slot) =: outBuf(6)    the NAME LENGTH - no second kind byte
+    %
+    % MEASURED 2026-08-27: writing a whole frame after the relay header put a
+    % kind byte where the name length belongs, and trStrip then answered 53 as
+    % the name length. Four tests caught it in thirty seconds, which is the
+    % entire argument for this file existing.
+    ROUTINE VOID, INTEGER (BYTES, INTEGER, INTEGER, BYTES, INTEGER, BYTES, &
+            INTEGER, INTEGER, INTEGER) : &
+            cmEncTo(buf, dstAt, kind, name, nameLen, src, srcAt, srcLen, bufMax)
+        IF bufMax - dstAt < 4 THEN
+            dstAt RETURN
+        ENDIF
+        kind =: buf(dstAt)
+        cmBody(buf, dstAt + 1, name, nameLen, src, srcAt, srcLen, bufMax) RETURN
+    ENDROUTINE
+
+    % ---- THE RELAY HEADER -----------------------------------------------
+    %
+    % Three shapes share one buffer, and telling them apart is the whole job:
+    %
+    %   any other kind     0 kind | 1 nameLen | 2.. name | len | text
+    %   kTrkRly    (52)    0 kind | 1-2 origin | 3 hops              | BODY
+    %   kTrkRlId   (53)    0 kind | 1-2 origin | 3 hops | 4-5 lineId | BODY
+    %   kTrkDir    (54)    the same six as kTrkRlId
+    %   kTrkDBad   (55)    the same six again - a refusal traveling home
+    %
+    % BODY is nameLen | name | text length | text - the frame WITHOUT its kind
+    % byte, because the kind is already at byte 0 and is not repeated.
+    %
+    % The origin is BIG-ENDIAN, high byte first, like every other two-byte field
+    % in this protocol.
+    %
+    % THIS WAS PARSED BY HAND IN TWO PLACES with the length tests written out
+    % twice, and it is the most intricate framing the product has. A truncated
+    % relay header read as a chat frame produces a PLAUSIBLE-LOOKING message out
+    % of rubbish - the origin's high byte lands where the name length belongs -
+    % which is why the tests below matter more than the ones on the chat frame.
+
+    % How many bytes of relay header this kind carries. 0 for anything that is
+    % not a relayed line, so a caller can ask about ANY kind and act on the
+    % answer without a special case.
+    % A HISTORY LINE IS NOT A RELAY, AND IT STILL HAS A HEADER. The seven
+    % bytes are the ND calendar - see hsSec and friends below - and they sit
+    % exactly where a relay header sits, so trStrip removes them with no new
+    % code and the frame underneath is an ordinary chat message again.
+    %
+    % THE TWO CAN NEVER BOTH BE PRESENT. History is local to one machine and
+    % deliberately does not cross a trunk, so no kind needs both headers and
+    % this routine never has to add them together.
+    ROUTINE VOID, INTEGER (INTEGER) : trHLen(kind)
+        IF kind = kHist THEN
+            8 RETURN
+        ENDIF
+        IF kind = kTrkRly THEN
+            4 RETURN
+        ENDIF
+        IF kind = kTrkRlId THEN
+            6 RETURN
+        ENDIF
+        IF kind = kTrkDir THEN
+            6 RETURN
+        ENDIF
+        IF kind = kTrkDBad THEN
+            6 RETURN
+        ENDIF
+        0 RETURN
+    ENDROUTINE
+
+    % The machine the line was TYPED on - not the one that passed it along.
+    ROUTINE VOID, INTEGER (BYTES) : trOrig(buf)
+        buf(1) * 256 + buf(2) RETURN
+    ENDROUTINE
+
+    % How many more hops this line may take.
+    ROUTINE VOID, INTEGER (BYTES) : trHops(buf)
+        buf(3) RETURN
+    ENDROUTINE
+
+    % The number the ORIGIN gave this line. Only on kinds 53 and 54.
+    %
+    % A peer that sent a high byte over 127 overflows a signed 16-bit INTEGER
+    % and lands here NEGATIVE. Ugly and harmless: this number is only ever
+    % compared for equality, never used as a size or an index, so a negative one
+    % still names the line perfectly well.
+    ROUTINE VOID, INTEGER (BYTES) : trId(buf)
+        buf(4) * 256 + buf(5) RETURN
+    ENDROUTINE
+
+    % ---- WHEN A REPLAYED LINE WAS SAID -----------------------------------
+    %
+    % Only on kHist, and only in the seven bytes trHLen accounts for. Read
+    % them BEFORE trStrip, exactly like the relay fields: afterwards they are
+    % gone and buf(1) is the name length again.
+    %
+    % THE ND'S OWN CALENDAR, kept as the machine gives it - no epoch, no text.
+    % Second first and the year last, big-endian like every other two-byte
+    % field here, which is also the order MN113 fills its array.
+    %
+    % A YEAR OF ZERO MEANS THE TIME WAS NEVER RECORDED - the line came out of
+    % a history block written before there was anywhere to put one. Say so on
+    % the screen; do not invent a moment. The year is the test and not the
+    % whole value, because midnight exactly is a real time and must not read
+    % as unknown.
+    ROUTINE VOID, INTEGER (BYTES) : hsSec(buf)
+        buf(1) RETURN
+    ENDROUTINE
+
+    ROUTINE VOID, INTEGER (BYTES) : hsMin(buf)
+        buf(2) RETURN
+    ENDROUTINE
+
+    ROUTINE VOID, INTEGER (BYTES) : hsHour(buf)
+        buf(3) RETURN
+    ENDROUTINE
+
+    ROUTINE VOID, INTEGER (BYTES) : hsDay(buf)
+        buf(4) RETURN
+    ENDROUTINE
+
+    ROUTINE VOID, INTEGER (BYTES) : hsMon(buf)
+        buf(5) RETURN
+    ENDROUTINE
+
+    % The FULL year - 1998, not 98. Halving it into one byte was a real defect
+    % once: a three-digit value indexed past the end of a ten-byte literal and
+    % printed a blank where a digit belonged.
+    ROUTINE VOID, INTEGER (BYTES) : hsYear(buf)
+        buf(6) * 256 + buf(7) RETURN
+    ENDROUTINE
+
+    % TAKE THE RELAY HEADER OFF, leaving an ordinary chat frame in place.
+    %
+    % Slides everything after the header down so that buf(1) is the name length
+    % again, and answers the NEW length. The kind byte is left alone, so the
+    % caller still knows what it was reading.
+    %
+    % Answers -1 if the message is too short to hold the header it claims -
+    % which is the case that would otherwise build a whole message out of
+    % rubbish. Read the origin, hops and id BEFORE calling this: they are gone
+    % afterwards.
+    %
+    % A kind with no relay header answers the length unchanged and touches
+    % nothing, so a receive loop can call it unconditionally.
+    ROUTINE VOID, INTEGER (BYTES, INTEGER, INTEGER) : trStrip(buf, arrived, kind)
+        INTEGER : i
+        INTEGER : hlen
+        INTEGER : gone
+
+        trHLen(kind) =: hlen
+        IF hlen = 0 THEN
+            arrived RETURN
+        ENDIF
+
+        % STRICTLY GREATER, not "at least". A message exactly the length of its
+        % own header carries no chat frame at all, and sliding zero bytes would
+        % leave the old name length in place.
+        IF arrived <= hlen THEN
+            -1 RETURN
+        ENDIF
+
+        % The kind byte stays at 0, so what disappears is hlen - 1 bytes.
+        hlen - 1 =: gone
+        FOR i IN 1:arrived - hlen DO
+            buf(i + gone) =: buf(i)
+        ENDFOR
+
+        arrived - gone RETURN
+    ENDROUTINE
+
+    % PUT A RELAY HEADER ON, in front of a chat frame this routine also writes.
+    %
+    % Answers the total length, or -1 if the buffer cannot hold even the header
+    % and an empty frame.
+    %
+    % lineId is ignored for kind 52, which has no room for it - passing one is
+    % not an error, because a caller that relays both kinds should not have to
+    % branch just to call this.
+    %
+    % buf, name and src must be THREE DIFFERENT ARRAYS, as for cmEnc.
+    ROUTINE VOID, INTEGER (BYTES, INTEGER, INTEGER, INTEGER, INTEGER, BYTES, &
+            INTEGER, BYTES, INTEGER, INTEGER, INTEGER) : &
+            trEnc(buf, kind, origin, hops, lineId, name, nameLen, &
+                  src, srcAt, srcLen, bufMax)
+        INTEGER : hlen
+        INTEGER : body
+
+        trHLen(kind) =: hlen
+        IF hlen = 0 THEN
+            -1 RETURN
+        ENDIF
+        IF bufMax < hlen + 4 THEN
+            -1 RETURN
+        ENDIF
+
+        kind =: buf(0)
+        origin / 256 =: buf(1)
+        origin MOD 256 =: buf(2)
+        hops =: buf(3)
+        IF hlen = 6 THEN
+            lineId / 256 =: buf(4)
+            lineId MOD 256 =: buf(5)
+        ENDIF
+
+        % THE BODY GOES STRAIGHT AFTER THE HEADER, with NO second kind byte -
+        % byte hlen is the name length. That is what the server has always put
+        % on the wire, and getting it wrong here produced a message whose name
+        % length read as 53.
+        %
+        % Written at an OFFSET rather than by handing an encoder a subarray:
+        % buf(hlen : bufMax - 1) has both bounds computed, and this project has
+        % a measured case of exactly that form compiling clean, running, and
+        % writing NOTHING AT ALL.
+        cmBody(buf, hlen, name, nameLen, src, srcAt, srcLen, bufMax) =: body
+
+        body RETURN
+    ENDROUTINE
+
+    % ---- ENCODE, from the start of a name and a text --------------------
+    %
+    % The ordinary case: a whole name and a whole text, both read from the
+    % beginning of their arrays. Answers the total length written into buf.
+    %
+    % ONE LINE, because it is cmEncTo with BOTH offsets at zero. There is exactly
+    % one routine in this product that knows the frame layout, which is the
+    % entire argument for the library - three copies of it agreed only because
+    % somebody kept checking.
+    %
+    % buf, name and text must be THREE DIFFERENT ARRAYS - see cmEncTo.
+    ROUTINE VOID, INTEGER (BYTES, INTEGER, BYTES, INTEGER, BYTES, INTEGER, &
+            INTEGER) : cmEnc(buf, kind, name, nameLen, text, textLen, bufMax)
+        cmEncTo(buf, 0, kind, name, nameLen, text, 0, textLen, bufMax) RETURN
+    ENDROUTINE
+
+    % ---- ENCODE, WITH THE TEXT AT AN OFFSET -----------------------------
+    %
+    % The same message, but the text is read from `src` starting at `srcAt`
+    % rather than from the beginning of an array. The server's text sits inside
+    % its receive buffer at an offset, so this is the shape it needs.
+    %
+    % IT IS NOT A SUBARRAY, and that is the whole point. The obvious call would
+    % be cmEnc(..., inBuf(textAt : textAt + textLength - 1), ...), which is a
+    % subarray with BOTH bounds computed - and this project has one measured case
+    % of exactly that form compiling clean, running, and WRITING NOTHING AT ALL.
+    % An offset costs one addition and cannot fail that way.
+    %
+    % ONE LINE, because it is cmEncTo with the DESTINATION offset at zero. Every
+    % rule about clamping, subscripting from zero and the two-byte length lives
+    % there and is stated once.
+    %
+    % buf, name and src must be THREE DIFFERENT ARRAYS - see cmEncTo.
+    ROUTINE VOID, INTEGER (BYTES, INTEGER, BYTES, INTEGER, BYTES, INTEGER, &
+            INTEGER, INTEGER) : &
+            cmEncAt(buf, kind, name, nameLen, src, srcAt, srcLen, bufMax)
+        cmEncTo(buf, 0, kind, name, nameLen, src, srcAt, srcLen, bufMax) RETURN
     ENDROUTINE
 
     % ---- DECODE ---------------------------------------------------------
@@ -363,6 +693,84 @@ MODULE chatlib
             FALSE RETURN
         ENDIF
         TRUE RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % HOW MANY BYTES IS IT SAFE TO READ INTO THIS BUFFER?
+    %
+    % want is the SENDER'S message size, handed back by XMSG - never a size
+    % this program chose. PLANC checks no array bounds, so handing it straight
+    % to XMPFREA lets whoever is at the other end write past the end of the
+    % buffer. That happens BEFORE a single field is parsed, so none of the
+    % careful field checks in this library can save it.
+    %
+    % BOTH PROGRAMS DID THIS BY HAND, and both compared against a hand-kept
+    % constant sitting beside the declaration:
+    %
+    %     INTEGER : inBufSize := 256
+    %     BYTES : inBuf(0:255)
+    %
+    % Two facts that have to agree, written in two places, checked by nobody.
+    % Widen the array and forget the constant and the clamp quietly keeps the
+    % old smaller value; SHRINK the array and forget it and the clamp lets a
+    % write past the end. MAXINDEX asks the array itself, so the size cannot
+    % drift from the declaration - the same fix as the eighteen hand-counted
+    % string lengths in TESTUI.
+    %
+    % AND IT CLAMPS THE LOW END, WHICH NEITHER PROGRAM DID. I have not measured
+    % XMSG returning a negative length and I am not claiming it can. What is in
+    % the guide is that on a RETURNED message (XMTRE) the length field carries
+    % an error status instead of a length - so the field is not always a length
+    % at all, and CHATSV keeps its own copy in receiveStat for exactly that
+    % reason. One compare removes the question rather than reasoning about it.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, INTEGER (INTEGER, BYTES) : xrClamp(want, buf)
+        INTEGER : room
+
+        % The array's own declared size, asked of the array. MAXINDEX gives the
+        % upper BOUND, so a (0:255) buffer answers 255 and holds 256 bytes.
+        MAXINDEX(buf, 1) + 1 =: room
+
+        IF want < 0 THEN
+            0 RETURN
+        ENDIF
+        IF want > room THEN
+            room RETURN
+        ENDIF
+        want RETURN
+    ENDROUTINE
+
+    % -----------------------------------------------------------------------
+    % THE ADDRESS OF A BUFFER THIS ROUTINE WAS HANDED.
+    %
+    % This exists to ANSWER A QUESTION, and the answer decides whether the XMSG
+    % transport can move into a library at all.
+    %
+    % Every ADDR in this product is taken of a MODULE-LEVEL array - inBuf,
+    % outBuf, letterBuf - because every XMSG call sits in the same module as its
+    % buffer:
+    %
+    %     xmpfrea(0, 0, ADDR(inBuf(0)) FORCE XMUSERADDRESS, 0, want, got)
+    %
+    % A shared transport routine cannot do that. It is HANDED the buffer, so it
+    % must take the address of a PARAMETER, and NOTHING IN THIS PRODUCT HAS EVER
+    % DONE THAT. PLANC passes arrays by reference, so it should give the caller's
+    % own array - but "should" is how a wrong address gets written to, and a
+    % wrong address handed to XMPFREA is a write to memory nobody owns. PLANC
+    % checks no array bounds and would report nothing at all.
+    %
+    % So it is measured rather than assumed, by a test that needs no XMSG: ask
+    % this routine for the address, take ADDR of the same array at the call site,
+    % and compare. Equal means a parameter address is the caller's array and the
+    % transport can safely be shared. See CHATTST.
+    %
+    % xrAddr rather than XMUSERADDRESS: that type lives in the XMSG include, which
+    % this library deliberately does not pull in. It is the SAME WIDTH - 16-bit
+    % INTEGER - and the width is the part that matters; see the note above the
+    % MODULE for what a 32-bit force costs.
+    % -----------------------------------------------------------------------
+    ROUTINE VOID, xrAddr (BYTES) : xrAddrOf(buf)
+        ADDR(buf(0)) FORCE xrAddr RETURN
     ENDROUTINE
 
 ENDMODULE

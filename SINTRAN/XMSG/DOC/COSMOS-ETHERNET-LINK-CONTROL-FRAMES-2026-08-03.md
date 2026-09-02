@@ -212,7 +212,7 @@ is NOT explained: `0x0F`, `0x3F` and `0x6F` all end in `F` while `0x20` ends in 
  - D102 answers that with **DR, disconnect request by network service** - a teardown, not an ack.
 
 So D102 is simultaneously tearing the old link down and asking for a new one, and D100 answers
-neither. "The link is wedged" was too vague; this is a specific, testable state.
+neither. "The link is hung" was too vague; this is a specific, testable state.
 
 Still open: why D100 ignores an incoming CR. That question now has a home - the CR handler inside
 ENNS0, which is linked and loaded (see below).

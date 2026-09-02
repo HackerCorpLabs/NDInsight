@@ -60,7 +60,7 @@ control-store write happens in the common `5NOPAR` path -> system monitor -> res
 ## Emulator relevance
 
 This is the front half of the **control-store gate** that blocks ND-500 bring-up in the emulator
-(the `ECSLOAD` loop that wedged `VERSION`). MON 60B/037B tells the resident driver to load microcode
+(the `ECSLOAD` loop that hung `VERSION`). MON 60B/037B tells the resident driver to load microcode
 from a named file; the emulator must model the common-path -> driver -> WCS write (and, to satisfy the
 gate without real microcode, report the control store as loaded). See
 `SINTRAN\ND500\ND500-STATUS-AND-INDEX.md` (control-store section).

@@ -1,0 +1,40 @@
+@cc ===========================================================================
+@cc CHATKT:MODE - build the XMSG kernel loopback test.
+@cc
+@cc   @MODE CHATKT:MODE,,
+@cc then          @CHATKT
+@cc
+@cc One small source, compiles in seconds. Needs XMP-B02:DEFS, XMP-B02:IMPT
+@cc and XMP-100-1-B02:BRF under SYSTEM - the same COSMOS binding CHATSV uses.
+@cc No CHATLIB, no MON-CALL, no VTM: this program talks only to the kernel.
+@cc ===========================================================================
+
+@cc --- clear the old build; NO SUCH FILE NAME on a first run is expected -----
+@DELETE-FILE CHATKT:PROG
+@DELETE-FILE CHATKT:BRF
+@DELETE-FILE CHATKT:LIST
+
+@cc --- compile to a real BRF; PROG-FILE NOT set, on purpose -------------------
+@PLANC-100-F00
+COMPILE CHATKT:PLNC,"CHATKT:LIST","CHATKT"
+EXIT
+
+@cc --- link: the PROGRAM first, then what satisfies it -----------------------
+@BRF-LINKER-C01
+PROGRAM-FILE "CHATKT"
+LOAD CHATKT
+LIBRARY-MODE ON
+LOAD XMP-100-1-B02
+LOAD PLANC-1BANK-F00
+LIST-ENTRIES-UNDEFINED
+EXIT
+
+@cc ===========================================================================
+@cc Built CHATKT:PROG. Run it with @CHATKT - needs XMSG up on this machine.
+@cc
+@cc Every line starts PASS or FAIL and the last line is a count. A FAIL in
+@cc phase 3 alone means xmpfwri writes into the HELD arrival, not the fresh
+@cc buffer xmpfget returned - the repeat-first-message bug, reproduced.
+@cc
+@cc CHECK THE LISTING for "*** ERROR" before believing any of it.
+@cc ===========================================================================

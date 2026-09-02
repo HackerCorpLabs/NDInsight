@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 using NDInsight.Sintran.Xmsg.Chat;
 
@@ -67,41 +67,130 @@ namespace NDInsight.Sintran.Xmsg.Chat.Tests
         /// A replayed line: the same shape as a spoken one, under a different kind.
         /// </summary>
         /// <remarks>
-        /// <para><b>Same bytes as Said except the first</b></para>
-        /// That is deliberate and is the point of the kind being separate. The layout stays
-        /// familiar so a client renders it with the same code, while the FIRST BYTE still says
-        /// this is history - so a client that timestamps, beeps or counts unread can tell.
+        /// <para><b>NOT the same bytes as Said any more</b></para>
+        /// It used to be Said with a different first byte. It no longer is: a history line now
+        /// carries WHEN IT WAS SAID, in the seven bytes between the kind and the name - the same
+        /// place a relay header sits on the trunk kinds.
+        /// <para><b>Why the time had to go on the wire at all</b></para>
+        /// A replayed line was shown with the time it was REPLAYED, so an entire backlog shared
+        /// one timestamp and could not say what happened when. Measured on D103, 2026-08-28:
+        /// every line of a rejoin backlog read <c>13:24</c> while the same line read <c>03:33</c>
+        /// in the other machine's live room.
+        /// <para><b>The ND's own calendar, not an epoch and not text</b></para>
+        /// Second, minute, hour, day, month, then the FULL year big-endian - the words
+        /// <c>MN113</c> hands back, in the order it hands them back. Each ND runs its own clock,
+        /// so a time only means anything beside the machine that produced it, which is the same
+        /// reason history does not cross a trunk.
         /// <para><b>Pinned against histReplay in CHATSV.PLNC</b></para>
-        /// Kind, name length, name, two-byte big-endian text length, text - the same universal
-        /// prefix every kind uses.
         /// </remarks>
         [Fact]
-        public void AHistoryMessageHasExactlyTheseBytes()
+        public void AHistoryMessageCarriesWhenItWasSaid()
         {
-            ChatMessage past = new ChatMessage(ChatMessageKind.History, "ANNA", "hei");
+            ChatMessage past = new ChatMessage(
+                "ANNA", "hei", new NdCalendarTime(1998, 8, 27, 13, 24, 5));
 
             byte[] buffer = new byte[64];
             int written = past.Encode(buffer);
 
             //  10        kind = History (16)
+            //  05        second
+            //  18        minute = 24
+            //  0D        hour   = 13
+            //  1B        day    = 27
+            //  08        month
+            //  07 CE     year   = 1998, HIGH byte first
             //  04        nickname length
             //  41 4E 4E 41   "ANNA"
             //  00 03     text length, HIGH byte first
             //  68 65 69  "hei"
-            Assert.Equal("1004414E4E41000368 6569".Replace(" ", string.Empty),
+            Assert.Equal(
+                "1005180D1B0807CE04414E4E41000368 6569".Replace(" ", string.Empty),
+                Convert.ToHexString(buffer, 0, written));
+        }
+
+        /// <summary>
+        /// A history line whose block predates the time being recorded says so, rather than lying.
+        /// </summary>
+        /// <remarks>
+        /// The history already on the three machines was written before there was anywhere to put
+        /// a time. Those blocks still replay - that is the whole point of the marker in
+        /// <c>histSave</c> - and they arrive with an all-zero time, which
+        /// <see cref="NdCalendarTime.IsKnown"/> reports as unknown so the client can leave the
+        /// column blank instead of inventing a moment.
+        /// </remarks>
+        [Fact]
+        public void AHistoryLineWithNoRecordedTimeDecodesAsUnknown()
+        {
+            ChatMessage past = new ChatMessage("ANNA", "hei", NdCalendarTime.Unknown);
+
+            byte[] buffer = new byte[64];
+            int written = past.Encode(buffer);
+
+            Assert.Equal(
+                "1000000000000000" + "04414E4E41" + "0003" + "686569",
                 Convert.ToHexString(buffer, 0, written));
 
-            // The ONLY difference from Said is the kind byte. If that ever stops being true,
-            // one of the two layouts has drifted.
-            ChatMessage said = new ChatMessage(ChatMessageKind.Said, "ANNA", "hei");
-            byte[] saidBuffer = new byte[64];
-            int saidWritten = said.Encode(saidBuffer);
+            Assert.True(ChatMessage.TryDecode(buffer.AsSpan(0, written), out ChatMessage back));
+            Assert.False(back.SaidAt.IsKnown);
+            Assert.Equal(string.Empty, back.SaidAt.ToString());
+        }
 
-            Assert.Equal(saidWritten, written);
-            for (int i = 1; i < written; i++)
+        /// <summary>
+        /// The time survives a round trip through the wire, field for field.
+        /// </summary>
+        /// <remarks>
+        /// Encode and decode agreeing with each other is not enough on its own - both could be
+        /// wrong the same way - which is why the byte-for-byte test above exists alongside this
+        /// one. This guards the ORDER of the fields, where a swapped day and month would still
+        /// round-trip if both halves swapped them.
+        /// </remarks>
+        [Fact]
+        public void TheHistoryTimeSurvivesARoundTrip()
+        {
+            NdCalendarTime when = new NdCalendarTime(1998, 8, 27, 13, 24, 5);
+            ChatMessage past = new ChatMessage("ANNA", "hei", when);
+
+            byte[] buffer = new byte[64];
+            int written = past.Encode(buffer);
+
+            Assert.True(ChatMessage.TryDecode(buffer.AsSpan(0, written), out ChatMessage back));
+
+            Assert.Equal(ChatMessageKind.History, back.Kind);
+            Assert.Equal("ANNA", back.Nickname);
+            Assert.Equal("hei", back.Text);
+            Assert.Equal(when, back.SaidAt);
+            Assert.Equal(1998, back.SaidAt.Year);
+            Assert.Equal(8, back.SaidAt.Month);
+            Assert.Equal(27, back.SaidAt.Day);
+            Assert.Equal("13:24", back.SaidAt.ToString());
+        }
+
+        /// <summary>
+        /// A history message truncated inside its time is refused, not read as a name.
+        /// </summary>
+        /// <remarks>
+        /// The failure this guards is the one the relay header already had to answer for: a
+        /// truncated header read on as though it were a nickname length builds a plausible
+        /// message out of rubbish, which is far worse than a refusal.
+        /// </remarks>
+        [Fact]
+        public void AHistoryMessageCutInsideItsTimeIsRefused()
+        {
+            ChatMessage past = new ChatMessage(
+                "ANNA", "hei", new NdCalendarTime(1998, 8, 27, 13, 24, 5));
+
+            byte[] buffer = new byte[64];
+            int written = past.Encode(buffer);
+
+            for (int cut = 1; cut <= NdCalendarTime.ByteCount; cut++)
             {
-                Assert.Equal(saidBuffer[i], buffer[i]);
+                Assert.False(
+                    ChatMessage.TryDecode(buffer.AsSpan(0, cut), out _),
+                    "a history message cut off after " + cut + " byte(s) is inside its time and"
+                        + " must be refused, never read on as a nickname length.");
             }
+
+            Assert.True(ChatMessage.TryDecode(buffer.AsSpan(0, written), out _));
         }
 
         /// <summary>
@@ -316,6 +405,69 @@ namespace NDInsight.Sintran.Xmsg.Chat.Tests
                 "3600660304D2 044B415249 0012 524F4E4E592F61726520796F752066726565"
                     .Replace(" ", string.Empty),
                 Convert.ToHexString(buffer, 0, written));
+        }
+
+        /// <summary>
+        /// A refusal coming home has the same five-byte header and a TARGET/reason text.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The ORIGIN is the machine that could not deliver - 103 here - and NOT the sender's
+        /// machine. The line id is the FAILED message's, which is what lets the far end say which
+        /// message it is about.
+        /// </para>
+        /// </remarks>
+        [Fact]
+        public void ATrunkDirectBadMessageHasExactlyTheseBytes()
+        {
+            ChatMessage bad = new ChatMessage(
+                ChatMessageKind.TrunkDirectBad, "KARI", "RONNY/not logged in", 103, 3, 1234);
+
+            byte[] buffer = new byte[64];
+            int written = bad.Encode(buffer);
+
+            //  37            kind = TrunkDirectBad (55 decimal)
+            //  00 67         origin system = 103, HIGH byte first - who could NOT deliver
+            //  03            hops remaining
+            //  04 D2         line id = 1234, the FAILED message's
+            //  04            sender length - the person to be told
+            //  4B 41 52 49   "KARI"
+            //  00 13         text length = 19, HIGH byte first
+            //  52 4F ...     "RONNY/not logged in" - target tried, slash, reason
+            Assert.Equal(
+                "3700670304D2 044B415249 0013 524F4E4E592F6E6F74206C6F6767656420696E"
+                    .Replace(" ", string.Empty),
+                Convert.ToHexString(buffer, 0, written));
+        }
+
+        /// <summary>
+        /// Those exact bytes decode back, with the header read as a header.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// This is the test that would have caught the decoder being taught the new kind's NUMBER
+        /// without being taught its HEADER. The bound reached 55 first, so the frame decoded, and
+        /// the five header bytes were then read as a nickname length and a name - a person would
+        /// have been shown garbage instead of being told their message was dropped.
+        /// </para>
+        /// </remarks>
+        [Fact]
+        public void ThoseExactBytesDecodeBackToATrunkDirectBadMessage()
+        {
+            byte[] wire = Convert.FromHexString(
+                "3700670304D2" + "044B415249" + "0013"
+                    + "524F4E4E592F6E6F74206C6F6767656420696E");
+
+            ChatMessage decoded;
+            bool ok = ChatMessage.TryDecode(wire, out decoded);
+
+            Assert.True(ok);
+            Assert.Equal(ChatMessageKind.TrunkDirectBad, decoded.Kind);
+            Assert.Equal((ushort)103, decoded.OriginSystem);
+            Assert.Equal((byte)3, decoded.HopsRemaining);
+            Assert.Equal((ushort)1234, decoded.LineId);
+            Assert.Equal("KARI", decoded.Nickname);
+            Assert.Equal("RONNY/not logged in", decoded.Text);
         }
 
         /// <summary>

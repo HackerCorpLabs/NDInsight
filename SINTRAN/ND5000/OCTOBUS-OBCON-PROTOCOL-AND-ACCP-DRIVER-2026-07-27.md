@@ -739,7 +739,7 @@ CMD 3 inbound need not share a content layout - see 1h.)
 `Cmd3_EveryUndefinedCommandIsRefusedIncluding0x03` sends all 18 undefined numbers to a booted
 machine on CMD 3 and requires the card to print "Undefined ACCP command received" for every one.
 It does. Only the undefined numbers are swept: the defined ones include microprogram start/stop
-and control-store loads, so sweeping those would wedge the card partway through and make every
+and control-store loads, so sweeping those would hang the card partway through and make every
 later result meaningless.
 
 ### Two methodology mistakes worth not repeating

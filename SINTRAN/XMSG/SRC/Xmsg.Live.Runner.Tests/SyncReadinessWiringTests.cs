@@ -218,7 +218,8 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner.Tests
         /// <c>--originate-from-seed</c> reached only the sync daemon. A one-shot pull gated on
         /// <c>CanReach</c> alone, which is true only once the PEER has addressed us - so over a
         /// link where we speak first the pull waited for ever and never sent a frame. It was
-        /// silent while it waited, because the "reading &lt;file&gt;" line comes AFTER that gate,
+        /// silent while it waited, because the "reading" line that names the file comes AFTER
+        /// that gate,
         /// so a pull that never started looked exactly like one that started and got no answer.
         /// </para>
         /// <para>

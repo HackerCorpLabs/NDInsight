@@ -1,9 +1,33 @@
 #!/bin/sh
-# Reject any commit message that mentions Claude / the AI assistant.
+# Reject a commit message that mentions Claude / the AI assistant, or that uses
+# one of the words Ronny has banned.
 #
-# Why this exists: across 46 recorded sessions this rule was broken 17 times
-# despite being stated in CLAUDE.md. A rule that gets broken that often is not
-# an instruction problem, it is a missing check. So now it is a check.
+# Why this exists: across 46 recorded sessions the Claude rule was broken 17
+# times despite being stated in the instructions. A rule that gets broken that
+# often is not an instruction problem, it is a missing check. So now it is a
+# check.
+#
+# THE SAME MEASUREMENT NOW EXISTS FOR THE WORDS, and it is worse. Counted over
+# all 33 transcripts on 2026-08-29:
+#
+#     corpus   banned 2026-07-30   88 uses AFTER the ban, the last one that day
+#     wedge    banned 2026-08-10   21 uses AFTER the ban
+#
+# "wedge" is the control that proves the mechanism. It was swept out of 24
+# files AND given a linter check on 2026-08-28 - but that check only reads
+# PLANC comments, so it never saw chat, Markdown or a commit message, which is
+# where every one of the 21 uses was. A ban that is only read cannot compete
+# with a check that runs.
+#
+# WHAT THIS CAN AND CANNOT REACH. It sees commit messages. It does not see
+# chat, and no hook can. This closes the part that is closable.
+#
+# THE GEOMETRIC SENSE IS REAL: a Compact front panel or a plotter shape may
+# genuinely be that shape, and the 2026-08-28 sweep deliberately kept those.
+# In a COMMIT MESSAGE the word is nearly always the jargon sense, so this
+# blocks it outright - say "tapered" or name the shape instead. A message that
+# is ABOUT the ban should not spell the word, which is what the sweep commit
+# itself did.
 #
 # Installed by scripts/install-git-hooks.ps1, which points core.hooksPath at
 # scripts/git-hooks so the hooks are version controlled instead of living
@@ -12,15 +36,79 @@
 msg_file="$1"
 msg=$(cat "$msg_file")
 
-# Case-insensitive. Covers the message body and any trailer.
-if printf '%s' "$msg" | grep -qiE 'claude|anthropic|co-authored-by:[[:space:]]*claude|generated with \[claude'; then
+# Comment lines are git's own template, not the author's words.
+body=$(printf '%s' "$msg" | grep -v '^#')
+
+fail=0
+
+if printf '%s' "$body" | grep -qiE 'claude|anthropic'; then
     echo "-----------------------------------------------------------"
     echo "COMMIT REJECTED: the message mentions Claude / Anthropic."
     echo ""
     echo "Offending line(s):"
-    printf '%s' "$msg" | grep -inE 'claude|anthropic' | sed 's/^/    /'
+    printf '%s' "$body" | grep -inE 'claude|anthropic' | sed 's/^/    /'
     echo ""
-    echo "Rule (CLAUDE.md): never mention Claude in commit messages."
+    echo "Rule: never mention the assistant in a commit message."
+    fail=1
+fi
+
+# ---- THE BANNED WORDS, each with the plain word that replaces it ----------
+# \b is not portable in POSIX grep, so each pattern carries its own word
+# boundaries via -w below.
+banned="corpus:the test data, the transcripts, the files
+census:a count, a list
+contended:another process is using it
+leverage:use
+utilise:use
+utilize:use
+regenerable:stuff the build makes again
+wedge:hang, hung, stuck, crashed - or name the shape
+wedged:hung, stuck, crashed
+hosed:broken
+borked:broken
+clobbered:overwritten
+munged:mangled, corrupted
+thrash:overload, churn"
+
+# ITERATE BY LINE, NOT BY WORD. "for entry in $banned" splits on WHITESPACE,
+# so a replacement phrase like "the test data" would be chopped into separate
+# entries and the check would then hunt for the word "test". Caught by the
+# self-test below before this hook ever ran for real.
+found=""
+while IFS= read -r entry; do
+    [ -n "$entry" ] || continue
+    word=${entry%%:*}
+    if printf '%s' "$body" | grep -qiwE "$word"; then
+        found="$found $word"
+    fi
+done <<BANNED_LIST
+$banned
+BANNED_LIST
+
+if [ -n "$found" ]; then
+    echo "-----------------------------------------------------------"
+    echo "COMMIT REJECTED: the message uses a banned word."
+    echo ""
+    while IFS= read -r entry; do
+        [ -n "$entry" ] || continue
+        word=${entry%%:*}
+        say=${entry#*:}
+        case " $found " in
+            *" $word "*)
+                echo "    $word  ->  $say"
+                printf '%s' "$body" | grep -inwE "$word" | sed 's/^/        /'
+                ;;
+        esac
+    done <<BANNED_LIST
+$banned
+BANNED_LIST
+    echo ""
+    echo "Rule: plain words. Never a fancy word where a plain one works."
+    fail=1
+fi
+
+if [ "$fail" -ne 0 ]; then
+    echo ""
     echo "Edit the message and commit again."
     echo "-----------------------------------------------------------"
     exit 1

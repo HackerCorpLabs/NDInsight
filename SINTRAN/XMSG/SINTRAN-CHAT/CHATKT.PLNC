@@ -1,0 +1,287 @@
+% =========================================================================
+% CHATKT - the XMSG KERNEL send/receive path, in isolation, by loopback.
+%
+% WHY THIS EXISTS. 2026-09-01: the repeat-first-message bug survives three
+% verified-deployed fixes, and the two halves nobody has ever tested are
+% the KERNEL-facing ones. CHATCTST proved the client's cache, paint math
+% and parse clean - but it wrote inBuf directly, skipping xmpfrea. The
+% server's buildFromSlot/broadcast were read, not run. What neither side
+% has ever measured is what the XMSG kernel itself does with the exact
+% call sequences the product uses:
+%
+%   the server sends with   xmpfget / xmpfwri(0,0,...) / xmpsend(2**XFSEC)
+%   the client receives with xmpfrcv / clamp / xmpfrea(0,0,...) / xmpfrel
+%
+% xmpfwri and xmpfrea act on the CURRENT message (they take no message
+% identifier). The guide says XMPFRCV makes the ARRIVAL task current, and
+% XMPFWRI writes into the TASK CURRENT message - but the XMPFGET page
+% NEVER SAYS the fresh buffer becomes current. CHATSV's own comment claims
+% it does; that is a claim, not a measurement. If it does not, xmpfwri
+% writes the reply somewhere else and xmpsend ships a NEVER-WRITTEN pool
+% buffer - stale content, which is exactly the live symptom's shape.
+%
+% THE METHOD: open one port, send to our own magic number, read back.
+% No server, no second machine, no screen. Every message has a DIFFERENT
+% letter and a DIFFERENT length, so a stale buffer shows up twice over -
+% wrong first byte AND wrong nBytes.
+%
+% HOW TO READ IT: every line starts PASS or FAIL and the last line is a
+% count. A FAIL in phase 3 with phases 1-2 clean means the kernel writes
+% the reply into the HELD ARRIVAL instead of the fresh buffer - the bug
+% is found, and the fix is xmpwrte (write BY IDENTIFIER) in sendTo.
+% =========================================================================
+MODULE chatkt
+
+% The real COSMOS binding, INSIDE the module - above MODULE the
+% declarations land in the outer scope and every call fails
+% NOT PREVIOUSLY DECLARED while the include lines look accepted.
+$INCLUDE XMP-B02:DEFS
+$INCLUDE XMP-B02:IMPT
+
+    INTEGER ARRAY : stack(0:1000)
+
+    % outB and inB are TWO DIFFERENT ARRAYS on purpose - two subarrays of
+    % one array passed around corrupts both and compiles clean.
+    BYTES : outB(0:255)
+    BYTES : inB(0:255)
+
+    % The letters the messages are filled with, indexed 0..5, and one
+    % scrub byte. inB is filled with 'Z' before every receive so a short
+    % or failed read cannot fake a pass off what the LAST read left.
+    BYTES : abc := 'ABCDEF'
+    BYTES : zByte := 'Z'
+
+    INTEGER : myPort
+    INTEGER4 : myMagic
+    INTEGER : sendFlags
+
+    % One module-level home per status, so a failure can name the call
+    % that failed. returnStatus-style sharing is exactly what hid the
+    % client's read status until 2026-09-01.
+    INTEGER : getSt, wriSt, sndSt, rcvSt, reaSt, relSt
+    INTEGER : msgType
+    INTEGER : remotePortHash
+    INTEGER : nBytes
+    INTEGER : readAmount
+    INTEGER : readLength
+    INTEGER : writtenLength
+    XMMSGIDENTIFIER : rcvIdent
+
+    INTEGER : passed := 0
+    INTEGER : failed := 0
+
+    ROUTINE VOID, VOID (BYTES, INTEGER, INTEGER) : check(what, got, want)
+        IF got = want THEN
+            passed + 1 =: passed
+            OUTPUT(1, 'AL', 'PASS ')
+            OUTPUT(1, 'AL', what)
+            OUTPUT(1, 'AL', '$')
+            RETURN
+        ENDIF
+        failed + 1 =: failed
+        OUTPUT(1, 'AL', 'FAIL ')
+        OUTPUT(1, 'AL', what)
+        OUTPUT(1, 'AL', '  got ')
+        OUTPUT(1, 'I', got)
+        OUTPUT(1, 'AL', '  want ')
+        OUTPUT(1, 'I', want)
+        OUTPUT(1, 'AL', '$')
+    ENDROUTINE
+
+    % Fill the first `count` bytes of outB with letter abc(k).
+    ROUTINE VOID, VOID (INTEGER, INTEGER) : fillOut(k, count)
+        INTEGER : i
+        FOR i IN 0:count - 1 DO
+            abc(k) =: outB(i)
+        ENDFOR
+    ENDROUTINE
+
+    % Scrub inB so nothing from the previous read can survive into the
+    % next check.
+    ROUTINE VOID, VOID : scrubIn
+        INTEGER : i
+        FOR i IN 0:255 DO
+            zByte(0) =: inB(i)
+        ENDFOR
+    ENDROUTINE
+
+    % -------------------------------------------------------------------
+    % THE SERVER'S SEND, verbatim from CHATSV.PLNC sendTo: get a fresh
+    % buffer, write with NO message identifier (the current-message form),
+    % send the identifier xmpfget handed back, secure. If xmpfwri writes
+    % anywhere but that fresh buffer, what arrives is not what was built -
+    % and only this test can tell, because sendTo checks STATUSES, and a
+    % write into the wrong buffer succeeds.
+    % -------------------------------------------------------------------
+    ROUTINE VOID, VOID (INTEGER) : sendLikeSv(length)
+        XMMSGIDENTIFIER : ident
+        xmpfget(0, length, ident) =: getSt
+        xmpfwri(0, 0, &
+            ADDR(outB(0)) FORCE XMUSERADDRESS, &
+            0, length, writtenLength) =: wriSt
+        xmpsend(sendFlags, ident, myPort, myMagic) =: sndSt
+    ENDROUTINE
+
+    % -------------------------------------------------------------------
+    % THE CLIENT'S RECEIVE, verbatim from CHAT.PLNC drainPort: receive,
+    % clamp the kernel's length before trusting it, read with NO message
+    % identifier, release. hold=1 skips the release so a caller can keep
+    % the arrival current - which is what a server is doing the whole time
+    % it handles a message.
+    % -------------------------------------------------------------------
+    ROUTINE VOID, VOID (INTEGER) : recvLikeCl(hold)
+        scrubIn
+        xmpfrcv(0, myPort, msgType, remotePortHash, rcvIdent, nBytes) &
+            =: rcvSt
+        nBytes =: readAmount
+        IF readAmount > 256 THEN
+            256 =: readAmount
+        ENDIF
+        xmpfrea(0, 0, &
+            ADDR(inB(0)) FORCE XMUSERADDRESS, &
+            0, readAmount, readLength) =: reaSt
+        IF hold = 0 THEN
+            xmpfrel(0, rcvIdent) =: relSt
+        ENDIF
+    ENDROUTINE
+
+    % xmpfrcv answers XMOK *or* a message type 1..6 - both are success,
+    % and a 1..6-only test once threw every welcome away. Normalise to 0.
+    ROUTINE VOID, INTEGER : rcvOk
+        IF rcvSt = XMOK THEN
+            0 RETURN
+        ENDIF
+        IF rcvSt >= 1 AND rcvSt <= 6 THEN
+            0 RETURN
+        ENDIF
+        rcvSt RETURN
+    ENDROUTINE
+
+    % One received message, checked whole: statuses, length, first and
+    % last byte. gotFirst/gotLast go through INTEGER locals because a
+    % BYTE element handed straight to check's INTEGER parameter is the
+    % kind of conversion this project does not gamble on.
+    %
+    % The literal comes LAST so the linter's hand-counted-length check
+    % (R121) does not read the letter index beside it as a length.
+    ROUTINE VOID, VOID (INTEGER, INTEGER, BYTES) : checkMsg(k, length, what)
+        INTEGER : gotFirst, gotLast, wantByte
+        OUTPUT(1, 'AL', '-- ')
+        OUTPUT(1, 'AL', what)
+        OUTPUT(1, 'AL', '$')
+        check('  rcv status ok', rcvOk, 0)
+        check('  rea status ok', reaSt, XMOK)
+        check('  length as sent', nBytes, length)
+        inB(0) =: gotFirst
+        inB(length - 1) =: gotLast
+        abc(k) =: wantByte
+        check('  first byte', gotFirst, wantByte)
+        check('  last byte ', gotLast, wantByte)
+    ENDROUTINE
+
+    PROGRAM : chatKTest
+        INTEGER : st
+
+        INISTACK stack
+
+        OUTPUT(1, 'AL', 'CHATKT - the kernel send/receive path, by loopback$')
+
+        % Secure, exactly as the product sends - on receive a secure
+        % message becomes PORT current as well as task current, and the
+        % live system runs entirely on secure sends.
+        2**XFSEC =: sendFlags
+
+        xmpfopn(0, myPort) =: st
+        check('open port', st, XMOK)
+        xmpfp2m(0, myPort, myMagic) =: st
+        check('own magic', st, XMOK)
+
+        % ---- PHASE 1: three sequential round trips, distinct letter and
+        % ---- length each. The quiet case: nothing else is current when
+        % ---- the send is built. If THIS repeats, the whole product model
+        % ---- is wrong, not just the busy case.
+        OUTPUT(1, 'AL', '$')
+        OUTPUT(1, 'AL', 'phase 1 - sequential, port quiet$')
+
+        fillOut(0, 20)
+        sendLikeSv(20)
+        check('p1 A get', getSt, XMOK)
+        check('p1 A wri', wriSt, XMOK)
+        check('p1 A snd', sndSt, XMOK)
+        recvLikeCl(0)
+        checkMsg(0, 20, 'p1 msg A len 20')
+
+        fillOut(1, 24)
+        sendLikeSv(24)
+        recvLikeCl(0)
+        checkMsg(1, 24, 'p1 msg B len 24')
+
+        fillOut(2, 28)
+        sendLikeSv(28)
+        recvLikeCl(0)
+        checkMsg(2, 28, 'p1 msg C len 28')
+
+        % ---- PHASE 2: two messages QUEUED before either is read. The
+        % ---- second send is built while the first sits unreceived on the
+        % ---- port - the shape of a busy room.
+        OUTPUT(1, 'AL', '$')
+        OUTPUT(1, 'AL', 'phase 2 - two queued before reading$')
+
+        fillOut(3, 32)
+        sendLikeSv(32)
+        fillOut(4, 36)
+        sendLikeSv(36)
+        recvLikeCl(0)
+        checkMsg(3, 32, 'p2 first out is D len 32')
+        recvLikeCl(0)
+        checkMsg(4, 36, 'p2 second out is E len 36')
+
+        % ---- PHASE 3: THE SERVER'S REAL SITUATION. A message is received
+        % ---- and HELD (task current, and - secure - port current) while
+        % ---- replies are built and sent, exactly like a server that has
+        % ---- not yet released the arrival it is answering, or any task
+        % ---- whose release did not clear the current-message pointers.
+        % ---- If xmpfwri prefers the held arrival over the fresh buffer,
+        % ---- what arrives below is F's content (or rubbish), not A's -
+        % ---- and the repeat-first-message bug is reproduced offline.
+        OUTPUT(1, 'AL', '$')
+        OUTPUT(1, 'AL', 'phase 3 - reply built while an arrival is HELD$')
+
+        fillOut(5, 40)
+        sendLikeSv(40)
+        recvLikeCl(1)
+        checkMsg(5, 40, 'p3 arrival F len 40 held')
+
+        % Two replies while F is still held - a broadcast to two seats.
+        fillOut(0, 44)
+        sendLikeSv(44)
+        check('p3 reply A get', getSt, XMOK)
+        check('p3 reply A wri', wriSt, XMOK)
+        check('p3 reply A snd', sndSt, XMOK)
+        fillOut(1, 48)
+        sendLikeSv(48)
+
+        % Now let go of F, the way the server releases after handling.
+        xmpfrel(0, rcvIdent) =: relSt
+        check('p3 release F', relSt, XMOK)
+
+        recvLikeCl(0)
+        checkMsg(0, 44, 'p3 reply A len 44 intact')
+        recvLikeCl(0)
+        checkMsg(1, 48, 'p3 reply B len 48 intact')
+
+        xmpfcls(0, myPort) =: st
+
+        OUTPUT(1, 'AL', '$')
+        OUTPUT(1, 'AL', 'passed ')
+        OUTPUT(1, 'I', passed)
+        OUTPUT(1, 'AL', '  failed ')
+        OUTPUT(1, 'I', failed)
+        OUTPUT(1, 'AL', '$')
+        IF failed = 0 THEN
+            OUTPUT(1, 'AL', 'kernel path is good - the bug is elsewhere$')
+        ELSE
+            OUTPUT(1, 'AL', 'KERNEL PATH MISBEHAVES - read which phase$')
+        ENDIF
+    ENDROUTINE
+ENDMODULE

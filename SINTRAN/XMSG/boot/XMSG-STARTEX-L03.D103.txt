@@ -66,13 +66,22 @@ EXIT
 @CC ====================================================================
 @CC  THE TRUNK TO D100
 @CC
-@CC  D100 is this machine's ONLY neighbour - everything else is behind it
-@CC  - so this is the only trunk D103 can have. D102 is NOT reachable for
-@CC  chat: a message carries no hop count and D100 does not forward it
-@CC  onward. That is Phase D of CHAT-FEDERATION-DESIGN.md and it is not
-@CC  written yet. MEASURED 2026-08-24, with a control: a message from
-@CC  D103 reached D100 and did NOT reach D102, while a message from D100
-@CC  reached D102 seconds later on the same client.
+@CC  D100 is this machine's nearest neighbour. D102 used to be out of
+@CC  reach for chat, because a message carried no hop count and D100 did
+@CC  not forward it onward - MEASURED 2026-08-24, with a control.
+@CC
+@CC  THAT IS NO LONGER TRUE. Phase D of CHAT-FEDERATION-DESIGN.md is
+@CC  built and PROVED 2026-08-25: a line typed here reached D102 through
+@CC  D100's relay and arrived marked SYSTEM@D103, the ORIGIN, not the
+@CC  relay. The counters were the falsifiable half - relay 2 on D100 in
+@CC  the middle and relay 0 on the end machine, which is what an end
+@CC  machine must report because it excludes the peer it heard from.
+@CC
+@CC  So this machine now starts TWO trunks. The second one is not just
+@CC  reachability: three machines in a TRIANGLE are what finally proved
+@CC  dedup, because a chain has one path between any two machines and
+@CC  dupe can only ever read 0 on it - which a completely broken dedup
+@CC  would print too. With the triangle, dupe went 0 to 1.
 @CC
 @CC  A MODE file CAN drive CHAT-MON - tested on D100 before this went in,
 @CC  because if the file's input did not reach the program it would wait

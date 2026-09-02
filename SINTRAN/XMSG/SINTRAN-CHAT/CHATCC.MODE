@@ -77,12 +77,47 @@
 @DELETE-FILE CHAT:PROG
 @DELETE-FILE CHAT:LIST
 @DELETE-FILE CHAT:BRF
+@DELETE-FILE CHATARR:LIST
+@DELETE-FILE CHATARR:BRF
 
 @cc --- step 1: compile to an object file ------------------------------------
 @cc Quoting: no quotes means the file must already exist, "quotes" means create.
 @cc No PROG-FILE here on purpose - see note 3.
 @PLANC-100-F00
 COMPILE CHAT:PLNC,"CHAT:LIST","CHAT"
+EXIT
+@cc
+@cc CHATARR is the arrival half, split out of CHAT.PLNC on 2026-08-28. It is a
+@cc SEPARATE module with its own BRF, so editing one does not recompile the
+@cc other - which is the whole point of the split. The compiler does not care
+@cc that the two refer to each other, because EXPORT/IMPORT is settled by the
+@cc LINKER below.
+@cc
+@cc ITS LISTING MUST BE GATED TOO. A clean CHAT:LIST says nothing at all about
+@cc CHATARR:LIST - that is exactly how ten *** ERROR lines once rode into a
+@cc suite that reported 139/139.
+@cc
+@cc TWO PLANC SESSIONS, NOT ONE - AND THIS IS NOT TIDINESS.
+@cc
+@cc MEASURED on D100 2026-08-31, twice. Both COMPILEs used to run in ONE
+@cc session, and the SECOND listing was written at the file position the FIRST
+@cc one left. CHATARR:LIST came out as a SPARSE file: 32 pages of real listing
+@cc behind a hole the size of the whole of CHAT:LIST.
+@cc
+@cc   CHAT:LIST 430140  CHATARR:LIST 495270   difference 65130
+@cc   CHAT:LIST 405685  CHATARR:LIST 469782   difference 64097
+@cc
+@cc and a standalone compile of the same source gives a listing of 64960 bytes.
+@cc The byte count is the offset plus the real listing, every time.
+@cc
+@cc WHAT IT COST: the file cannot be PULLED. The FA server refuses to read the
+@cc unwritten blocks and answers SINTRAN error 18, so CHATARR:LIST could never
+@cc be gated - the one listing the comment above insists must be. The build
+@cc looked perfect: 0 DIAGNOSTICS on both compiles and a clean CHAT:LIST.
+@cc
+@cc EXIT and re-enter, and each listing starts at byte zero.
+@PLANC-100-F00
+COMPILE CHATARR:PLNC,"CHATARR:LIST","CHATARR"
 EXIT
 
 @cc --- step 2: link the program, the XMSG library and the PLANC runtime -----
@@ -104,6 +139,9 @@ EXIT
 @BRF-LINKER-C01
 PROGRAM-FILE "CHAT"
 LOAD CHAT
+@cc The arrival half. AFTER the program that calls it and BEFORE the
+@cc libraries - the linker wants the program first, then what satisfies it.
+LOAD CHATARR
 @cc CHATLIB carries the twenty message kinds both programs used to
 @cc declare separately. It must be loaded or every kind is undefined -
 @cc LIST-ENTRIES-UNDEFINED below is what says so.

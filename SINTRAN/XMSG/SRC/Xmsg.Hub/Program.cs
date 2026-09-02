@@ -143,6 +143,12 @@ namespace NDInsight.Sintran.Xmsg.Hub
                 stopping.Set();
             };
 
+            // The last status line printed. Compared against the next one so an unchanged
+            // segment stays silent instead of repeating itself. Empty means nothing has
+            // been printed yet, so the first pass always prints - which is what says the
+            // hub is alive and counting.
+            string lastStatus = "";
+
             while (!stopping.IsSet)
             {
                 if (stopping.Wait(StatusIntervalMs))
@@ -152,11 +158,22 @@ namespace NDInsight.Sintran.Xmsg.Hub
 
                 if (!quiet)
                 {
-                    Console.WriteLine(
+                    string status =
                         $"[hub] members {hub.MemberCount} (machines {hub.MachineMemberCount})   " +
                         $"in {hub.FramesIn}  fwd {hub.FramesForwarded}   " +
                         $"dropped slow {hub.FramesDroppedSlow} / loop {hub.FramesDroppedLoop} / ttl {hub.FramesDroppedTtl}" +
-                        (capturePath == null ? "" : $"   captured {hub.FramesCaptured}"));
+                        (capturePath == null ? "" : $"   captured {hub.FramesCaptured}");
+
+                    // ONLY PRINT WHEN SOMETHING MOVED. An idle segment used to write the
+                    // identical line every ten seconds for ever, which buries the lines that
+                    // do carry news - a member joining, a counter climbing, a frame dropped -
+                    // under thousands of copies of itself. Every number the line can show is
+                    // part of the compared text, so any change at all still prints.
+                    if (status != lastStatus)
+                    {
+                        Console.WriteLine(status);
+                        lastStatus = status;
+                    }
                 }
             }
 

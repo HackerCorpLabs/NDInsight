@@ -9,6 +9,58 @@ ND-60.117.5.
 
 ---
 
+## What PLANC is, and where it came from
+
+Context rather than rules. **Everything in this section is sourced from the Wikipedia article
+"PLANC" and is an ENCYCLOPEDIA CLAIM, not something measured on the machine or taken from a
+manual.** It is kept separate from the numbered rules for that reason. Where it touches anything
+this project has measured, the measurement wins and the disagreement is written down below rather
+than smoothed over.
+
+- **PLANC** stands for **Programming LAnguage for Nd Computers**, and is pronounced "plank".
+- Norsk Data built it as a **cross-platform systems-programming language**, aimed at operating
+  system components and compilers. It was proprietary.
+- It is procedural, imperative and structured, in the **Pascal family**, with static strong typing
+  and lexical scoping - though it has no generic `BEGIN`/`END`: blocks are `ROUTINE`/`ENDROUTINE`,
+  `DO`/`ENDDO` and so on.
+- **The store operator `=:` is inherited, not an oddity.** Left-to-right value flow - `5 =: a =: b`
+  - is shared with Plankalkuel, ALGOL 60, **Mary** and C. Mary is the RUNIT systems language, so
+  this is a direct Norwegian-computing lineage. Worth knowing because R19 and R42 stop looking
+  arbitrary once you see where the operator comes from.
+
+### Two claims in that article that this project's own measurements contradict
+
+**1. "Array pointers were three-word structures containing base address, lower bound and higher
+bound, enabling reliable runtime boundary checking."**
+
+The three-field SHAPE is corroborated independently - the `ghidra-planc` skill records an 8-byte
+descriptor `{long virtualOrigo, word lowerLimit, word upperLimit}` read out of real MC68000
+firmware. The ND-100 word layout has NOT been measured here, so do not assume it is the same.
+
+The "reliable runtime boundary checking" half is what conflicts. **R116 and R117 are MEASURED on
+D100: PLANC checks no array bounds, and that reaches the tests too** - a test that wrote past the
+end of an array still reported success. The likeliest reconciliation is that the descriptor makes
+checking POSSIBLE and `$OPTION ARRAY-INDEX-CHECK` turns it on, whose initial value is documented
+as OFF; `MAXINDEX`/`MININDEX` read the same descriptor (R53, R115). That reading leaves both
+statements true. **Do not soften R116 or R117 on the strength of the article** - the default is
+off, and the default is what every source in this project compiles under.
+
+**2. `FOR ... DO ... ENDDO` "with optional step specification".**
+
+Two problems. R58 gives the FOR list forms from RM5 6.5 - explicit values, implied ranges `a:b`,
+one-dimensional arrays, pointer implied ranges, and `REVERSE` - and there is **no step** in any of
+them, nor in `planc-lint.py`. The article also writes the terminator as `ENDDO`; ours is
+`ENDFOR`, which is measured. At least the terminator is wrong, so treat the step as an unverified
+claim. Appendix F's `for statement` production in ND-60.117.5 would settle it without touching the
+machine.
+
+**A third, smaller one:** the article names MC88000 and Intel x86 compilers, and NORD-10. Our
+measured compiler-command table has `$TARGET-MACHINE` evaluating to **100, 500 or 68000** only.
+Any 88000 or x86 compiler is a different product generation or an article error; it is not a
+change to that table.
+
+---
+
 ## Sources, and which one wins
 
 | Tag | Manual | Covers |
@@ -848,6 +900,25 @@ integer do not mix.
 `FORCE` reinterprets the bits and **requires exactly the same size** - a size mismatch gives
 ILLEGAL DATA-ELEMENT TO BE CONVERTED. Subtypes of the same base type (INTEGER1 vs INTEGER4, REAL
 PRECISION 7 vs 15) DO mix, and the result takes the larger of the two.
+
+**AND IT IS A WARNING, NOT AN ERROR - the program links, runs, and answers something plausible.**
+MEASURED 2026-08-27 while establishing whether a routine may take `ADDR` of a buffer it was handed:
+
+```
+    668/XRADDROF  *** WARNING - ILLEGAL DATA-ELEMENT TO BE CONVERTED
+```
+
+`ADDR(buf(0)) FORCE INTEGER4` on an **ND-100 address, which is SIXTEEN BITS**, is exactly this size
+mismatch. The build did not stop. The routine returned `3473663` where the caller's own `ADDR` said
+`65791`, and it did so **reproducibly across two separate builds** - which reads as a measurement
+and is not one. Two attempts were published and withdrawn before the warning in the listing was
+read.
+
+Written as `FORCE` to a 16-bit type it draws **no diagnostic at all** and the two addresses agree.
+So: the diagnostic that mattered was in the listing the whole time, it was only a warning, and
+**a warning here invalidates a result as thoroughly as an error would** - see R110.
+
+
 
 **Detect:** a binary arithmetic or relational operator with one operand of known integer type and
 the other of known real type. Requires a type table; only attempt it for variables declared in the
@@ -2163,7 +2234,8 @@ A `BYTES` parameter subscripts from **zero**, so the usable length is `MAXINDEX(
 available in a `STANDARD` routine - the FORTRAN/COBOL calling sequence. An ordinary PLANC routine
 is fine.
 
-**Detect:** not a lint rule - a design one. Prefer asking the array over believing a size.
+**Detect:** partly a lint rule now - see R121, which refuses a hand-counted length beside a
+literal. The rest is a design rule: prefer asking the array over believing a size.
 **Source:** ND-60.117.5 3.17 p.52, p.153, p.249; MEASURED on D100 2026-08-27.
 
 ---
@@ -2248,10 +2320,164 @@ against the wrong identifier, so check the ARGUMENT TYPES before the argument th
 
 ---
 
+## R119 - Every `IMPORT` and `EXPORT` belongs in one block, before any ordinary declaration
+
+An `IMPORT` **or an `EXPORT`** that appears after an ordinary declaration at module level draws
+
+```
+    991   (331)  *** ERROR   - MISPLACED STATEMENT "IMPORT"
+    131          *** ERROR   - MISPLACED STATEMENT "EXPORT"
+```
+
+one per offending line. The message is clear for once, but the shape of the mistake is easy to
+make: replacing a constant declaration with an `IMPORT` **where it stood** is the obvious edit
+when a constant moves into a shared library, and it reads perfectly well - each `IMPORT` sitting
+under the comment that explains that constant.
+
+MEASURED 2026-08-27: ten constants moved to a library, ten `IMPORT`s written in their old
+places, ten errors in one compile - four minutes to be told something a linter answers instantly.
+
+**The comment can stay where it is.** Only the `IMPORT` has to move to the block at the top; a
+one-line note where the constant used to be keeps the explanation next to the thing it explains.
+
+### The same rule caught `EXPORT` the same day, and that one is worse
+
+Ten trunk constants were exported from `CHATLIB` beside their own declarations - below the main
+`EXPORT` block, under the comment explaining them - and every one drew
+`MISPLACED STATEMENT "EXPORT"`.
+
+**What the machine did with those ten errors is the part worth remembering:**
+
+| step | what it said |
+|---|---|
+| `LIST-ENTRIES-UNDEFINED` | nothing - no undefined entries |
+| the loader | linked and produced a program |
+| the program | ran |
+| its own test suite | **139 checks, 0 failures** |
+| the last line on screen | `codec is good` |
+
+A compile with ten errors produced a program that passed its own tests, including checks that read
+those very constants back with the right values. **Only the listing said anything was wrong.** That
+is the whole reason this project gates on the pulled listing rather than on the screen - and the
+reason a check costing a second belongs in front of a compile costing minutes.
+
+**Detect:** any module-level `IMPORT` or `EXPORT` whose line number is greater than that of the
+first module-level `INTEGER`/`BYTES`/`BOOLEAN`/`REAL` declaration.
+**Source:** MEASURED on D100 2026-08-27, both halves; `tools/planc-lint.py` checks it, and
+`tools/fixtures/LINT-BADCASE.PLNC` pins it.
+
+---
+
 # Appendix A - Compiler messages worth mapping to rules
 
 When a linter reports something, quoting the message the compiler will actually print saves a build
 cycle. The mapping:
+
+## R120 - A name may be `IMPORT`ed ONCE. The second one is an ERROR.
+
+Importing a name that is already imported answers
+
+```
+    *** ERROR   - ILLEGAL PREDECLARATION
+```
+
+and that is an **ERROR, not the warning a repeated ordinary declaration usually gives** - so the
+compile fails rather than shrugging.
+
+**This is the one a MERGE produces and nobody notices.** Two halves of a source both legitimately
+needed `MON1`, and each said so in its own `IMPORT` block. Bringing the halves together is a clean
+edit that reads correctly in the diff, and the duplicate only exists in the combined file.
+
+It is the same family as the `?` predeclaration rule - predeclaring twice is also
+`ILLEGAL PREDECLARATION` - because an `IMPORT` *is* a declaration of a name defined elsewhere, and
+the compiler will accept exactly one of them.
+
+MEASURED 2026-08-28: `kHist` was imported into `CHATTST` beside six new routine imports, while it
+had already been imported forty lines further down. `tools/planc-lint.py` refused it on Windows in
+under a second; the compile it saved is four minutes on the machine.
+
+**Detect:** collect every name in an `IMPORT` at module level and report any that appears twice.
+Compare case-insensitively - PLANC does not distinguish case in identifiers.
+**False positives:** none seen. Two imports of one name have no legitimate use.
+**Source:** RM5 3.16 p.98 (predeclaration); CODE `planc-lint.py`, MEASURED on D100 2026-08-28.
+
+---
+
+## R121 - A helper must NEVER take `(text, textLen)`. Derive the length.
+
+The moment a routine accepts a length beside the string, every call site has to type a number that
+**nothing can check** - not the compiler, not the linker, not a test. It is correct on the day it
+is written and wrong the first time somebody edits the wording, and it still builds clean.
+
+```planc
+% WRONG - the caller counts, and the count rots
+ROUTINE VOID, INTEGER (BYTES, INTEGER, INTEGER) : putWord(text, textLen, at)
+...
+putWord('trunk added', 11, at) =: at
+
+% RIGHT - the string knows how long it is, so ask it
+ROUTINE VOID, INTEGER (BYTES, INTEGER) : putWord(text, at)
+    INTEGER : i, p, textLen
+    MAXINDEX(text, 1) + 1 =: textLen
+...
+putWord('trunk added', at) =: at
+```
+
+**MEASURED 2026-08-31 on the chat product: 93 hand-typed numbers deleted in one sitting** - 29
+`putWord`, 19 `logLine`, 18 `buildAdmText`, 15 `tryCmd`, 14 `cmdIs`, 12 `showIfMatch`. All 93 were
+CORRECT at the time, so this removed a whole class rather than fixing a live fault. **Audit before
+refactoring** - a dozen lines of Python comparing each number with its literal - because knowing
+whether you are fixing a hazard or a bug changes how it is reported.
+
+**Two preconditions, both cheap to check:**
+
+1. **Every call site passes a LITERAL.** `MAXINDEX` gives the DECLARED bound, so a caller handing a
+   64-byte buffer that holds a 10-byte name would get 64. Where the text is a buffer, the length is
+   real information and must still be passed. Grep the call sites for a first argument that does
+   not begin with a quote - and beware that the ROUTINE definition line matches that grep too.
+2. **The routine is not `STANDARD`** - `MAXINDEX` on a parameter is unavailable in the
+   FORTRAN/COBOL calling sequence (R115).
+
+**A `BYTES` DECLARED FROM A LITERAL BEHAVES THE SAME WAY - MEASURED, not assumed.** R115 measured
+`MAXINDEX` on array parameters and on a subarray, but not on `BYTES : v := 'DROP-MEMBER'` passed as
+a parameter, which is the shape `tryCmd` and `showIfMatch` in CHAT-MON now rely on. Three checks
+were added to the on-machine suite rather than trusting that it "should" work, because the symptom
+of being wrong is a menu where a command quietly stops matching - which reads as a logic bug, not
+an array question. MEASURED on D100 2026-08-31, all three PASS:
+
+```planc
+BYTES : litShort := 'HELP'             % MAXINDEX + 1 -> 4
+BYTES : litVerb  := 'DROP-MEMBER'      % MAXINDEX + 1 -> 11
+BYTES : litLong  := 'RESTART-TRUNK'    % MAXINDEX + 1 -> 13
+```
+
+So the bounds of a literal-initialised `BYTES` are `0:len-1`, exactly like a literal at a call
+site.
+
+**Why not a length constant declared next to the text?** It puts the two facts closer together but
+leaves them as two facts, and the failure mode is unchanged: edit the text, forget the number,
+builds clean. **Why not a macro?** PLANC's compile-time macros (RM5 0.11 p.208) are text
+substitution with parameters; there is no compile-time string-length operator to substitute, so a
+macro can wrap the call but has nothing to put in the length slot. **Name the text, never the
+length** - a named `BYTES : vDropMbr := 'DROP-MEMBER'` is worth having for reuse and readability,
+and the helper still derives its length from it.
+
+**One trap, three costumes.** An `'ALn'` field width (R28), a hand-counted length beside a literal
+(this rule), and a start column written as `65 - length` are the same defect: a number a human
+counted, that nothing verifies, that builds clean when wrong. Meeting one is a reason to look for
+the other two.
+
+**Detect:** two NAMED lists in `planc-lint.py`. `LITERAL_LENGTH_HELPERS` holds helpers that still
+take a length - the number must equal the literal - and is deliberately EMPTY, because that is the
+goal state rather than an oversight. `DERIVES_ITS_OWN_LENGTH` names every helper whose parameter
+has been removed, so the old shape is refused by name if it comes back; the compiler's own
+complaint about the parameter list never mentions `MAXINDEX` or why the parameter went away.
+**False positives:** none, provided a helper that legitimately takes a buffer length stays out of
+both lists.
+**Source:** RM5 3.17 p.52, p.153, p.249 (`MAXINDEX`), 0.11 p.208 (macros); CODE `planc-lint.py`,
+`SINTRAN/XMSG/SINTRAN-CHAT/`, MEASURED 2026-08-31.
+
+---
 
 | Compiler message | Rule |
 |---|---|
@@ -2266,10 +2492,14 @@ cycle. The mapping:
 | IDENTIFIER ALREADY SPECIFIED/DECLARED | R4, R39, R113 |
 | *(no message at all)* - two EXPORTs equal in 7 chars | R114 |
 | *(no message at all)* - a write past the end of an array | R24, R116, R117 |
+| *(no message at all)* - a length typed beside a literal | R28, R121 |
+| ILLEGAL PREDECLARATION | R36, R120 |
+| MISPLACED STATEMENT "IMPORT" | R119 |
+| MISPLACED STATEMENT "EXPORT" | R119 |
 | IDENTIFIER IN EXPORT, BUT NO DECLARATION | R83 |
 | ILLEGAL CHARACTER | R1, R2, R15 |
 | ILLEGAL CONTROL IDENTIFIER | R58 |
-| ILLEGAL DATA-ELEMENT TO BE CONVERTED | R46 |
+| ILLEGAL DATA-ELEMENT TO BE CONVERTED *(a WARNING - the build survives)* | R46 |
 | ILLEGAL DATA TYPE | R108, R109 |
 | ILLEGAL FORMAL PARAMETER IN MACRO | R91 |
 | ILLEGAL INLINE INVOCATION | R75 |
@@ -2342,9 +2572,9 @@ Marked so nobody builds a rule on them.
 | **Warning** | R3, R5, R8, R9, R20, R29, R34, R35, R37, R38, R51, R53, R57, R58, R59, R60, R62, R66, R67, R68, R71, R75, R76, R78, R79, R81, R82, R90, R91, R95, R96, R97, R102, R103, R104, R105, R106, R107 |
 | **Note / informational** | R6, R7, R10, R12, R16, R17, R18, R22, R25, R27, R30, R33, R42, R43, R44, R46, R47, R48, R49, R50, R52, R63, R64, R70, R72, R92, R94, R99, R100, R101, R109, R110, R112 |
 
-**Rule count: 113.**
+**Rule count: 114.**
 
 ---
 
-**Last updated:** 2026-08-21
+**Last updated:** 2026-08-31
 **Written for:** a linter author extending `E:\Dev\Ronny\NDInsight\SINTRAN\XMSG\tools\planc-lint.py`

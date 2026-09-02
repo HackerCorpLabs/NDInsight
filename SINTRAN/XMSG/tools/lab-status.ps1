@@ -42,7 +42,7 @@ if (-not (Test-Path $TopologyPath)) {
 $topo = Get-Content $TopologyPath -Raw | ConvertFrom-Json
 
 # One snapshot each, so every line below describes the SAME instant rather than drifting as we go.
-$procs = @(Get-CimInstance Win32_Process -Filter "Name='RetroCore.exe' OR Name='Xmsg.Live.Runner.exe' OR Name='dotnet.exe' OR Name='testhost.exe' OR Name='MSBuild.exe' OR Name='VBCSCompiler.exe' OR Name='tshark.exe' OR Name='RetroTerm.Desktop.exe'")
+$procs = @(Get-CimInstance Win32_Process -Filter "Name='RetroCore.exe' OR Name='Xmsg.Live.Runner.exe' OR Name='dotnet.exe' OR Name='testhost.exe' OR Name='MSBuild.exe' OR Name='VBCSCompiler.exe' OR Name='tshark.exe' OR Name='RetroTerm.Desktop.exe' OR Name='xmsghub.exe'")
 $conns = @(Get-NetTCPConnection -ErrorAction SilentlyContinue)
 
 function Get-Proc([int] $processId) {
@@ -125,6 +125,36 @@ foreach ($m in $topo.machines) {
     }
 }
 
+# ---------------------------------------------------------------- ethernet hub
+#
+# THE SEGMENT ALL THREE MACHINES SHARE, AND IT WAS NOT REPORTED HERE AT ALL.
+#
+# This script grew when the lab was HDLC, so it shows HDLC listeners and dials and stops there.
+# The lab has since moved: D100, D102 and D103 all join a COSMOS Ethernet segment through
+# xmsghub on 127.0.0.1:5010, and our own node reaches D100 that way too.
+#
+# MEASURED 2026-08-29, and this gap cost real damage. The hub was stopped on the mistaken belief
+# that the lab was down. Nothing anywhere said the Ethernet segment had just been cut - this
+# script printed a clean-looking report with all three machines up and no hint that the thing
+# joining them had gone. A status tool that omits the busiest link is not a status tool.
+Write-Host ""
+Write-Host "ETHERNET SEGMENT (COSMOS hub)" -ForegroundColor Cyan
+$hubProc = $null
+foreach ($p in $procs) { if ($p.Name -eq 'xmsghub.exe') { $hubProc = $p; break } }
+$hubListening = @(Get-NetTCPConnection -State Listen -LocalPort 5010 -ErrorAction SilentlyContinue)
+if ($hubProc -and $hubListening.Count -gt 0) {
+    Write-Host ("  hub  up   pid {0}  listening on 5010" -f $hubProc.ProcessId) -ForegroundColor Green
+}
+elseif ($hubListening.Count -gt 0) {
+    Write-Host ("  hub  up   pid {0}  listening on 5010 (not named xmsghub.exe)" -f $hubListening[0].OwningProcess) -ForegroundColor Green
+}
+else {
+    Write-Host "  hub  DOWN - NOTHING IS LISTENING ON 5010" -ForegroundColor Red
+    Write-Host "       Every machine reaches the others over this segment. While it is down the" -ForegroundColor Yellow
+    Write-Host "       trunks cannot carry and our node cannot push or pull anything." -ForegroundColor Yellow
+    Write-Host "       start: SRC\Xmsg.Hub\bin\Release\net9.0\xmsghub.exe --port 5010" -ForegroundColor DarkGray
+}
+
 # ---------------------------------------------------------------- our relay
 Write-Host ""
 Write-Host "OUR NODE ($($topo.ourNode.name), system $($topo.ourNode.systemNumber))" -ForegroundColor Cyan
@@ -136,8 +166,19 @@ if ($relay) {
 }
 else {
     Write-Host "  not running" -ForegroundColor DarkYellow
-    Write-Host ("  start: {0}" -f $topo.ourNode.command) -ForegroundColor DarkGray
+    Write-Host ("  start (HDLC relay, historical): {0}" -f $topo.ourNode.command) -ForegroundColor DarkGray
     Write-Host "  NOTE start the relay's listener BEFORE the machine that dials it." -ForegroundColor DarkGray
+    Write-Host ""
+    # THE COMMAND THAT IS ACTUALLY USED. The relay line above is the HDLC arrangement, kept
+    # because it still describes that path - but every transfer since D19999 moved onto the
+    # Ethernet segment has gone over the hub, and this is the form the daemon is started with.
+    # Read out of the daemon's own logged argv rather than remembered.
+    Write-Host "  start (ETHERNET - what the sync daemon actually uses):" -ForegroundColor DarkGray
+    Write-Host "    Xmsg.Live.Runner --config SRC\Xmsg.Live.Runner\topology-d19999.json" -ForegroundColor DarkGray
+    Write-Host "      --originate-from-seed --sync sync-relay --sync-pull sync-pull" -ForegroundColor DarkGray
+    Write-Host "      --sync-user SYSTEM --sync-to 100 127.0.0.1 5010 19999 <seconds>" -ForegroundColor DarkGray
+    Write-Host "  The last number is SECONDS - give it a window longer than the work so it ends by" -ForegroundColor DarkGray
+    Write-Host "  itself. Never hard-kill it: that skips the DISC and half-opens the peer's link." -ForegroundColor DarkGray
 }
 
 # ---------------------------------------------------------------- .NET hosts

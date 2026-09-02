@@ -23,9 +23,9 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
     /// <para><b>What the spec says, and it is a table cell rather than prose</b></para>
     /// <para>
     /// The state table (section 8) carries "notify up" as an action SEPARATE from the transition:
-    /// <c>rx SABM</c> in SABM_SENT is <c>send UA; reset -&gt; CONNECTED</c> with NO notify up,
-    /// while <c>rx UA</c> in SABM_SENT is <c>reset; notify up -&gt; CONNECTED</c>. Section 3.1 says
-    /// the same in prose - the link is up when BOTH directions have completed SABM -&gt; UA.
+    /// <c>rx SABM</c> in SABM_SENT is <c>send UA; reset -> CONNECTED</c> with NO notify up,
+    /// while <c>rx UA</c> in SABM_SENT is <c>reset; notify up -> CONNECTED</c>. Section 3.1 says
+    /// the same in prose - the link is up when BOTH directions have completed SABM -> UA.
     /// </para>
     /// <para><b>Relationship to LapbAnnounceOrderingTests</b></para>
     /// <para>
@@ -153,7 +153,7 @@ namespace NDInsight.Sintran.Xmsg.Live.Tests
         /// A station that never sent a SABM comes up on the peer's SABM alone.
         /// </summary>
         /// <remarks>
-        /// The table's "rx SABM in DISCONNECTED -&gt; notify up" case. A passive answerer has no
+        /// The table's "rx SABM in DISCONNECTED -> notify up" case. A passive answerer has no
         /// outstanding direction of its own, so requiring an acknowledgement it never asked for
         /// would leave it permanently down. This is why the our-half flag starts TRUE and is
         /// cleared by Connect() rather than starting false.

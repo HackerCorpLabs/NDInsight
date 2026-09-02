@@ -77,7 +77,7 @@ STATUS via `RSTAT`/`dev+2` - trace `RSTAT`'s bit tests + the STATUS bit definiti
 - The ND-500 interface is an **IOX device** at `CPU-DF[-3]`; the emulator implements those IOX
   registers.
 - **`dev+2` = status read** (via `RSTAT`) is the prime candidate for the "control store loaded?" /
-  interface-status the monitor polls - i.e. the gate that wedged `VERSION`. Trace `RSTAT` fully to get
+  interface-status the monitor polls - i.e. the gate that hung `VERSION`. Trace `RSTAT` fully to get
   the exact status bits the emulator must return.
 - `WADR`/`WRDAT`/`RDATL`/`REDAT` = the address+data path for register/memory transfer.
 - **Next step (Phase 3 item 1):** cross-check this byte-verified offset map against the manual-based

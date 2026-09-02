@@ -21,10 +21,10 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
     /// must acknowledge in turn. So one ladder step is four messages:
     /// </para>
     /// <code>
-    /// -> request        (we send)
-    /// &lt;- short ack      (the server answers our request)
-    /// &lt;- reply          (a new exchange)
-    /// -> short ack      (we answer that)
+    /// us     -> server   request      (we send)
+    /// server -> us       short ack    (the server answers our request)
+    /// server -> us       reply        (a new exchange)
+    /// us     -> server   short ack    (we answer that)
     /// </code>
     /// <para>
     /// Getting this wrong draws subtype <c>0x07</c> with Flags 2 <c>0xFFDE</c> - XENSE, a

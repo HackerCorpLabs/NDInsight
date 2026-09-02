@@ -77,6 +77,18 @@ there is one, and blocking stops mattering:
 **Sleep when the buffer is empty** or this is a spin, not a poll: `MN104(5, 1)`, type 1 = basic
 units of a fiftieth of a second. The manual says no parameter may be zero.
 
+### Function keys are a DIFFERENT route - `VTINBT`, not `MON1`
+
+The poll above reads ordinary characters as bytes. **A function key is an ESC SEQUENCE**, and
+`VTINBT` is what turns one into a single code.
+
+**[VTM-KEY-CODES.md](VTM-KEY-CODES.md) is the whole table** - what `VTINBT` returns for every key,
+measured on D100 with `SINTRAN/XMSG/SINTRAN-CHAT/KEYPROB.PLNC`. No ND document describes any of it,
+so that page is the only record there is. It also names two traps that make `VTINBT` look as though
+it decodes nothing: type it as three values IN and one OUT, and pass VARIABLES rather than literals.
+
+**Not measured by this page** - the key-codes page did that work.
+
 **Note the names:** `MON66` but `MN104` and `MN113` - the runtime drops the O at three digits.
 
 ### Take the echo, and take ESC to make that safe
@@ -149,10 +161,33 @@ they are all local and the position appears once.
 
 ---
 
-## 4. You are the window manager - three rules
+## 4. You are the window manager - four rules
 
 VTM has **no z-order and no save-under**, and neither does PLANC-SCREEN-H. So a stack order is
 something you write down, and **three separate places have to read it**.
+
+### Rule 0: KEEP EVERY WINDOW'S RECTANGLE AT MODULE LEVEL
+
+**This one comes first because the other three are impossible without it**, and it is the rule that
+was missing when the rest of this section was written.
+
+Row, column, height and width must OUTLIVE the routine that draws the window. If they are locals -
+computed, drawn with, and gone when the routine returns - then nothing else in the program knows
+where the window is, and from that moment:
+
+ - **you cannot clip**, because there is no rectangle to test a cell against;
+ - **you cannot repaint only what was covered** on close, because there is no rectangle to repaint.
+
+So the program falls back to `drawAll` on close and to "do not paint while a window is open", and
+**those are not bad choices - they are the only ones left.** The bug is upstream of both.
+
+`TESTUI.PLNC` keeps `smallRow/smallCol/smallHigh/smallWide` and `bigRow/...` at module level, and
+everything it does well follows from that. `CHAT.PLNC`'s `drawPanel` kept them as locals, and broke
+Rules 1, 1b and 2 as a direct result - reported by Ronny 2026-08-31, the SECOND time the same
+family of fault reached him.
+
+**The check takes a second:** in the routine that opens a window, are the four numbers visible from
+anywhere else? If not, stop.
 
 ### Rule 1: CLIP what you paint - never SKIP it
 
@@ -325,6 +360,8 @@ of it.
 ## See also
 
 - [VTM-API-REFERENCE.md](VTM-API-REFERENCE.md) - all 37 VTM routines, argument counts, status codes
+- [VTM-KEY-CODES.md](VTM-KEY-CODES.md) - what `VTINBT` returns for every key, including the
+  function keys this page's byte poll does not decode
 - [VTM-VIEWPORT-HOW-TO-USE-IT.md](VTM-VIEWPORT-HOW-TO-USE-IT.md) - `VTDSCR` measured in full
 - [PLANC-UI-VTM-GUIDE.md](PLANC-UI-VTM-GUIDE.md) - PLANC-SCREEN-H, the drawing layer
 - [PLANC-VTM-PROGRAMMING-GUIDE.md](PLANC-VTM-PROGRAMMING-GUIDE.md) - prerequisites, terminal types,

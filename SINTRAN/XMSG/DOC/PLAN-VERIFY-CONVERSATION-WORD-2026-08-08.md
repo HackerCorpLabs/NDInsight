@@ -85,5 +85,5 @@ Both were measured and rejected; re-running them costs a session each.
 
  - **Echoing the letter's Flags 1 on the connection confirmation.** Tried 2026-08-04 and again
    2026-08-08. XENSE both times. `XmsgAnsweredFlags1.None` is correct.
- - **`STOP-XMSG` / `START-XMSG` on D103 to force a counter reset.** Wedged `X-COMM`, then the
+ - **`STOP-XMSG` / `START-XMSG` on D103 to force a counter reset.** Hung `X-COMM`, then the
    emulator process died. Restart the emulator instead.

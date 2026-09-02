@@ -76,11 +76,21 @@ $INCLUDE XMP-B02:IMPT
     % SET-NAME <name> - what this machine calls itself.
     INTEGER : kAdmName   := 39
 
-    % LOCK-PEERS / OPEN-PEERS - may the server learn a machine nobody
+    % LOCK-TRUNKS / UNLOCK-TRUNKS - may the server learn a machine nobody
     % configured? Open is the default and always has been; locking is how an
     % operator says these are the machines, once the lab is up.
     INTEGER : kAdmLock   := 40
     INTEGER : kAdmOpen   := 41
+
+    % DROP-MEMBER <name> - free a seat on the server and tell nobody.
+    % A TEST VERB, and the server's own declaration of kAdmDrop says why:
+    % it is the only way to create the machine-disagreement that kTrkDBad
+    % answers, because every ordinary way of leaving keeps both ends in step.
+    INTEGER : kAdmDrop   := 42
+
+    % LIST-MEMBER - who is seated on the server right now, and which room.
+    % The other half of DROP-MEMBER: that acts on a seat, this shows them.
+    INTEGER : kAdmMbrs   := 43
 
     % The server's command port, by name. XROUT turns this into an
     % address; nothing here knows or wants the number.
@@ -129,8 +139,10 @@ $INCLUDE XMP-B02:IMPT
     BYTES : vListTrunks := 'LIST-TRUNKS'
     BYTES : vInit       := 'INITIALIZE'
     BYTES : vSetName    := 'SET-NAME'
-    BYTES : vLockPeers  := 'LOCK-PEERS'
-    BYTES : vOpenPeers  := 'OPEN-PEERS'
+    BYTES : vLockTrunks := 'LOCK-TRUNKS'
+    BYTES : vUnlockTrk  := 'UNLOCK-TRUNKS'
+    BYTES : vDropMbr    := 'DROP-MEMBER'
+    BYTES : vListMbr    := 'LIST-MEMBER'
     INTEGER : i
 
     % ONE NUMBER PER COMMAND. The matcher below finds WHICH command was typed
@@ -153,8 +165,10 @@ $INCLUDE XMP-B02:IMPT
     INTEGER : cListTrunks  := 10
     INTEGER : cInit        := 11
     INTEGER : cSetName     := 12
-    INTEGER : cLockPeers   := 13
-    INTEGER : cOpenPeers   := 14
+    INTEGER : cLockTrunks  := 13
+    INTEGER : cUnlockTrk   := 14
+    INTEGER : cDropMbr     := 15
+    INTEGER : cListMbr     := 16
 
     % The RT program that IS the chat server. This is the PROGRAM unit's name
     % from CHATSV.PLNC - "PROGRAM : chatServer" - not the file name, and it is
@@ -193,6 +207,12 @@ $INCLUDE XMP-B02:IMPT
     % name was never declared - two diagnostics from one omission. CHATSV's
     % spaceByte is the same idiom.
     BYTES : oneByte := ' '
+
+    % THE LINE BREAK INSIDE A REPLY. The server separates the elements of a
+    % listing with LF because the whole answer travels as ONE kAdmRepl message;
+    % showAnswer turns each one into a CRLF. Must match lineBreak in
+    % CHATSV.PLNC - the two move together.
+    INTEGER : lineBreak := 10
 
     % -----------------------------------------------------------------------
     % Print a status number beside the call that produced it. A bare number
@@ -439,11 +459,27 @@ $INCLUDE XMP-B02:IMPT
         % so every reply repeating the program's own name was noise stacked on
         % top of the one line the operator actually asked for.
         FOR i IN 0:replyTextLen - 1 DO
-            % One byte at a time through a one-element BYTES. A string literal
-            % cannot be stored into a BYTES element, and 'ALn' formats a
-            % STRING - handing it a byte prints the byte's NUMBER.
-            inBuf(p + i) =: oneByte
-            OUTPUT(1, 'AL1', oneByte)
+            % AN LF IN THE TEXT IS A LINE BREAK, not a character to print.
+            %
+            % A listing - LIST-TRUNKS and anything else the server answers with
+            % kAdmRepl - arrives as ONE message with its elements separated by
+            % LF, because there is no second kind and no room in the format for
+            % one. Turning it into a CRLF here is what puts one element per
+            % line, and it does so for EVERY listing at once rather than only
+            % the one that was reported.
+            %
+            % Printing the byte instead would send a bare LF to the terminal,
+            % which drops a line without returning the carriage and leaves the
+            % next line marching to the right.
+            IF inBuf(p + i) = lineBreak THEN
+                OUTPUT(1, 'AL1', '$')
+            ELSE
+                % One byte at a time through a one-element BYTES. A string
+                % literal cannot be stored into a BYTES element, and 'ALn'
+                % formats a STRING - handing it a byte prints the byte's NUMBER.
+                inBuf(p + i) =: oneByte
+                OUTPUT(1, 'AL1', oneByte)
+            ENDIF
         ENDFOR
         OUTPUT(1, 'AL1', '$')
     ENDROUTINE
@@ -523,10 +559,12 @@ $INCLUDE XMP-B02:IMPT
         % NO WIDTH ON THESE. 'ALn' is a FIELD, not a maximum: a count one short
         % truncates the line and one too long pads it with asterisks, and both
         % build clean. The bare descriptor sizes itself.
-        OUTPUT(1, 'AL', '  LOCK-PEERS           learn no NEW machines$')
-        OUTPUT(1, 'AL', '  OPEN-PEERS           learn any machine again$')
+        OUTPUT(1, 'AL', '  LOCK-TRUNKS          learn no NEW machines$')
+        OUTPUT(1, 'AL', '  DROP-MEMBER <name>   free a seat, tell NOBODY (test)$')
+        OUTPUT(1, 'AL', '  LIST-MEMBER          who is seated, and which room$')
+        OUTPUT(1, 'AL', '  UNLOCK-TRUNKS        learn any machine again$')
         OUTPUT(1, 'AL1',  '$')
-        OUTPUT(1, 'AL57', 'Commands may be shortened: L-T or LI-TRU is LIST-TRUNKS.$')
+        OUTPUT(1, 'AL', 'Shorten each part: LI-T is LIST-TRUNKS, LO-T is LOCK-TRUNKS.$')
         OUTPUT(1, 'AL37', 'Upper or lower case, either is fine.$')
         OUTPUT(1, 'AL53', 'A trunk is a BELIEF a peer is reachable, not a link.$')
     ENDROUTINE
@@ -666,7 +704,22 @@ $INCLUDE XMP-B02:IMPT
     % -----------------------------------------------------------------------
     % Count one keyword against what was typed, remembering the last hit.
     % -----------------------------------------------------------------------
-    ROUTINE VOID, VOID (BYTES, INTEGER, INTEGER) : tryCmd(word, wordLen, id)
+    % THE LENGTH IS NOT A PARAMETER - THE KEYWORD IS ASKED FOR IT.
+    %
+    % Every caller passes one of the vXxx keywords declared above, and each one
+    % used to hand the count in beside it: fifteen hand-typed numbers that
+    % nothing could check. Rename a command and the number beside it is silently
+    % wrong, the build is clean, and the abbreviation matcher then compares the
+    % wrong number of characters - so a command matches when it should not, or
+    % stops matching at all.
+    %
+    % MAXINDEX(word, 1) is the DECLARED UPPER BOUND of the parameter and a
+    % string subscripts from ZERO, so the length is that plus one. A STANDARD
+    % routine the compiler provides - no IMPORT - and it works on an array
+    % parameter, which is what this is.
+    ROUTINE VOID, VOID (BYTES, INTEGER) : tryCmd(word, id)
+        INTEGER : wordLen
+        MAXINDEX(word, 1) + 1 =: wordLen
         IF abbrevMatch(word, wordLen) THEN
             cmdCount + 1 =: cmdCount
             id =: cmdId
@@ -678,7 +731,12 @@ $INCLUDE XMP-B02:IMPT
     % ambiguous abbreviation could have meant. Being told "ambiguous" without
     % being told between what is a riddle, not an error message.
     % -----------------------------------------------------------------------
-    ROUTINE VOID, VOID (BYTES, INTEGER) : showIfMatch(word, wordLen)
+    % The length is derived here for the same reason as in tryCmd above - the
+    % keyword knows how long it is, and a hand-typed number beside it is one
+    % more thing that can quietly disagree with the string.
+    ROUTINE VOID, VOID (BYTES) : showIfMatch(word)
+        INTEGER : wordLen
+        MAXINDEX(word, 1) + 1 =: wordLen
         IF abbrevMatch(word, wordLen) THEN
             OUTPUT(1, 'AL2', '  ')
             OUTPUT(1, 'AL', word)
@@ -695,20 +753,22 @@ $INCLUDE XMP-B02:IMPT
     ROUTINE VOID, VOID : matchAll
         0 =: cmdCount
         cNone =: cmdId
-        tryCmd(vExit,       4,  cExit)
-        tryCmd(vHelpWord,   4,  cHelp)
-        tryCmd(vStatus,     6,  cStatus)
-        tryCmd(vStop,       4,  cStop)
-        tryCmd(vStart,      5,  cStart)
-        tryCmd(vRestart,    7,  cRestart)
-        tryCmd(vStartTrunk, 11, cStartTrunk)
-        tryCmd(vStopTrunk,  10, cStopTrunk)
-        tryCmd(vRestTrunk,  13, cRestTrunk)
-        tryCmd(vListTrunks, 11, cListTrunks)
-        tryCmd(vInit,       10, cInit)
-        tryCmd(vSetName,     8, cSetName)
-        tryCmd(vLockPeers,  10, cLockPeers)
-        tryCmd(vOpenPeers,  10, cOpenPeers)
+        tryCmd(vExit, cExit)
+        tryCmd(vHelpWord, cHelp)
+        tryCmd(vStatus, cStatus)
+        tryCmd(vStop, cStop)
+        tryCmd(vStart, cStart)
+        tryCmd(vRestart, cRestart)
+        tryCmd(vStartTrunk, cStartTrunk)
+        tryCmd(vStopTrunk, cStopTrunk)
+        tryCmd(vRestTrunk, cRestTrunk)
+        tryCmd(vListTrunks, cListTrunks)
+        tryCmd(vInit, cInit)
+        tryCmd(vSetName, cSetName)
+        tryCmd(vLockTrunks, cLockTrunks)
+        tryCmd(vUnlockTrk, cUnlockTrk)
+        tryCmd(vDropMbr, cDropMbr)
+        tryCmd(vListMbr, cListMbr)
     ENDROUTINE
 
     % -----------------------------------------------------------------------
@@ -716,18 +776,25 @@ $INCLUDE XMP-B02:IMPT
     % -----------------------------------------------------------------------
     ROUTINE VOID, VOID : showAmbiguous
         OUTPUT(1, 'AL22', 'ambiguous - could be:$')
-        showIfMatch(vExit,       4)
-        showIfMatch(vHelpWord,   4)
-        showIfMatch(vStatus,     6)
-        showIfMatch(vStop,       4)
-        showIfMatch(vStart,      5)
-        showIfMatch(vRestart,    7)
-        showIfMatch(vStartTrunk, 11)
-        showIfMatch(vStopTrunk,  10)
-        showIfMatch(vRestTrunk,  13)
-        showIfMatch(vListTrunks, 11)
-        showIfMatch(vInit,       10)
-        showIfMatch(vSetName,     8)
+        showIfMatch(vExit)
+        showIfMatch(vHelpWord)
+        showIfMatch(vStatus)
+        showIfMatch(vStop)
+        showIfMatch(vStart)
+        showIfMatch(vRestart)
+        showIfMatch(vStartTrunk)
+        showIfMatch(vStopTrunk)
+        showIfMatch(vRestTrunk)
+        showIfMatch(vListTrunks)
+        showIfMatch(vInit)
+        showIfMatch(vSetName)
+        % THESE THREE WERE MISSING. tryCmd knows them, so an abbreviation CAN be
+        % ambiguous between them, and this list is what the person is shown when
+        % it is - leaving them out turns a helpful message into a wrong one.
+        showIfMatch(vLockTrunks)
+        showIfMatch(vUnlockTrk)
+        showIfMatch(vDropMbr)
+        showIfMatch(vListMbr)
     ENDROUTINE
 
     % -----------------------------------------------------------------------
@@ -945,6 +1012,23 @@ $INCLUDE XMP-B02:IMPT
             RETURN
         ENDIF
 
+        % DROP-MEMBER <name> - free that seat on the server and tell nobody.
+        %
+        % sndArgMsg like the other verbs that carry an argument: the name goes
+        % across as text and the SERVER decides what a valid one is, so there is
+        % only ever one place that can be wrong about it.
+        %
+        % THIS IS A TEST VERB AND THE HELP LINE SAYS SO. It exists to reach
+        % kTrkDBad on purpose - see the comment on kAdmDrop in CHATSV.PLNC.
+        % Used on a live room it silently unseats somebody, and the room is
+        % never told, which is exactly what makes it useful and exactly what
+        % makes it wrong for anything else.
+        IF cmdId = cDropMbr THEN
+            sndArgMsg(kAdmDrop)
+            showAnswer
+            RETURN
+        ENDIF
+
         % SET-NAME <name> - what this machine calls itself.
         %
         % TYPICALLY THE MACHINE'S OWN NAME, and that is the point of it: a room
@@ -969,16 +1053,16 @@ $INCLUDE XMP-B02:IMPT
             RETURN
         ENDIF
 
-        % LOCK-PEERS / OPEN-PEERS carry no argument, so they go out with
+        % LOCK-TRUNKS / UNLOCK-TRUNKS carry no argument, so they go out with
         % sendAdmin rather than sndArgMsg. The server answers with kAdmRepl like
         % every other admin verb, so showAnswer needs no new decoding.
-        IF cmdId = cLockPeers THEN
+        IF cmdId = cLockTrunks THEN
             sendAdmin(kAdmLock)
             showAnswer
             RETURN
         ENDIF
 
-        IF cmdId = cOpenPeers THEN
+        IF cmdId = cUnlockTrk THEN
             sendAdmin(kAdmOpen)
             showAnswer
             RETURN
@@ -992,6 +1076,14 @@ $INCLUDE XMP-B02:IMPT
 
         IF cmdId = cListTrunks THEN
             sendAdmin(kAdmTrunks)
+            showAnswer
+            RETURN
+        ENDIF
+
+        % LIST-MEMBER - no argument, carries no NEW state, so this is
+        % sendAdmin like LIST-TRUNKS and not sndArgMsg like DROP-MEMBER.
+        IF cmdId = cListMbr THEN
+            sendAdmin(kAdmMbrs)
             showAnswer
             RETURN
         ENDIF

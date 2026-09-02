@@ -30,15 +30,15 @@ namespace NDInsight.Sintran.Xmsg.Protocol.Fa
     /// <c>DOC/captures/ND-TO-ND-WRITE-2026-08-10/readback-10-blocks.pcapng</c>, one block:
     /// </para>
     /// <code>
-    /// -&gt; 8400  ReadFile block 0        our request
-    /// &lt;- ShortAck                       the server answers the request
-    /// &lt;- 8400  reply                    a new exchange
-    /// -&gt; ShortAck                       we answer the reply
-    /// &lt;- 0500  content message 1        1024 bytes, as a fragment pair
-    /// -&gt; ShortAck                       we answer it
-    /// &lt;- 8600  content message 2        1024 bytes, as a fragment pair
-    /// -&gt; ShortAck                       we answer it
-    /// -&gt; 8500  ReadFile block 1         only now does the next block start
+    /// us     -> server   8400  ReadFile block 0   our request
+    /// server -> us       ShortAck                 the server answers the request
+    /// server -> us       8400  reply              a new exchange
+    /// us     -> server   ShortAck                 we answer the reply
+    /// server -> us       0500  content message 1  1024 bytes, as a fragment pair
+    /// us     -> server   ShortAck                 we answer it
+    /// server -> us       8600  content message 2  1024 bytes, as a fragment pair
+    /// us     -> server   ShortAck                 we answer it
+    /// us     -> server   8500  ReadFile block 1   only now does the next block start
     /// </code>
     /// <para>
     /// So a block step costs THREE short acknowledgements from us, where a write's costs one. A

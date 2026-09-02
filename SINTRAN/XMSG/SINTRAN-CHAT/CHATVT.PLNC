@@ -1,0 +1,340 @@
+% =========================================================================
+% CHATVT - CHATSV's OWN send side (buildFromSlot + broadcast), offline.
+%
+% WHY THIS EXISTS. The repeat-first-message handoff (2026-09-01) names the
+% one untested area: the server's send path. CHATCTST proved the client's
+% cache, paint and parse; CHATKT proved the raw kernel get/wri/send and
+% rcv/rea/rel sequences deliver distinct content faithfully, even with a
+% received message held unreleased. What has never been RUN with synthetic
+% distinct inputs is CHATSV's own buildFromSlot and broadcast.
+%
+% THE METHOD. Link against the real CHATSV.BRF, plant three fake members
+% in its member table whose magic numbers are OUR OWN test port, then:
+%
+%   part A  call buildFromSlot three times with three different slots and
+%           texts and DECODE outBuf after each call with CHATLIB's own
+%           cm* readers - the build half, no XMSG involved;
+%   part B  call broadcast and count + decode what actually arrives on
+%           the port - audience selection AND delivered bytes;
+%   part C  three build+broadcast rounds with distinct texts, checking
+%           after each round that what arrived is THAT round's text -
+%           the exact shape of the live bug.
+%
+% Every message received is dumped (kind, name length, first name byte,
+% text length, first text byte) whether it passes or not, so a failing
+% transcript identifies the wrong byte without another run.
+%
+% HOW TO READ IT: every line starts PASS or FAIL, the last line is a
+% count. A FAIL in part A is buildFromSlot; a wrong COUNT in part B is
+% broadcast's audience filter; wrong CONTENT in part C with A and B clean
+% is the live bug caught between build and delivery.
+% =========================================================================
+MODULE chatvt
+
+$INCLUDE XMP-B02:DEFS
+$INCLUDE XMP-B02:IMPT
+
+    % ---- the server's own pieces, exported by CHATSV.PLNC -----------------
+    IMPORT (ROUTINE VOID, INTEGER (INTEGER, INTEGER, INTEGER, INTEGER) : &
+            buildFromSlot)
+    IMPORT (ROUTINE VOID, VOID (INTEGER, INTEGER, INTEGER) : broadcast)
+    IMPORT (ROUTINE VOID, VOID (INTEGER4, INTEGER) : sendTo)
+    IMPORT (BYTES : outBuf(0:255))
+    IMPORT (BYTES : inBuf(0:255))
+    IMPORT (INTEGER ARRAY : memberUsed(1:16))
+    IMPORT (BYTES ARRAY : memberName(1:16, 1:16))
+    IMPORT (INTEGER ARRAY : memberLen(1:16))
+    IMPORT (INTEGER4 ARRAY : memberMagic(1:16))
+    IMPORT (BYTES ARRAY : mbrRoom(1:16, 1:16))
+    IMPORT (INTEGER ARRAY : lenMbrRoom(1:16))
+    IMPORT (INTEGER : myPort)
+    IMPORT (INTEGER : sendFlags)
+
+    % ---- the library's readers - decode with the code that SHIPS ----------
+    IMPORT (INTEGER : kSaid)
+    IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmKind)
+    IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmNmLen)
+    IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmTxAt)
+    IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmTxLen)
+
+    INTEGER ARRAY : stack(0:1000)
+
+    % The test's OWN receive buffer. NOT the server's inBuf - buildFromSlot
+    % reads its text out of inBuf, so receiving into it would overwrite the
+    % source mid-test.
+    BYTES : tstIn(0:255)
+
+    BYTES : nmAnna := 'ANNA'
+    BYTES : nmBert := 'BERT'
+    BYTES : nmCarl := 'CARL'
+    BYTES : rmLobby := 'LOBBY'
+    BYTES : rmDen := 'DEN'
+    BYTES : txtRed := 'redredred'
+    BYTES : txtBlue := 'blueblue'
+    BYTES : txtGreen := 'green'
+    BYTES : zByte := 'Z'
+
+    INTEGER4 : myMagic
+    INTEGER : rcvSt, reaSt, relSt
+    INTEGER : msgType
+    INTEGER : remotePortHash
+    INTEGER : nBytes
+    INTEGER : readAmount
+    INTEGER : readLength
+
+    INTEGER : passed := 0
+    INTEGER : failed := 0
+
+    ROUTINE VOID, VOID (BYTES, INTEGER, INTEGER) : check(what, got, want)
+        IF got = want THEN
+            passed + 1 =: passed
+            OUTPUT(1, 'AL', 'PASS ')
+            OUTPUT(1, 'AL', what)
+            OUTPUT(1, 'AL', '$')
+            RETURN
+        ENDIF
+        failed + 1 =: failed
+        OUTPUT(1, 'AL', 'FAIL ')
+        OUTPUT(1, 'AL', what)
+        OUTPUT(1, 'AL', '  got ')
+        OUTPUT(1, 'I', got)
+        OUTPUT(1, 'AL', '  want ')
+        OUTPUT(1, 'I', want)
+        OUTPUT(1, 'AL', '$')
+    ENDROUTINE
+
+    % Plant one member: seat, name, room, and OUR magic so every send in a
+    % broadcast lands back on this test's port.
+    ROUTINE VOID, VOID (INTEGER, BYTES, BYTES) : plant(slot, nm, rm)
+        INTEGER : i, n
+        1 =: memberUsed(slot)
+        myMagic =: memberMagic(slot)
+        MAXINDEX(nm, 1) + 1 =: n
+        FOR i IN 1:n DO
+            nm(i - 1) =: memberName(slot, i)
+        ENDFOR
+        n =: memberLen(slot)
+        MAXINDEX(rm, 1) + 1 =: n
+        FOR i IN 1:n DO
+            rm(i - 1) =: mbrRoom(slot, i)
+        ENDFOR
+        n =: lenMbrRoom(slot)
+    ENDROUTINE
+
+    % Copy a text into the server's inBuf at `at` - where a real Say's text
+    % sits when buildFromSlot runs. Answers the length.
+    ROUTINE VOID, INTEGER (BYTES, INTEGER) : putText(t, at)
+        INTEGER : i, n
+        MAXINDEX(t, 1) + 1 =: n
+        FOR i IN 1:n DO
+            t(i - 1) =: inBuf(at + i - 1)
+        ENDFOR
+        n RETURN
+    ENDROUTINE
+
+    % One frame decoded and DUMPED - always, pass or fail, so a transcript
+    % identifies the wrong byte without a second run.
+    ROUTINE VOID, VOID (BYTES) : dumpFrame(buf)
+        INTEGER : v
+        OUTPUT(1, 'AL', '  frame: kind=')
+        cmKind(buf) =: v
+        OUTPUT(1, 'I', v)
+        OUTPUT(1, 'AL', ' nmLen=')
+        cmNmLen(buf) =: v
+        OUTPUT(1, 'I', v)
+        OUTPUT(1, 'AL', ' nm0=')
+        buf(2) =: v
+        OUTPUT(1, 'I', v)
+        OUTPUT(1, 'AL', ' txLen=')
+        cmTxLen(buf) =: v
+        OUTPUT(1, 'I', v)
+        OUTPUT(1, 'AL', ' tx0=')
+        cmTxAt(buf) =: v
+        buf(v) =: v
+        OUTPUT(1, 'I', v)
+        OUTPUT(1, 'AL', '$')
+    ENDROUTINE
+
+    % Check one already-read frame in `buf`: kind, name first byte, text
+    % length and text first byte. The wanted bytes go through INTEGER
+    % locals - a BYTE element straight into an INTEGER parameter is a
+    % conversion this project does not gamble on.
+    ROUTINE VOID, VOID (BYTES, BYTES, BYTES) : checkFrame(buf, nm, tx)
+        INTEGER : got, want, at
+        dumpFrame(buf)
+        cmKind(buf) =: got
+        check('  kind is kSaid', got, kSaid)
+        buf(2) =: got
+        nm(0) =: want
+        check('  name 1st byte', got, want)
+        cmTxLen(buf) =: got
+        MAXINDEX(tx, 1) + 1 =: want
+        check('  text length  ', got, want)
+        cmTxAt(buf) =: at
+        buf(at) =: got
+        tx(0) =: want
+        check('  text 1st byte', got, want)
+    ENDROUTINE
+
+    % Receive ONE message into tstIn the way the client does. Answers 0 on
+    % success, the receive status otherwise (16896 XMXENTM = port empty).
+    ROUTINE VOID, INTEGER : recvOne
+        INTEGER : i, ok
+        XMMSGIDENTIFIER : ident
+        FOR i IN 0:255 DO
+            zByte(0) =: tstIn(i)
+        ENDFOR
+        xmpfrcv(0, myPort, msgType, remotePortHash, ident, nBytes) =: rcvSt
+        % XMOK *or* a message type 1..6 - both are a successful receive.
+        0 =: ok
+        IF rcvSt = XMOK THEN
+            1 =: ok
+        ENDIF
+        IF rcvSt >= 1 AND rcvSt <= 6 THEN
+            1 =: ok
+        ENDIF
+        IF ok = 0 THEN
+            rcvSt RETURN
+        ENDIF
+        nBytes =: readAmount
+        IF readAmount > 256 THEN
+            256 =: readAmount
+        ENDIF
+        xmpfrea(0, 0, &
+            ADDR(tstIn(0)) FORCE XMUSERADDRESS, &
+            0, readAmount, readLength) =: reaSt
+        xmpfrel(0, ident) =: relSt
+        0 RETURN
+    ENDROUTINE
+
+    % Everything left on the port, thrown away. Answers how many there were.
+    ROUTINE VOID, INTEGER : drainAll
+        INTEGER : n
+        0 =: n
+        DO
+            WHILE recvOne = 0
+            n + 1 =: n
+        ENDDO
+        n RETURN
+    ENDROUTINE
+
+    PROGRAM : chatVTest
+        INTEGER : st, i, length, got
+
+        INISTACK stack
+
+        OUTPUT(1, 'AL', 'CHATVT - the SERVER send side, offline$')
+
+        xmpfopn(0, myPort) =: st
+        check('open port', st, XMOK)
+        xmpfp2m(0, myPort, myMagic) =: st
+        check('own magic', st, XMOK)
+
+        % Secure, as the live server sends.
+        2**XFSEC =: sendFlags
+
+        % Three members; every other seat explicitly empty.
+        FOR i IN 1:16 DO
+            0 =: memberUsed(i)
+        ENDFOR
+        plant(1, nmAnna, rmLobby)
+        plant(2, nmBert, rmLobby)
+        plant(3, nmCarl, rmDen)
+
+        % ---- part A: buildFromSlot alone, decoded with the shipped readers
+        OUTPUT(1, 'AL', '$')
+        OUTPUT(1, 'AL', 'part A - buildFromSlot, three slots, three texts$')
+
+        putText(txtRed, 40) =: length
+        buildFromSlot(kSaid, 1, 40, length) =: length
+        OUTPUT(1, 'AL', '-- built slot 1 ANNA/redredred$')
+        check('  frame length ', length, 17)
+        checkFrame(outBuf, nmAnna, txtRed)
+
+        putText(txtBlue, 60) =: length
+        buildFromSlot(kSaid, 2, 60, length) =: length
+        OUTPUT(1, 'AL', '-- built slot 2 BERT/blueblue$')
+        check('  frame length ', length, 16)
+        checkFrame(outBuf, nmBert, txtBlue)
+
+        putText(txtGreen, 80) =: length
+        buildFromSlot(kSaid, 3, 80, length) =: length
+        OUTPUT(1, 'AL', '-- built slot 3 CARL/green$')
+        check('  frame length ', length, 13)
+        checkFrame(outBuf, nmCarl, txtGreen)
+
+        % ---- part B: broadcast's audience, counted on the wire ------------
+        OUTPUT(1, 'AL', '$')
+        OUTPUT(1, 'AL', 'part B - broadcast audience selection$')
+
+        putText(txtRed, 40) =: length
+        buildFromSlot(kSaid, 1, 40, length) =: length
+
+        % Room of slot 1 = LOBBY = seats 1 and 2, nobody skipped: TWO
+        % letters, both this frame.
+        broadcast(length, 1, 0)
+        recvOne =: st
+        check('B1 letter one arrived', st, 0)
+        checkFrame(tstIn, nmAnna, txtRed)
+        recvOne =: st
+        check('B1 letter two arrived', st, 0)
+        checkFrame(tstIn, nmAnna, txtRed)
+        drainAll =: got
+        check('B1 and NO extra letters', got, 0)
+
+        % Same room, skip the speaker: ONE letter.
+        broadcast(length, 1, 1)
+        drainAll =: got
+        check('B2 skip slot 1 leaves one', got, 1)
+
+        % Room of slot 3 = DEN = seat 3 alone: ONE letter.
+        broadcast(length, 3, 0)
+        drainAll =: got
+        check('B3 DEN reaches only CARL', got, 1)
+
+        % ---- part C: the live shape - three rounds, content must track ----
+        OUTPUT(1, 'AL', '$')
+        OUTPUT(1, 'AL', 'part C - three rounds, content must follow the round$')
+
+        putText(txtRed, 40) =: length
+        buildFromSlot(kSaid, 1, 40, length) =: length
+        broadcast(length, 1, 0)
+        recvOne =: st
+        check('C round 1 arrived', st, 0)
+        checkFrame(tstIn, nmAnna, txtRed)
+        drainAll =: got
+        check('C round 1 second copy', got, 1)
+
+        putText(txtBlue, 60) =: length
+        buildFromSlot(kSaid, 2, 60, length) =: length
+        broadcast(length, 2, 0)
+        recvOne =: st
+        check('C round 2 arrived', st, 0)
+        checkFrame(tstIn, nmBert, txtBlue)
+        drainAll =: got
+        check('C round 2 second copy', got, 1)
+
+        putText(txtGreen, 80) =: length
+        buildFromSlot(kSaid, 3, 80, length) =: length
+        broadcast(length, 3, 0)
+        recvOne =: st
+        check('C round 3 arrived', st, 0)
+        checkFrame(tstIn, nmCarl, txtGreen)
+        drainAll =: got
+        check('C round 3 no second copy', got, 0)
+
+        xmpfcls(0, myPort) =: st
+
+        OUTPUT(1, 'AL', '$')
+        OUTPUT(1, 'AL', 'passed ')
+        OUTPUT(1, 'I', passed)
+        OUTPUT(1, 'AL', '  failed ')
+        OUTPUT(1, 'I', failed)
+        OUTPUT(1, 'AL', '$')
+        IF failed = 0 THEN
+            OUTPUT(1, 'AL', 'server send side is good$')
+        ELSE
+            OUTPUT(1, 'AL', 'SERVER SEND SIDE MISBEHAVES - see above$')
+        ENDIF
+    ENDROUTINE
+ENDMODULE

@@ -101,17 +101,53 @@ Developer/
 
 | Language | Guide | Status | When to Use |
 |----------|-------|--------|-------------|
-| **PLANC** | [PLANC-DEVELOPER-GUIDE.md](Languages/Application/PLANC-DEVELOPER-GUIDE.md) | ✅ | Pascal-like, structured programming |
-| **PLANC UI (VTM)** | [PLANC-UI-VTM-GUIDE.md](Languages/Application/PLANC-UI-VTM-GUIDE.md) | ✅ | Screen UI: boxes, bars, editable fields via PLANC-SCREEN-H over VTM |
-| **PLANC VTM programming** | [PLANC-VTM-PROGRAMMING-GUIDE.md](Languages/Application/PLANC-VTM-PROGRAMMING-GUIDE.md) | ✅ | What VTM is, prerequisites, terminal types (incl. type 0 and type 2), the callable surface, and a program compiled and RUN on D100 |
-| **PLANC interactive screens** | [PLANC-INTERACTIVE-SCREEN-PATTERNS.md](Languages/Application/PLANC-INTERACTIVE-SCREEN-PATTERNS.md) | ✅ | **START HERE for a screen program that does anything on its own.** Polling the keyboard, flushing VTM, windows, clipping, scrolling, and the traps - all measured on D100 |
-| **VTM API reference** | [VTM-API-REFERENCE.md](Languages/Application/VTM-API-REFERENCE.md) | ✅ | All 37 VTM routines: argument counts derived from the binary, output arguments, status codes. No ND manual exists |
-| **VTM viewport** | [VTM-VIEWPORT-HOW-TO-USE-IT.md](Languages/Application/VTM-VIEWPORT-HOW-TO-USE-IT.md) | ✅ | `VTDSCR` is a real viewport - it clips, it does not nest, and how to build windows on it |
+| **PLANC** | [PLANC-DEVELOPER-GUIDE.md](Languages/Application/PLANC-DEVELOPER-GUIDE.md) | ✅ | Pascal-like, structured programming. **The main SINTRAN language** - see the PLANC section below |
 | **C** | [C-DEVELOPER-GUIDE.md](Languages/Application/C-DEVELOPER-GUIDE.md) | ✅ | Portable applications |
 | **COBOL** | [COBOL-DEVELOPER-GUIDE.md](Languages/Application/COBOL-DEVELOPER-GUIDE.md) | ✅ | Business applications |
 | **FORTRAN** | [FORTRAN-DEVELOPER-GUIDE.md](Languages/Application/FORTRAN-DEVELOPER-GUIDE.md) | 🔄 | Scientific computing |
 | **PASCAL** | [PASCAL-DEVELOPER-GUIDE.md](Languages/Application/PASCAL-DEVELOPER-GUIDE.md) | 🔄 | Education, structured programming |
 | **BASIC** | [BASIC-DEVELOPER-GUIDE.md](Languages/Application/BASIC-DEVELOPER-GUIDE.md) | 🔄 | Beginner-friendly scripting |
+
+#### PLANC in depth
+
+**One row per language above; everything PLANC-specific lives here.** All of it is in
+`Languages/Application/`.
+
+**The language**
+
+| Guide | What it is for |
+|-------|----------------|
+| [HOW-TO-PROGRAM-PLANC.md](Languages/Application/HOW-TO-PROGRAM-PLANC.md) | How to program PLANC on SINTRAN III |
+| [PLANC-DEVELOPER-GUIDE.md](Languages/Application/PLANC-DEVELOPER-GUIDE.md) | The main guide - start here |
+| [PLANC-LANGUAGE-RULES.md](Languages/Application/PLANC-LANGUAGE-RULES.md) | Every rule as something a linter can check |
+
+**Monitor calls, RT and reentrant programs**
+
+| Guide | What it is for |
+|-------|----------------|
+| [PLANC-MONITOR-CALLS.md](Languages/Application/PLANC-MONITOR-CALLS.md) | Doing SINTRAN monitor calls from PLANC |
+| [PLANC-MONITOR-CALL-RULES.md](Languages/Application/PLANC-MONITOR-CALL-RULES.md) | The monitor-call rules a linter must check |
+| [PLANC-RT-AND-REENTRANT-PROGRAMS.md](Languages/Application/PLANC-RT-AND-REENTRANT-PROGRAMS.md) | RT programs and reentrant subsystems |
+
+**XMSG / COSMOS**
+
+| Guide | What it is for |
+|-------|----------------|
+| [PLANC-XMSG-PROGRAMMING-GUIDE.md](Languages/Application/PLANC-XMSG-PROGRAMMING-GUIDE.md) | Writing XMSG programs in PLANC |
+| [PLANC-XMSG-COMMUNICATION.md](Languages/Application/PLANC-XMSG-COMMUNICATION.md) | Talking to XMSG from PLANC |
+| [PLANC-XMSG-API-RULES.md](Languages/Application/PLANC-XMSG-API-RULES.md) | XMP library rules a linter can check |
+| [COSMOS-XMP-LIBRARY.md](Languages/Application/COSMOS-XMP-LIBRARY.md) | The COSMOS XMP library, and its FORTRAN twin XMF |
+
+**Screen programs (VTM)**
+
+| Guide | What it is for |
+|-------|----------------|
+| **[PLANC-INTERACTIVE-SCREEN-PATTERNS.md](Languages/Application/PLANC-INTERACTIVE-SCREEN-PATTERNS.md)** | **START HERE for any screen program.** The program skeleton, the keyboard poll, the VTM flush, windows, clipping, scrolling, and a table of every trap |
+| [PLANC-UI-VTM-GUIDE.md](Languages/Application/PLANC-UI-VTM-GUIDE.md) | PLANC-SCREEN-H, the drawing layer: boxes, bars, editable fields |
+| [PLANC-VTM-PROGRAMMING-GUIDE.md](Languages/Application/PLANC-VTM-PROGRAMMING-GUIDE.md) | What VTM is, prerequisites, terminal types (including 0 and 2) |
+| [VTM-API-REFERENCE.md](Languages/Application/VTM-API-REFERENCE.md) | All 37 VTM routines - argument counts, output arguments, status codes. No ND manual exists |
+| [VTM-VIEWPORT-HOW-TO-USE-IT.md](Languages/Application/VTM-VIEWPORT-HOW-TO-USE-IT.md) | `VTDSCR` is a real viewport - it clips, it does not nest, and how to build windows on it |
+| [VTM-KEY-CODES.md](Languages/Application/VTM-KEY-CODES.md) | The key-code lookup table |
 
 #### System Programming Languages (Intro + Expert)
 

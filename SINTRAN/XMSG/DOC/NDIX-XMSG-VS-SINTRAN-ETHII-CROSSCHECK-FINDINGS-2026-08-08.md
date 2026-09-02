@@ -20,7 +20,7 @@ hand the kernel a function + the four ND-100 registers and get the registers wri
 | Doorbell out | interrupt per response | `PWCR.BNDC` → MFP GPIP-I6 → 0x250E |
 | Reply | response packet echoing seq/subdev/func | registers written back IN PLACE, `NXFNC` bit1 |
 | Outstanding | 1 receive + 1 non-receive per subdevice | one element in flight (classic bring-up) |
-| Recovery on loss | NONE — wedges forever | NONE — same |
+| Recovery on loss | NONE — hangs forever | NONE — same |
 
 The function numbers agree exactly where both sides define them (octal in NDIX, decimal in our
 symbol file): XFGET 2, XFREL 3, XFRHD 4, XFWHD 5, XFREA 6, XFWRI 7, XFMST 9, XFOPN 10, XFSND 12,
@@ -143,11 +143,11 @@ us. It also sharpens the starvation question: SINTRAN's driver-side analog of ND
 breaks, and this comparison says WHERE to look if it does: an error path that returns without
 re-arming (NDIX carefully re-arms even on `T<0` — does SINTRAN's ENNS0?). [I]
 
-## 6. The wedge contract — a concrete lead for the HLE burst-2 ordering bug [V contract, I application]
+## 6. The hang contract — a concrete lead for the HLE burst-2 ordering bug [V contract, I application]
 
 NDIX `xg.c`/`etintr` route completions **by the response's `func` field**, with two independent
 slots per subdevice: the receive slot (XFRRE/XFRREN) and the other slot (XETHER, XFMST, ...). A
-response whose func does not match unbalances the flags and wedges the subdevice permanently —
+response whose func does not match unbalances the flags and hangs the subdevice permanently —
 their words. Our HLE conn-to blocker is exactly an XFRRE-vs-XFRCV ordering race
 (project_nd_ethernetii_hle_burst2_ordering). The 1988 contract says the fix shape: completions
 must be matched to waiters by FUNCTION (receive-class vs other-class), never by arrival order.

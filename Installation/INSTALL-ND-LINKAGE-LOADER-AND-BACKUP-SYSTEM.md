@@ -223,6 +223,50 @@ The domain is registered WITH a start address and the standard domain resolves, 
 open question from section 4a: **the floppy's description file does NOT hard-code its own
 directory**, so plain COPY-FILE is sufficient and COPY-DOMAIN is not required.
 
+> **[CORRECTION 2026-08-28 - the bytes contradict the bolded claim above. IT DOES hard-code its
+> directory.]** Decoding the description file's records (0xC0 records from 0x4000, name at +0x04
+> terminated by 0x27) shows every entry carrying the prefix explicitly:
+>
+> ```
+> (210319H02:FLOPPY-USER)SCRATCH-SEG-01      PSEG 5        DSEG 1029
+> (210319H02:FLOPPY-USER)LINKAGE-LOAD-H02    PSEG 123989   DSEG 2184977
+> ```
+>
+> The sizes match the shipped files byte for byte, so that is the right file being read correctly.
+>
+> **CONFIRMED FROM THE RUNNING MACHINE, not just from the file.** A live capture on 2026-08-28
+> placed the domain with the floppy directory entered, and SINTRAN's own physical segment table
+> reported the segments still carrying that prefix:
+>
+> ```
+> Phys. segment no.:.... 13B  (SYSTEM name) (210319H02-XX-01D:FLOPPY-USER)LINKAGE-LOAD-H02:PSEG   75B pages
+> Phys. segment no.:.... 14B  (SYSTEM name) (210319H02-XX-01D:FLOPPY-USER)LINKAGE-LOAD-H02:DSEG 2053B pages
+> ```
+>
+> `75B` = 61 and `2053B` = 1067 pages, matching 123989 and 2184977 bytes at 2048 B/page. So the
+> prefix is not decorative - it is what the segment lookup uses.
+>
+> **WHY THE ORIGINAL CLAIM LOOKED TRUE:** registration succeeds either way. The prefix is not
+> consulted until the `:PSEG`/`:DSEG` opens happen, so a plain COPY-FILE onto SYSTEM produces a
+> domain that RESOLVES and then fails later, at file-open time, pointing at a directory that does
+> not exist on the pack. "It registered" is not evidence that the copy was sufficient.
+>
+> **THE CONSEQUENCE IS THE OPPOSITE OF MORE COPYING.** Because the prefix IS honoured, the working
+> route is to satisfy it rather than to rewrite it - enter the floppy directory and place from
+> there:
+>
+> ```
+> @ENTER-DIRECTORY 210319H02,FLOPPY-DISC-1,0
+> @LIST-DIRECTORIES-ENTERED,,TERMINAL      (expect: DIR INDEX 40 : FLOPPY-DISC-1 UNIT 0 : 210319H02-XX-01D)
+> N500: PLACE-DOMAIN (210319H02:FLOPPY-USER)LINKAGE-LOAD-H02
+> ```
+>
+> That leaves the pack untouched. It also avoids a real hazard with the COPY-FILE route: there is
+> **one DESCRIPTION-FILE per user**, and the copy on `BIGDISK0-L-DOMS.IMG` currently belongs to
+> **LED** (it registers `LED-B03` and `SCRATCH-SEG-01` from floppy 211160B03). Copying the loader's
+> description file onto SYSTEM overwrites LED's registration - the two products compete for the
+> same slot.
+
 ### Three command-syntax traps, each of which cost a full run
 
 1. **Quote the DESTINATION only, never the SOURCE.** A quoted name means "create this file", so
@@ -239,6 +283,45 @@ directory**, so plain COPY-FILE is sufficient and COPY-DOMAIN is not required.
 `SOURCE EMPTY` on the `:LINK` copy is EXPECTED - that file is 0 bytes on the distribution floppy.
 
 ### What still blocks RUNNING it (not an install problem)
+
+> **[UPDATE 2026-08-31 - THIS SECTION IS OUT OF DATE. THE LOADER NOW RUNS.]**
+>
+> The paragraph below records the protect violation in 5SWAP as "a pre-existing emulator-side
+> defect". It is no longer reproducible, and the two things that were actually wrong were BOTH
+> outside the emulator:
+>
+> 1. **The swap file needs DEFINING on every boot, not just creating.** ND-500-MON says a
+>    `DEFINE-SWAP-FILE` definition "will survive a warm start, but NOT a cold start", and the
+>    harness cold-starts every run. The pack already CARRIED a swap file
+>    (`(SYSTEM)SWAP-FILE:DATA`); the file was never missing, the definition was.
+> 2. **The test harness attached no ND-500 CPU before PLACE-DOMAIN.** The harness installs its
+>    ProcessHost bridge just before RUN, on the assumption that the engine "is only needed from
+>    RUN onward". That is false for PLACE-DOMAIN, which LOADS AND STARTS THE SWAPPER as part of
+>    placement. With no CPU the swapper start was answered with an all-zero stop record and the
+>    monitor rendered trap number 0 as `NOT KNOWN TRAP at program address: 0  0B`.
+>
+> With both fixed, the sequence completes:
+>
+> ```
+> N500: place-domain (210319H02-XX-01D:FLOPPY-USER)LINKAGE-LOAD-H02
+> > Loading Control Store
+> > Loading Swapper
+> > Allocating memory - 7116B pages
+> N500: run
+> ND-Linkage-Loader -  H.02   3. March      1988 Time: 16:48
+> Nll:
+> ```
+>
+> `COPY-DOMAIN` also works from that prompt. Note it answers `FILE ALREADY EXISTS` - FILE, not
+> domain - if the old file-copied `:PSEG`/`:DSEG`/`:UTIL` are still on SYSTEM; it creates `:LINK`
+> and then aborts, leaving an empty `:LINK` behind. Delete the leftovers first.
+>
+> **Beware `LIST-DOMAIN` at the `Nll:` prompt**: it describes the description file the LOADER is
+> using - the floppy it was placed from - not the pack being repaired. It printed identical
+> before/after lists across two runs; the exported pack read with ndfs is what settled it.
+>
+> Detail: `E:\Dev\Ronny\ND500UC\docs\ND500-LINKAGE-LOADER-WORKING-2026-08-31.md`.
+
 
 Starting the loader needs a defined ND-500 swap file (without one:
 `SWAPPING SPACE NOT AVAILABLE`). With one defined, the start reaches

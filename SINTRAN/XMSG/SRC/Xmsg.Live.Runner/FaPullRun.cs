@@ -43,8 +43,9 @@ namespace NDInsight.Sintran.Xmsg.Live.Runner
         /// This is <c>--originate-from-seed</c>, and until 2026-08-17 only the SYNC daemon honoured
         /// it. The pull gated on <c>CanReach</c> alone, which is true only once the PEER has
         /// addressed us - so on a link where nothing arrives first the pull sat silent for ever. It
-        /// did not even print "reading &lt;file&gt;", because that line comes after the gate, and a
-        /// run that never starts looks exactly like a run that started and got no answer.
+        /// did not even print the "reading" line that names the file, because that line comes
+        /// after the gate, and a run that never starts looks exactly like a run that started and
+        /// got no answer.
         /// </para>
         /// <para>
         /// Measured the same day: a push over the same seam, in the same minute, carried 42368

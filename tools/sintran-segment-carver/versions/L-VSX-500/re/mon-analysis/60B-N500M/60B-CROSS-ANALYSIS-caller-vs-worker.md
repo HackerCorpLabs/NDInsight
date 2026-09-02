@@ -90,11 +90,11 @@ The worker lumped ~70 codes as `5NOPAR` (no param-prep). The caller's table carr
 These are still `5NOPAR` server-side (no param marshalling); the work happens in the ND-500 system
 monitor reached via `FPT2ENTRY`. The purposes are logic, not a reason to change the worker handler.
 
-### 3.3 Caller side confirms the control-store gate (ties to the emulator wedge)
+### 3.3 Caller side confirms the control-store gate (ties to the emulator hang)
 Caller `INDEX.md` section 1: the gateway (`146244`) on error `ECSLOAD` (`002032B` @ `146304`) or
 `004017B` (@ `146305`) **auto-loads the control store and retries - so ANY MON 60 can trigger a
 control-store load if the ND-500 microcode is not resident.** This is the byte-level mechanism behind
-the OBSERVED emulator behaviour earlier this session (even `VERSION` wedged on "Loading Control
+the OBSERVED emulator behaviour earlier this session (even `VERSION` hung on "Loading Control
 Store"). Confirms the control-store-gate analysis in `SINTRAN\ND500\ND500-STATUS-AND-INDEX.md`.
 
 ---

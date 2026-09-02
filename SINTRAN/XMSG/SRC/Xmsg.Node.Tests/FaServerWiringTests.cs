@@ -25,7 +25,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
     /// <remarks>
     /// <para>
     /// The silence tests are not defensive padding. On 2026-08-02 a node accepted a link and then
-    /// never answered an FA request; the calling SINTRAN machine's terminal wedged and ESC did not
+    /// never answered an FA request; the calling SINTRAN machine's terminal hung and ESC did not
     /// abort it. Every "still answers" test below stands for one way that could happen again.
     /// </para>
     /// <para>
@@ -592,7 +592,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
         /// </summary>
         /// <remarks>
         /// This is the case that would bite after our own restart, when the client believes it has a
-        /// conversation and we have forgotten it. Dropping the request there is exactly the wedge
+        /// conversation and we have forgotten it. Dropping the request there is exactly the hang
         /// that was watched live.
         /// </remarks>
         [Fact]

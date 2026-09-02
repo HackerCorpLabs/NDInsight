@@ -31,7 +31,21 @@ ND-500 operation funnels through **one** `MON 60` instruction:
 - **Thunk** (3 words, verified): `SAA <subfn>; JMP I 1; .word 146244`. The `SAA` loads the
   MON 60 subfunction code into A; `JMP I 1` jumps through the 3rd word (the gateway pointer).
 - **Gateway** (`146244`): builds the parameter block, issues `MON 60` at `146256`, then
-  `JMP 2` = skip return (success) or `JPL I 23` = error. On error code `ECSLOAD` (`002032B`,
+  `JMP 2` = the P+1 return or `JPL I 23` = the P+2 return.
+
+  > **CORRECTION 2026-09-01 - this line used to read "`JMP 2` = skip return (success) or
+  > `JPL I 23` = error", and that is WRONG.** `JMP 2` sits AT `146257`, which IS P+1, so calling
+  > it "the skip return" mislabels it. Read from the bytes with P-relative addressing:
+  > `146263 LDT 21` loads T from `146263+21 = 146304` = `002032B` (ECSLOAD); the compare that
+  > follows, plus the second against `004017B` at `146305`, gate `146271`, whose tail
+  > `146275 JMP -21` lands on `146254` - two words before the `MON 60`. **That is the retry loop,
+  > and it hangs off the `JMP 2` (P+1) arm.** So **P+1 (DIRECT) = ERROR, status in A; P+2 (SKIP) =
+  > success**, which agrees with the byte-proven polarity in the ND-500 bus-interface reference.
+  > Also note `JPL I 23` jumps to the CONTENTS of `146303` (= `177335`), not to `146303`, and
+  > `146304`/`146305` are OPERAND WORDS, not code - arming a debugger on them yields a permanent
+  > zero. Cost of the old wording: it was quoted as the authority against the correct reference,
+  > and three PC-watch arms were pointed at data words on the strength of it.
+  > (`ND5000UC\docs\OCTOBUS-SWAPPER-STANDOFF-2026-08-28.md` section 167.) On error code `ECSLOAD` (`002032B`,
   at `146304`) or `004017B` (at `146305`) it auto-loads the control store and retries - so
   ANY `MON 60` can trigger a control-store load if the ND-500 microcode is not resident.
 - **A call site** (verified pattern): the handler sets `X := b.-176` (its MON 60 parameter

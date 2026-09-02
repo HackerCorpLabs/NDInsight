@@ -1,209 +1,157 @@
 # NDCHAT - the plan from here
 
-**Written 2026-08-25** by comparing [CHAT-APP-SPECIFICATION.md](CHAT-APP-SPECIFICATION.md), which
-is what the product does today, against Ronny's full-screen mockup in
-[CHAT-UI-DESIGN.md](CHAT-UI-DESIGN.md), which is what it should do.
+**Next:** mount `dist\NDCHAT-INSTALL-2026-09-02.img` on a lab machine once (a line in the
+RetroCore console window: `mount floppy0 0 <path>` or `attach fd0 <path>`), do the SINTRAN side
+from the admin manual section 3.1, and remove its UNVERIFIED mark. Everything else from the
+2026-09-02 manuals round is built, deployed on all three machines and committed (`744b2b4c`);
+see `HANDOFF-2026-09-02-MANUALS.md`. No sync daemon is running - start one with
+`tools\start-relay.ps1` and expect to need the wake trick.
+
+The manuals live in `DOC/manuals/` - user, admin, build-and-deploy - and the rule for them is
+the spec's: change them in the same commit as the behaviour.
+
+## Found on 2026-09-02 while photographing the screens - small, all cosmetic, all real
+
+1. **The client does not repaint its own name after `/nick`.** The top-right corner keeps the
+   login name (`TESTER@FJELL` after `/nick OLAV`), and the "sent" half of a private window is
+   labelled with it too (`*(SYSTEM)` for a user who is KARI). The other end sees the right name;
+   it is the client's own copy used for display that is stale. One variable, one repaint.
+2. **The header shows `LOBBY@trunk` for a plain `LOBBY`** once a topic is set - the topic's
+   name field arrives qualified and the header prints it as the room. Where the `@trunk` comes
+   from has not been read out of the source yet.
+3. **A topic set on one machine did not reach the other.** OLAV's `/topic` on FJELL showed on
+   FJELL only; KARI's header on VIDDA never changed and no `topic:` notice arrived there.
+   Whether topics are meant to cross a trunk is not written down anywhere - decide, then either
+   carry it or say so in the manual.
+4. **`/leave` on a screen terminal shows nothing.** The `left the room` line goes to the line
+   renderer; the header keeps the room name and the count. The others do see the leave.
+5. **`/list` counts only local seats.** `LOBBY(1)` with two people in LOBBY across two machines.
+   Documented as-is in the user manual; a cross-machine count would need the peer tables.
+6. **`STATUS` printed `empty o45`** - `putNumber` stopped at three digits and a count of 6345 wrote
+   its hundreds as a letter. FIXED in the source (five digits), not yet built or deployed.
+7. **The build stamps were never bumped** - `S31-0854` / `B31-0731` across four builds. Bumped
+   by hand 2026-09-02 (`S02-1340` / `B02-1340`) and written into the build manual as a rule. A
+   check that cannot be forgotten would be better: the linter could refuse a stamp older than
+   the source's last change, or the stage step could write it.
+8. **`planc-lint.py` treats every file on its command line as one link set**, so CHAT + CHATSV
+   together draw a false `inBuf` collision. Either lint per link set (the manual says so now)
+   or teach it a `--link-set` boundary.
+9. **`tools\nd-deploy.ps1` stages into `sync-out`** while `start-relay.ps1` watches `sync-relay`;
+   its no-daemon fallback stops every running RetroCore. Do not use it until both are fixed.
+
+## Small items left over from before
+
+10. Side bug seen once: the server stored "ello123" for a typed "hello123" (first character lost,
+    one occurrence, not reproduced).
+11. D100's SYSTEM file table sits near its 256-entry cap; expect ATTEMPT TO CREATE TOO MANY FILES
+    on any build that creates new names. Delete scratch listings when it happens.
+12. The server should CLOSE its history files on the way down, since @ABORT does not, so a
+    repeated edit-load cycle stops stranding CHATH<n> locks (`held 0` in STATUS). Not required
+    for correct operation; it keeps the dev loop from needing a boot.
 
 ---
 
-## 1. What the comparison found
+## Outstanding, 1 to n
 
-### The spec had one thing wrong, and the comparison is what caught it
+### CHATXMS - the second library (Ronny: one sitting, do not begin unattended)
 
-**History is BUILT.** `histSave` runs on every line said, `histReplay` on every join, the lines go
-to a disk file, and they come back to a joiner as `kHist`. The first draft of the specification
-said a joiner sees nothing said before they arrived, from memory rather than from the source.
-Corrected. **Still not watched on a machine** - the one-minute check is in the spec.
+Two libraries, not one - decided. CHATLIB stays pure so `CHATTST` keeps its 17-second,
+XMSG-free, machine-free test loop; CHATXMS holds the kernel calls only. `CHAT` and `CHATSV` link
+both. The blocker (`xrAddrOf` / `ADDR` of a `BYTES` parameter) is settled - measured
+`ADDR param 1001 / ADDR here 1001`. Size: `CHAT.PLNC` 14 call sites, `CHATSV.PLNC` 21, two
+addressing modes (by name, by magic). Interface already designed -
+[CHATXMS-INTERFACE-DESIGN.md](CHATXMS-INTERFACE-DESIGN.md) - seven routines, nothing compiled yet.
 
-Everything else in the specification matched the source. Every kind the client can send has a
-handler; `kHist` and `kAllWho` have none because they are server-to-client only, which is correct.
+1. Create `CHATXMS.PLNC`. `EXPORT` block FIRST, before any declaration - R119; skipping this once
+   cost ten errors that still linked and still passed 139/139.
+2. `xsSendM` - shape A, send by magic.
+3. `xsSendN` - shape B, send by name through XROUT.
+4. `xsRecv` - shape C. **Do this one FIRST** - it carries the clamp and the release, and a mistake
+   here corrupts memory rather than failing loudly.
+5. Rewire `CHAT.PLNC` - 14 sites.
+6. Rewire `CHATSV.PLNC` - 21 sites.
+7. Client to `XMPSEND`, dropping `XMPFSND` - approved. One site in `CHAT.PLNC`; the server already
+   uses `XMPSEND`.
+8. Check every new export name is unique **at 7 characters** - the linker resolves a collision to
+   whichever it met first rather than calling it a duplicate. `planc-lint.py` refuses them.
+9. Gate the LISTING of **every** module touched, not only the one edited.
+10. Deploy to all three machines and prove it by the **START ADDRESS** in `LIST-RT-DESCRIPTION`,
+    not by the fact it ran.
 
-### The gap between what exists and the mockup
+**Why one sitting.** 35 sites across two sources of about 300KB each, roughly twenty-minute
+compiles, three machines running the product. A half-refactored `CHATSV` is worse than an
+unstarted one.
 
-| Mockup element | State |
-|---|---|
-| three sections, 80x24 | **prototype runs** - `CHATUI.PLNC` on D100 |
-| scrolling chat with a cache | **prototype runs** - 100 lines, PAGE UP / PAGE DOWN |
-| input line | **prototype runs** - typing, backspace, `/exit` |
-| room name, member count, date and time | **prototype draws them, all hard-coded** |
-| `@trunk` marker | not built - derivable from the member list |
-| the window bar | **drawn but inert** |
-| `=KARI` direct-message windows | **NO PROTOCOL AT ALL** |
-| line mode for a terminal without cursor control | **not built** - the prototype refuses instead |
+### Latency - the 500ms target is still missed
 
-### The one defect that matters most
+11. **Send fewer letters per message.** L.1f (client idle-sleep tuning) is built, deployed and
+    measured: mean came down from 683ms to 592ms, floor from 514ms to 483ms. It does not reach
+    500ms and cannot - the remaining ~400ms is the XMSG round trip itself (measured: a bare local
+    client command floors at 112ms against a say floor of 514ms). No amount of sleep tuning
+    reaches that; the lever is a wire/design change that sends less. Not designed yet.
+12. **XMSG send window PARKS under a big transfer.** Pulling the 467KB `CHATSV:LIST` failed once:
+    `*** PARKED *** send window is full; 14 datagram(s) now waiting`, peer re-sending because it
+    had not seen our acknowledgement. Our receive/ack latency under load, not an ordering race and
+    not a timeout - same family as the blocked-queue bug fixed 2026-08-27, different trigger. The
+    identical retry worked; no permanent fix yet. `-TransferTimeout` also defaults to 240s, which
+    is short for a listing this size and made the first failure look like something it wasn't.
+13. **Verify the doorbell's restart flag actually clears.** The code is deployed on all three
+    machines right now (`sleepWhy`, `waitFlags`, the 20-consecutive-empty-wake disarm). Not yet
+    observed live: if the flag is sticky, every later sleep returns instantly and the server
+    spins. Read the server's own log for `SV doorbell off` during an idle stretch - present means
+    it disarmed correctly, absent after enough idle time means sticky and this needs a real fix.
 
-**`CHATUI` prints your own line locally when you press RETURN.** The server sends it back
-(`broadcast(..., 0)` leaves nobody out), so wired up as-is **every message you send would appear
-twice**. This is the first thing to fix and it is a deletion, not an addition.
+### Backlog - XMSG plumbing, Ronny's order: LOW priority, chat is the product
 
----
-
-## 2. The plan, in dependency order
-
-### PHASE 1 - make the client render, keeping line mode - **DONE 2026-08-26**
-
-```
-┌── NDCHAT 2.1 ──────────────────────────────────TESTER@FJELL──┐
-│ LOBBY@trunk               0 here  /help for commands  25 08 19:03
-│--------------------------------------------------------------
-│ 19:03  *            you are TESTER on FJELL
-│ 19:03  SYSTEM@VIDDA final check from VIDDA
-│--------------------------------------------------------------
-│>
-```
-
-Every value on that screen is real. The renderer is chosen once from the CTYTP bits and the LINE
-renderer is untouched underneath - it is still the reference for what should be shown and still
-the fallback for a printing terminal.
-
-**The member count is real too**, and it demonstrated its own repair rule:
-
-```
-LOBBY@trunk    2 here      here: TESTER SYSTEM@SKOGEN
-LOBBY@trunk    3 here      here: TESTER SYSTEM@VIDDA SYSTEM@SKOGEN
-```
-
-It sat at 2 while VIDDA was in the room, because no join notice ever reached this client - VIDDA's
-seat predated our `/who`. The next `/who` corrected it. **That is why the count is taken from the
-ANSWER rather than kept by the client**: a wrong count fixes itself instead of having to be right
-for ever.
-
-**What it cost, in the order the machine taught it:**
-
-| Symptom | Cause |
-|---|---|
-| joined, then never heard anything | **MON1 BLOCKS once the echo is off**, whatever TerminalNoWait was told. `SEATS 1/16` with `bounce` climbing said it; the screen could not. Poll `MON66` first. |
-| lines smeared across rows | **two subarrays of ONE array** passed to one routine. A notice rendered correctly beside it - same code, one variable different. |
-| `> ??g??` in the input line | bytes arrive DURING the drawing, so a drain before the paint cannot catch them. Drain again immediately before the first read. |
-| the welcome landed on the input row | `OUTPUT` writes where the cursor is, and `drawInput` parks it there. On a screen it goes in the room. |
-
-**The `??g??` was never cosmetic.** With it in the buffer the first command typed became
-`??g??/quit`, matched nothing, and was **said to the room**.
-
-### PHASE 1 as originally written
-
-**The goal: the existing client, unchanged in behaviour, drawing on a screen.** No new features.
-That is what makes it safe - the line renderer stays as the reference for what the screen should
-be showing, and as the fallback for a printing terminal.
-
-1. **Split every place the client prints into a `show*` routine.** One renderer chosen at
-   start-up from the CTYTP bits, never asked again.
-2. **Move the CHATUI drawing routines across** - they are proved on the machine already.
-3. **DELETE the local echo on RETURN.** Send the line, print nothing, let the arriving `kSaid`
-   draw it. This is the fix above.
-4. **Feed the cache from the message loop** instead of the fake timer: `kSaid`, `kJoined`,
-   `kLeft`, `kRenOk`, `kTopic`, `kHist` each become a formatted line.
-5. **Fill the status line from real state** - room name, `/who` count, the clock.
-
-*Proof:* two users on two machines, one on a screen terminal and one on a line terminal, in the
-same room, each seeing the other's lines exactly once.
-
-**Risk:** the client is 3400 lines and works. Every step above is reversible and the line renderer
-is never removed.
-
-### PHASE 2 - finish the main window - **DONE, and proved on D100 2026-08-25**
-
-6. **`@trunk` marker** - DONE. A member table holds each speaker's system and `roomTrunked` scans
-   it against ours; one member elsewhere is enough. Built as a scan rather than a flag so the rule
-   is the one the real client will run.
-7. **Line wrapping** - DONE. A long line becomes several cache lines, the first carrying the time
-   and speaker and every continuation carrying neither.
-8. **Grow the cache** - DONE, 300 lines. The linker's own `FREE:` line is the number to ask.
-9. **Speaker column** - DONE. Local speakers show the bare nickname; remote ones show `NICK@SYS`,
-   and when that overruns **the nickname is cut, never the system**. Inside one room you know a
-   person from the first letters of their name; `D10` does not tell you which machine.
-
-Measured on the machine:
-
-```
- #sintran-dev@trunk       14 here  /help for commands         25 08 14:05
- 14:05  KARI@D102    spooler queue is stuck on LP2 again
- 14:05  SIGRID@D103  the ND-500 process table is at 48 of 151, the configured
-                     maximum and not a ceiling
- 14:05  BJORN        hold on, batch job on processor 3 until 09:20
-```
-
-BJORN is on D100, so he carries no qualifier. That is the rule working, not a missing field.
-
-**Two faults found by RUNNING it, which reading the source had not shown:**
-
-- the input line came up holding `> ??g??` every run. The keyboard was taken AFTER the screen was
-  drawn, so SINTRAN had already echoed the waiting bytes onto it. Draining could never have fixed
-  that - draining empties the buffer, not the screen. Take the keyboard first, draw second.
-- a fast burst repainted the input line past its own right edge, over the frame border. Ask
-  `MON66` whether more is waiting and repaint once at the end.
-
-**And one thing that looks like a fault and is not.** A line pasted in one burst loses its RETURN
-above 64 bytes: 63 characters plus RETURN is said, 72 plus RETURN is not. That is SINTRAN's
-terminal input buffer, and the driver drops what will not fit before the program is offered a
-single byte. It only happens because RetroTerm delivers a whole test line over TCP at once; a
-person typing never approaches it. **The tell is the typed line sitting in the input field with
-nothing said, which reads exactly like a broken RETURN key.** It is not - KEYPROB answers 13 for
-RETURN every time. The RETURN never arrived.
-
-### PHASE 3 - private messages - **DONE for one machine, proved on D100 2026-08-25**
-
-10. **The kinds** went into `chat-wire.json` with golden bytes FIRST, then the server, then the
-    client - the order the registry enforces. DONE.
-11. **The routing question is answered, and the answer is NOT what a room line does.** A room line
-    is flooded to every peer and de-duplicated at the far end. Flooding a PRIVATE message would
-    hand it to machines with no business seeing it - a privacy failure dressed up as routing. So a
-    direct message goes ONLY to the machine holding the person, ONE HOP, and anything further is
-    refused in words. Kind 54 still carries the same origin/hops/id header as `kTrkRelId` so the
-    de-duplication machinery is shared rather than duplicated.
-
-Proved on the machine, server segment 2605B, START ADDRESS 32255B:
-
-```
-[TESTER/LOBBY] /tell NOBODYHERE are you there
-not sent to NOBODYHERE: nobody of that name is here now, and nothing is kept for later
-
-[TESTER/LOBBY] /tell TESTER talking to myself
-*(D100!TESTER) talking to myself
-sent to: D100!TESTER
-
-[TESTER/LOBBY] /tell D102!GHOST hei
-not sent to D102!GHOST: nobody of that name is here now, and nothing is kept for later
-```
-
-The middle one is the whole feature in three lines: the message came back MARKED and with the
-sender QUALIFIED, and the receipt named who it actually reached.
-
-**STILL NOT PROVED: a direct message CROSSING a trunk.** Kind 54 is built at both ends and no
-direct message has ever gone over one. It needs a client joined on D102 at the same time.
-
-### PHASE 4 - multiple windows
-
-12. **One ring buffer per window** instead of one. The painting does not change; only which
-    buffer it reads.
-13. **The bar becomes live** - unread counts, and the `*` highlight when your nick appears.
-14. **A key or command to switch.** Switching repaints the middle section only.
-
-**Do not build a general window manager.** These windows do not overlap - they are alternative
-contents for one rectangle, which is far simpler, and TESTUI already showed what overlapping costs
-(clipping, a stack order, and three separate places that must agree on it).
-
-### ALSO OUTSTANDING, not on the critical path
-
-15. **Prove dedup** - needs a D102-D103 trunk to make a triangle. Until then `dupe` reads 0 and a
-    broken implementation would look identical.
-16. **Prove history live** - join, speak, quit, rejoin.
-17. **D100's boot file has no `START-TRUNK 103`**, so D103 is not registered at boot.
-18. **The separators are dashed** - `fullbar` draws hyphens where the frame uses line-drawing
-    characters. Cosmetic.
+14. **Ethernet send sequence is not persisted.** HDLC keeps `xmsg-link-seed.state`; Ethernet keeps
+    nothing, so a daemon restart begins at 0 while the peer is mid-run and every frame is silently
+    discarded. The `NdLinkLayer` fix (2026-08-27) stops the consequence - one stuck frame blocking
+    the queue forever - and does not close this.
+15. **Re-install the D103 boot file into its disk image.** The repo copy
+    `boot/XMSG-STARTEX-L03.D103.txt` was corrected 2026-08-28; `boot/install-boot-files.py` has not
+    been run since, so the copy on the machine still carries the old, wrong comment. Comment-only,
+    changes no behaviour.
+16. **Optional: persist name/trunks server-side instead of via `rt-load.ps1`.** Reverses a
+    deliberate design decision and needs a file format, a compile and a deploy. `rt-load.ps1`
+    (R.1) already does this from the Windows side and is proven on all three machines - only worth
+    doing if that ever proves not enough. No evidence of that yet.
 
 ---
 
-## 3. What I would do first, and why
+## WHERE THE MACHINES ARE, 2026-08-31
 
-**Phase 1, and specifically step 3 before anything else.** Deleting the local echo is a
-five-minute change that prevents a defect which would otherwise be discovered by a user seeing
-everything twice and reported as "the chat is broken".
+All three run the SAME object: segment **201B**, `CHATSV:BRF`, names FJELL / VIDDA / SKOGEN, both
+trunks up on each. Built on D100, carried machine-to-machine; D102 and D103 also hold the current
+`CHAT-MON:PROG`. Build files: **`CHATSV:MODE`, `CHATMN:MODE`, `CHATCC:MODE`** - `CHATUI:MODE`
+builds the screen TEST program, not the client.
 
-Then steps 1-2, because until the renderer is split, every further UI change has to be made twice
-- once in the prototype and once in the client - and they will drift.
+---
 
-**Phase 3 is the one to plan properly rather than start.** A direct message that crosses a trunk
-is the same problem as relaying a room line, and the answer should reuse `kTrkRelId`'s origin and
-hop count rather than invent a second mechanism.
+## Deliberately NOT doing
+
+- **No comment-reformatting sweep of the C#.** Known, mid-sentence tags and collapsed doc comments
+  included - `retrocore-csharp` section 32 forbids standalone reformatting passes through working
+  code. Fixed when the file is next edited for a real reason, not before.
+- **No general window manager.** The chat windows do not overlap - they are alternative contents
+  for one rectangle. `TESTUI` already showed what overlapping costs: clipping, a stack order, and
+  three places that must agree on it.
+- **7.2, the separator style - won't-fix.** `fullbar` (hyphens) and `frame` (graphic line-drawing)
+  are both library calls; `fullbar` only ever runs after `frame` has already proven the terminal
+  draws graphics correctly on that same screen, so its portability is never actually exercised
+  here. Matching them exactly needs a hand-written escape - the one hardcoded, non-VTM-translated
+  line in an otherwise fully portable client - for a cosmetic gain. Hyphens stay.
+
+---
+
+## The rules this plan is written under
+
+- **A green test suite can sit on a failed compile.** Ten `*** ERROR` lines once still linked, ran
+  and passed 139/139. Gate every module's listing.
+- **Every build failure becomes a linter check**, in the same turn, proved to fail on the bad case
+  and pass on every real source.
+- **A duplicate PLANC routine name cascades hundreds of false diagnostics** through the rest of the
+  compile, not just one clean error at the header. `planc-lint.py` now catches it.
+- **An RT-load orphans every joined client** and wipes the machine name and the trunks.
+  `rt-load.ps1 -AndStart` now prints the reminder itself. Quit and restart the clients.
+- **Read the machine, not the screen** - `LIST-NAMES` for free seats, `LIST-RT-DESCRIPTION` for
+  the start address, `FILE-STATISTICS` for what actually arrived.

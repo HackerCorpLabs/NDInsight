@@ -1,4 +1,4 @@
-namespace NDInsight.Sintran.Xmsg.Chat
+﻿namespace NDInsight.Sintran.Xmsg.Chat
 {
     /// <summary>
     /// The message types the chat service exchanges.
@@ -311,6 +311,78 @@ namespace NDInsight.Sintran.Xmsg.Chat
         AdminSetName = 39,
 
         /// <summary>
+        /// CHAT-MON to server, on the admin port: learn no NEW peers.
+        /// </summary>
+        /// <remarks>
+        /// <para><b>What being open costs, and why closing it is a verb</b></para>
+        /// A server adds any system that reaches its trunk port to its peer table. That is what
+        /// lets a lab be set up without naming every machine, and it is the default. It also means
+        /// the server believes whatever that system says about who is speaking on it, because a
+        /// trunk line arrives as NAME@thatsystem. This kind is how an operator says the network is
+        /// now complete.
+        /// <para><b>It does not drop peers already known</b></para>
+        /// Those were learned before the line was drawn, and cutting live trunks is not what "take
+        /// no more" means. <c>STOP-TRUNK</c> removes a peer.
+        /// <para><b>Deliberately not saved to disk</b></para>
+        /// A server that came back from a reboot silently refusing its own trunks would be a worse
+        /// failure than the one this prevents.
+        /// <para><b>Status</b></para>
+        /// PLANC calls it <c>kAdmLock</c>. Built and answered on the machine; see the registry
+        /// entry in <c>chat-wire.json</c> for the current evidence.
+        /// </remarks>
+        AdminLockPeers = 40,
+
+        /// <summary>
+        /// CHAT-MON to server, on the admin port: learn any system again.
+        /// </summary>
+        /// <remarks>
+        /// The other half of <see cref="AdminLockPeers"/>. Answered with the same admin status
+        /// reply as every other admin verb, so CHAT-MON needs no new decoding.
+        /// <para><b>Two kinds rather than one with an argument</b></para>
+        /// Every other admin verb here is its own number, and a verb whose meaning depends on
+        /// parsing its text is the one that gets typed wrongly.
+        /// <para><b>Status</b></para>
+        /// PLANC calls it <c>kAdmOpen</c>.
+        /// </remarks>
+        AdminOpenPeers = 41,
+
+        /// <summary>
+        /// CHAT-MON to server, on the admin port: free the named member's seat and tell nobody.
+        /// </summary>
+        /// <remarks>
+        /// A TEST VERB, and the only way to reach <see cref="TrunkDirectBad"/> on purpose. No
+        /// <see cref="Left"/> goes to the room and no member list goes to the peers; freeing the
+        /// seat is the whole action.
+        /// <para><b>Why a verb exists only for testing</b></para>
+        /// TrunkDirectBad fires when a machine is asked to deliver a private message to somebody a
+        /// PEER still believes is seated there. Every ordinary way of ending a session keeps the
+        /// two machines in step, which is right for the product and leaves the refusal unreachable
+        /// by hand:
+        ///  - /quit sends Leave, which broadcasts Left and then tells the peers.
+        ///  - /nick crosses the trunk, so the peer follows the new name.
+        ///  - an RT-load empties the table, but the orphaned client rejoins by itself.
+        ///  - a peer restart makes the other side purge what it knew.
+        /// All four were measured against D100 and D102 on 2026-08-30 and every one self-healed,
+        /// so every refusal came back as the LOCAL one and the trunk path never ran. The reason
+        /// string is the only thing that tells the two apart.
+        /// <para><b>Status</b></para>
+        /// Answered with <see cref="AdminStatusReply"/> like every other admin verb, so it costs
+        /// no new decoding. PLANC calls it <c>kAdmDrop</c>.
+        /// </remarks>
+        AdminDropMember = 42,
+
+        /// <summary>
+        /// CHAT-MON to server, on the admin port: list who is seated right now, and which room.
+        /// </summary>
+        /// <remarks>
+        /// The other half of <see cref="AdminDropMember"/>: that acts on a seat, this shows them.
+        /// Carries no argument, so it travels like <see cref="AdminListTrunks"/> rather than
+        /// carrying text. Answered with <see cref="AdminStatusReply"/> like every other admin
+        /// verb. PLANC calls it <c>kAdmMbrs</c>.
+        /// </remarks>
+        AdminListMembers = 43,
+
+        /// <summary>
         /// Client to server: send this text to ONE person, who need not be in your room or in any
         /// room.
         /// </summary>
@@ -541,6 +613,64 @@ namespace NDInsight.Sintran.Xmsg.Chat
         /// </para>
         /// </remarks>
         TrunkDirect = 54,
+
+        /// <summary>
+        /// Server to server: a direct message could NOT be delivered at the far end, carried back
+        /// to the machine the sender is on.
+        /// </summary>
+        /// <remarks>
+        /// <para><b>Without this, a direct message across a trunk vanishes in silence</b></para>
+        /// <para>
+        /// <c>takeRemDirect</c> in the PLANC server says so in its own comment: the sender was
+        /// already told <see cref="DirectSent"/> by their own server, so somebody who logged out -
+        /// or renamed - in the gap between the two ends agreeing loses the message with nobody
+        /// told. That comment was written for a logout race. A rename that never propagates makes
+        /// the two ends disagree permanently, which turns a narrow race into a standing hole.
+        /// </para>
+        /// <para><b>It reuses TrunkDirect's header, and DirectBad's tail</b></para>
+        /// <para>
+        /// The five-byte header is the same - origin system, hops remaining, line id. The ORIGIN
+        /// is the machine that COULD NOT DELIVER, not the sender's machine: every other kind uses
+        /// that field for the machine a line was typed on, and the duplicate check keys on the
+        /// pair (origin, id), so a refusal we compose is ours. Nothing routes by it - the refusal
+        /// reaches the sender's machine because the send call is told where to put it.
+        /// </para>
+        /// <para>
+        /// The line id is the FAILED message's, passed straight through, which is what lets the
+        /// far end say which message failed.
+        /// </para>
+        /// <para>
+        /// The text is laid out exactly as <see cref="DirectBad"/>'s already is, so the receiving
+        /// server hands it straight to the local path it already has and THE CLIENT NEEDS NO
+        /// CHANGE. A person sees the same sentence in the same shape whether the failure happened
+        /// on their own machine or two hops away.
+        /// </para>
+        /// <para><b>Layout</b></para>
+        /// <code>
+        /// 37            kind = 55
+        /// 00 67         origin system, big-endian (103) - the machine that could not deliver
+        /// 03            hops remaining
+        /// 04 D2         line id of the message that failed
+        /// 04            sender length
+        /// 4B 41 52 49   "KARI" - the SENDER, the person to be told
+        /// 00 12         text length, big-endian
+        /// 52 4F ...     "RONNY/not logged in" - TARGET tried, a slash, then the reason
+        /// </code>
+        /// <para><b>A separate kind, for the reason every kind here is separate</b></para>
+        /// <para>
+        /// These machines are upgraded one at a time. A server that does not know 55 IGNORES it,
+        /// which is exactly today's behaviour, so nothing regresses while the three are brought up
+        /// in turn.
+        /// </para>
+        /// <para><b>What it does not fix</b></para>
+        /// <para>
+        /// The sender is found by NAME at the origin. If they rename in the window between sending
+        /// and the refusal arriving, the refusal is dropped there for the same reason the message
+        /// was dropped at the far end. Closing that needs an identity that survives a rename,
+        /// which is a larger change and is deliberately not part of this one.
+        /// </para>
+        /// </remarks>
+        TrunkDirectBad = 55,
     }
 
     /// <summary>
@@ -564,13 +694,13 @@ namespace NDInsight.Sintran.Xmsg.Chat
         /// The largest value <see cref="ChatMessageKind"/> defines.
         /// </summary>
         /// <remarks>
-        /// It is <see cref="ChatMessageKind.TrunkDirect"/> and no longer
+        /// It is <see cref="ChatMessageKind.TrunkDirectBad"/> and no longer
         /// <c>AdminStop</c>. Ten kinds were added to the PLANC server between 2026-08-20 and
         /// 2026-08-23 - the trunk set, the admin trunk verbs, AllWho, History and
         /// AdminInitialize - and this constant was left behind again, which is the third time.
         /// Everything above the old bound decoded as malformed and was dropped in silence.
         /// </remarks>
-        public const byte Highest = (byte)ChatMessageKind.TrunkDirect;
+        public const byte Highest = (byte)ChatMessageKind.TrunkDirectBad;
 
         /// <summary>
         /// The lowest value that is an ADMIN kind rather than a room kind.

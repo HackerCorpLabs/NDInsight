@@ -134,7 +134,7 @@ Ordered by value, all offline.
 
 ## Standing traps
 
- - **One terminal connection.** Reconnecting mid-program wedges the line.
+ - **One terminal connection.** Reconnecting mid-program hangs the line.
  - **The console logs out after a few minutes idle.** A retroterm session left sitting is not
    logged in any more - re-check before assuming, and log in with a single
    `terminal_send text="SYSTEM\r\r"`.

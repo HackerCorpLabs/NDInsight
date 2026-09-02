@@ -20,7 +20,7 @@ namespace NDInsight.Sintran.Xmsg.Node.Tests
     /// <para>
     /// This is the same discipline the push was built with, and it earned its keep there - driving
     /// the write client against a simulated server offline found a defect in our own driver before
-    /// a real ND ever saw it. A live run costs minutes and a wedged terminal; this costs
+    /// a real ND ever saw it. A live run costs minutes and a hung terminal; this costs
     /// milliseconds and says exactly which step went wrong.
     /// </para>
     /// <para><b>What it does and does not prove</b></para>

@@ -1,0 +1,27 @@
+@CC ====================================================================
+@CC CHATBOOT:MODE - the chat block for the END of a machine's boot mode
+@CC file, (PACK-ONE:UTILITY)XMSG-STARTEX-L03:MODE on the lab machines.
+@CC
+@CC Paste these lines AFTER XMSG and COSMOS are up in that file. Change
+@CC FJELL to what this machine is called and the two numbers to the
+@CC system numbers it trunks to. One trunk end is enough, both is fine.
+@CC
+@CC A plain @RT is enough on a cold boot: the RT description and its
+@CC segment survive a reboot. The name and the trunks do NOT - the server
+@CC keeps neither on disk - so they are typed again here.
+@CC
+@CC BEFORE PUTTING THIS IN A BOOT FILE, run it once by hand as
+@CC   @MODE CHATBOOT:MODE,,
+@CC If "CHATBOOT REACHED THE END" prints, MODE input reached CHAT-MON and
+@CC the terminal came back. If it does not, CHAT-MON is waiting on the
+@CC terminal for input that never comes, and inside a boot file that is a
+@CC machine you cannot log in to.
+@CC ====================================================================
+@RT CHATSER
+@CHAT-MON
+SET-NAME FJELL
+START-TRUNK 102
+START-TRUNK 103
+LIST-TRUNKS
+EXIT
+@CC CHATBOOT REACHED THE END

@@ -183,7 +183,7 @@ Write-Host "Applying the bring-up sequence to $($me.name)..." -ForegroundColor C
 #
 # Two ndterm calls back to back is a trap: the terminal port is a POOL (TERM 8/9/10 all share it),
 # so the second connection lands on a DIFFERENT terminal. On 2026-08-08 that second line was in a
-# wedged state and answered "TERMINAL LINE IS NOT CONNECTED / NO FILE OPEN WITH THIS NUMBER"
+# hung state and answered "TERMINAL LINE IS NOT CONNECTED / NO FILE OPEN WITH THIS NUMBER"
 # forever, so a bring-up that had actually succeeded reported a failed verification.
 #
 # LIST-LINKS is appended here rather than run separately for the same reason. Its two prompts

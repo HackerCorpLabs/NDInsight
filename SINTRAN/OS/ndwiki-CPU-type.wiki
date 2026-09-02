@@ -1,0 +1,512 @@
+'''CPU type''' is a hardware model code identifying which Norsk Data machine a system is. It is printed on the order confirmation, entered by the installer when SINTRAN III is generated, and displayed by the {{ND-cmd|LIST-TITLE}} command on SINTRAN III/VSX systems. It is also stamped on cabinet plates and CPU labels, written together with the CPU number in the form ''type.number''. It should not be confused with two other values that are also called "CPU type" but are found automatically by the operating system.
+
+The CPU type is '''not''' used to configure anything. No part of the SINTRAN III kernel reads it. See [[#Does the CPU type do anything?]].
+
+== Three different things called CPU type ==
+
+Three separate values in SINTRAN III are referred to as a "CPU type" in different documents. Only the first is ever entered by a person.
+
+{| class="wikitable"
+! Value !! Where it comes from !! Used by the operating system?
+|-
+| '''CPU type''' (the order-form code) || Typed at system generation, or read from the back wiring PROM on [[ND-110]] and [[ND-120]] || '''No'''
+|-
+| '''HWINFO(0)''' high byte || Found at every start-up by testing the hardware || '''Yes''', constantly
+|-
+| '''5CPUTYPE''' || Found by probing the [[ND-100]] bus for a coprocessor interface || '''Yes'''
+|}
+
+== CPU type in system generation ==
+
+=== The order form ===
+
+The CPU type is filled in on the SINTRAN III order form, in the customer information section. {{ND-doc|830053.3}} describes the field:
+
+<blockquote>
+'''- CPU type:''' This is the CPU type of the system. You will find the CPU type stated on your order confirmation. [...] The symbol mark generated is 33CPU.
+</blockquote>
+
+The companion field is described as:
+
+<blockquote>
+'''- CPU no.:''' The system number must be filled in. It will identify the SINTRAN III later on when a new SINTRAN III needs to be installed. The symbol mark generated is 33CPN.
+</blockquote>
+
+Both fields appear only in the customer information header. They are not among the system parameters, such as RT-PROG, SEGM, SEMAPHORE, INTERNAL DEVICE and DEVICE BUFFER, that determine the size and shape of the generated system.
+
+=== The NEW-SYSTEM dialogue ===
+
+When SINTRAN III is installed from diskettes, the {{ND-cmd|NEW-SYSTEM}} program asks for both values. Its sub-command for this is CPU-UPDATE, "update CPU number and CPU type". On earlier H-version distribution floppies the task had its own program, CPU-TYPE:PROG.
+
+{{DocPreStart}}
+ Checking CPU number ... Wait ...
+ > Give CPU number (in decimal): 6586
+ --- OK
+ Checking CPU type ... Wait ...
+ > Give CPU type (in decimal):
+ --- OK
+{{DocPreEnd}}
+
+Answering the CPU type is optional. {{ND-doc|30.003.007}} works through an installation on two example machines, named SAMBA, an [[ND-500|ND-570/CX]] running VSX, and MAMBA, an [[ND-100]] running VSE. In the SAMBA walkthrough the installer simply presses return at the CPU type prompt, and the manual notes:
+
+<blockquote>
+If ND has given you a CPU type (see your SINTRAN order), then you must give this as input here! The CR given above means that no CPU type was assigned for SAMBA!
+</blockquote>
+
+So a machine could be delivered with no CPU type assigned to it at all. The CPU number prompt is not optional in the same dialogue, and the manual marks the number entered as "the correct CPU number for SAMBA".
+
+=== Known CPU type values ===
+
+{{ND-doc|830053.3}} lists what it calls "some common values". The list is not complete.
+
+{| class="wikitable"
+! Code !! Machine !! Details !! Known from !! On the machine list
+|-
+| 10 || ''unidentified'' || Appears against 1 machine on the machine list, with no product sheet or manual entry. || machine list only || 1
+|-
+| 100 || ''unidentified'' || Appears against 43 machines on the machine list, with no product sheet or manual entry. || machine list only || 43
+|-
+| 102 || ''unidentified'' || Appears against 4 machines on the machine list, with no product sheet or manual entry. || machine list only || 4
+|-
+| 103 || ''unidentified'' || Appears against 2 machines on the machine list, with no product sheet or manual entry. || machine list only || 2
+|-
+| 500 || ''unidentified'' || Appears against 10 machines on the machine list, with no product sheet or manual entry. || machine list only || 10
+|-
+| 502 || ''unidentified'' || Appears against 22 machines on the machine list, with no product sheet or manual entry. || machine list only || 22
+|-
+| 503 || ''unidentified'' || Appears against 2 machines on the machine list, with no product sheet or manual entry. || machine list only || 2
+|-
+| 563 || ''unidentified'' || Appears against 1 machine on the machine list, with no product sheet or manual entry. || machine list only || 1
+|-
+| 570 || ''unidentified'' || Appears against 1 machine on the machine list, with no product sheet or manual entry. || machine list only || 1
+|-
+| 572 || ''unidentified'' || Appears against 1 machine on the machine list, with no product sheet or manual entry. || machine list only || 1
+|-
+| 573 || ''unidentified'' || Appears against 1 machine on the machine list, with no product sheet or manual entry. || machine list only || 1
+|-
+| 900 || NORD-100 Satellite (family code) || One of the four short codes SINGEN offered by name. '''188 order forms''' carry it. ndwiki labels 900.x machines "NORD-100 Satellite 9", but the product library gives '''950 = ND-Satellite/5''' and '''951 = ND-Satellite/9''' - so 900 is a broader or older code and the namespaces do not line up. '''[?]''' || real machine, order archive || -
+|-
+| 950 || ND-Satellite/5 || - || product library || -
+|-
+| 951 || ND-Satellite/9 || - || product library || -
+|-
+| 3031 || ''unidentified'' || Appears against 1 machine on the machine list, with no product sheet or manual entry. || machine list only || 1
+|-
+| 3035 || ''unidentified'' || Appears against 1 machine on the machine list, with no product sheet or manual entry. || machine list only || 1
+|-
+| 3051 || ND-110/CX Compact || One preserved machine. Sits below the manual's 3080-3095 band. || real machine || -
+|-
+| 3080 || ND-110 Compact model A0 || ND-110 CPU in a Compact cabinet. Base model. No product sheet found. || order manual || -
+|-
+| 3081 || ND-110 Compact model A1 || Next step up from A0. Order manual OCR reads the code as 308?. || order manual || -
+|-
+| 3082 || ''unidentified'' || Appears against 1 machine on the machine list, with no product sheet or manual entry. || machine list only || 1
+|-
+| 3085 || ND-110 Compact model B || ND-110 Compact, B grade. || order manual || -
+|-
+| 3090 || ND-110/CX Compact model A0 || As 3080 but with the faster ND-110/CX CPU board. || order manual || -
+|-
+| 3091 || ND-110/CX Compact model A1 || Next step up from 3090. || order manual || -
+|-
+| 3092 || ''unidentified'' || Appears against 3 machines on the machine list, with no product sheet or manual entry. || machine list only || 3
+|-
+| 3095 || ND-110/CX Compact model B || ND-110/CX Compact, B grade. '''Also the part number of the ND-110/CX CPU card''' - see the cautions. || order manual || -
+|-
+| 3209 || ''unidentified'' || Appears against 2 machines on the machine list, with no product sheet or manual entry. || machine list only || 2
+|-
+| 3260 || ND-100 Compact, Model I || From the Illustrated Parts Catalogue ND-13.018.01, Oct 1984, "Specify this when ordering / Article number". || product library || -
+|-
+| 3261 || ND-100 Compact, Model II || Same catalogue. || product library || -
+|-
+| 3262 || ND-100 Compact, Model III || Same catalogue. || product library || -
+|-
+| 3263 || ND-100 Compact, Model IV || Same catalogue. || product library || -
+|-
+| 3270 || ND-110 Compact/FTX || A complete fault-tolerant Compact system. || product library || -
+|-
+| 3291 || ND-100 Compact, Model 11 || From the Illustrated Parts Catalogue ND-13.024.1, Jan 1987, which specifies "ND-100 STANDARD CPU 48-BIT CX" for this block. || product library, machine list || 4
+|-
+| 3292 || ND-100 Compact, Model 12 || From the Illustrated Parts Catalogue ND-13.024.1, Jan 1987, which specifies "ND-100 STANDARD CPU 48-BIT CX" for this block. || product library, machine list || 2
+|-
+| 3293 || ND-100 Compact, Model 13 || From the Illustrated Parts Catalogue ND-13.024.1, Jan 1987, which specifies "ND-100 STANDARD CPU 48-BIT CX" for this block. || product library || -
+|-
+| 3294 || ND-100 Compact, Model 14 || From the Illustrated Parts Catalogue ND-13.024.1, Jan 1987, which specifies "ND-100 STANDARD CPU 48-BIT CX" for this block. || product library || -
+|-
+| 3391 || ND-110 Compact Series, ND-110, model 11 || ND-110 CPU. '''1 MB''' memory. '''28 MB''' Winchester disk. No streamer. 1.2 MB floppy. 8 free rack positions. || product library || 1
+|-
+| 3392 || ND-110 Compact Series, ND-110, model 12 || ND-110 CPU. 1 MB memory. '''74 MB''' Winchester disk. '''45 or 60 MB streaming tape'''. 1.2 MB floppy. 8 free rack positions. Also seen as the type code of a preserved ND-100/CX Compact. || product library, real machine || 1
+|-
+| 3393 || ND-110 Compact Series, ND-110, model 13 || ND-110 CPU. 1 MB memory. '''Two 74 MB''' Winchester disks. 45 or 60 MB streamer. 8 free rack positions. || product library || -
+|-
+| 3394 || ND-110 Compact Series, ND-110, model 14 || ND-110 CPU. 1 MB memory. '''No internal disk''' - an '''SMD controller for external disks''' instead, allowing four extra drives. 7 free rack positions. || product library || -
+|-
+| 3395 || ND-110 Compact Series, ND-110/CX, model 11 || As 3391 but with the '''ND-110/CX''' CPU, which the sheet says has *"approximately twice the performance of the ND-110"*. || product library || -
+|-
+| 3396 || ND-110 Compact Series, ND-110/CX, model 12 || As 3392 with the ND-110/CX CPU. || product library || -
+|-
+| 3397 || ND-110 Compact Series, ND-110/CX, model 13 || As 3393 with the ND-110/CX CPU. || product library || -
+|-
+| 3398 || ND-110 Compact Series, ND-110/CX, model 14 || As 3394 with the ND-110/CX CPU. || product library || -
+|-
+| 3740 || ND-110/CX system || A full large-cabinet system rather than a Compact. Three machines on the list - NODEA, NODEB and INTERCOM. || order manual || 3
+|-
+| 3750 || ND-110/FTX || Fault-tolerant full-cabinet ND-110. || product library || -
+|-
+| 5025 || ''unidentified'' || Appears against 1 machine on the machine list, with no product sheet or manual entry. || machine list only || 1
+|-
+| 5151 || ND-510/FTX || Fault-tolerant ND-510. || product library || -
+|-
+| 5161 || ''unidentified'' || Appears against 1 machine on the machine list, with no product sheet or manual entry. || machine list only || 1
+|-
+| 5171 || ND-510/CX Computer System || A preserved machine carrying this code is an '''ND-530/CX''' - probably as-built versus as-upgraded. The classic ND-500 family uses a 51xx band the order manual never mentions. || product library, real machine || -
+|-
+| 5221 || ''unidentified'' || Appears against 2 machines on the machine list, with no product sheet or manual entry. || machine list only || 2
+|-
+| 5230 || ND-5200 ES model L || Memory '''6-544 MB'''. Disk max '''35.2 GB'''. Relative CPU performance '''1''', the family baseline. Front-end '''ND-120'''. Single CPU. || order manual, product library || -
+|-
+| 5231 || ND-5200 ES model L, SCSI || As 5230 with an SCSI disk interface instead of SMD. || order manual || -
+|-
+| 5282 || ND-5200 Compact || One preserved machine, in a large collection at Umea. Sits just below the manual's 5290-5295 Compact band. || real machine || 1
+|-
+| 5290 || ND-5200 Compact model A10 || ND-5200 in the 5000 Compact cabinet - two backplanes. '''Note''': the ES sheet uses 5290 as the *upgrade* product from ND-5200 to ND-5400, so this number has two meanings. || order manual || -
+|-
+| 5291 || ND-5200 Compact model A11 || Next step up. || order manual || -
+|-
+| 5295 || ND-5200 Compact model B1 || ND-5200 Compact, B grade. || order manual || -
+|-
+| 5351 || ND-530/FTX Model 11 || From the FTX product sheet. || product library || -
+|-
+| 5352 || ND-530/FTX Model 12 || From the FTX product sheet. || product library || -
+|-
+| 5362 || ''unidentified'' || Appears against 1 machine on the machine list, with no product sheet or manual entry. || machine list only || 1
+|-
+| 5371 || ND-530/CX, modell 21 || - || product library || -
+|-
+| 5372 || ND-530/CX, modell 22 || - || product library || -
+|-
+| 5400 || ''unidentified'' || Appears against 1 machine on the machine list, with no product sheet or manual entry. || machine list only || 1
+|-
+| 5408 || ''unidentified'' || Appears against 2 machines on the machine list, with no product sheet or manual entry. || machine list only || 2
+|-
+| 5421 || ''unidentified'' || Appears against 1 machine on the machine list, with no product sheet or manual entry. || machine list only || 1
+|-
+| 5430 || ND-5400 ES model L || Memory '''8-544 MB'''. Disk max 35.2 GB. Relative performance '''2.2'''. Front-end '''ND-120'''. CPU type 2, model 4; slow clock 156 ns; instruction cache and Smart IfGo. || order manual, product library, real machine || 5
+|-
+| 5431 || ND-5400 ES model L, SCSI || As 5430 with an SCSI disk interface. || order manual || -
+|-
+| 5481 || ''unidentified'' || Appears against 1 machine on the machine list, with no product sheet or manual entry. || machine list only || 1
+|-
+| 5491 || ND-5400 Compact model A11 || ND-5400 in the 5000 Compact cabinet. || order manual || -
+|-
+| 5495 || ND-5400 Compact model B1 || ND-5400 Compact, B grade. || order manual || -
+|-
+| 5500 || ND-5500 ES model L || Memory '''12-544 MB'''. Disk max 35.2 GB. Relative performance '''4.3'''. Front-end '''ND-120'''. CPU type 2, model 5; adds the data cache. || order manual, product library || 4
+|-
+| 5503 || ND-5500 ES model L, SCSI || As 5500 with an SCSI disk interface. || order manual || -
+|-
+| 5571 || ND-550/CX, modell 21 || - || product library || 1
+|-
+| 5572 || ND-550/CX, modell 22 || - || product library || -
+|-
+| 5591 || ND-5500 Compact model A11 || ND-5500 in the 5000 Compact cabinet. || order manual || -
+|-
+| 5595 || ND-5500 Compact model B1 || ND-5500 Compact, B grade. || order manual || -
+|-
+| 5671 || ND-560/CX, modell 21 || - || product library || 1
+|-
+| 5672 || ND-560/CX, modell 22 || - || product library || -
+|-
+| 5700 || ND-5700 ES model L || Memory '''18-544 MB'''. Disk max 35.2 GB. Relative performance '''6.3'''. Front-end '''ND-120/CX''' - first in the range to get the /CX. CPU type 2, model 7; adds the address cache. '''3-3.5 Whetstone MIPS'''; built to replace the ND-570/CX. || order manual, product library || 10
+|-
+| 5703 || ND-5700 ES model L, SCSI || As 5700 with SCSI. '''Code disputed''': order manual says 5703, the ES product sheet says '''5711'''. || order manual || -
+|-
+| 5715 || ''unidentified'' || Appears against 1 machine on the machine list, with no product sheet or manual entry. || machine list only || 1
+|-
+| 5762 || ''unidentified'' || Appears against 1 machine on the machine list, with no product sheet or manual entry. || machine list only || 1
+|-
+| 5771 || ND-570/CX, modell 21 || - || product library || -
+|-
+| 5772 || ND-570/CX, modell 22 || - || product library || 1
+|-
+| 5782 || ''unidentified'' || Appears against 1 machine on the machine list, with no product sheet or manual entry. || machine list only || 1
+|-
+| 5791 || ND-5700 Compact model A11 || ND-5700 in the 5000 Compact cabinet. || order manual || -
+|-
+| 5792 || ''unidentified'' || Appears against 1 machine on the machine list, with no product sheet or manual entry. || machine list only || 1
+|-
+| 5795 || ND-5700 Compact model B1 || ND-5700 Compact, B grade. '''ND's own test machines COMSON-A and COMSON-B were this configuration.''' || order manual || 2
+|-
+| 5800 || ND-5800 ES model L || Memory '''26-544 MB'''. Disk max 35.2 GB. Relative performance '''11.3'''. Front-end '''ND-120/CX'''. CPU type 3, model 8; all caches plus WICO, unique mother board, IDAC booster. '''6-7 Whetstone MIPS'''. || order manual, product library, real machine || 7
+|-
+| 5803 || ND-5800 ES model L, SCSI || As 5800 with an SCSI disk interface. || order manual || -
+|-
+| 5850 || ''unidentified'' || Appears against 7 machines on the machine list, with no product sheet or manual entry. || machine list only || 7
+|-
+| 5900 || ND-5900 System || Multi-CPU. See models L2, L3, L4 below. || product library || 1
+|-
+| 5902 || ND-5900 ES model L2 || '''Two''' ND-5000 CPUs. Memory '''30-544 MB'''. Relative performance '''22.6'''. '''12-14 Whetstone MIPS'''. || order manual, product library || 1
+|-
+| 5903 || ND-5900 ES model L3 || '''Three''' CPUs. Relative performance '''33.9'''. '''18-21 Whetstone MIPS'''. || order manual, product library || -
+|-
+| 5904 || ND-5900 ES model L4 || '''Four''' CPUs, top of the range. Relative performance '''45.2'''. '''24-28 Whetstone MIPS''', about 2.3x a VAX-8800. || order manual, product library || -
+|-
+| 5907 || ND-5900 ES model L2, SCSI || As 5902 with SCSI. || order manual || -
+|-
+| 5908 || ND-5900 ES model L3, SCSI || As 5903 with SCSI. || order manual || -
+|-
+| 5909 || ND-5900 ES model L4, SCSI || As 5904 with SCSI. || order manual || -
+|-
+| 9724 || ''unidentified'' || Appears against 1 machine on the machine list, with no product sheet or manual entry. || machine list only || 1
+|-
+| 9801 || ''unidentified'' || Appears against 1 machine on the machine list, with no product sheet or manual entry. || machine list only || 1
+|-
+| 9804 || ''unidentified'' || Appears against 1 machine on the machine list, with no product sheet or manual entry. || machine list only || 1
+|-
+| 9871 || ND-110 Satellite Series model 11 || - || product library || -
+|-
+| 9872 || ND-110 Satellite Series model 12 || - || product library || -
+|-
+| 9873 || ND-110 Satellite Series model 13 || - || product library || -
+|-
+| 9874 || ND-110 Satellite Series model 14 || - || product library || -
+|-
+| 9875 || ND-110 Satellite Series model 15 || - || product library || 1
+|-
+| 9881 || ND-110 Satellite model S5 || 2 MB memory. '''60 MB''' ST-506 (Winchester/MFM) disk. '''5''' terminal/printer interfaces. 3 card slots free. || order manual, product library || 1
+|-
+| 9882 || ND-110 Satellite model S9 || 2 MB memory. '''60 MB''' disk. '''9''' interfaces. 3 slots free. Identical to S5 but for the interface count. || order manual, product library || -
+|-
+| 9883 || ND-110 Satellite model T9 || 2 MB memory. '''125 MB''' disk - the T grade buys the bigger disk. '''9''' interfaces. 3 slots free. '''Thirteen preserved machines carry this code''', and a live SINTRAN image in this repo has it. || order manual, product library, real machine || -
+|-
+| 9884 || ND-110 Satellite model T17 || 2 MB memory. '''125 MB''' disk. '''17''' interfaces, top of the range. Only '''2''' slots free. Order manual OCR reads the model as T1?. || order manual, product library || -
+|}
+
+Three patterns can be seen in the numbering:
+
+* A trailing 1 or 3 on the ND-5000 codes marks the '''SCSI''' version of the same system, for example 5430 against 5431, and 5800 against 5803.
+* '''Compact''' systems have their own block of numbers, separate from the full system, for example 5791 and 5795 against 5700 and 5703.
+* The last digit of an ND-5900 code is the '''number of processors''', 5902, 5903 and 5904 for two, three and four CPUs.
+
+The two digits are also carried in the CPU number itself. The system number is usually of the form tttt.nnnnn, where tttt is the computer type or model and nnnnn is the CPU number proper.
+
+=== Where the value is stored ===
+
+The generation symbol is '''33CPU''', and the CPU number is '''33CPN'''. The patch and install mode file assigns the symbol into the system information array:
+
+{{DocPreStart}}
+ HWINF+2/ 33CPU
+{{DocPreEnd}}
+
+The value ends up in word 3 of the system information array, HWINFO(2). It is documented in {{ND-doc|820023.1}} as "system type (100, 102, 500, 502, 5561..)" and is returned by monitor call MON 262 in bytes 6 and 7 of the second parameter.
+
+On an [[ND-110]] or [[ND-120]] the value is overwritten at every start-up from the back wiring PROM, if that PROM is programmed. The same PROM also carries the CPU number and the number of legal users.
+
+=== Codes on real machines ===
+
+The [[:Category:Individual systems|preserved machines]] confirm the numbering, and the convention of writing the two values together as ''type.number'' is found on the hardware itself. A handwritten label inside the front door of an ND-110 Satellite reads:
+
+{{DocPreStart}}
+ ORD: 20.6578 E
+ CPU: 9883.21005
+{{DocPreEnd}}
+
+Cabinet plates on an ND-5800 carry the same system number on both crates, each plate naming the function of its own crate:
+
+{{DocPreStart}}
+ ND-5000 crate / Cabinet assy 1.2 / Function : MPM 5/5800 CX / System no. : 5800.21284
+ ND-100 crate  / Cabinet assy 1.1 / Function : ND-120 CX     / System no. : 5800.21284
+{{DocPreEnd}}
+
+A paper order book for a Satellite writes the pair with no separator: "CPU-NO.: 900135", meaning type 900 and number 135.
+
+Five codes are known from surviving machines that are not in the order manual's list, which the manual itself describes as only "some common values": '''900''' (NORD-100 Satellite 9, an older and shorter code predating the four-digit scheme), '''3051''', '''3392''', '''5171''' (an [[ND-500|ND-530/CX]], so the classic ND-500 family uses codes in a 51xx band) and '''5282'''. All five are in the table above.
+
+A further 32 codes appear against real machines in the sintran.com system register but have no matching manual entry or product sheet, so what they are is not known: 10, 100, 102, 103, 500, 502, 503, 563, 570, 572, 573, 3031, 3035, 3082, 3092, 3209, 5025, 5161, 5221, 5362, 5400, 5408, 5421, 5481, 5715, 5762, 5782, 5792, 5850, 9724, 9801, 9804.
+
+
+=== What every ND-110 Compact shares  ===
+
+From the ND-110 Compact Series product sheet. The sheet carries '''no document
+number and no date''' - the back page, where ND normally prints them, was not
+scanned.
+
+{| class="wikitable"
+! Item !! Value
+|-
+| CPU and MMU || On one card, "which results in one extra free position for memory expansion". Both CPUs "totally compatible with the ND-100 CPU"
+|-
+| ND-110/CX gain || "approximately '''twice the performance''' of the ND-110 CPU"
+|-
+| Memory || 1 MB fitted, ceiling '''16 MB'''. Boards in steps of 1/2, 1 and 2 MB. 22 bits per 16-bit word, single-bit correcting
+|-
+| Cache || 8 KB
+|-
+| MMU || 16-bit virtual to '''24-bit physical''', "extending the latter from 128 KB to 32 MB". 16 page index tables of 64 words. '''Page size 2048 bytes'''
+|-
+| Interrupts || 16 priority levels, context switch '''3.4 us'''
+|-
+| Floating point || 48-bit standard (32-bit mantissa, 16-bit exponent); 32-bit optional
+|-
+| Rack || '''12 positions''', 8 free (7 on model 14)
+|-
+| Terminals || Up to '''48''', "limited only by space in the 12 position rack". No per-model interface count is given
+|-
+| Disk ceiling || Two 74 MB internal, up to '''1800 MB''' external
+|-
+| Cabinet || 69 cm high, 76 cm deep, 54 cm wide, about 78 kg, forced air
+|-
+| Power || Max 800 W, 230 V 50 Hz. Start peak 60 A for 30 ms, 6 A slow main fuse
+|-
+| Built in || Telefix adaptor, with a printer outlet for hardcopy of Telefix communication
+|-
+
+'''The model digit is the disk configuration and nothing else''' - the sheet's own
+words: "four models with internal disk storage ranging from 28 MB in Model 11 to
+two 74 MB disks in Model 13, and an SMD controller for external disks in Model
+14." CPU, memory and floppy are identical across all four.
+
+'''On the disk interface''': the sheet says only '''"Winchester"''' for the internal
+disks and never names a controller standard. '''ST-506 and SCSI are never
+mentioned'''; SMD appears only for model 14's *external* disks. So this sheet does
+not settle the internal interface on its own - see the ST-506 discussion above.
+
+'''An artefact worth knowing''': the software section opens "The following software
+is delivered with the '''ND-100''' COMPACT system", and its whole documentation list
+is ND-100 Compact material. The sheet was clearly set from the earlier ND-100
+Compact sheet and the references were not updated.
+
+'''Open question''': ND named these Compact models '''11, 12, 13, 14''' here, but the
+order manual names Compact models '''A0, A1, B''' with a different code block
+(3080/3081/3085 and 3090/3091/3095). Whether those are two generations of the
+range or two naming conventions for the same machines is '''not established'''. '''[?]'''
+|}
+
+=== The 3xxx blocks ===
+
+The 3xxx codes are not one sequence. Grouped by the second digit they match the documents:
+
+{| class="wikitable"
+! Block !! What is documented in it
+|-
+| 308x / 309x || ND-110 Compact A0/A1/B and ND-110/CX Compact A0/A1/B (order manual, 1988)
+|-
+| 320x / 327x || FTX for Compact: 3201/3202 packages, 3270 a complete ND-110 Compact/FTX
+|-
+| 326x || ND-100 Compact models I to IV (parts catalogue, 1984)
+|-
+| 329x || ND-100 Compact models 11 to 14 (parts catalogue, 1987), which are '''ND-100/CX''' machines
+|-
+| 330x || 3302 ND-100 Expansion System, 3304 ND-100/CE Expansion System
+|-
+| 339x || ND-110 Compact models 11 to 14: 3391-3394 ND-110, 3395-3398 ND-110/CX
+|-
+| 370x / 374x / 375x || Full-cabinet ND-110: 3701/3702 FTX packages, 3740 ND-110/CX system, 3750 ND-110/FTX
+|}
+
+Within a family, '''x1 marks FTX''' and '''x7 marks /CX'''. This is clean on the 5-series, where the ND-530 is 5351/5352 for FTX against 5371/5372 for /CX, and it carries into the 3-series where the ND-110 is 3750 for FTX against 3740 for /CX.
+
+So the Compact model names form a sequence rather than a contradiction: ND-100 Compact models I to IV (326x, 1984), then ND-100 Compact models 11 to 14 (329x, 1987), then ND-110 Compact models 11 to 14 (339x). The A0/A1/B names used in the 308x and 309x blocks are not yet reconciled with these.
+
+=== The older three-digit scheme ===
+
+Before the four-digit codes there was a three-digit scheme, and ND's own generation program printed the values in its prompt. From a scanned SINGEN session in the SINTRAN order-form archive:
+
+{{DocPreStart}}
+     S i n g e n  f o r  S i n t r a n   V e r s i o n   J.
+  Give CPU type: 100,500,502,900.    : 102
+  Give CPU number:                   : 2954
+  Give system name:                  : MOSS DAGBLAD A/S
+{{DocPreEnd}}
+
+The two schemes are separated by serial number: three-digit types appear with four-digit serials, four-digit types only with serials 16000 and above. In the 2711-record order archive the prefixes present are 100 (862 records), 102 (2), 500 (252), 502 (236), 503 (34), 504 (4), 900 (188) and 950 (1).
+
+=== Disk interface on the Satellites ===
+
+The ND-110 Satellite product sheet specifies a "Fixed Winchester disk drive with controller" on all four models, 60 MB on the S5 and S9 and 125 MB on the T9 and T17. In Norsk Data's vocabulary '''Winchester means ST-506''', not simply "a fixed disk": {{ND-doc|11.015.01}} is titled ''5 1/4 inch (ST506) & 8 inch Winchester Disk Controller'' and states that card '''3041''' "controls one or two Winchester Disk drives with the standard 5 1/4 inch interface connection ST506", while the ND-5000 ES System Administrator Guide writes the pairing as one term, "ST-506 (Winchester) disk".
+
+So all four Satellite models shipped with '''ST-506 (MFM)''' disks. The S and T grades differ in capacity, not in interface.
+
+Norsk Data kept the two interfaces on separate cards:
+
+{| class="wikitable"
+! Card !! Interface
+|-
+| 3041 || ST-506 Winchester, also prepared for ESDI
+|-
+| 3201 || SCSI and floppy, combined
+|}
+
+Beware when reading the card list of a preserved machine: at least one surviving ND-110 Satellite carries a 3201 SCSI/floppy card and a modern SCSI drive, but that machine was donated '''without a hard drive''' and the SCSI parts were fitted later. It shows that the ND-110 and ND-120 could take SCSI, not what the Satellite was delivered with.
+
+Three cautions when reading a code off a machine:
+
+* '''A plate records the machine as built, not as it stands.''' One machine listed as an ND-5830 carries plates reading 5430.19481, because it was later upgraded to a Rallar processor.
+* '''Card part numbers overlap these codes and are a different set of numbers.''' The number 3095 is both a CPU type in the order manual and the part number of the ND-110/CX CPU card. It is not established whether that is deliberate.
+* '''The {{ND-cmd|LIST-TITLE}} output changed between versions.''' On SINTRAN III/VSX it prints a full banner including CPU TYPE and CPU NUMBER lines. In the older NORD-10/S documentation the whole output is a single identification string such as "NORD-10/S - 781012".
+
+== CPU type found by the operating system ==
+
+A different value, the high byte of HWINFO(0), is what the kernel actually uses to decide how to behave. It is never asked for. The routine SYSEVAL works it out during start-up by testing the machine: it checks the status register for [[NORD-10]] against [[ND-100]], tries a shift to see whether floating point is 32 or 48 bits, and deliberately executes instructions such as BFILL, GECO and SLWCS to see which of them cause an internal interrupt on level 14.
+
+{| class="wikitable"
+! Value !! CPU
+|-
+| 0 / 1 || [[NORD-10]], 48-bit / 32-bit floating point
+|-
+| 2 / 3 || [[ND-100]], 48-bit / 32-bit floating point
+|-
+| 4 / 5 || [[ND-110]], 48-bit / 32-bit floating point
+|-
+| 6 / 7 || [[ND-120]], 48-bit / 32-bit floating point
+|}
+
+The low byte holds the instruction set, distinguishing the standard set from ND-100/CE, ND-100/CX, ND-110/CX and ND-120/CX. This value is tested in a dozen places in the kernel, including a fatal error at start-up if the machine is older than an ND-100/CX.
+
+The VERSN instruction, opcode 140133, reads the microprogram version into HWINFO(1) on the ND-110 and ND-120.
+
+== 5CPUTYPE, the coprocessor interface ==
+
+A third value, 5CPUTYPE, records which kind of coprocessor is attached. It is found by probing the [[ND-100]] bus and seeing which interface answers, in the routine CH5CPUPRESENT.
+
+* If the DMA status register on the '''PCB 3022''' bus interface answers without an input/output error, the value is set to OLD500, meaning an [[ND-500]].
+* Otherwise, if the '''octobus''' status register at input/output address 100406 answers, the value is set to SAMSON, meaning an [[ND-5000]].
+* If neither answers, no coprocessor is present.
+
+The routine walks up to four CPU data fields, so that all processors in a multiprocessor system are found. It does not mix the two kinds: once a DMA interface has been found, the octobus test is skipped, and the other way round.
+
+Note that this value identifies the '''interface''', not the processor. An ND-500/1 and an ND-500/2 both appear as OLD500, and both Samson and Rallar processors appear as SAMSON. Unlike the CPU type from the order form, this value is read later in several places to decide which transport to use.
+
+== Does the CPU type do anything? ==
+
+'''No effect on the running system has been found.'''
+
+* The value has exactly one write and no reads anywhere in the available SINTRAN III sources, in both the J version and the L and M versions.
+* The J version source comments the same word as "NOT USED".
+* It leaves the kernel only through the {{ND-cmd|LIST-TITLE}} banner and through monitor call MON 262, which copies the whole system information array without inspecting any field.
+* {{ND-doc|830053.3}} does not state anywhere that the CPU type changes the generated system, and the field sits outside the system parameters section that does.
+
+The purpose appears to be '''identification rather than configuration'''. The order manual says of the CPU number that it "will identify the SINTRAN III later on when a new SINTRAN III needs to be installed", which fits a records purpose for both fields.
+
+This is not a proof that nothing at all uses the value. The SINTRAN III kernel is what has been examined. The NEW-SYSTEM and S3-CONFIG programs, and layered products such as [[SIBAS]] and [[ND-COSMOS|COSMOS]], have not been examined, and any of them could read the value through MON 262. The number of legal users is held next to the CPU type in the same back wiring PROM, which makes a licence check the most obvious place to look.
+
+== See also ==
+
+* [[SINTRAN III]]
+* [[ND-110]], [[ND-120]]
+* [[ND-500]], [[ND-5000 family]]
+* [[Monitor calls]]
+
+== References and sources ==
+
+* {{ND-doc|830053.3}} - SINTRAN III How to order it, November 1988. Defines the CPU type field and lists the common values.
+* {{ND-doc|30.003.007}} - SINTRAN III System Supervisor. The NEW-SYSTEM installation dialogue.
+* {{ND-doc|820023.1}} - SINTRAN III/VSX System Documentation. The system information array.
+* {{ND-doc|860228.2}} - SINTRAN III Monitor Calls. MON 262, Get System Info.
+* {{ND-doc|860230.6}} - SINTRAN III L version Release Information. The CPU-UPDATE sub-command.
+* {{ND-doc|11.015.01}} - Winchester Disk Controller, 1983. Establishes that Winchester means ST-506 in ND usage, on card 3041.
+* {{ND-doc|830147.3}} - ND-5000 ES System Administrator Guide. Writes "ST-506 (Winchester) disk" as one term.
+* ND-5000 ES model L product sheet, November 1988, and ND-110 Satellite Series product sheet, June 1987. The per-model configurations.
+* SINTRAN III source, PH-P2-OPPSTART.NPL, routines SYSEVAL, GCPUNR and CH5CPUPRESENT.
+
+[[Category:SINTRAN III]]
+[[Category:Norsk Data hardware]]

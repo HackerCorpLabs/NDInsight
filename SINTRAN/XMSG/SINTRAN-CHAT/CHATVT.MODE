@@ -1,0 +1,44 @@
+@cc ===========================================================================
+@cc CHATVT:MODE - build the offline SERVER-SEND test.
+@cc
+@cc   @MODE CHATVT:MODE,,
+@cc then          @CHATVT
+@cc
+@cc Links the REAL CHATSV:BRF, so CHATSV must have been compiled first with
+@cc its EXPORT block (@MODE CHATSV:MODE,,). CHATLIB supplies the kinds and
+@cc the cm* frame readers the checks decode with.
+@cc ===========================================================================
+
+@cc --- clear the old build; NO SUCH FILE NAME on a first run is expected -----
+@DELETE-FILE CHATVT:PROG
+@DELETE-FILE CHATVT:BRF
+@DELETE-FILE CHATVT:LIST
+
+@cc --- compile to a real BRF; PROG-FILE NOT set, on purpose -------------------
+@PLANC-100-F00
+COMPILE CHATVT:PLNC,"CHATVT:LIST","CHATVT"
+EXIT
+
+@cc --- link: the test first, then the server it drives, then the libraries ---
+@BRF-LINKER-C01
+PROGRAM-FILE "CHATVT"
+LOAD CHATVT
+LOAD CHATSV
+LOAD CHATLIB
+LIBRARY-MODE ON
+LOAD XMP-100-1-B02
+LOAD MON-CALL-1B-A00
+LOAD PLANC-1BANK-F00
+LIST-ENTRIES-UNDEFINED
+EXIT
+
+@cc ===========================================================================
+@cc Built CHATVT:PROG. Run it with @CHATVT - needs XMSG up on this machine.
+@cc
+@cc Every line starts PASS or FAIL and the last line is a count. Part A is
+@cc buildFromSlot, part B is broadcast's audience, part C is three rounds
+@cc whose content must follow the round - the live bug's exact shape.
+@cc
+@cc CHECK BOTH LISTINGS (CHATVT:LIST and the CHATSV:LIST this links against)
+@cc for "*** ERROR" before believing any of it.
+@cc ===========================================================================

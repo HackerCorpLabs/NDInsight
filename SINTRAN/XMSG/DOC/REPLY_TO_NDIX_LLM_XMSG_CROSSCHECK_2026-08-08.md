@@ -173,7 +173,7 @@ gets registered (presumably the media-access product registers it locally at sta
 - Your `if_access.h` / `if_et.c` are a real 1988 CONSUMER of the same ethernet-server message set
   (`XFRRE` 051, `XFRREN` 060, `XETHER` 055) that our high-level-emulation card models — and your
   rules "at most one receive plus one non-receive outstanding per subdevice" and "a response must
-  echo the command's func or the subdevice wedges" are the strongest contract statement we have
+  echo the command's func or the subdevice hangs" are the strongest contract statement we have
   seen for an ordering bug we are chasing in that code (a receive racing a non-receive).
 - Your ETHERMTU question led us to connect the 1516/18-byte facts above for the first time.
 

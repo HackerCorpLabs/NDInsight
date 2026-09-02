@@ -15,6 +15,12 @@
 % value a LITERAL - a test that computes its expectation the same way the code
 % does will agree with a bug.
 % =========================================================================
+% The same address type CHATLIB declares - see the note there. An address on this
+% machine is a 16-bit INTEGER; forcing ADDR to anything 32-bit draws
+% *** WARNING - ILLEGAL DATA-ELEMENT TO BE CONVERTED, and that warning is what
+% invalidated the first TWO versions of the ADDR probe below.
+TYPE xrAddr = INTEGER
+
 MODULE chattest
 
     IMPORT (ROUTINE VOID, INTEGER (BYTES, INTEGER, BYTES, INTEGER, BYTES, &
@@ -27,6 +33,30 @@ MODULE chattest
     IMPORT (ROUTINE VOID, INTEGER (BYTES) : cmTxLen)
     IMPORT (ROUTINE VOID, INTEGER (BYTES, INTEGER) : cmLenN)
     IMPORT (ROUTINE VOID, BOOLEAN (BYTES, INTEGER) : cmSane)
+
+    % The relay header - the most intricate framing in the product, and until
+    % now the only one with no test at all.
+    IMPORT (ROUTINE VOID, INTEGER (INTEGER) : trHLen)
+    IMPORT (ROUTINE VOID, INTEGER (BYTES) : hsSec)
+    IMPORT (ROUTINE VOID, INTEGER (BYTES) : hsMin)
+    IMPORT (ROUTINE VOID, INTEGER (BYTES) : hsHour)
+    IMPORT (ROUTINE VOID, INTEGER (BYTES) : hsDay)
+    IMPORT (ROUTINE VOID, INTEGER (BYTES) : hsMon)
+    IMPORT (ROUTINE VOID, INTEGER (BYTES) : hsYear)
+    IMPORT (ROUTINE VOID, INTEGER (BYTES) : trOrig)
+    IMPORT (ROUTINE VOID, INTEGER (BYTES) : trHops)
+    IMPORT (ROUTINE VOID, INTEGER (BYTES) : trId)
+    IMPORT (ROUTINE VOID, INTEGER (BYTES, INTEGER, INTEGER) : trStrip)
+    IMPORT (ROUTINE VOID, INTEGER (INTEGER, BYTES) : xrClamp)
+    IMPORT (ROUTINE VOID, xrAddr (BYTES) : xrAddrOf)
+    IMPORT (ROUTINE VOID, INTEGER (BYTES, INTEGER, INTEGER, INTEGER, INTEGER, &
+            BYTES, INTEGER, BYTES, INTEGER, INTEGER, INTEGER) : trEnc)
+    IMPORT (INTEGER : kTrkSaid)
+    IMPORT (INTEGER : kTrkRly)
+    IMPORT (INTEGER : kTrkRlId)
+    IMPORT (INTEGER : kTrkDir)
+    IMPORT (INTEGER : kTrkDBad)
+    IMPORT (INTEGER : maxHops)
     IMPORT (INTEGER : kJoin)
     IMPORT (INTEGER : kWelcome)
     IMPORT (INTEGER : kReject)
@@ -67,6 +97,7 @@ MODULE chattest
     % wrote three bytes past a 256-byte buffer while the text was clamped to
     % nothing. Nothing in this file ever passed a name longer than five bytes.
     BYTES : hugeNm(0:255)
+    xrAddr : addrA, addrB       % for the ADDR-of-a-parameter checks
 
     INTEGER : passed
     INTEGER : failed
@@ -126,6 +157,14 @@ MODULE chattest
     % no array bound - and one of the tests in this very file did exactly that,
     % claiming 512 for a 256-byte buffer.
     %
+    % Three BYTES declared FROM A LITERAL, which is a different shape from an
+    % array with explicit bounds. 'HELP' is 4, 'DROP-MEMBER' is 11 and
+    % 'RESTART-TRUNK' is 13 - all three are real CHAT-MON keywords, so if the
+    % bounds of this shape ever change these tests fail before a menu does.
+    BYTES : litShort := 'HELP'
+    BYTES : litVerb  := 'DROP-MEMBER'
+    BYTES : litLong  := 'RESTART-TRUNK'
+
     % If MAXINDEX works on a PARAMETER, the library can ask each array its own
     % size and stop trusting the caller at all. ND-60.117.5 3.17 says MAXINDEX
     % returns the DECLARED UPPER BOUND, and page 249 says it is NOT available on
@@ -393,6 +432,28 @@ MODULE chattest
         check('MAXINDEX sees a SMALLER ', askSize(nm), 15)
         check('MAXINDEX on a SUBARRAY  ', askSize(tx(0:9)), 9)
 
+        % ---- AND ON A BYTES DECLARED FROM A LITERAL? ----------------------
+        %
+        % THIS IS THE CASE THE WHOLE PRODUCT NOW LEANS ON. On 2026-08-31 the
+        % length parameter was removed from six helpers - putWord, logLine,
+        % buildAdmText, cmdIs, tryCmd and showIfMatch - and 93 hand-typed
+        % numbers went with it. Each now does MAXINDEX(text, 1) + 1 instead.
+        %
+        % Two of those, tryCmd and showIfMatch in CHAT-MON, are handed a
+        % MODULE-LEVEL BYTES declared from a literal rather than a literal at
+        % the call site. R115 measured MAXINDEX on array parameters and on a
+        % subarray; it did NOT measure this. The bounds SHOULD be 0:len-1, so
+        % MAXINDEX + 1 should be the length - but "should" is not measured, and
+        % if it is wrong the symptom is a menu where a command quietly stops
+        % matching, which reads as a logic bug and not as an array question.
+        %
+        % Three lengths on purpose: a short word, one that is not a round
+        % number, and one long enough to cross a byte boundary in a way a
+        % single case could not distinguish.
+        check('MAXINDEX on a literal   ', askSize(litShort) + 1, 4)
+        check('MAXINDEX literal, longer', askSize(litVerb) + 1, 11)
+        check('MAXINDEX literal, 13 chr', askSize(litLong) + 1, 13)
+
         % ---- THE DECODERS AGAINST THE ARITHMETIC THEY REPLACE -------------
         %
         % WHY THIS GROUP EXISTS. The client and the server each parse the header
@@ -450,6 +511,186 @@ MODULE chattest
         % the COUNT it covered, so a bound that silently shrinks is visible.
         check('header lengths agreed   ', at + 1, 253)
 
+        % ---- THE RELAY HEADER --------------------------------------------
+        %
+        % Three shapes share one buffer:
+        %
+        %   kTrkSaid  (51)   an ordinary chat frame, no relay header
+        %   kTrkRly   (52)   kind | origin high,low | hops | chat frame
+        %   kTrkRlId  (53)   kind | origin high,low | hops | id high,low | frame
+        %   kTrkDir   (54)   the same six as kTrkRlId
+        %
+        % This was parsed by hand in two places and never tested. A truncated
+        % relay header read as a chat frame builds a PLAUSIBLE message out of
+        % rubbish - the origin's high byte lands where the name length belongs -
+        % so the short cases below matter more than the happy ones.
+
+        check('trHLen of a plain kind  ', trHLen(kTrkSaid), 0)
+        check('trHLen of a say         ', trHLen(kSay), 0)
+        check('trHLen of kTrkRly       ', trHLen(kTrkRly), 4)
+        check('trHLen of kTrkRlId      ', trHLen(kTrkRlId), 6)
+        check('trHLen of kTrkDir       ', trHLen(kTrkDir), 6)
+        % A REFUSAL COMING HOME CARRIES THE SAME SIX BYTES. Miss this and
+        % trHLen answers 0, the header is read as a name length and a name,
+        % and the person is shown rubbish instead of being told their
+        % message was dropped - which is worse than the silence this kind
+        % exists to end.
+        check('trHLen of kTrkDBad      ', trHLen(kTrkDBad), 6)
+        check('kTrkDBad is 55          ', kTrkDBad, 55)
+
+        % ---- A HISTORY LINE CARRIES WHEN IT WAS SAID --------------------
+        %
+        % EIGHT, NOT SEVEN: trHLen counts the KIND byte too, the same way it
+        % does for the relay kinds - kTrkRly carries three fields and answers
+        % four. Off by one here leaves the name length one byte out and builds
+        % a whole message out of rubbish.
+        check('trHLen of kHist         ', trHLen(kHist), 8)
+
+        % The ND calendar, laid out as histReplay writes it and as the golden
+        % bytes in ChatMessageGoldenBytesTests pin it:
+        %   1 second  2 minute  3 hour  4 day  5 month  6..7 year, HIGH first
+        %
+        % 27 August 1998 at 13:24:05 - the SAME instant the C# test uses, so
+        % the two sides are pinned to one example rather than two that can
+        % drift apart without either failing.
+        kHist =: buf(0)
+        5 =: buf(1)
+        24 =: buf(2)
+        13 =: buf(3)
+        27 =: buf(4)
+        8 =: buf(5)
+        7 =: buf(6)
+        206 =: buf(7)
+        check('hsSec                   ', hsSec(buf), 5)
+        check('hsMin                   ', hsMin(buf), 24)
+        check('hsHour                  ', hsHour(buf), 13)
+        check('hsDay                   ', hsDay(buf), 27)
+        check('hsMon                   ', hsMon(buf), 8)
+
+        % THE FULL YEAR, 1998 and not 98. 7 * 256 + 206 is 1998; reading it as
+        % one byte answers 206, which looks like data and is not a year.
+        check('hsYear is the FULL year ', hsYear(buf), 1998)
+
+        % A BLOCK WRITTEN BEFORE THE TIME EXISTED SENDS ALL ZEROS, and the
+        % YEAR is what says so - not the whole value. Midnight exactly is a
+        % real time whose hour, minute and second are all zero, and it must
+        % never be mistaken for an absent one.
+        0 =: buf(1)
+        0 =: buf(2)
+        0 =: buf(3)
+        0 =: buf(6)
+        0 =: buf(7)
+        check('an unrecorded year is 0 ', hsYear(buf), 0)
+        check('midnight hour is still 0', hsHour(buf), 0)
+
+        % ---- a kind 52, built BY HAND so the encoder cannot agree with a bug
+        % Origin 258 is 1*256 + 2, which catches a reader that took only one
+        % byte or swapped them: a low-byte-only reader answers 2, a swapped one
+        % answers 513.
+        kTrkRly =: buf(0)
+        1 =: buf(1)
+        2 =: buf(2)
+        3 =: buf(3)
+        % ... and from byte 4, an ordinary frame: name 'ANNA', text 'hi'
+        4 =: buf(4)
+        65 =: buf(5)
+        78 =: buf(6)
+        78 =: buf(7)
+        65 =: buf(8)
+        0 =: buf(9)
+        2 =: buf(10)
+        104 =: buf(11)
+        105 =: buf(12)
+
+        check('relay origin is 258     ', trOrig(buf), 258)
+        check('relay hops is 3         ', trHops(buf), 3)
+
+        % 13 bytes in, 3 taken off the front, so 10 out - and byte 1 must now be
+        % the NAME LENGTH, which is what the rest of the decoder assumes.
+        trStrip(buf, 13, kTrkRly) =: len
+        check('kind 52 strips to 10    ', len, 10)
+        check('after strip, kind kept  ', cmKind(buf), kTrkRly)
+        check('after strip, name len 4 ', cmNmLen(buf), 4)
+        check('after strip, text len 2 ', cmTxLen(buf), 2)
+        check('after strip, text at 8  ', cmTxAt(buf), 8)
+        check('after strip, first is A ', buf(2), 65)
+        check('after strip, text is h  ', buf(8), 104)
+
+        % ---- a kind 53, two bytes longer, id 300 to catch a one-byte reader
+        kTrkRlId =: buf(0)
+        1 =: buf(1)
+        2 =: buf(2)
+        3 =: buf(3)
+        1 =: buf(4)
+        44 =: buf(5)
+        4 =: buf(6)
+        65 =: buf(7)
+        78 =: buf(8)
+        78 =: buf(9)
+        65 =: buf(10)
+        0 =: buf(11)
+        2 =: buf(12)
+        104 =: buf(13)
+        105 =: buf(14)
+
+        check('relay id is 300         ', trId(buf), 300)
+        check('kind 53 origin still 258', trOrig(buf), 258)
+        trStrip(buf, 15, kTrkRlId) =: len
+        check('kind 53 strips to 10    ', len, 10)
+        check('kind 53 name len 4      ', cmNmLen(buf), 4)
+        check('kind 53 text is h       ', buf(8), 104)
+
+        % ---- THE SHORT ONES, which are the reason this exists --------------
+        %
+        % A message exactly the length of its own header carries no frame, and
+        % sliding zero bytes would leave the OLD name length in place - so these
+        % must be refused, not merely survived.
+        kTrkRly =: buf(0)
+        check('kind 52 at 4 is refused ', trStrip(buf, 4, kTrkRly), -1)
+        check('kind 52 at 3 is refused ', trStrip(buf, 3, kTrkRly), -1)
+        check('kind 52 at 5 is allowed ', trStrip(buf, 5, kTrkRly), 2)
+        kTrkRlId =: buf(0)
+        check('kind 53 at 6 is refused ', trStrip(buf, 6, kTrkRlId), -1)
+        % SIX IS THE POINT: a message long enough for a kind 52 header can still
+        % be too short for a kind 53 one, and that is the case a single shared
+        % length test would have got wrong.
+        check('kind 53 at 5 is refused ', trStrip(buf, 5, kTrkRlId), -1)
+        check('kind 53 at 7 is allowed ', trStrip(buf, 7, kTrkRlId), 2)
+
+        % A kind with no relay header must pass through untouched, so a receive
+        % loop can call trStrip on everything without a special case.
+        check('a plain kind is untouched', trStrip(buf, 14, kSay), 14)
+
+        % ---- BUILD ONE AND TAKE IT APART AGAIN -----------------------------
+        %
+        % The round trip is the LAST check, not the first: an encoder and a
+        % decoder that are wrong the same way agree with each other perfectly,
+        % which is why every field above was asserted against a literal.
+        'ANNA' =: nm
+        'hello' =: tx
+        trEnc(bigBuf, kTrkRlId, 258, maxHops, 300, nm, 4, tx, 0, 5, 512) =: len
+        % 6 header + 1 name length + 4 name + 2 text length + 5 text = 18.
+        % There is NO second kind byte in front of the body - the kind is at
+        % byte 0 and is not repeated, which is what the hand-built cases above
+        % prove and what a first version of trEnc got wrong.
+        check('trEnc total length      ', len, 18)
+        check('trEnc origin            ', trOrig(bigBuf), 258)
+        check('trEnc hops              ', trHops(bigBuf), maxHops)
+        check('trEnc id                ', trId(bigBuf), 300)
+        check('trEnc kind              ', cmKind(bigBuf), kTrkRlId)
+
+        trStrip(bigBuf, len, kTrkRlId) =: len
+        % 18 in, 5 bytes of header taken off the front, 13 out.
+        check('trEnc strips to 13      ', len, 13)
+        check('trEnc name survives     ', cmNmLen(bigBuf), 4)
+        check('trEnc text survives     ', cmTxLen(bigBuf), 5)
+        check('trEnc name first byte A ', bigBuf(2), 65)
+        check('trEnc text first byte h ', bigBuf(8), 104)
+
+        % A kind that carries no relay header cannot be built as one.
+        check('trEnc refuses a say     ', &
+              trEnc(bigBuf, kSay, 258, 3, 300, nm, 4, tx, 0, 5, 512), -1)
+
         % ---- THE WIRE NUMBERS THEMSELVES ---------------------------------
         %
         % EVERY KIND, ASSERTED AGAINST A LITERAL. This is the half a round-trip
@@ -478,6 +719,137 @@ MODULE chattest
         check('kDirGot is 18           ', kDirGot, 18)
         check('kDirSent is 19          ', kDirSent, 19)
         check('kDirBad is 20           ', kDirBad, 20)
+
+        % THE TRUNK NUMBERS TOO. These cross a wire between MACHINES, one of
+        % which may be running an older build, so they are exactly as fixed as
+        % the client ones. kTrkRly and kTrkRlId are the PLANC names for what the
+        % registry calls TrunkRelay and TrunkRelayId - renamed because both read
+        % KTRKREL at seven characters, with the wire numbers untouched.
+        check('kTrkSaid is 51          ', kTrkSaid, 51)
+        check('kTrkRly is 52           ', kTrkRly, 52)
+        check('kTrkRlId is 53          ', kTrkRlId, 53)
+        check('kTrkDir is 54           ', kTrkDir, 54)
+        check('maxHops is 3            ', maxHops, 3)
+
+        % ---- xrClamp: the read length that keeps XMPFREA inside the buffer --
+        %
+        % THIS IS THE ONE ROUTINE HERE THAT STOPS A WRITE OVERFLOW rather than
+        % a wrong answer, so it is tested against FOUR DIFFERENT BUFFERS. That
+        % is the whole point: if MAXINDEX did not really ask each array, every
+        % one of these would answer the same and the differing sizes below
+        % would fail. It is the same proof as the array-parameter probe above,
+        % applied to the routine that matters most.
+        check('clamp 10 into nm(16)    ', xrClamp(10, nm), 10)
+        check('clamp 99 into nm(16)    ', xrClamp(99, nm), 16)
+        check('clamp 99 into tx(64)    ', xrClamp(99, tx), 64)
+        check('clamp 99 into buf(256)  ', xrClamp(99, buf), 99)
+        check('clamp 999 into buf(256) ', xrClamp(999, buf), 256)
+        check('clamp 999 into bigBuf   ', xrClamp(999, bigBuf), 512)
+
+        % EXACTLY FULL IS ALLOWED, one past it is not. A buffer declared
+        % (0:255) holds 256 bytes, so 256 is a legal read and 257 is not -
+        % the off-by-one that a hand-written "IF want > inBufSize" gets right
+        % only because the constant happens to say 256 and not 255.
+        check('clamp 256 into buf(256) ', xrClamp(256, buf), 256)
+        check('clamp 257 into buf(256) ', xrClamp(257, buf), 256)
+
+        % THE LOW END, which neither program clamped. A returned message
+        % carries an error status where the length belongs, so this field is
+        % not always a length - see the comment on the routine.
+        check('clamp 0 into buf        ', xrClamp(0, buf), 0)
+        check('clamp -1 into buf       ', xrClamp(-1, buf), 0)
+        check('clamp -32000 into buf   ', xrClamp(-32000, buf), 0)
+
+        % ---- ADDR OF A PARAMETER *IS* THE CALLER'S ARRAY. ANSWERED. ---------
+        %
+        % ASKED because the XMSG transport was about to move into a shared
+        % library, and a shared routine has to take ADDR of a PARAMETER - which
+        % nothing in this product had ever done. Every other ADDR here is taken
+        % of a MODULE-LEVEL array, in the same module as the call.
+        %
+        % THE ANSWER IS YES, measured on D100 2026-08-27:
+        %
+        %     ADDR param  1001        ADDR here  1001
+        %
+        % Identical, for all three arrays. So a routine may take the address of
+        % a buffer it was handed and give it to XMPFREA or XMPFWRI.
+        %
+        % IT TOOK THREE GOES, AND THE TWO WRONG ONES ARE THE LESSON.
+        %
+        % Attempt 1 forced both addresses to a bare INTEGER4 and got
+        % 3473663 against 65791 - different in both halves. They reproduced
+        % EXACTLY across two separate builds, which read as reliability, and
+        % the conclusion written down was "a parameter address is not the
+        % caller's array, the transport cannot be shared". Wrong.
+        %
+        % Attempt 2 assumed the trouble was the bare type and switched to a
+        % NAMED one, TYPE xrAddr = INTEGER4. Same two numbers, same warning.
+        % Also wrong, and wrong for the same unexamined reason.
+        %
+        % What both had was a WIDTH mismatch, and the pulled listing said so
+        % every time - a WARNING, not an error, on the call site as well as
+        % inside the routine:
+        %
+        %     715/CTMAIN  *** WARNING - ILLEGAL DATA-ELEMENT TO BE CONVERTED
+        %
+        % AN ADDRESS ON THIS MACHINE IS SIXTEEN BITS. XMP-B02:IMPT declares
+        %
+        %     TYPE XMUSERADDRESS = INTEGER          % NB: NEW MC68000 compiler!!
+        %
+        % and the line ABOVE it, which is where the mistake came from, is a
+        % COMMENT reading "modify XMUSERADDRESS = INTEGER4" - an instruction to
+        % widen it FOR THE MC68000. Taking that commented instruction for the
+        % declaration is what produced a 32-bit force. The extra word was
+        % adjacent memory, which is why the junk was stable enough to look like
+        % a measurement.
+        %
+        % THREE THINGS WORTH KEEPING:
+        %
+        %   a WARNING can invalidate a result as thoroughly as an ERROR - which
+        %   is why the gate prints warnings and not only errors;
+        %
+        %   reproducible is not the same as correct;
+        %
+        %   read the DECLARATION, not the first line that matches the name. A
+        %   commented-out instruction sat one line above the real one.
+        xrAddrOf(buf) =: addrA
+        ADDR(buf(0)) FORCE xrAddr =: addrB
+
+        % PRINT THEM BOTH BEFORE JUDGING. The check below failed on its first
+        % run, and there are two quite different reasons it could:
+        %
+        %   the parameter address really is not the caller's array - in which
+        %   case the transport cannot be shared in this shape at all; or
+        %
+        %   ADDR gives a POINTER and FORCE INTEGER4 reads a word of whatever
+        %   sits next to it, so the comparison is measuring garbage in the high
+        %   half while the address itself is perfectly fine.
+        %
+        % The working product forces ADDR to XMUSERADDRESS, which XMP-B02:IMPT
+        % declares as INTEGER4, so the idiom itself is sound. Printing the
+        % numbers says which of the two this is; reasoning about it does not.
+        OUTPUT(1, 'AL', 'ADDR param  ')
+        OUTPUT(1, 'I', addrA)
+        OUTPUT(1, 'AL', '   ADDR here  ')
+        OUTPUT(1, 'I', addrB)
+        OUTPUT(1, 'AL', '$')
+
+        checkB('param addr = here buf   ', addrA = addrB, TRUE)
+
+        xrAddrOf(nm) =: addrA
+        ADDR(nm(0)) FORCE xrAddr =: addrB
+        checkB('param addr = here nm    ', addrA = addrB, TRUE)
+
+        xrAddrOf(bigBuf) =: addrA
+        ADDR(bigBuf(0)) FORCE xrAddr =: addrB
+        checkB('param addr = here bigBuf', addrA = addrB, TRUE)
+
+        % Three separate arrays cannot share a start address, so these catch a
+        % routine that ignores its parameter and hands back one fixed thing.
+        % They PASSED even under the illegal conversion, which is exactly why
+        % they were never evidence that the rest of the probe was sound.
+        checkB('buf and nm differ       ', xrAddrOf(buf) = xrAddrOf(nm), FALSE)
+        checkB('nm and bigBuf differ    ', xrAddrOf(nm) = xrAddrOf(bigBuf), FALSE)
 
         % ---- the count ---------------------------------------------------
         OUTPUT(1, 'AL', '$')

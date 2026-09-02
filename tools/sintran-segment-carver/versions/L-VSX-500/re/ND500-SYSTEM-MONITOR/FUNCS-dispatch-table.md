@@ -138,7 +138,7 @@ command  -> [caller] thunk SAA <code>  -> gateway -> MON 60
 `FUNCS` is the implementation list for the ND-500 side of MON 60B. The routines that touch the ND-500
 hardware / 5MPM message live here: `REGRE`/`REGWR` (register access via the memory-mapped register
 block), `PMREA`/`PMWRI`/`AMEMR`/`AMEMW` (memory transfer), `CSLOA` (control-store load - the gate that
-wedged the emulator), `MPSTA`/`MPSTO`/`5MCLE` (micro start/stop/master-clear), `RSTAT` (interface
+hung the emulator), `MPSTA`/`MPSTO`/`5MCLE` (micro start/stop/master-clear), `RSTAT` (interface
 status - what the "control store loaded?" check reads). These are the concrete routines to carve for
 Phase 1 (5MPM handshake) and Phase 3 (bus interface / bring-up).
 

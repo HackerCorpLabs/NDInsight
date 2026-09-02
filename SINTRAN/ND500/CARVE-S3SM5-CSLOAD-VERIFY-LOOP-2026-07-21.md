@@ -148,10 +148,10 @@ NDBusND500IF.cs implements the CS store + read-back verify the loader checks:
 - `csStore[index] = csBreakRegister` on CNTCLK LOAD, `csReadLatch = csStore[index]`
   on READ (lines 1699-1718), DATA-OUT enabled by DUEN/EDUTEN (1719-1722). The
   comment at 1686-1692 states the read-back verify is satisfied now (was the old
-  "Error in loading Control Store" wedge).
+  "Error in loading Control Store" hang).
 - RETG5 (IOX +17) micro-clock stop/restart -> 5CLOST (bit 9) set/cleared
   (lines 2102-2137); MicroClockStopped modeled at 2115/2133.
-- The "Loading Control Store" wedge (5CLOST stuck / idle RSTA5 = $204) is
+- The "Loading Control Store" hang (5CLOST stuck / idle RSTA5 = $204) is
   documented as FIXED (lines 1827-1851, 1965-1988).
 
 So the 3022-side CS-load verify is NOT the current stall. [V for code presence;
@@ -217,7 +217,7 @@ specific non-terminating loop, which needs the live trace (section 6).
 - [V] Emulator's cited "153011B IOXT" is really a table bit-set loop in S3SM5;
   the real CS poll is in another overlay.
 - [V] NDBusND500IF CS-load store + read-back verify + RETG5/5CLOST already modeled
-  and the CS-load wedge is fixed.
+  and the CS-load hang is fixed.
 - [I] The band is a SOFTWARE wait on swapper-produced ND-100 table state; premise
   of "3022 verify poll" is wrong.
 - [I] Fix is servicer-side: functional swapper must ANSWER + build ND-500 tables.

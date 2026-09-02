@@ -134,6 +134,23 @@ The compiler produces three files:
 - **`MAXINDEX` works on an array PARAMETER, and on a SUBARRAY** -- measured on D100.
   `MAXINDEX(a, 1) + 1` is the real length of a `BYTES` parameter, so a routine can bound itself
   instead of believing a size its caller passed. Not available inside a `STANDARD` routine. See R115
+- **NEVER write a helper that takes `(text, textLen)`.** That signature makes every call site type
+  a number nothing can check -- not the compiler, not the linker, not a test. It is right the day
+  it is written and wrong the first time somebody edits the wording, and it still builds clean.
+  Derive it instead: `MAXINDEX(text, 1) + 1 =: textLen` as the first line of the routine.
+  **MEASURED 2026-08-31: 93 hand-typed lengths deleted from the chat product in one sitting** --
+  29 `putWord`, 19 `logLine`, 18 `buildAdmText`, 15 `tryCmd`, 14 `cmdIs`, 12 `showIfMatch`. All 93
+  happened to be correct, so this removed a hazard rather than a fault; auditing them first is a
+  dozen lines of Python and tells you which of the two you are doing. Two preconditions, both easy
+  to check: every call site must pass a **literal** (a caller handing a 64-byte buffer that holds a
+  10-byte name would get 64, so where the text is a buffer the length is real information and must
+  still be passed), and the routine must not be `STANDARD`. `planc-lint.py` keeps two named lists,
+  `LITERAL_LENGTH_HELPERS` (deliberately empty -- that is the goal) and `DERIVES_ITS_OWN_LENGTH`,
+  and refuses the old shape if it returns. See R121
+- **One trap, three costumes.** A `'ALn'` field width, a hand-counted length beside a literal, and
+  a start column written as `65 - length` are the same defect: a number a human counted, that
+  nothing verifies, that builds clean when wrong. Treat any of the three as a signal to look for
+  the other two. See R28 and R121
 - **PLANC checks no array bounds, and that reaches the TESTS too.** A clamp that bounds only one of
   several fields is not a clamp (R116), and a test that overflows an array still PASSES, because its
   assertions land on bytes that are in bounds (R117). Assert the TOTAL length against the buffer
